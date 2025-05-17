@@ -152,37 +152,45 @@ async function updateJongroBusList(url, busnumber) {
   }
 }
 
-setInterval(() => {
-  updateJongroBusList(process.env.API_JONGRO07_LIST_PROD, "07").catch(
-    console.error
-  );
-}, 15000);
-// 1500000
-// );
+setInterval(
+  () => {
+    updateJongroBusList(process.env.API_JONGRO07_LIST_PROD, "07").catch(
+      console.error
+    );
+  },
+  // 15000);
+  1500000
+);
 
-setInterval(() => {
-  updateJongroBusList(process.env.API_JONGRO02_LIST_PROD, "02").catch(
-    console.error
-  );
-}, 15000);
-// 1500000
-// );
+setInterval(
+  () => {
+    updateJongroBusList(process.env.API_JONGRO02_LIST_PROD, "02").catch(
+      console.error
+    );
+  },
+  // 15000);
+  1500000
+);
 
-setInterval(() => {
-  updateJongroBusLocation(process.env.API_JONGRO07_LOC_PROD, "07").catch(
-    console.error
-  );
-}, 15000);
-// 1500000
-// );
+setInterval(
+  () => {
+    updateJongroBusLocation(process.env.API_JONGRO07_LOC_PROD, "07").catch(
+      console.error
+    );
+  },
+  // 15000);
+  1500000
+);
 
-setInterval(() => {
-  updateJongroBusLocation(process.env.API_JONGRO02_LOC_PROD, "02").catch(
-    console.error
-  );
-}, 15000);
-// 1500000
-// );
+setInterval(
+  () => {
+    updateJongroBusLocation(process.env.API_JONGRO02_LOC_PROD, "02").catch(
+      console.error
+    );
+  },
+  // 15000);
+  1500000
+);
 
 function getJongroBusList(busnumber) {
   console.log("Serving getJongroBusList: ", filteredBusStations[busnumber]);

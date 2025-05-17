@@ -12,41 +12,51 @@ const collectionName = process.env.MONGO_DB_NAME_MAP_PLACES_INFO;
 const client = new MongoClient(url);
 
 // 현재 위치를 기준으로 주변 장소를 검색하는 함수
-async function getAroundPlaceData(currentLat, currentLon, searchRadius) {
+async function getAroundPlaceData(
+  southWestlat,
+  southWestlon,
+  northEastlat,
+  northEastlon
+) {
   let result = await client.connect();
   let db = result.db(database);
   const collection = db.collection(collectionName);
   const docs = await collection.find({}).toArray();
-  console.log("params:", currentLat, currentLon, searchRadius);
+  console.log(
+    "params:",
+    southWestlat,
+    southWestlon,
+    northEastlat,
+    northEastlon
+  );
   console.log("Fetched documents:", docs);
-  const toRad = (deg) => (deg * Math.PI) / 180;
-  const R = 6371; // Earth radius in km
-  const filtered = docs.filter((doc) => {
-    const dLat = toRad(doc.latitude - currentLat);
-    const dLon = toRad(doc.longitude - currentLon);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(currentLat)) *
-        Math.cos(toRad(doc.latitude)) *
-        Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const dist = R * c;
-    return dist <= searchRadius;
-  });
+  const filtered = docs.filter(
+    (doc) =>
+      doc.latitude >= southWestlat &&
+      doc.latitude <= northEastlat &&
+      doc.longitude >= southWestlon &&
+      doc.longitude <= northEastlon
+  );
   console.log("Filtered documents:", filtered);
   return filtered;
 }
 
 router.get("/v1/:getaroundplacedata", async (req, res) => {
-  const currentLat = parseFloat(req.query.lat);
-  const currentLon = parseFloat(req.query.lon);
-  const searchRadius = parseFloat(req.query.radius);
+  const southWestlat = parseFloat(req.query.southWestlat);
+  const southWestlon = parseFloat(req.query.southWestlon);
+  const northEastlat = parseFloat(req.query.northEastlat);
+  const northEastlon = parseFloat(req.query.northEastlon);
+  // const searchRadius = parseFloat(req.query.radius);
   const documents = await getAroundPlaceData(
-    currentLat,
-    currentLon,
-    searchRadius
+    southWestlat,
+    southWestlon,
+    northEastlat,
+    northEastlon
   );
   res.json({ result: documents });
 });
 
-module.exports = router;
+module.exports = {
+  router,
+  getAroundPlaceData,
+};

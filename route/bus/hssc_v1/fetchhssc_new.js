@@ -96,7 +96,7 @@ async function updateHSSCBusList() {
 // 15초마다 updateHSSCBusList 함수를 실행
 setInterval(
   updateHSSCBusList,
-  10000
+  1000000
   // 1000
 );
 
