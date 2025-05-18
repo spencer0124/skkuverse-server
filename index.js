@@ -32,7 +32,9 @@ const schoolnoticeRoute = require("./route/schoolnotice/schoolnotice.js");
 // const pollRoute = require("./route/poll/poll.js");ㅌ
 const campusRoute = require("./route/bus/campus/campus.js");
 
-const { router: mapRouter } = require("./route/map/map_place_info/getAroundPlaceData.js");
+const {
+  router: mapRouter,
+} = require("./route/map/map_place_info/getAroundPlaceData.js");
 app.use("/search", searchRoute);
 app.use("/bus/hssc", newhsscRoute);
 app.use("/bus/hssc_new", newhsscRoute);

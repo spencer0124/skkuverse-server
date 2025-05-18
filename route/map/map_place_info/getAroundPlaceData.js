@@ -30,13 +30,15 @@ async function getAroundPlaceData(
     northEastlon
   );
   console.log("Fetched documents:", docs);
-  const filtered = docs.filter(
-    (doc) =>
-      doc.latitude >= southWestlat &&
-      doc.latitude <= northEastlat &&
-      doc.longitude >= southWestlon &&
-      doc.longitude <= northEastlon
-  );
+  const filtered = docs.filter((doc) => {
+    const { latitude, longitude } = doc.place_metadata;
+    return (
+      latitude >= southWestlat &&
+      latitude <= northEastlat &&
+      longitude >= southWestlon &&
+      longitude <= northEastlon
+    );
+  });
   console.log("Filtered documents:", filtered);
   return filtered;
 }
