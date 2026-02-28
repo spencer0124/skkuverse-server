@@ -9,3 +9,9 @@ node_modules/
 
 # OS
 .DS_Store
+
+# Test coverage
+coverage/
+
+# Collected API fixtures (raw data)
+__fixtures__/
