@@ -1,27 +1,29 @@
 // nodemon index.js 명령어로 서버 실행
 
-// import swaggerFile from "../swagger/swagger-output.json";
-// import swaggerUi from "swagger-ui-express";
-
 // Import the express module
 const express = require("express");
+const swaggerUi = require("swagger-ui-express");
+
+let swaggerFile;
+try {
+  swaggerFile = require("./swagger/swagger-output.json");
+} catch (e) {
+  console.warn("swagger-output.json not found. Run 'npm run swagger' to generate it.");
+}
 
 // Create an instance of express
 const app = express();
 
 // Define a port number
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // swagger api docs
-// app.use(
-//   "/api-docs",
-//   swaggerUi.serve,
-//   swaggerUi.setup(swaggerFile, { explorer: true })
-// );
+if (swaggerFile) {
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile, { explorer: true }));
+}
 
 // Route
 const searchRoute = require("./route/search/search.js");
-const hsscRoute = require("./route/bus/hssc_v0/hssc.js");
 const newhsscRoute = require("./route/bus/hssc_v1/hssc_new.js");
 const jongroRoute = require("./route/bus/jongro/jongro.js");
 const stationRoute = require("./route/station/station.js");
@@ -40,8 +42,10 @@ app.use("/poll/", pollRoute);
 app.use("/campus/", campusRoute);
 
 // Start the server on the specified port
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
 
-
+module.exports = app;
