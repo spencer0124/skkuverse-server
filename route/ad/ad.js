@@ -5,7 +5,8 @@ const { getData } = require("../poll/poll.js");
 // Define your function properly
 function getAdList() {
   return {
-    image: "https://i.imgur.com/VEJpasQ.png",
+	 // image: "https://i.imgur.com/TxSexX4.jpeg",
+	   image: "https://i.imgur.com/VEJpasQ.png",
     // image: "https://i.imgur.com/UULWt9P.png",
     // image: "https://i.imgur.com/A620zXw.png",
     // image: "https://i.imgur.com/yOcuOY8.png",
@@ -13,12 +14,13 @@ function getAdList() {
     image2: "",
     // image2: "https://i.imgur.com/niiVxOH.png",
     // link: "instagram://user?username=skkubus.app",
-    link: "https://youtu.be/rameVU9T7dE?si=RArLhrPFjvv3gWo-",
+    // link: "https://youtu.be/rameVU9T7dE?si=RArLhrPFjvv3gWo-",
     // link: "https://www.youtube.com/@subs_1955",
-    showtext: true,
+   link: "http://pf.kakao.com/_cjxexdG",
+	  showtext: true,
     text: "스꾸버스 카카오톡 채널 - 문의하기",
     showtext2: false,
-    text2: "👆 성대생이라면 이 자리, 무료 광고 (구글폼 작성)",
+    text2: "인자셔틀 - 토/일/공휴일 운행없음",
     // text1은 선택한 url로 단순이동
     // text2는 /v1/notice에서 실행할 url을 받는 방식이다
     // 또한 text2는 기기의 uuid를 가져올 수 있다

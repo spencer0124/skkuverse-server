@@ -41,8 +41,8 @@ async function getData(bustype) {
   }
 
   let collection = db.collection(collectionname);
-  let documents = await collection.find().toArray();
-
+  // let documents = await collection.find().toArray();
+  let documents = await collection.find().sort({ index: 1 }).toArray();
   // 실제 시간
   const currentTime = moment().tz("Asia/Seoul");
 
@@ -91,7 +91,8 @@ async function getData(bustype) {
 
   // Return all documents, including those where isAvailableBus is false
   //   return documents;
-  return await collection.find().toArray();
+  // return await collection.find().toArray();
+	return await collection.find().sort({ index: 1 }).toArray();
 }
 
 router.get("/v1/campus/:bustype", async (req, res) => {

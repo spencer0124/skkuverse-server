@@ -49,9 +49,9 @@ function getBusList() {
         pageWebviewLink: null,
         altPageLink: "https://namu.wiki/w/%EB%8F%84%EB%A7%9D%EC%B3%90",
         useAltPageLink: false,
-        noticeText: null,
+        noticeText: "25년도 2학기 인자셔틀 시간표 업데이트",
         showAnimation: false,
-        showNoticeText: false,
+        showNoticeText: true,
       },
       {
         title: "종로 02",
