@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  skkumap-server:
+    build: .
+    ports:
+      - "1398:3000"
+    env_file:
+      - .env
+    restart: unless-stopped
