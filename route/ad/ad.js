@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const { getData } = require("../poll/poll.js");
 
 // Define your function properly
 function getAdList() {

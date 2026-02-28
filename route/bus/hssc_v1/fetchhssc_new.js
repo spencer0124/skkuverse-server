@@ -12,7 +12,6 @@ const stopNameMapping = {
   "문묘입구[정문]-등교": "정문",
   "600주년기념관 앞-등교": "600주년기념관",
   농구장정류소: "농구장 (셔틀버스정류소)",
-  "600주년기념관 앞-하교": "학생히관",
   "문묘입구[정문]-하교": "정문",
   올림픽기념국민생활관: "올림픽기념국민생활관 [하차전용]",
   "600주년기념관 앞-하교": "600주년기념관",
@@ -22,7 +21,7 @@ const stopNameMapping = {
 // api를 요청하고, 응답을 정제하여 filteredHSSCStations에 저장하는 함수
 async function updateHSSCBusList() {
 	try {
-    axios.get('https://hc-ping.com/4947983b-26db-46dc-a906-81c60d3f889d');
+    axios.get('https://hc-ping.com/4947983b-26db-46dc-a906-81c60d3f889d').catch(() => {});
     // 응답을 처리하지 않습니다.
   } catch (error) {
     // 오류가 발생해도 무시합니다.
@@ -47,7 +46,7 @@ async function updateHSSCBusList() {
             station.line_no === item.line_no && station.stop_no === item.stop_no
         );
 
-        let eventDate;
+        let eventDateTime;
         if (existingItem && existingItem.eventDate) {
           eventDateTime = moment(existingItem.eventDate, "YYYY-MM-DD HH:mm:ss");
         } else {
@@ -55,8 +54,8 @@ async function updateHSSCBusList() {
         }
 
         const timeDiff = (currentTime - eventDateTime) / 1000;
-        sequencetoint = parseInt(item.seq);
-        realsequence =
+        const sequencetoint = parseInt(item.seq);
+        const realsequence =
           sequencetoint - 5 >= 0
             ? sequencetoint - 5 + 1
             : sequencetoint + 6 + 1;
@@ -89,7 +88,6 @@ async function updateHSSCBusList() {
             .subtract(10, "minutes");
           return !itemTime.isBefore(comparisonTime);
         }
-        return true;
       });
 
     filteredHSSCStations = updatedData;

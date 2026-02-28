@@ -475,10 +475,11 @@ let Jongrotations = {
 
 // 전체 정류장 목록 (각 정류장별 Eta 포함)
 router.get("/v1/busstation/:line", async (req, res) => {
+  try {
   const busLine = req.params.line;
 
-  response = getJongroInfo.getJongroBusList(busLine);
-  response2 = getJongroInfo.getJongroBusLocation(busLine);
+  const response = getJongroInfo.getJongroBusList(busLine);
+  const response2 = getJongroInfo.getJongroBusLocation(busLine);
 
   const metadata = {
     currentTime: new Date().toLocaleTimeString("en-US", {
@@ -505,23 +506,30 @@ router.get("/v1/busstation/:line", async (req, res) => {
   var HSSCStations = Jongrotations[busLine];
 
   res.json({ metadata, HSSCStations });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // 현재 운영중인 버스 정보
 router.get("/v1/buslocation/:line", async (req, res) => {
-  const busLine = req.params.line;
+  try {
+    const busLine = req.params.line;
 
-  response = getJongroInfo.getJongroBusLocation(busLine);
-  if (response == undefined) {
-    res.json([]);
-  }
-  // console.log("response", response);
-  else {
-    response = response.map((station) => ({
-      ...station,
-      isLastBus: false,
-    }));
+    let response = getJongroInfo.getJongroBusLocation(busLine);
+    if (response == undefined) {
+      res.json([]);
+    } else {
+      response = response.map((station) => ({
+        ...station,
+        isLastBus: false,
+      }));
 
-    res.json(response);
+      res.json(response);
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });

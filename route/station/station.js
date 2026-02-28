@@ -110,9 +110,10 @@ let HSSCStations = [
 ];
 
 router.get("/v1/:stationId", async (req, res) => {
-  var stationId = req.params.stationId;
+  try {
+  const stationId = req.params.stationId;
 
-  dynamicBusData = await getHSSCBusList.getHSSCBusList();
+  const dynamicBusData = await getHSSCBusList.getHSSCBusList();
 
   HSSCStations = HSSCStations.map((station) => {
     const busesInProximity = dynamicBusData
@@ -226,5 +227,9 @@ router.get("/v1/:stationId", async (req, res) => {
     });
   } else {
     res.json([]);
+  }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });

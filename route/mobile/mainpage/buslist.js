@@ -10,7 +10,7 @@ noticeText: String?
 function getBusList() {
   return {
     metaData: {
-      busList_count: 5,
+      busList_count: 4,
     },
     busList: [
       // {

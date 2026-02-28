@@ -118,34 +118,13 @@ let HSSCStations = [
 ];
 
 router.get("/v1/buslocation", async (req, res) => {
-  // real
-  response = await getHSSCBusList.getHSSCBusList();
-  res.json(response);
-
-  // test;
-  // res.json([
-  //   {
-  //     sequence: "1",
-  //     stationName: "몰라임마",
-  //     carNumber: "101",
-  //     eventDate: "상관없어 임마",
-  //     estimatedTime: 50,
-  //   },
-  //   {
-  //     sequence: "10",
-  //     stationName: "몰라임마",
-  //     carNumber: "2049",
-  //     eventDate: "상관없어 임마",
-  //     estimatedTime: 20,
-  //   },
-  //   {
-  //     sequence: "10",
-  //     stationName: "몰라임마",
-  //     carNumber: "1023",
-  //     eventDate: "상관없어 임마",
-  //     estimatedTime: 120,
-  //   },
-  // ]);
+  try {
+    const response = await getHSSCBusList.getHSSCBusList();
+    res.json(response);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // router.get("/v1/busstation", (req, res) => {
@@ -153,8 +132,9 @@ router.get("/v1/buslocation", async (req, res) => {
 // });
 
 router.get("/v1/busstation", async (req, res) => {
+  try {
   // 현재 운전하고 있는 버스 목록 받음
-  dynamicBusData = await getHSSCBusList.getHSSCBusList();
+  const dynamicBusData = await getHSSCBusList.getHSSCBusList();
 
   //   HSSCStations = HSSCStations.map((station) => {
   //     const busesInProximity = dynamicBusData
@@ -239,4 +219,8 @@ router.get("/v1/busstation", async (req, res) => {
     lastStationIndex: 10,
   };
   res.json({ metadata, HSSCStations });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
