@@ -27,40 +27,44 @@ async function updateJongroBusLocation(url, busnumber) {
 
     const currentBusStationTimes = busStationTimes[busnumber];
 
-    filteredBusLocations[busnumber] = apiData.map((item) => {
-      const { lastStnId, tmX, tmY, plainNo } = item;
+    filteredBusLocations[busnumber] = apiData
+      .map((item) => {
+        const { lastStnId, tmX, tmY, plainNo } = item;
+        const mapping = busStationMapping[busnumber]?.[lastStnId];
+        if (!mapping) return null;
 
-      let estimatedTime = 0;
+        let estimatedTime = 0;
 
-      if (
-        (currentTime - new Date(currentBusStationTimes[lastStnId])) /
-          1000 /
-          60 >
-        STALE_MINUTES
-      ) {
-        delete currentBusStationTimes[lastStnId];
-      }
+        if (
+          (currentTime - new Date(currentBusStationTimes[lastStnId])) /
+            1000 /
+            60 >
+          STALE_MINUTES
+        ) {
+          delete currentBusStationTimes[lastStnId];
+        }
 
-      if (currentBusStationTimes[lastStnId]) {
-        const lastRecordTime = new Date(currentBusStationTimes[lastStnId]);
-        estimatedTime = Math.round((currentTime - lastRecordTime) / 1000);
-      } else {
-        currentBusStationTimes[lastStnId] = currentTime.toISOString();
-      }
+        if (currentBusStationTimes[lastStnId]) {
+          const lastRecordTime = new Date(currentBusStationTimes[lastStnId]);
+          estimatedTime = Math.round((currentTime - lastRecordTime) / 1000);
+        } else {
+          currentBusStationTimes[lastStnId] = currentTime.toISOString();
+        }
 
-      return {
-        sequence: busStationMapping[busnumber][lastStnId].sequence.toString(),
-        stationName: busStationMapping[busnumber][lastStnId].stationName,
-        carNumber: plainNo.slice(-4),
-        eventDate: currentBusStationTimes[lastStnId],
-        estimatedTime: estimatedTime,
+        return {
+          sequence: mapping.sequence.toString(),
+          stationName: mapping.stationName,
+          carNumber: plainNo.slice(-4),
+          eventDate: currentBusStationTimes[lastStnId],
+          estimatedTime: estimatedTime,
 
-        stationId: lastStnId,
-        latitude: tmY,
-        longitude: tmX,
-        recordTime: currentBusStationTimes[lastStnId],
-      };
-    });
+          stationId: lastStnId,
+          latitude: tmY,
+          longitude: tmX,
+          recordTime: currentBusStationTimes[lastStnId],
+        };
+      })
+      .filter(Boolean);
   } catch (error) {
     console.error("[jongro] Failed to update bus location:", error.message);
   }

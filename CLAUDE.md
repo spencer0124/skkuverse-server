@@ -77,4 +77,4 @@ Tests mock external dependencies (axios, MongoDB, pollers) so no real API calls 
 
 ### Environment Variables
 
-Requires `.env` with: MongoDB connection (`MONGO_URL`, `MONGO_DB_NAME_*`, `MONGO_AD_DB_NAME`), bus API endpoints (`API_HSSC_*_PROD`, `API_HSSC_*_DEV`, `API_JONGRO*_PROD`, `API_JONGRO*_DEV`, `API_STATION_*`), and Naver Maps keys (`NAVER_API_KEY_ID`, `NAVER_API_KEY`). See `lib/config.js` for the full list. `NODE_ENV` and `USE_PROD_API` are set per execution context (CLI/Docker), not in `.env`.
+Requires `.env` with: MongoDB connection (`MONGO_URL`, `MONGO_DB_NAME_*`, `MONGO_AD_DB_NAME`), bus API endpoints (`API_HSSC_*_PROD`, `API_HSSC_*_DEV`, `API_JONGRO*_PROD`, `API_JONGRO*_DEV`, `API_STATION_*`), and Firebase credentials (`FIREBASE_SERVICE_ACCOUNT`). See `lib/config.js` for the full list. `NODE_ENV` and `USE_PROD_API` are set per execution context (CLI/Docker), not in `.env`.

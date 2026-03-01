@@ -38,10 +38,10 @@ router.post(
   asyncHandler(async (req, res) => {
     const { placement, event, adId } = req.body;
 
-    if (!placement || !event) {
+    if (!placement || !event || typeof placement !== "string" || typeof event !== "string") {
       return res
         .status(400)
-        .json({ error: "placement and event are required" });
+        .json({ error: "placement and event are required and must be strings" });
     }
 
     const validEvents = ["view", "click"];

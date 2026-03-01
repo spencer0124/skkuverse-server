@@ -8,6 +8,7 @@ async function updateStation() {
   try {
     const response = await axios.get(config.api.stationHyehwa, { timeout: 10000 });
     const apiData = response.data.msgBody.itemList;
+    if (!apiData || apiData.length === 0) return;
     arrmsg1 = apiData[0].arrmsg1;
   } catch (error) {
     console.error("[station] Failed to update station info:", error.message);

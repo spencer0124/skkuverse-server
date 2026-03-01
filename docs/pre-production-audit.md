@@ -183,3 +183,165 @@ All P0 (1-6) and P1 (7-12) items complete:
 3. `npm audit` → 0 vulnerabilities (Item 1)
 
 P2 items (13-20) deferred to post-launch.
+
+---
+
+## Second Audit (2026-03-01)
+
+Deep inspection across security, reliability, and deployment. Items A-G are new fixes; H-M are hardening.
+
+### A. `trust proxy` not configured — rate limiter sees wrong IP behind proxy
+
+**Problem**: Behind Docker/nginx, `req.ip` is always `127.0.0.1`. All clients share one rate-limit bucket.
+
+**Status**: DONE
+- Added `app.set("trust proxy", 1)` in `index.js` before helmet/rate-limiters
+- `1` = trust first proxy (Docker/nginx). Express uses `X-Forwarded-For` header for `req.ip`
+
+---
+
+### B. Swagger UI exposed in production
+
+**Problem**: `index.js:23-25` — `/api-docs` serves full API schema to anyone in production.
+
+**Status**: DONE
+- Changed gate to `if (swaggerFile && !config.isProduction)` — Swagger UI only mounts in dev
+- `config.isProduction` already defined in `lib/config.js`
+
+---
+
+### C. `placement`/`event` not type-checked in POST /ad/v1/events
+
+**Problem**: `ad.routes.js:39` — sending `{"placement": {"$gt": ""}}` passes truthiness check, inserts malformed doc into MongoDB.
+
+**Status**: DONE
+- Added `typeof placement !== "string" || typeof event !== "string"` to validation
+- NoSQL injection via object-typed body fields now returns 400
+
+---
+
+### D. No resource limits in docker-compose
+
+**Problem**: `docker-compose.yml` — no `mem_limit` or `cpus`. Memory leak could crash the host.
+
+**Status**: DONE
+- Added `mem_limit: 512m` and `cpus: 1.0` to `docker-compose.yml`
+- 512MB is generous for this Express app; caps runaway memory leaks
+
+---
+
+### E. No logging limits in docker-compose
+
+**Problem**: Default `json-file` driver with no `max-size` can fill disk.
+
+**Status**: DONE
+- Added `logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }`
+- Caps container logs at 30MB total (3 × 10MB rotated files)
+
+---
+
+### F. HTTP server not closed during shutdown
+
+**Problem**: `index.js:84,95` — `app.listen()` server not `.close()`'d. In-flight requests killed by `process.exit()`.
+
+**Status**: DONE
+- Captured `app.listen()` return in `const server`
+- Added `server.close()` in shutdown handler before `closeClient()`
+- In-flight HTTP requests now drain before exit
+
+---
+
+### G. Double SIGINT runs shutdown twice
+
+**Problem**: `index.js:106-107` — pressing Ctrl+C twice runs shutdown concurrently. Potential double-close on MongoClient.
+
+**Status**: DONE
+- Added `let shuttingDown = false` guard with early return at top of `shutdown()`
+- Second SIGINT/SIGTERM is now a no-op
+
+---
+
+### H. Jongro fetcher crashes on unknown station ID
+
+**Problem**: `jongro.fetcher.js:52` — `busStationMapping[busnumber][lastStnId]` throws if station ID not in mapping. Entire update fails silently.
+
+**Status**: DONE
+- Added `const mapping = busStationMapping[busnumber]?.[lastStnId]` with `if (!mapping) return null`
+- Added `.filter(Boolean)` after `.map()` to strip nulls
+- Unknown station IDs now silently skipped instead of crashing the entire update
+
+---
+
+### I. Station fetcher crashes on empty itemList
+
+**Problem**: `station.fetcher.js:11` — `apiData[0].arrmsg1` throws if API returns empty array. Stale value persists.
+
+**Status**: DONE
+- Added `if (!apiData || apiData.length === 0) return` guard before array access
+- On empty response, last known value is preserved (stale > crashed)
+
+---
+
+### J. Remove vestigial `yarn.lock`
+
+**Problem**: Docker uses `npm ci`. `yarn.lock` (184KB) is dead weight in image and repo.
+
+**Status**: DONE
+- Deleted `yarn.lock` (184KB)
+- Added `yarn.lock` to `.gitignore` to prevent recreation
+
+---
+
+### K. Add `docs/`, `scripts/` to `.dockerignore`
+
+**Problem**: Dev-only files copied into production Docker image unnecessarily.
+
+**Status**: DONE
+- Added `docs/`, `scripts/`, `yarn.lock` to `.dockerignore`
+- Reduces Docker build context and final image size
+
+---
+
+### L. Remove stale `NAVER_API_KEY*` from CLAUDE.md
+
+**Problem**: `CLAUDE.md:80` references `NAVER_API_KEY_ID` and `NAVER_API_KEY` but they don't exist anywhere in code.
+
+**Status**: DONE
+- Replaced `Naver Maps keys (NAVER_API_KEY_ID, NAVER_API_KEY)` with `Firebase credentials (FIREBASE_SERVICE_ACCOUNT)`
+- Verified: `NAVER_API_KEY` has zero references in source code
+
+---
+
+### M. Remove deprecated `version` key from docker-compose.yml
+
+**Problem**: `version: "3.8"` is ignored by Docker Compose V2 and generates a warning.
+
+**Status**: DONE
+- `version` key was already removed during Item D/E edit
+
+---
+
+## Second Audit — Files Modified
+
+| Item | Files | Notes |
+|------|-------|-------|
+| A | `index.js` | `trust proxy` setting |
+| B | `index.js` | Swagger production gate |
+| C | `features/ad/ad.routes.js` | `typeof` validation |
+| D | `docker-compose.yml` | `mem_limit`, `cpus` |
+| E | `docker-compose.yml` | Log rotation config |
+| F | `index.js` | `server.close()` in shutdown |
+| G | `index.js` | `shuttingDown` guard |
+| H | `features/bus/jongro.fetcher.js` | Null guard + `.filter(Boolean)` |
+| I | `features/station/station.fetcher.js` | Empty array guard |
+| J | `yarn.lock` (deleted), `.gitignore` | Removed + gitignored |
+| K | `.dockerignore` | Added `docs/`, `scripts/`, `yarn.lock` |
+| L | `CLAUDE.md` | Replaced stale NAVER refs with Firebase |
+| M | `docker-compose.yml` | Already done in D/E |
+
+## Second Audit — Verification
+
+All items A-M complete:
+1. `npm test` → 130/130 passed
+2. `npm run lint` → 0 errors, 4 warnings (pre-existing, tracked in P2 Item 17)
+3. `yarn.lock` deleted, `.dockerignore` updated

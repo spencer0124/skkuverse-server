@@ -15,12 +15,13 @@ try {
 }
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(helmet());
 app.use(express.json({ limit: "100kb" }));
 const config = require("./lib/config");
 
-// Swagger API docs
-if (swaggerFile) {
+// Swagger API docs (non-production only)
+if (swaggerFile && !config.isProduction) {
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile, { explorer: true }));
 }
 
@@ -81,7 +82,7 @@ if (require.main === module) {
     }
 
     pollers.startAll();
-    app.listen(config.port, () => {
+    const server = app.listen(config.port, () => {
       console.log(`\n========================================`);
       console.log(` Mode:  ${config.getModeLabel()}`);
       console.log(` Port:  ${config.port}`);
@@ -92,13 +93,17 @@ if (require.main === module) {
     });
 
     // Graceful shutdown (5s timeout to avoid hanging before Docker SIGKILL)
+    let shuttingDown = false;
     const shutdown = async () => {
+      if (shuttingDown) return;
+      shuttingDown = true;
       console.log("Shutting down...");
       const forceExit = setTimeout(() => {
         console.error("Shutdown timed out, forcing exit");
         process.exit(1);
       }, 5000);
       forceExit.unref();
+      server.close();
       pollers.stopAll();
       await closeClient();
       process.exit(0);

@@ -12,3 +12,6 @@ eslint.config.js
 *.md
 .claude/
 swagger/swagger.js
+docs/
+scripts/
+yarn.lock

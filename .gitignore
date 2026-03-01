@@ -16,3 +16,6 @@ coverage/
 
 # Collected API fixtures (raw data)
 __fixtures__/
+
+# Lock files (project uses npm/package-lock.json)
+yarn.lock
