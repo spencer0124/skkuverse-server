@@ -10,7 +10,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm test` — Run Jest tests with coverage
 - `npx jest __tests__/hssc-transform.test.js` — Run a single test file
 - `npm run swagger` — Regenerate Swagger docs (`swagger/swagger-output.json`)
+- `npm run lint` — Run ESLint (0 errors expected, warnings OK)
 - `docker compose up --build` — Build and run via Docker (NODE_ENV=production, host port 1398 → container 3000)
+
+## App
+
+flutter project using this server is located in /project/skkumap
 
 ## Architecture
 
@@ -40,7 +45,7 @@ Route modules are mounted in `index.js` at their path prefix (e.g., `/bus/hssc`,
 - **asyncHandler** (`lib/asyncHandler.js`): Wraps all async route handlers to forward errors to Express error middleware. Always use this for new routes.
 - **Config** (`lib/config.js`): Centralized env var loading with environment separation. `NODE_ENV` controls DB suffix (`_dev`/`_test`/none), `USE_PROD_API` controls API endpoint selection independently. Required values validated at startup (process.exit(1) if missing, skipped in test mode).
 - **MongoDB singleton** (`lib/db.js`): Lazy-initialized MongoClient via `getClient()`. Closed on shutdown via `closeClient()`.
-- **Response format**: Endpoints return `{ metaData: {...}, dataItems: [...] }`.
+- **Response format**: Endpoints return `{ metaData: {...}, dataItems: [...] }`. Exceptions: `ad.routes.js` uses `placements`, `station.routes.js` uses `stationData`, and `POST /ad/v1/events` returns a bare confirmation object — these are intentional for backward compatibility.
 - **Timezone**: All date/time logic uses `moment-timezone` with `Asia/Seoul`.
 
 ### Ad System
@@ -56,11 +61,11 @@ MongoDB-backed ad management in `features/ad/`. Ads are per-placement (splash, m
 
 `lib/config.js` supports 3 operational modes via two independent flags:
 
-| Mode | NODE_ENV | USE_PROD_API | DB suffix | API |
-|------|----------|-------------|-----------|-----|
-| Development | development | (unset) | `_dev` | `_DEV` endpoints |
-| Staging check | development | true | `_dev` | `_PROD` endpoints |
-| Production | production | forced true | none | `_PROD` endpoints |
+| Mode          | NODE_ENV    | USE_PROD_API | DB suffix | API               |
+| ------------- | ----------- | ------------ | --------- | ----------------- |
+| Development   | development | (unset)      | `_dev`    | `_DEV` endpoints  |
+| Staging check | development | true         | `_dev`    | `_PROD` endpoints |
+| Production    | production  | forced true  | none      | `_PROD` endpoints |
 
 - `devDbName()`: Appends `_dev`/`_test` to DB names. INJA/JAIN schedule collections are exempt (read-only shared data).
 - `apiUrl()`: Selects `_DEV` or `_PROD` env var with automatic fallback to `_PROD` if `_DEV` is missing.
