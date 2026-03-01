@@ -40,6 +40,21 @@ jest.mock("../features/ad/ad.stats", () => ({
   getStats: jest.fn().mockResolvedValue({}),
 }));
 
+// Mock db to avoid real MongoDB connection
+jest.mock("../lib/db", () => ({
+  getClient: jest.fn(),
+  closeClient: jest.fn().mockResolvedValue(),
+  ping: jest.fn().mockResolvedValue(),
+}));
+
+// Mock pollers so isReady() returns true (startAll never runs in tests)
+jest.mock("../lib/pollers", () => ({
+  registerPoller: jest.fn(),
+  startAll: jest.fn(),
+  stopAll: jest.fn(),
+  isReady: jest.fn().mockReturnValue(true),
+}));
+
 // Mock Firebase Admin SDK to avoid initialization
 jest.mock("../lib/firebase", () => ({
   auth: jest.fn().mockReturnValue({
@@ -72,6 +87,28 @@ describe("Health check", () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("ok");
     expect(typeof res.body.uptime).toBe("number");
+  });
+});
+
+describe("Readiness probe", () => {
+  it("GET /health/ready returns ready when DB reachable and pollers started", async () => {
+    const { ping } = require("../lib/db");
+    ping.mockResolvedValue();
+
+    const res = await request(app).get("/health/ready");
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("ready");
+    expect(typeof res.body.uptime).toBe("number");
+  });
+
+  it("GET /health/ready returns 503 when DB is unreachable", async () => {
+    const { ping } = require("../lib/db");
+    ping.mockRejectedValue(new Error("connection refused"));
+
+    const res = await request(app).get("/health/ready");
+    expect(res.status).toBe(503);
+    expect(res.body.status).toBe("unavailable");
+    expect(res.body.reason).toBe("db unreachable");
   });
 });
 

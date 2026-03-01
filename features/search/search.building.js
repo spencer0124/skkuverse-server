@@ -1,4 +1,5 @@
 const axios = require("axios");
+const logger = require("../../lib/logger");
 const { encodeQuery } = require("./search.helpers");
 
 const searchOption1_building =
@@ -37,7 +38,7 @@ async function option1(inputQuery, campusType) {
     );
     return response.data.buildItems.map(processBuildItem);
   } catch (error) {
-    console.error("[search] Failed to fetch buildings:", error.message);
+    logger.error({ err: error.message }, "[search] Failed to fetch buildings");
     return [];
   }
 }

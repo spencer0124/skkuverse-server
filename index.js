@@ -2,6 +2,8 @@ const express = require("express");
 const helmet = require("helmet");
 const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const swaggerUi = require("swagger-ui-express");
+const pinoHttp = require("pino-http");
+const logger = require("./lib/logger");
 const pollers = require("./lib/pollers");
 const { closeClient, ping: pingDb } = require("./lib/db");
 const verifyToken = require("./lib/authMiddleware");
@@ -11,12 +13,13 @@ let swaggerFile;
 try {
   swaggerFile = require("./swagger/swagger-output.json");
 } catch {
-  console.warn("swagger-output.json not found. Run 'npm run swagger' to generate it.");
+  logger.warn("swagger-output.json not found. Run 'npm run swagger' to generate it.");
 }
 
 const app = express();
 app.set("trust proxy", 1);
 app.use(helmet());
+app.use(pinoHttp({ logger }));
 app.use(express.json({ limit: "100kb" }));
 const config = require("./lib/config");
 
@@ -28,6 +31,20 @@ if (swaggerFile && !config.isProduction) {
 // Health check (unprotected, before auth/rate-limiting)
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", uptime: process.uptime() });
+});
+
+// Readiness probe: DB connectivity + pollers running
+app.get("/health/ready", async (req, res) => {
+  try {
+    await pingDb();
+    const pollersReady = pollers.isReady();
+    if (!pollersReady) {
+      return res.status(503).json({ status: "unavailable", reason: "pollers not started" });
+    }
+    res.status(200).json({ status: "ready", uptime: process.uptime() });
+  } catch (_err) {
+    res.status(503).json({ status: "unavailable", reason: "db unreachable" });
+  }
 });
 
 // Rate limiters (uid-based to handle shared campus WiFi)
@@ -67,7 +84,7 @@ app.use("/campus/", generalLimiter, campusRoutes);
 
 // Shared error handler
 app.use((err, req, res, next) => {
-  console.error(err);
+  logger.error({ err }, "Unhandled request error");
   res.status(500).json({ error: "Internal server error" });
 });
 
@@ -77,9 +94,9 @@ if (require.main === module) {
     // Verify MongoDB connectivity (non-fatal: bus/station/search work without DB)
     try {
       await pingDb();
-      console.log("[db] MongoDB connected");
+      logger.info("[db] MongoDB connected");
     } catch (err) {
-      console.warn("[db] MongoDB connection failed:", err.message);
+      logger.warn({ err: err.message }, "[db] MongoDB connection failed");
     }
 
     // Initialize ad system (non-fatal: warn and continue on failure)
@@ -87,18 +104,18 @@ if (require.main === module) {
       await ensureIndexes();
       await seedIfEmpty();
     } catch (err) {
-      console.warn("[ad] Startup initialization failed:", err.message);
+      logger.warn({ err: err.message }, "[ad] Startup initialization failed");
     }
 
     pollers.startAll();
     const server = app.listen(config.port, () => {
-      console.log(`\n========================================`);
-      console.log(` Mode:  ${config.getModeLabel()}`);
-      console.log(` Port:  ${config.port}`);
-      console.log(` DB:    ${config.mongo.dbName}`);
-      console.log(` Ad DB: ${config.ad.dbName}`);
-      console.log(` API:   ${config.useProdApi ? "PROD" : "DEV"}`);
-      console.log(`========================================\n`);
+      logger.info({
+        mode: config.getModeLabel(),
+        port: config.port,
+        db: config.mongo.dbName,
+        adDb: config.ad.dbName,
+        api: config.useProdApi ? "PROD" : "DEV",
+      }, "Server started");
     });
 
     // Graceful shutdown (5s timeout to avoid hanging before Docker SIGKILL)
@@ -106,9 +123,9 @@ if (require.main === module) {
     const shutdown = async () => {
       if (shuttingDown) return;
       shuttingDown = true;
-      console.log("Shutting down...");
+      logger.info("Shutting down...");
       const forceExit = setTimeout(() => {
-        console.error("Shutdown timed out, forcing exit");
+        logger.error("Shutdown timed out, forcing exit");
         process.exit(1);
       }, 5000);
       forceExit.unref();

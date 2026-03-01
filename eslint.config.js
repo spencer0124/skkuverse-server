@@ -23,7 +23,7 @@ module.exports = [
       },
     },
     rules: {
-      "no-unused-vars": ["warn", { argsIgnorePattern: "^(_|next)" }],
+      "no-unused-vars": ["warn", { argsIgnorePattern: "^(_|next)", caughtErrorsIgnorePattern: "^_" }],
     },
   },
   {

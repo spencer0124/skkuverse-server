@@ -85,17 +85,11 @@ describe("option3 (space search)", () => {
     jest.doMock("axios", () => ({
       get: jest.fn().mockRejectedValue(new Error("Network error")),
     }));
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
 
     const { option3 } = require("../features/search/search.space");
     const result = await option3("test", 1);
 
     expect(result).toEqual([]);
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "[search] Failed to fetch spaces:",
-      "Network error"
-    );
-    consoleSpy.mockRestore();
   });
 });
 
@@ -175,17 +169,11 @@ describe("option1 (building search)", () => {
     jest.doMock("axios", () => ({
       get: jest.fn().mockRejectedValue(new Error("SKKU API down")),
     }));
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
 
     const { option1 } = require("../features/search/search.building");
     const result = await option1("test", 1);
 
     expect(result).toEqual([]);
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "[search] Failed to fetch buildings:",
-      "SKKU API down"
-    );
-    consoleSpy.mockRestore();
   });
 });
 
@@ -217,16 +205,10 @@ describe("option1_detail (building detail)", () => {
     jest.doMock("axios", () => ({
       get: jest.fn().mockRejectedValue(new Error("timeout")),
     }));
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
 
     const { option1_detail } = require("../features/search/search.building-detail");
     const result = await option1_detail("999", "999");
 
     expect(result).toEqual({ item: null, availableFloor: [], floorItem: {} });
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "[search] Failed to fetch building detail:",
-      "timeout"
-    );
-    consoleSpy.mockRestore();
   });
 });

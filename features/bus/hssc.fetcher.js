@@ -2,6 +2,7 @@ const axios = require("axios");
 const moment = require("moment-timezone");
 const pollers = require("../../lib/pollers");
 const config = require("../../lib/config");
+const logger = require("../../lib/logger");
 
 let filteredHSSCStations = [];
 
@@ -81,7 +82,7 @@ async function updateHSSCBusList() {
 
     filteredHSSCStations = updatedData;
   } catch (error) {
-    console.error("[hssc] Failed to update bus list:", error.message);
+    logger.error({ err: error.message }, "[hssc] Failed to update bus list");
   }
 }
 
@@ -90,7 +91,7 @@ function getHSSCBusList() {
 }
 
 pollers.registerPoller(() => {
-  updateHSSCBusList().catch((err) => console.error("[hssc]", err.message));
+  updateHSSCBusList().catch((err) => logger.error({ err: err.message }, "[hssc] Poller error"));
 }, 10000, "hssc");
 
 module.exports = { getHSSCBusList };

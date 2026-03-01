@@ -1,4 +1,5 @@
 const axios = require("axios");
+const logger = require("../../lib/logger");
 const { encodeQuery } = require("./search.helpers");
 
 const searchOption3_spaceList =
@@ -31,7 +32,7 @@ async function option3(inputQuery, campusType) {
     );
     return response.data.items.map(processBuildItem);
   } catch (error) {
-    console.error("[search] Failed to fetch spaces:", error.message);
+    logger.error({ err: error.message }, "[search] Failed to fetch spaces");
     return [];
   }
 }

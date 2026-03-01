@@ -2,6 +2,7 @@ const axios = require("axios");
 const moment = require("moment-timezone");
 const pollers = require("../../lib/pollers");
 const config = require("../../lib/config");
+const logger = require("../../lib/logger");
 const { Jongro02stationMapping, Jongro07stationMapping } = require("./jongro.stations");
 
 let filteredBusStations = {};
@@ -67,7 +68,7 @@ async function updateJongroBusLocation(url, busnumber) {
       })
       .filter(Boolean);
   } catch (error) {
-    console.error("[jongro] Failed to update bus location:", error.message);
+    logger.error({ err: error.message }, "[jongro] Failed to update bus location");
   }
 }
 
@@ -90,7 +91,7 @@ async function updateJongroBusList(url, busnumber) {
       };
     });
   } catch (error) {
-    console.error("[jongro] Failed to update bus list:", error.message);
+    logger.error({ err: error.message }, "[jongro] Failed to update bus list");
   }
 }
 
@@ -103,10 +104,10 @@ function getJongroBusLocation(busnumber) {
 }
 
 pollers.registerPoller(() => {
-  updateJongroBusList(config.api.jongro07List, "07").catch((err) => console.error("[jongro]", err.message));
-  updateJongroBusList(config.api.jongro02List, "02").catch((err) => console.error("[jongro]", err.message));
-  updateJongroBusLocation(config.api.jongro07Loc, "07").catch((err) => console.error("[jongro]", err.message));
-  updateJongroBusLocation(config.api.jongro02Loc, "02").catch((err) => console.error("[jongro]", err.message));
+  updateJongroBusList(config.api.jongro07List, "07").catch((err) => logger.error({ err: err.message }, "[jongro] Poller error"));
+  updateJongroBusList(config.api.jongro02List, "02").catch((err) => logger.error({ err: err.message }, "[jongro] Poller error"));
+  updateJongroBusLocation(config.api.jongro07Loc, "07").catch((err) => logger.error({ err: err.message }, "[jongro] Poller error"));
+  updateJongroBusLocation(config.api.jongro02Loc, "02").catch((err) => logger.error({ err: err.message }, "[jongro] Poller error"));
 }, 15000, "jongro");
 
 module.exports = { getJongroBusList, getJongroBusLocation };

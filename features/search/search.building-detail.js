@@ -1,4 +1,5 @@
 const axios = require("axios");
+const logger = require("../../lib/logger");
 
 const searchOption1_building =
   "https://www.skku.edu/skku/about/campusInfo/campusMap.do?mode=buildInfo";
@@ -45,7 +46,7 @@ async function option1_detail(buildNo, id) {
       floorItem: groupedFloorItems,
     };
   } catch (error) {
-    console.error("[search] Failed to fetch building detail:", error.message);
+    logger.error({ err: error.message }, "[search] Failed to fetch building detail");
     return { item: null, availableFloor: [], floorItem: {} };
   }
 }

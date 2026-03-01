@@ -1,6 +1,7 @@
 const axios = require("axios");
 const pollers = require("../../lib/pollers");
 const config = require("../../lib/config");
+const logger = require("../../lib/logger");
 
 let arrmsg1 = "정보 없음";
 
@@ -11,7 +12,7 @@ async function updateStation() {
     if (!apiData || apiData.length === 0) return;
     arrmsg1 = apiData[0].arrmsg1;
   } catch (error) {
-    console.error("[station] Failed to update station info:", error.message);
+    logger.error({ err: error.message }, "[station] Failed to update station info");
   }
 }
 
@@ -20,7 +21,7 @@ function getStationInfo() {
 }
 
 pollers.registerPoller(() => {
-  updateStation().catch((err) => console.error("[station]", err.message));
+  updateStation().catch((err) => logger.error({ err: err.message }, "[station] Poller error"));
 }, 15000, "station");
 
 module.exports = { getStationInfo };

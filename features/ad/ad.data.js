@@ -1,5 +1,6 @@
 const { getClient } = require("../../lib/db");
 const config = require("../../lib/config");
+const logger = require("../../lib/logger");
 
 // --- In-memory cache ---
 const CACHE_TTL_MS = 60_000;
@@ -148,7 +149,7 @@ async function getPlacements() {
       .toArray();
 
     if (ads.length === 0) {
-      console.warn("[ad] No enabled ads found in DB, using fallback");
+      logger.warn("[ad] No enabled ads found in DB, using fallback");
       cache = FALLBACK_PLACEMENTS;
       cacheTime = now;
       return cache;
@@ -178,7 +179,7 @@ async function getPlacements() {
     cacheTime = now;
     return result;
   } catch (err) {
-    console.error("[ad] Failed to fetch ads from DB:", err.message);
+    logger.error({ err: err.message }, "[ad] Failed to fetch ads from DB");
     if (cache) return cache;
     return FALLBACK_PLACEMENTS;
   }
@@ -201,7 +202,7 @@ async function ensureIndexes() {
     eventsCol.createIndex({ placement: 1, event: 1, timestamp: -1 }),
   ]);
 
-  console.log("[ad] Indexes ensured");
+  logger.info("[ad] Indexes ensured");
 }
 
 async function seedIfEmpty() {
@@ -218,13 +219,13 @@ async function seedIfEmpty() {
 
   try {
     const result = await col.insertMany(docs, { ordered: false });
-    console.log(`[ad] Seeded ${result.insertedCount} default ads`);
+    logger.info({ count: result.insertedCount }, "[ad] Seeded default ads");
   } catch (err) {
     // Duplicate key errors (code 11000) are expected with concurrent starts
     if (err.code === 11000 || err.writeErrors?.every((e) => e.code === 11000)) {
-      console.log("[ad] Seed skipped (ads already exist)");
+      logger.info("[ad] Seed skipped (ads already exist)");
     } else {
-      console.warn("[ad] Seed failed:", err.message);
+      logger.warn({ err: err.message }, "[ad] Seed failed");
     }
   }
 }
