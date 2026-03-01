@@ -1,5 +1,7 @@
 const axios = require("axios");
+const moment = require("moment-timezone");
 const pollers = require("../../lib/pollers");
+const config = require("../../lib/config");
 const { Jongro02stationMapping, Jongro07stationMapping } = require("./jongro.stations");
 
 let filteredBusStations = {};
@@ -17,24 +19,18 @@ async function updateJongroBusLocation(url, busnumber) {
   try {
     const response = await axios.get(url);
     const apiData = response.data.msgBody.itemList;
-    const moment = require("moment-timezone");
-
     const currentTime = moment().tz("Asia/Seoul").toDate();
 
-    if (!filteredBusLocations[busnumber]) {
-      filteredBusLocations[busnumber] = [];
-    }
     if (!busStationTimes[busnumber]) {
       busStationTimes[busnumber] = {};
     }
 
-    filteredBusLocations[busnumber].length = 0;
+    const currentBusStationTimes = busStationTimes[busnumber];
 
-    apiData.forEach((item) => {
+    filteredBusLocations[busnumber] = apiData.map((item) => {
       const { lastStnId, tmX, tmY, plainNo } = item;
 
       let estimatedTime = 0;
-      const currentBusStationTimes = busStationTimes[busnumber];
 
       if (
         (currentTime - new Date(currentBusStationTimes[lastStnId])) /
@@ -52,7 +48,7 @@ async function updateJongroBusLocation(url, busnumber) {
         currentBusStationTimes[lastStnId] = currentTime.toISOString();
       }
 
-      filteredBusLocations[busnumber].push({
+      return {
         sequence: busStationMapping[busnumber][lastStnId].sequence.toString(),
         stationName: busStationMapping[busnumber][lastStnId].stationName,
         carNumber: plainNo.slice(-4),
@@ -63,7 +59,7 @@ async function updateJongroBusLocation(url, busnumber) {
         latitude: tmY,
         longitude: tmX,
         recordTime: currentBusStationTimes[lastStnId],
-      });
+      };
     });
   } catch (error) {
     console.error("[jongro] Failed to update bus location:", error.message);
@@ -75,15 +71,9 @@ async function updateJongroBusList(url, busnumber) {
     const response = await axios.get(url);
     const apiData = response.data.msgBody.itemList;
 
-    if (!filteredBusStations[busnumber]) {
-      filteredBusStations[busnumber] = [];
-    }
-
-    filteredBusStations[busnumber].length = 0;
-
-    apiData.forEach((item) => {
+    filteredBusStations[busnumber] = apiData.map((item) => {
       const { stId, staOrd, stNm, plainNo1, mkTm, arsId, arrmsg1 } = item;
-      filteredBusStations[busnumber].push({
+      return {
         stationId: stId,
         sequence: staOrd,
         stationName: stNm,
@@ -91,7 +81,7 @@ async function updateJongroBusList(url, busnumber) {
         eventDate: mkTm,
         stationNumber: arsId,
         eta: arrmsg1,
-      });
+      };
     });
   } catch (error) {
     console.error("[jongro] Failed to update bus list:", error.message);
@@ -107,7 +97,6 @@ function getJongroBusLocation(busnumber) {
 }
 
 pollers.registerPoller(() => {
-  const config = require("../../lib/config");
   updateJongroBusList(config.api.jongro07List, "07").catch((err) => console.error("[jongro]", err.message));
   updateJongroBusList(config.api.jongro02List, "02").catch((err) => console.error("[jongro]", err.message));
   updateJongroBusLocation(config.api.jongro07Loc, "07").catch((err) => console.error("[jongro]", err.message));

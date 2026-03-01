@@ -1,5 +1,7 @@
 const axios = require("axios");
+const moment = require("moment-timezone");
 const pollers = require("../../lib/pollers");
+const config = require("../../lib/config");
 
 let filteredHSSCStations = [];
 
@@ -32,11 +34,9 @@ function toLinearSequence(seq) {
 
 async function updateHSSCBusList() {
   try {
-    const config = require("../../lib/config");
     const response = await axios.get(config.api.hsscNew);
 
     const apiData = response.data;
-    const moment = require("moment-timezone");
     const currentTime = moment().tz("Asia/Seoul");
 
     const updatedData = apiData
