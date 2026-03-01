@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
+    "dev": "NODE_ENV=development nodemon index.js",
+    "dev:prod-api": "NODE_ENV=development USE_PROD_API=true nodemon index.js",
     "test": "jest",
     "swagger": "node swagger/swagger.js"
   },

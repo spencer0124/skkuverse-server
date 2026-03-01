@@ -25,7 +25,7 @@ async function updateHSSCBusList() {
 
   try {
     const config = require("../../lib/config");
-    const response = await axios.get(config.api.hsscNewProd);
+    const response = await axios.get(config.api.hsscNew);
 
     const apiData = response.data;
     const moment = require("moment-timezone");
