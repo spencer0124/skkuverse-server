@@ -9,7 +9,7 @@ const processBuildItem = (item) => {
     metaData: {
       buildNo: item.buildNo ? item.buildNo : null,
       id: item.id,
-      floorinfoAvail: item.buildNo != null && item.id != null ? true : false,
+      floorinfoAvail: item.buildNo !== null && item.id !== null,
       imgpath: "https://www.skku.edu" + item.filePath + item.encodeNm,
       createdDate: item.createDt,
       updatedDate: item.updateDt,
@@ -22,23 +22,23 @@ const processBuildItem = (item) => {
       buildName_en: item.buildNmEng,
       describe_kr: item.krText,
       describe_en: item.enText,
-      handicappedElevatorAvail:
-        item.handicappedElevatorYn == "Y" ? true : false,
-      handicappedToiletAvail: item.handicappedToiletYn == "Y" ? true : false,
+      handicappedElevatorAvail: item.handicappedElevatorYn === "Y",
+      handicappedToiletAvail: item.handicappedToiletYn === "Y",
     },
   };
 };
 
 async function option1(inputQuery, campusType) {
-  const encodedQuery = encodeQuery(inputQuery);
-
-  const Response = await axios.get(
-    `${searchOption1_building}${encodedQuery}&campusCd=${campusType}`
-  );
-
-  const processedResponse = Response.data.buildItems.map(processBuildItem);
-
-  return processedResponse;
+  try {
+    const encodedQuery = encodeQuery(inputQuery);
+    const response = await axios.get(
+      `${searchOption1_building}${encodedQuery}&campusCd=${campusType}`
+    );
+    return response.data.buildItems.map(processBuildItem);
+  } catch (error) {
+    console.error("[search] Failed to fetch buildings:", error.message);
+    return [];
+  }
 }
 
 module.exports = { option1 };
