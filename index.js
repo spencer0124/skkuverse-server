@@ -8,6 +8,7 @@ const pollers = require("./lib/pollers");
 const { closeClient, ping: pingDb } = require("./lib/db");
 const verifyToken = require("./lib/authMiddleware");
 const { ensureIndexes, seedIfEmpty } = require("./features/ad/ad.data");
+const busCache = require("./lib/busCache");
 
 let swaggerFile;
 try {
@@ -33,11 +34,12 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", uptime: process.uptime() });
 });
 
-// Readiness probe: DB connectivity + pollers running
+// Readiness probe: DB connectivity + (pollers running OR api-only role)
 app.get("/health/ready", async (req, res) => {
   try {
     await pingDb();
-    const pollersReady = pollers.isReady();
+    const role = process.env.ROLE || "combined";
+    const pollersReady = role === "api" ? true : pollers.isReady();
     if (!pollersReady) {
       return res.status(503).json({ status: "unavailable", reason: "pollers not started" });
     }
@@ -107,7 +109,37 @@ if (require.main === module) {
       logger.warn({ err: err.message }, "[ad] Startup initialization failed");
     }
 
-    pollers.startAll();
+    // Ensure bus_cache TTL index exists (non-fatal)
+    try {
+      await busCache.ensureIndex();
+      logger.info("[bus_cache] TTL index ensured");
+    } catch (err) {
+      logger.warn({ err: err.message }, "[bus_cache] Index setup failed");
+    }
+
+    // ROLE=poller: run pollers only, no HTTP server
+    // ROLE=api: run HTTP server only, no pollers (reads from bus_cache written by poller service)
+    // ROLE=combined (default): run both — single-container backward-compatible mode
+    const role = process.env.ROLE || "combined";
+
+    if (role === "poller") {
+      logger.info({ role }, "Running in poller-only mode");
+      pollers.startAll();
+      const shutdown = async () => {
+        logger.info("Shutting down poller...");
+        pollers.stopAll();
+        await closeClient();
+        process.exit(0);
+      };
+      process.on("SIGTERM", shutdown);
+      process.on("SIGINT", shutdown);
+      return;
+    }
+
+    if (role === "combined") {
+      pollers.startAll();
+    }
+
     const server = app.listen(config.port, () => {
       logger.info({
         mode: config.getModeLabel(),
@@ -115,6 +147,7 @@ if (require.main === module) {
         db: config.mongo.dbName,
         adDb: config.ad.dbName,
         api: config.useProdApi ? "PROD" : "DEV",
+        role,
       }, "Server started");
     });
 

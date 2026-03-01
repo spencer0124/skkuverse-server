@@ -27,6 +27,12 @@ function setupModule(mockImpl) {
     stopAll: jest.fn(),
   }));
 
+  jest.doMock("../lib/busCache", () => ({
+    write: jest.fn().mockResolvedValue(),
+    read: jest.fn().mockResolvedValue(null),
+    ensureIndex: jest.fn().mockResolvedValue(),
+  }));
+
   const fetchModule = require("../features/bus/jongro.fetcher");
   const axios = require("axios");
   return {

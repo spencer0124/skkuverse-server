@@ -4,6 +4,7 @@ const asyncHandler = require("../../lib/asyncHandler");
 const { getStationInfo } = require("./station.fetcher");
 const { getHSSCBusList } = require("../bus/hssc.fetcher");
 const { StationHSSCStations, computeAllStationEtas } = require("./station.data");
+const busCache = require("../../lib/busCache");
 
 router.get("/v1/:stationId", asyncHandler(async (req, res) => {
   const stationId = req.params.stationId;
@@ -12,13 +13,15 @@ router.get("/v1/:stationId", asyncHandler(async (req, res) => {
     return res.json([]);
   }
 
-  const dynamicBusData = getHSSCBusList();
+  const dynamicBusData = (await busCache.cachedRead("hssc")) ?? getHSSCBusList();
   const stationsWithEta = computeAllStationEtas(StationHSSCStations, dynamicBusData);
 
   const hyehwaStation = stationsWithEta.find(
     (station) => station.stationName === "혜화역(승차장)"
   );
   const hsscEta = hyehwaStation ? hyehwaStation.eta : "도착 정보 없음";
+
+  const stationMsg = (await busCache.cachedRead("station")) ?? getStationInfo();
 
   res.json({
     metaData: {
@@ -30,7 +33,7 @@ router.get("/v1/:stationId", asyncHandler(async (req, res) => {
         busNm: "종로07",
         busSupportTime: true,
         msg1_showmessage: true,
-        msg1_message: getStationInfo(),
+        msg1_message: stationMsg,
         msg1_remainStation: null,
         msg1_remainSeconds: null,
         msg2_showmessage: false,

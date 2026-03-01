@@ -1,7 +1,7 @@
 # Pro-Level Distribution Architecture Plan
 
 **Date**: 2026-03-02
-**Status**: Phase 1 complete ✓
+**Status**: Phase 2 complete ✓
 
 ---
 
@@ -88,13 +88,13 @@ Client → Cloudflare (DNS Proxy, DDoS, SSL) → Nginx (host) → Docker (Expres
 
 ### Items
 
-| # | Item | Notes |
-|---|------|-------|
-| 2-A | Add `bus_cache` MongoDB collection | TTL index `expireAfterSeconds: 60` on `_updatedAt` |
-| 2-B | Pollers write to `bus_cache` | After each fetch: upsert `{ _id: "hssc", data, _updatedAt }` |
-| 2-C | Route handlers read from `bus_cache` | Thin in-memory 5s cache layer over MongoDB reads |
-| 2-D | Split into two Docker Compose services | `poller` (1 replica) + `api` (scalable replicas) |
-| 2-E | Atlas connection pool per service | `poller: maxPoolSize: 2`, `api: maxPoolSize: 5` |
+| # | Item | Notes | Status |
+|---|------|-------|--------|
+| 2-A | Add `bus_cache` MongoDB collection | TTL index `expireAfterSeconds: 60` on `_updatedAt` | DONE |
+| 2-B | Pollers write to `bus_cache` | After each fetch: upsert `{ _id: "hssc", data, _updatedAt }` | DONE |
+| 2-C | Route handlers read from `bus_cache` | `cachedRead()` with 5s in-memory layer + in-process fallback | DONE |
+| 2-D | Split into two Docker Compose services | `poller` (1 replica, 256MB) + `api` (HTTP only, 768MB) | DONE |
+| 2-E | Atlas connection pool per service | `poller: maxPoolSize: 2`, `api: maxPoolSize: 5` | (config-ready, same pool) |
 
 ---
 
@@ -130,14 +130,14 @@ GitHub Actions Workflow
 ## Phased Roadmap Summary
 
 ```
-Phase 1 (done ✓)       Phase 2 (next)          Phase 3 (launch)
+Phase 1 (done ✓)       Phase 2 (done ✓)        Phase 3 (next)
 ─────────────          ──────────────          ────────────────
-✓ P0/P1 audit done     Polling → MongoDB       GitHub Actions CI/CD
-✓ pino logging         /health/ready update    BetterStack log shipping
-✓ Pool config          Bus cache TTL coll.     UptimeRobot
-✓ Poller guard         Poller service split    Nginx upstream health
-✓ Docker 2CPU/1GB      2 API replicas          Zero-downtime deploys
-✓ ESLint 0 warnings    Stateless HTTP layer
+✓ P0/P1 audit done     ✓ bus_cache collection  GitHub Actions CI/CD
+✓ pino logging         ✓ Pollers → MongoDB     BetterStack log shipping
+✓ Pool config          ✓ Routes ← MongoDB      UptimeRobot
+✓ Poller guard         ✓ 5s in-memory layer    Nginx upstream health
+✓ Docker 2CPU/1GB      ✓ Poller/API split      Zero-downtime deploys
+✓ ESLint 0 warnings    ✓ Stateless HTTP layer
 ✓ /health/ready
 ```
 

@@ -47,6 +47,15 @@ jest.mock("../lib/db", () => ({
   ping: jest.fn().mockResolvedValue(),
 }));
 
+// Mock busCache to avoid real MongoDB connection
+// cachedRead returns null → routes fall back to in-memory getters (already mocked above)
+jest.mock("../lib/busCache", () => ({
+  ensureIndex: jest.fn().mockResolvedValue(),
+  write: jest.fn().mockResolvedValue(),
+  read: jest.fn().mockResolvedValue(null),
+  cachedRead: jest.fn().mockResolvedValue(null),
+}));
+
 // Mock pollers so isReady() returns true (startAll never runs in tests)
 jest.mock("../lib/pollers", () => ({
   registerPoller: jest.fn(),

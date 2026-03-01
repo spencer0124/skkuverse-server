@@ -3,6 +3,7 @@ const moment = require("moment-timezone");
 const pollers = require("../../lib/pollers");
 const config = require("../../lib/config");
 const logger = require("../../lib/logger");
+const busCache = require("../../lib/busCache");
 
 let filteredHSSCStations = [];
 
@@ -81,6 +82,9 @@ async function updateHSSCBusList() {
       });
 
     filteredHSSCStations = updatedData;
+    busCache.write("hssc", filteredHSSCStations).catch((err) =>
+      logger.warn({ err: err.message }, "[hssc] Failed to write bus_cache")
+    );
   } catch (error) {
     logger.error({ err: error.message }, "[hssc] Failed to update bus list");
   }

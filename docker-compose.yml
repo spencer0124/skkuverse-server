@@ -1,5 +1,21 @@
 services:
-  skkumap-server:
+  poller:
+    build: .
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - ROLE=poller
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  api:
     build: .
     ports:
       - "1398:3000"
@@ -7,9 +23,12 @@ services:
       - .env
     environment:
       - NODE_ENV=production
+      - ROLE=api
+    depends_on:
+      - poller
     restart: unless-stopped
-    mem_limit: 1g
-    cpus: 2.0
+    mem_limit: 768m
+    cpus: 1.5
     logging:
       driver: json-file
       options:

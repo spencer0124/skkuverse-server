@@ -42,6 +42,11 @@ describe("HSSC edge cases", () => {
       startAll: jest.fn(),
       stopAll: jest.fn(),
     }));
+    jest.doMock("../lib/busCache", () => ({
+      write: jest.fn().mockResolvedValue(),
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
+    }));
 
     const { getHSSCBusList } = require("../features/bus/hssc.fetcher");
 
@@ -80,6 +85,11 @@ describe("HSSC edge cases", () => {
       startAll: jest.fn(),
       stopAll: jest.fn(),
     }));
+    jest.doMock("../lib/busCache", () => ({
+      write: jest.fn().mockResolvedValue(),
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
+    }));
 
     const { getHSSCBusList } = require("../features/bus/hssc.fetcher");
 
@@ -113,6 +123,11 @@ describe("Jongro edge cases", () => {
       startAll: jest.fn(),
       stopAll: jest.fn(),
     }));
+    jest.doMock("../lib/busCache", () => ({
+      write: jest.fn().mockResolvedValue(),
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
+    }));
 
     const { getJongroBusList } = require("../features/bus/jongro.fetcher");
 
@@ -133,6 +148,11 @@ describe("Jongro edge cases", () => {
       registerPoller: (fn, ms) => setInterval(fn, ms),
       startAll: jest.fn(),
       stopAll: jest.fn(),
+    }));
+    jest.doMock("../lib/busCache", () => ({
+      write: jest.fn().mockResolvedValue(),
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
     }));
     const consoleSpy = jest.spyOn(console, "error").mockImplementation();
 
@@ -157,6 +177,11 @@ describe("Station edge cases", () => {
       registerPoller: (fn, ms) => setInterval(fn, ms),
       startAll: jest.fn(),
       stopAll: jest.fn(),
+    }));
+    jest.doMock("../lib/busCache", () => ({
+      write: jest.fn().mockResolvedValue(),
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
     }));
     const consoleSpy = jest.spyOn(console, "error").mockImplementation();
 
@@ -186,6 +211,11 @@ describe("Station edge cases", () => {
       startAll: jest.fn(),
       stopAll: jest.fn(),
     }));
+    jest.doMock("../lib/busCache", () => ({
+      write: jest.fn().mockResolvedValue(),
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
+    }));
 
     const { getStationInfo } = require("../features/station/station.fetcher");
 
@@ -195,5 +225,72 @@ describe("Station edge cases", () => {
     await jest.advanceTimersByTimeAsync(15000);
 
     expect(getStationInfo()).toBe("3분후[1번째 전]");
+  });
+
+  it("empty itemList resets to '정보 없음' and writes to bus_cache (not ghost data)", async () => {
+    jest.useFakeTimers();
+    jest.resetModules();
+
+    const mockWrite = jest.fn().mockResolvedValue();
+    const mockGet = jest.fn()
+      // First poll: real data
+      .mockResolvedValueOnce({ data: { msgBody: { itemList: [{ arrmsg1: "2분후 도착" }] } } })
+      // Second poll: genuinely empty (no buses)
+      .mockResolvedValueOnce({ data: { msgBody: { itemList: [] } } });
+
+    jest.doMock("axios", () => ({ get: mockGet }));
+    jest.doMock("../lib/pollers", () => ({
+      registerPoller: (fn, ms) => setInterval(fn, ms),
+      startAll: jest.fn(),
+      stopAll: jest.fn(),
+    }));
+    jest.doMock("../lib/busCache", () => ({
+      write: mockWrite,
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
+    }));
+
+    const { getStationInfo } = require("../features/station/station.fetcher");
+
+    // First tick: data arrives
+    await jest.advanceTimersByTimeAsync(15000);
+    expect(getStationInfo()).toBe("2분후 도착");
+
+    // Second tick: empty response → must reset, not keep ghost "2분후 도착"
+    await jest.advanceTimersByTimeAsync(15000);
+    expect(getStationInfo()).toBe("정보 없음");
+    expect(mockWrite).toHaveBeenLastCalledWith("station", "정보 없음");
+  });
+
+  it("API network error preserves previous state — no ghost reset", async () => {
+    jest.useFakeTimers();
+    jest.resetModules();
+
+    const mockGet = jest.fn()
+      .mockResolvedValueOnce({ data: { msgBody: { itemList: [{ arrmsg1: "1분후 도착" }] } } })
+      .mockRejectedValueOnce(new Error("Network error"));
+
+    jest.doMock("axios", () => ({ get: mockGet }));
+    jest.doMock("../lib/pollers", () => ({
+      registerPoller: (fn, ms) => setInterval(fn, ms),
+      startAll: jest.fn(),
+      stopAll: jest.fn(),
+    }));
+    jest.doMock("../lib/busCache", () => ({
+      write: jest.fn().mockResolvedValue(),
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
+    }));
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+
+    const { getStationInfo } = require("../features/station/station.fetcher");
+
+    await jest.advanceTimersByTimeAsync(15000);
+    expect(getStationInfo()).toBe("1분후 도착");
+
+    // Network error: state must NOT change
+    await jest.advanceTimersByTimeAsync(15000);
+    expect(getStationInfo()).toBe("1분후 도착");
+    consoleSpy.mockRestore();
   });
 });

@@ -53,6 +53,15 @@ jest.mock("../lib/firebase", () => ({
   }),
 }));
 
+// Mock busCache to avoid real MongoDB connection
+// cachedRead returns null → routes fall back to in-memory getters
+jest.mock("../lib/busCache", () => ({
+  ensureIndex: jest.fn().mockResolvedValue(),
+  write: jest.fn().mockResolvedValue(),
+  read: jest.fn().mockResolvedValue(null),
+  cachedRead: jest.fn().mockResolvedValue(null),
+}));
+
 const request = require("supertest");
 const app = require("../index");
 

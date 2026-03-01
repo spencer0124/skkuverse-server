@@ -3,6 +3,7 @@ const router = express.Router();
 const asyncHandler = require("../../lib/asyncHandler");
 const { getJongroBusList, getJongroBusLocation } = require("./jongro.fetcher");
 const { Jongro02Stations, Jongro07Stations } = require("./jongro.stations");
+const busCache = require("../../lib/busCache");
 
 const JongroStations = {
   "07": Jongro07Stations,
@@ -12,8 +13,8 @@ const JongroStations = {
 router.get("/v1/busstation/:line", asyncHandler(async (req, res) => {
   const busLine = req.params.line;
 
-  const busList = getJongroBusList(busLine);
-  const busLocations = getJongroBusLocation(busLine);
+  const busList = (await busCache.cachedRead(`jongro_stations_${busLine}`)) ?? getJongroBusList(busLine);
+  const busLocations = (await busCache.cachedRead(`jongro_locations_${busLine}`)) ?? getJongroBusLocation(busLine);
 
   const metaData = {
     currentTime: new Date().toLocaleTimeString("en-US", {
@@ -40,7 +41,7 @@ router.get("/v1/busstation/:line", asyncHandler(async (req, res) => {
 router.get("/v1/buslocation/:line", asyncHandler(async (req, res) => {
   const busLine = req.params.line;
 
-  const locations = getJongroBusLocation(busLine);
+  const locations = (await busCache.cachedRead(`jongro_locations_${busLine}`)) ?? getJongroBusLocation(busLine);
   if (!locations) {
     return res.json([]);
   }

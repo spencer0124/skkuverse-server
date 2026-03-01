@@ -3,6 +3,7 @@ const moment = require("moment-timezone");
 const pollers = require("../../lib/pollers");
 const config = require("../../lib/config");
 const logger = require("../../lib/logger");
+const busCache = require("../../lib/busCache");
 const { Jongro02stationMapping, Jongro07stationMapping } = require("./jongro.stations");
 
 let filteredBusStations = {};
@@ -67,6 +68,9 @@ async function updateJongroBusLocation(url, busnumber) {
         };
       })
       .filter(Boolean);
+    busCache.write(`jongro_locations_${busnumber}`, filteredBusLocations[busnumber]).catch((err) =>
+      logger.warn({ err: err.message }, "[jongro] Failed to write bus_cache (locations)")
+    );
   } catch (error) {
     logger.error({ err: error.message }, "[jongro] Failed to update bus location");
   }
@@ -90,6 +94,9 @@ async function updateJongroBusList(url, busnumber) {
         eta: arrmsg1,
       };
     });
+    busCache.write(`jongro_stations_${busnumber}`, filteredBusStations[busnumber]).catch((err) =>
+      logger.warn({ err: err.message }, "[jongro] Failed to write bus_cache (stations)")
+    );
   } catch (error) {
     logger.error({ err: error.message }, "[jongro] Failed to update bus list");
   }
