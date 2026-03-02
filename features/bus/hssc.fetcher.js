@@ -51,9 +51,9 @@ async function updateHSSCBusList() {
 
         let eventDateTime;
         if (existingItem && existingItem.eventDate) {
-          eventDateTime = moment(existingItem.eventDate, "YYYY-MM-DD HH:mm:ss");
+          eventDateTime = moment.tz(existingItem.eventDate, "YYYY-MM-DD HH:mm:ss", "Asia/Seoul");
         } else {
-          eventDateTime = moment(item.get_date, "YYYY-MM-DD a h:mm:ss", "ko");
+          eventDateTime = moment.tz(item.get_date, "YYYY-MM-DD a h:mm:ss", "ko", "Asia/Seoul");
         }
 
         const timeDiff = (currentTime - eventDateTime) / 1000;
@@ -77,7 +77,7 @@ async function updateHSSCBusList() {
         const staleMinutes = item.stationName === TURNAROUND_STATION
           ? STALE_MINUTES_TURNAROUND
           : STALE_MINUTES_DEFAULT;
-        const itemTime = moment(item.eventDate, "YYYY-MM-DD HH:mm:ss");
+        const itemTime = moment.tz(item.eventDate, "YYYY-MM-DD HH:mm:ss", "Asia/Seoul");
         const cutoff = moment().tz("Asia/Seoul").subtract(staleMinutes, "minutes");
         return !itemTime.isBefore(cutoff);
       });
