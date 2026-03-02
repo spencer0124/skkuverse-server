@@ -1,4 +1,5 @@
 const express = require("express");
+const { randomUUID } = require("crypto");
 const helmet = require("helmet");
 const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const swaggerUi = require("swagger-ui-express");
@@ -7,6 +8,8 @@ const logger = require("./lib/logger");
 const pollers = require("./lib/pollers");
 const { closeClient, ping: pingDb } = require("./lib/db");
 const verifyToken = require("./lib/authMiddleware");
+const langMiddleware = require("./lib/langMiddleware");
+const responseHelper = require("./lib/responseHelper");
 const { ensureIndexes, seedIfEmpty } = require("./features/ad/ad.data");
 const busCache = require("./lib/busCache");
 
@@ -20,8 +23,23 @@ try {
 const app = express();
 app.set("trust proxy", 1);
 app.use(helmet());
-app.use(pinoHttp({ logger }));
+app.use(pinoHttp({
+  logger,
+  genReqId: (req, res) => {
+    const existing = req.headers["x-request-id"];
+    if (existing) return existing;
+    const id = randomUUID();
+    res.setHeader("X-Request-Id", id);
+    return id;
+  },
+  customProps: (req) => ({
+    appVersion: req.headers["x-app-version"] || null,
+    platform: req.headers["x-platform"] || null,
+  }),
+}));
 app.use(express.json({ limit: "100kb" }));
+app.use(langMiddleware);
+app.use(responseHelper);
 const config = require("./lib/config");
 
 // Swagger API docs (non-production only)
@@ -56,7 +74,7 @@ const searchLimiter = rateLimit({
   keyGenerator: (req) => req.uid || ipKeyGenerator(req.ip),
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many requests" },
+  message: { error: { code: "RATE_LIMIT", message: "Too many requests" } },
 });
 
 const generalLimiter = rateLimit({
@@ -65,29 +83,37 @@ const generalLimiter = rateLimit({
   keyGenerator: ipKeyGenerator,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many requests" },
+  message: { error: { code: "RATE_LIMIT", message: "Too many requests" } },
 });
 
 // Feature routes
 const searchRoute = require("./features/search/search.routes");
-const { hsscRoutes, jongroRoutes, campusRoutes } = require("./features/bus/bus.routes");
+const hsscRoutes = require("./features/bus/hssc.routes");
+const jongroRoutes = require("./features/bus/jongro.routes");
+const campusRoutes = require("./features/bus/campus.routes");
 const stationRoute = require("./features/station/station.routes");
-const mobileRoute = require("./features/mobile/mobile.routes");
+const uiRoute = require("./features/ui/ui.routes");
 const adRoute = require("./features/ad/ad.routes");
+const appRoute = require("./features/app/app.routes");
 
 app.use("/search", verifyToken, searchLimiter, searchRoute);
 app.use("/bus/hssc", generalLimiter, hsscRoutes);
-app.use("/bus/hssc_new", generalLimiter, hsscRoutes);
 app.use("/bus/jongro", generalLimiter, jongroRoutes);
-app.use("/station", generalLimiter, stationRoute);
-app.use("/mobile/", generalLimiter, mobileRoute);
-app.use("/ad/", verifyToken, adRoute);
-app.use("/campus/", generalLimiter, campusRoutes);
+app.use("/bus/station", generalLimiter, stationRoute);
+app.use("/bus/schedule", generalLimiter, campusRoutes);
+app.use("/ui", generalLimiter, uiRoute);
+app.use("/ad", verifyToken, adRoute);
+app.use("/app", generalLimiter, appRoute);
+
+// 404 handler (after all routes, before error handler)
+app.use((req, res) => {
+  res.error(404, "NOT_FOUND", `${req.method} ${req.path} not found`);
+});
 
 // Shared error handler
 app.use((err, req, res, next) => {
   logger.error({ err }, "Unhandled request error");
-  res.status(500).json({ error: "Internal server error" });
+  res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal server error" } });
 });
 
 // Start server

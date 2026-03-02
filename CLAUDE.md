@@ -24,7 +24,7 @@ Express API server for SKKU (Sungkyunkwan University) campus map. Serves real-ti
 ### Directory Layout
 
 - `index.js` — Entry point: mounts routes, initializes ad system, starts pollers, prints startup banner, handles graceful shutdown
-- `lib/` — Shared infrastructure (config, db, pollers, asyncHandler)
+- `lib/` — Shared infrastructure (config, db, pollers, asyncHandler, responseHelper, langMiddleware, i18n)
 - `features/` — Feature modules, each with routes + data/fetcher files
 - `__tests__/` — Jest integration and unit tests (mocked externals)
 - `swagger/` — Swagger autogen config and generated OpenAPI spec
@@ -34,7 +34,7 @@ Express API server for SKKU (Sungkyunkwan University) campus map. Serves real-ti
 
 Each feature in `features/` follows: `{name}.routes.js` (Express router), `{name}.fetcher.js` (background data polling), `{name}.data.js` or `{name}.stations.js` (static data/DB access).
 
-Route modules are mounted in `index.js` at their path prefix (e.g., `/bus/hssc`, `/search`, `/station`).
+Route modules are mounted in `index.js` at their path prefix (e.g., `/bus/hssc`, `/search`, `/station`, `/ui`, `/app`).
 
 ### Background Polling System
 
@@ -45,7 +45,10 @@ Route modules are mounted in `index.js` at their path prefix (e.g., `/bus/hssc`,
 - **asyncHandler** (`lib/asyncHandler.js`): Wraps all async route handlers to forward errors to Express error middleware. Always use this for new routes.
 - **Config** (`lib/config.js`): Centralized env var loading with environment separation. `NODE_ENV` controls DB suffix (`_dev`/`_test`/none), `USE_PROD_API` controls API endpoint selection independently. Required values validated at startup (process.exit(1) if missing, skipped in test mode).
 - **MongoDB singleton** (`lib/db.js`): Lazy-initialized MongoClient via `getClient()`. Closed on shutdown via `closeClient()`.
-- **Response format**: Endpoints return `{ metaData: {...}, dataItems: [...] }`. Exceptions: `ad.routes.js` uses `placements`, `station.routes.js` uses `stationData`, and `POST /ad/v1/events` returns a bare confirmation object — these are intentional for backward compatibility.
+- **Response format**: All endpoints use a standardized envelope: `{ meta: { lang, ... }, data: { ... } or [ ... ] }`. Errors return `{ error: { code, message } }`. Response helpers `res.success(data, meta)` and `res.error(statusCode, code, message)` are attached by `lib/responseHelper.js` middleware.
+- **Language middleware** (`lib/langMiddleware.js`): Parses `Accept-Language` header, sets `req.lang` (ko/en/zh, default: ko). Auto-injected into `meta.lang` by `res.success()`.
+- **i18n** (`lib/i18n.js`): Translation map `t(key, lang)` for server-generated text (SDUI titles, subtitles). Korean is default.
+- **Observability**: pino-http generates `X-Request-Id` (UUID) per request, logs `appVersion` and `platform` from client headers. `X-Response-Time` header set by responseHelper.
 - **Timezone**: All date/time logic uses `moment-timezone` with `Asia/Seoul`.
 
 ### Ad System
@@ -54,7 +57,7 @@ MongoDB-backed ad management in `features/ad/`. Ads are per-placement (splash, m
 
 - `ad.data.js`: CRUD with in-memory cache (60s TTL), `ensureIndexes()`, `seedIfEmpty()` for default ads
 - `ad.stats.js`: Event recording (impression/click) and aggregation queries via `ad_events` collection
-- `ad.routes.js`: `/ad/v1/placements` (GET), `/ad/v1/events` (POST)
+- `ad.routes.js`: `/ad/placements` (GET), `/ad/events` (POST)
 - Uses dedicated DB (`config.ad.dbName`): `skkubus_ads` in production, `skkubus_ads_dev` in development
 
 ### Environment Separation
@@ -77,4 +80,4 @@ Tests mock external dependencies (axios, MongoDB, pollers) so no real API calls 
 
 ### Environment Variables
 
-Requires `.env` with: MongoDB connection (`MONGO_URL`, `MONGO_DB_NAME_*`, `MONGO_AD_DB_NAME`), bus API endpoints (`API_HSSC_*_PROD`, `API_HSSC_*_DEV`, `API_JONGRO*_PROD`, `API_JONGRO*_DEV`, `API_STATION_*`), and Firebase credentials (`FIREBASE_SERVICE_ACCOUNT`). See `lib/config.js` for the full list. `NODE_ENV` and `USE_PROD_API` are set per execution context (CLI/Docker), not in `.env`.
+Requires `.env` with: MongoDB connection (`MONGO_URL`, `MONGO_DB_NAME_*`, `MONGO_AD_DB_NAME`), bus API endpoints (`API_HSSC_*_PROD`, `API_HSSC_*_DEV`, `API_JONGRO*_PROD`, `API_JONGRO*_DEV`, `API_STATION_*`), Firebase credentials (`FIREBASE_SERVICE_ACCOUNT`), and app config (`APP_IOS_MIN_VERSION`, `APP_IOS_LATEST_VERSION`, `APP_IOS_UPDATE_URL`, `APP_ANDROID_*` equivalents). See `lib/config.js` for the full list. `NODE_ENV` and `USE_PROD_API` are set per execution context (CLI/Docker), not in `.env`.

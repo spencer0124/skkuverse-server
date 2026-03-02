@@ -10,13 +10,13 @@ const JongroStations = {
   "02": Jongro02Stations,
 };
 
-router.get("/v1/busstation/:line", asyncHandler(async (req, res) => {
+router.get("/stations/:line", asyncHandler(async (req, res) => {
   const busLine = req.params.line;
 
   const busList = (await busCache.cachedRead(`jongro_stations_${busLine}`)) ?? getJongroBusList(busLine);
   const busLocations = (await busCache.cachedRead(`jongro_locations_${busLine}`)) ?? getJongroBusLocation(busLine);
 
-  const metaData = {
+  const meta = {
     currentTime: new Date().toLocaleTimeString("en-US", {
       timeZone: "Asia/Seoul",
       hour: "2-digit",
@@ -35,15 +35,15 @@ router.get("/v1/busstation/:line", asyncHandler(async (req, res) => {
     return item;
   });
 
-  res.json({ metaData, stations: stationsWithEta });
+  res.success(stationsWithEta, meta);
 }));
 
-router.get("/v1/buslocation/:line", asyncHandler(async (req, res) => {
+router.get("/location/:line", asyncHandler(async (req, res) => {
   const busLine = req.params.line;
 
   const locations = (await busCache.cachedRead(`jongro_locations_${busLine}`)) ?? getJongroBusLocation(busLine);
   if (!locations) {
-    return res.json([]);
+    return res.success([]);
   }
 
   const response = locations.map((station) => ({
@@ -51,7 +51,7 @@ router.get("/v1/buslocation/:line", asyncHandler(async (req, res) => {
     isLastBus: false,
   }));
 
-  res.json(response);
+  res.success(response);
 }));
 
 module.exports = router;

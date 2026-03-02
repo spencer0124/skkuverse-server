@@ -11,11 +11,11 @@ const eventLimiter = rateLimit({
   keyGenerator: (req) => req.uid || ipKeyGenerator(req.ip),
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many requests" },
+  message: { error: { code: "RATE_LIMIT", message: "Too many requests" } },
 });
 
 router.get(
-  "/v1/placements",
+  "/placements",
   asyncHandler(async (req, res) => {
     const placements = await getPlacements();
     const enabledPlacements = {};
@@ -25,48 +25,41 @@ router.get(
       }
     }
     const count = Object.keys(enabledPlacements).length;
-    res.json({
-      metaData: { count },
-      placements: enabledPlacements,
-    });
+    res.success(enabledPlacements, { count });
   })
 );
 
 router.post(
-  "/v1/events",
+  "/events",
   eventLimiter,
   asyncHandler(async (req, res) => {
     const { placement, event, adId } = req.body;
 
     if (!placement || !event || typeof placement !== "string" || typeof event !== "string") {
-      return res
-        .status(400)
-        .json({ error: "placement and event are required and must be strings" });
+      return res.error(400, "VALIDATION_ERROR", "placement and event are required and must be strings");
     }
 
     const validEvents = ["view", "click"];
     if (!validEvents.includes(event)) {
-      return res
-        .status(400)
-        .json({ error: `event must be one of: ${validEvents.join(", ")}` });
+      return res.error(400, "VALIDATION_ERROR", `event must be one of: ${validEvents.join(", ")}`);
     }
 
     // Validate adId format if provided (must be valid MongoDB ObjectId)
     if (adId && !/^[0-9a-fA-F]{24}$/.test(adId)) {
-      return res.status(400).json({ error: "adId must be a valid 24-character hex string" });
+      return res.error(400, "VALIDATION_ERROR", "adId must be a valid 24-character hex string");
     }
 
     // Validate placement exists using cached data
     const placements = await getPlacements();
     if (!placements[placement]) {
-      return res.status(400).json({ error: `unknown placement: ${placement}` });
+      return res.error(400, "VALIDATION_ERROR", `unknown placement: ${placement}`);
     }
 
     // Auto-match adId if not provided: use the cached placement's adId
     const resolvedAdId = adId || placements[placement].adId || null;
 
     await recordEvent(placement, event, resolvedAdId);
-    res.json({ placement, event, adId: resolvedAdId });
+    res.success({ placement, event, adId: resolvedAdId });
   })
 );
 

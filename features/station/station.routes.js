@@ -6,11 +6,11 @@ const { getHSSCBusList } = require("../bus/hssc.fetcher");
 const { StationHSSCStations, computeAllStationEtas } = require("./station.data");
 const busCache = require("../../lib/busCache");
 
-router.get("/v1/:stationId", asyncHandler(async (req, res) => {
+router.get("/:stationId", asyncHandler(async (req, res) => {
   const stationId = req.params.stationId;
 
   if (stationId !== "01592") {
-    return res.json([]);
+    return res.success([]);
   }
 
   const dynamicBusData = (await busCache.cachedRead("hssc")) ?? getHSSCBusList();
@@ -23,38 +23,32 @@ router.get("/v1/:stationId", asyncHandler(async (req, res) => {
 
   const stationMsg = (await busCache.cachedRead("station")) ?? getStationInfo();
 
-  res.json({
-    metaData: {
-      success: true,
-      total_count: 2,
+  res.success([
+    {
+      busNm: "종로07",
+      busSupportTime: true,
+      msg1ShowMessage: true,
+      msg1Message: stationMsg,
+      msg1RemainStation: null,
+      msg1RemainSeconds: null,
+      msg2ShowMessage: false,
+      msg2Message: null,
+      msg2RemainStation: null,
+      msg2RemainSeconds: null,
     },
-    stationData: [
-      {
-        busNm: "종로07",
-        busSupportTime: true,
-        msg1_showmessage: true,
-        msg1_message: stationMsg,
-        msg1_remainStation: null,
-        msg1_remainSeconds: null,
-        msg2_showmessage: false,
-        msg2_message: null,
-        msg2_remainStation: null,
-        msg2_remainSeconds: null,
-      },
-      {
-        busNm: "인사캠셔틀",
-        busSupportTime: false,
-        msg1_showmessage: true,
-        msg1_message: hsscEta,
-        msg1_remainStation: null,
-        msg1_remainSeconds: null,
-        msg2_showmessage: true,
-        msg2_message: null,
-        msg2_remainStation: null,
-        msg2_remainSeconds: null,
-      },
-    ],
-  });
+    {
+      busNm: "인사캠셔틀",
+      busSupportTime: false,
+      msg1ShowMessage: true,
+      msg1Message: hsscEta,
+      msg1RemainStation: null,
+      msg1RemainSeconds: null,
+      msg2ShowMessage: true,
+      msg2Message: null,
+      msg2RemainStation: null,
+      msg2RemainSeconds: null,
+    },
+  ], { totalCount: 2 });
 }));
 
 module.exports = router;

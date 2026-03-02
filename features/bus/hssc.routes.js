@@ -10,15 +10,15 @@ async function getHSSCData() {
   return cached !== null ? cached : getHSSCBusList();
 }
 
-router.get("/v1/buslocation", asyncHandler(async (req, res) => {
+router.get("/location", asyncHandler(async (req, res) => {
   const response = await getHSSCData();
-  res.json(response);
+  res.success(response);
 }));
 
-router.get("/v1/busstation", asyncHandler(async (req, res) => {
+router.get("/stations", asyncHandler(async (req, res) => {
   const dynamicBusData = await getHSSCData();
 
-  const metaData = {
+  const meta = {
     currentTime: new Date().toLocaleTimeString("en-US", {
       timeZone: "Asia/Seoul",
       hour: "2-digit",
@@ -28,7 +28,7 @@ router.get("/v1/busstation", asyncHandler(async (req, res) => {
     totalBuses: dynamicBusData.length,
     lastStationIndex: 10,
   };
-  res.json({ metaData, stations: HSSCStations });
+  res.success(HSSCStations, meta);
 }));
 
 module.exports = router;

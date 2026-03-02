@@ -16,3 +16,5 @@ Updated: 2026-03-01
 ## All Steps Complete
 
 The refactoring roadmap is fully implemented. All 5 prioritized steps have been completed with coordinated server + Flutter changes and comprehensive test coverage (117 tests, 73% overall coverage).
+
+> **Note (2026-03-02)**: A subsequent API v2 migration replaced the `metaData` → camelCase convention with a fully standardized `{ meta, data }` envelope across all endpoints. The snake_case fields in station routes were also migrated to camelCase. See `docs/api-migration-v2.md` for the current API contract.

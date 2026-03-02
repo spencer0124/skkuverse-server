@@ -11,14 +11,44 @@
     }
   ],
   "paths": {
-    "/search/all/{inputquery}": {
+    "/health": {
+      "get": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/search/buildings/{query}": {
       "get": {
         "description": "",
         "parameters": [
           {
-            "name": "inputquery",
+            "name": "query",
             "in": "path",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -50,23 +80,10 @@
             "schema": {
               "type": "string"
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/search/option3/{inputquery}": {
-      "get": {
-        "description": "",
-        "parameters": [
+          },
           {
-            "name": "inputquery",
-            "in": "path",
-            "required": true,
+            "name": "authorization",
+            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -79,7 +96,126 @@
         }
       }
     },
-    "/station/v1/{stationId}": {
+    "/search/facilities/{query}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/bus/hssc/location": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/bus/hssc/stations": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/bus/jongro/stations/{line}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "line",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/bus/jongro/location/{line}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "line",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/bus/station/{stationId}": {
       "get": {
         "description": "",
         "parameters": [
@@ -90,6 +226,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -99,9 +242,26 @@
         }
       }
     },
-    "/mobile/v1/mainpage/buslist": {
+    "/bus/schedule/{bustype}": {
       "get": {
         "description": "",
+        "parameters": [
+          {
+            "name": "bustype",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -109,9 +269,18 @@
         }
       }
     },
-    "/mobile/v1/mainpage/scrollcomponent": {
+    "/ui/home/buslist": {
       "get": {
         "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -119,9 +288,18 @@
         }
       }
     },
-    "/ad/v1/addetail": {
+    "/ui/home/scroll": {
       "get": {
         "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -129,9 +307,18 @@
         }
       }
     },
-    "/ad/v1/statistics/menu1/view": {
+    "/ad/placements": {
       "get": {
         "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -139,49 +326,57 @@
         }
       }
     },
-    "/ad/v1/statistics/menu1/click": {
-      "get": {
+    "/ad/events": {
+      "post": {
         "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
           }
-        }
-      }
-    },
-    "/ad/v1/statistics/menu2/view": {
-      "get": {
-        "description": "",
-        "responses": {
-          "200": {
-            "description": "OK"
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "placement": {
+                    "example": "any"
+                  },
+                  "event": {
+                    "example": "any"
+                  },
+                  "adId": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
-    "/ad/v1/statistics/menu2/click": {
+    "/app/config": {
       "get": {
         "description": "",
-        "responses": {
-          "200": {
-            "description": "OK"
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
-        }
-      }
-    },
-    "/ad/v1/statistics/menu3/view": {
-      "get": {
-        "description": "",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/ad/v1/statistics/menu3/click": {
-      "get": {
-        "description": "",
+        ],
         "responses": {
           "200": {
             "description": "OK"

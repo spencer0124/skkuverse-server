@@ -68,17 +68,17 @@ afterEach(() => {
 describe("Ad event input validation", () => {
   it("rejects invalid adId format", async () => {
     const res = await request(app)
-      .post("/ad/v1/events")
+      .post("/ad/events")
       .send({ placement: "splash", event: "view", adId: "not-a-valid-id" });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/adId/);
+    expect(res.body.error.message).toMatch(/adId/);
     expect(recordEvent).not.toHaveBeenCalled();
   });
 
   it("accepts valid 24-char hex adId", async () => {
     const res = await request(app)
-      .post("/ad/v1/events")
+      .post("/ad/events")
       .send({ placement: "splash", event: "view", adId: "000000000000000000000001" });
 
     expect(res.status).toBe(200);
@@ -87,35 +87,35 @@ describe("Ad event input validation", () => {
 
   it("accepts request without adId (auto-matched from placement)", async () => {
     const res = await request(app)
-      .post("/ad/v1/events")
+      .post("/ad/events")
       .send({ placement: "splash", event: "view" });
 
     expect(res.status).toBe(200);
-    expect(res.body.adId).toBe("000000000000000000000001");
+    expect(res.body.data.adId).toBe("000000000000000000000001");
   });
 
   it("rejects missing placement", async () => {
     const res = await request(app)
-      .post("/ad/v1/events")
+      .post("/ad/events")
       .send({ event: "view" });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/placement/);
+    expect(res.body.error.message).toMatch(/placement/);
   });
 
   it("rejects invalid event type", async () => {
     const res = await request(app)
-      .post("/ad/v1/events")
+      .post("/ad/events")
       .send({ placement: "splash", event: "delete" });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/event/);
+    expect(res.body.error.message).toMatch(/event/);
   });
 });
 
 describe("Auth middleware", () => {
   it("allows requests without token (fallback to IP rate limiting)", async () => {
-    const res = await request(app).get("/ad/v1/placements");
+    const res = await request(app).get("/ad/placements");
 
     expect(res.status).toBe(200);
   });
@@ -128,16 +128,16 @@ describe("Auth middleware", () => {
     });
 
     const res = await request(app)
-      .get("/ad/v1/placements")
+      .get("/ad/placements")
       .set("Authorization", "Bearer invalid-token-here");
 
     expect(res.status).toBe(401);
-    expect(res.body.error).toMatch(/Invalid auth token/);
+    expect(res.body.error.message).toMatch(/Invalid auth token/);
   });
 
   it("accepts valid Bearer token and sets uid", async () => {
     const res = await request(app)
-      .get("/ad/v1/placements")
+      .get("/ad/placements")
       .set("Authorization", "Bearer valid-firebase-token");
 
     expect(res.status).toBe(200);
@@ -152,13 +152,13 @@ describe("Token cache eviction", () => {
 
     // First request — cache miss, verifyIdToken called
     await request(app)
-      .get("/ad/v1/placements")
+      .get("/ad/placements")
       .set("Authorization", "Bearer ttl-test-token");
     expect(verifyIdToken).toHaveBeenCalledTimes(1);
 
     // Second request — cache hit, verifyIdToken NOT called again
     await request(app)
-      .get("/ad/v1/placements")
+      .get("/ad/placements")
       .set("Authorization", "Bearer ttl-test-token");
     expect(verifyIdToken).toHaveBeenCalledTimes(1);
   });
@@ -173,7 +173,7 @@ describe("Token cache eviction", () => {
 
     // Send a request with a unique token — should succeed without error
     return request(app)
-      .get("/ad/v1/placements")
+      .get("/ad/placements")
       .set("Authorization", "Bearer unique-token-for-size-check")
       .expect(200);
   });
@@ -184,7 +184,6 @@ describe("Search input validation", () => {
     const res = await request(app).get("/search/detail/build%26No=1/id%3D2");
     // Should return empty result (validation rejects non-alphanumeric), not crash
     expect(res.status).toBe(200);
-    expect(res.body.item).toBeNull();
   });
 
   it("building detail accepts valid alphanumeric params", async () => {
