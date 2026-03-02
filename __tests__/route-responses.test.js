@@ -122,23 +122,24 @@ describe("Readiness probe", () => {
 });
 
 describe("HSSC routes", () => {
-  describe("GET /bus/hssc/v1/busstation", () => {
-    it("returns metadata and 11 stations", async () => {
+  describe("GET /bus/hssc/stations", () => {
+    it("returns meta and 11 stations", async () => {
       getHSSCBusList.mockReturnValue([]);
 
-      const res = await request(app).get("/bus/hssc/v1/busstation");
+      const res = await request(app).get("/bus/hssc/stations");
       expect(res.status).toBe(200);
-      expect(res.body.metaData).toHaveProperty("currentTime");
-      expect(res.body.metaData).toHaveProperty("totalBuses", 0);
-      expect(res.body.metaData).toHaveProperty("lastStationIndex", 10);
-      expect(res.body.stations).toHaveLength(11);
+      expect(res.body.meta).toHaveProperty("currentTime");
+      expect(res.body.meta).toHaveProperty("totalBuses", 0);
+      expect(res.body.meta).toHaveProperty("lastStationIndex", 10);
+      expect(res.body.meta).toHaveProperty("lang", "ko");
+      expect(res.body.data).toHaveLength(11);
     });
 
     it("station items have required fields", async () => {
       getHSSCBusList.mockReturnValue([]);
 
-      const res = await request(app).get("/bus/hssc/v1/busstation");
-      res.body.stations.forEach((station) => {
+      const res = await request(app).get("/bus/hssc/stations");
+      res.body.data.forEach((station) => {
         expect(station).toHaveProperty("sequence");
         expect(station).toHaveProperty("stationName");
         expect(station).toHaveProperty("eta");
@@ -147,13 +148,13 @@ describe("HSSC routes", () => {
     });
   });
 
-  describe("GET /bus/hssc/v1/buslocation", () => {
+  describe("GET /bus/hssc/location", () => {
     it("returns empty array when no buses", async () => {
       getHSSCBusList.mockReturnValue([]);
 
-      const res = await request(app).get("/bus/hssc/v1/buslocation");
+      const res = await request(app).get("/bus/hssc/location");
       expect(res.status).toBe(200);
-      expect(res.body).toEqual([]);
+      expect(res.body.data).toEqual([]);
     });
 
     it("returns bus location data when available", async () => {
@@ -166,45 +167,45 @@ describe("HSSC routes", () => {
         },
       ]);
 
-      const res = await request(app).get("/bus/hssc/v1/buslocation");
+      const res = await request(app).get("/bus/hssc/location");
       expect(res.status).toBe(200);
-      expect(res.body).toHaveLength(1);
+      expect(res.body.data).toHaveLength(1);
     });
   });
 });
 
 describe("Jongro routes", () => {
-  describe("GET /bus/jongro/v1/busstation/07", () => {
-    it("returns metadata with lastStationIndex 18 and 19 stations", async () => {
+  describe("GET /bus/jongro/stations/07", () => {
+    it("returns meta with lastStationIndex 18 and 19 stations", async () => {
       getJongroBusList.mockReturnValue(undefined);
       getJongroBusLocation.mockReturnValue(undefined);
 
-      const res = await request(app).get("/bus/jongro/v1/busstation/07");
+      const res = await request(app).get("/bus/jongro/stations/07");
       expect(res.status).toBe(200);
-      expect(res.body.metaData.lastStationIndex).toBe(18);
-      expect(res.body.stations).toHaveLength(19);
+      expect(res.body.meta.lastStationIndex).toBe(18);
+      expect(res.body.data).toHaveLength(19);
     });
   });
 
-  describe("GET /bus/jongro/v1/busstation/02", () => {
-    it("returns metadata with lastStationIndex 25 and 26 stations", async () => {
+  describe("GET /bus/jongro/stations/02", () => {
+    it("returns meta with lastStationIndex 25 and 26 stations", async () => {
       getJongroBusList.mockReturnValue(undefined);
       getJongroBusLocation.mockReturnValue(undefined);
 
-      const res = await request(app).get("/bus/jongro/v1/busstation/02");
+      const res = await request(app).get("/bus/jongro/stations/02");
       expect(res.status).toBe(200);
-      expect(res.body.metaData.lastStationIndex).toBe(25);
-      expect(res.body.stations).toHaveLength(26);
+      expect(res.body.meta.lastStationIndex).toBe(25);
+      expect(res.body.data).toHaveLength(26);
     });
   });
 
-  describe("GET /bus/jongro/v1/buslocation/07", () => {
+  describe("GET /bus/jongro/location/07", () => {
     it("returns empty array when no data", async () => {
       getJongroBusLocation.mockReturnValue(undefined);
 
-      const res = await request(app).get("/bus/jongro/v1/buslocation/07");
+      const res = await request(app).get("/bus/jongro/location/07");
       expect(res.status).toBe(200);
-      expect(res.body).toEqual([]);
+      expect(res.body.data).toEqual([]);
     });
 
     it("returns location data with isLastBus field", async () => {
@@ -217,53 +218,53 @@ describe("Jongro routes", () => {
         },
       ]);
 
-      const res = await request(app).get("/bus/jongro/v1/buslocation/07");
+      const res = await request(app).get("/bus/jongro/location/07");
       expect(res.status).toBe(200);
-      expect(res.body).toHaveLength(1);
-      expect(res.body[0].isLastBus).toBe(false);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].isLastBus).toBe(false);
     });
   });
 });
 
 describe("Station routes", () => {
-  describe("GET /station/v1/01592", () => {
-    it("returns metaData with 2 StationData items", async () => {
+  describe("GET /station/01592", () => {
+    it("returns meta with 2 station data items", async () => {
       getHSSCBusList.mockReturnValue([]);
       getStationInfo.mockReturnValue("3분후 도착");
 
-      const res = await request(app).get("/station/v1/01592");
+      const res = await request(app).get("/station/01592");
       expect(res.status).toBe(200);
-      expect(res.body.metaData).toEqual({
-        success: true,
-        total_count: 2,
+      expect(res.body.meta).toMatchObject({
+        lang: "ko",
+        totalCount: 2,
       });
-      expect(res.body.stationData).toHaveLength(2);
+      expect(res.body.data).toHaveLength(2);
     });
 
-    it("first StationData is 종로07 bus", async () => {
+    it("first station data is 종로07 bus", async () => {
       getHSSCBusList.mockReturnValue([]);
       getStationInfo.mockReturnValue("5분 후 도착");
 
-      const res = await request(app).get("/station/v1/01592");
-      expect(res.body.stationData[0].busNm).toBe("종로07");
-      expect(res.body.stationData[0].msg1_message).toBe("5분 후 도착");
+      const res = await request(app).get("/station/01592");
+      expect(res.body.data[0].busNm).toBe("종로07");
+      expect(res.body.data[0].msg1Message).toBe("5분 후 도착");
     });
 
-    it("second StationData is 인사캠셔틀", async () => {
+    it("second station data is 인사캠셔틀", async () => {
       getHSSCBusList.mockReturnValue([]);
 
-      const res = await request(app).get("/station/v1/01592");
-      expect(res.body.stationData[1].busNm).toBe("인사캠셔틀");
+      const res = await request(app).get("/station/01592");
+      expect(res.body.data[1].busNm).toBe("인사캠셔틀");
     });
   });
 
-  describe("GET /station/v1/99999 (unknown station)", () => {
+  describe("GET /station/99999 (unknown station)", () => {
     it("returns empty array", async () => {
       getHSSCBusList.mockReturnValue([]);
 
-      const res = await request(app).get("/station/v1/99999");
+      const res = await request(app).get("/station/99999");
       expect(res.status).toBe(200);
-      expect(res.body).toEqual([]);
+      expect(res.body.data).toEqual([]);
     });
   });
 });

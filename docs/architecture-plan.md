@@ -169,17 +169,27 @@ Server + external setup (manual, one-time):
 
 ---
 
+## API v2 Migration (done ✓)
+
+Separate from the 3-phase infrastructure work, the API surface was migrated:
+
+- Dropped `/v1/` from all routes, renamed `/mobile/` → `/ui/`, `/option3/` → `/facilities/`
+- Standardized all responses to `{ meta: { lang, ... }, data }` envelope
+- All field names converted to camelCase
+- Added `Accept-Language` i18n, `/app/config` force-update, `X-Request-Id` / `X-Response-Time` headers
+- See `docs/api-migration-v2.md` for the full Flutter migration guide
+
 ## Phased Roadmap Summary
 
 ```
-Phase 1 (done ✓)       Phase 2 (done ✓)        Phase 3 (done ✓)
-─────────────          ──────────────          ────────────────
-✓ P0/P1 audit done     ✓ bus_cache collection  ✓ Docker 2 API replicas
-✓ pino logging         ✓ Pollers → MongoDB     ✓ Nginx upstream + health
-✓ Pool config          ✓ Routes ← MongoDB      ✓ BetterStack log shipping
-✓ Poller guard         ✓ 5s in-memory layer    ✓ GitHub Actions CI/CD
-✓ Docker 2CPU/1GB      ✓ Poller/API split      ✓ Oracle VM + Cloudflare setup
-✓ ESLint 0 warnings    ✓ Stateless HTTP layer  ✓ Initial production deploy
+Phase 1 (done ✓)       Phase 2 (done ✓)        Phase 3 (done ✓)        API v2 (done ✓)
+─────────────          ──────────────          ────────────────        ─────────────────
+✓ P0/P1 audit done     ✓ bus_cache collection  ✓ Docker 2 API replicas ✓ { meta, data } envelope
+✓ pino logging         ✓ Pollers → MongoDB     ✓ Nginx upstream + health ✓ Drop /v1/ paths
+✓ Pool config          ✓ Routes ← MongoDB      ✓ BetterStack log shipping ✓ i18n (ko/en/zh)
+✓ Poller guard         ✓ 5s in-memory layer    ✓ GitHub Actions CI/CD   ✓ /app/config endpoint
+✓ Docker 2CPU/1GB      ✓ Poller/API split      ✓ Oracle VM + Cloudflare ✓ X-Request-Id header
+✓ ESLint 0 warnings    ✓ Stateless HTTP layer  ✓ Initial production deploy ✓ camelCase fields
 ✓ /health/ready                                 ✓ UptimeRobot monitoring
 ```
 

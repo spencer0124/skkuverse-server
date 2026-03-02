@@ -70,16 +70,17 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("GET /mobile/v1/mainpage/buslist", () => {
-  it("returns busList with correct metaData count", async () => {
-    const res = await request(app).get("/mobile/v1/mainpage/buslist");
+describe("GET /ui/home/buslist", () => {
+  it("returns busList with correct meta count", async () => {
+    const res = await request(app).get("/ui/home/buslist");
     expect(res.status).toBe(200);
-    expect(res.body.metaData.busList_count).toBe(4);
-    expect(res.body.busList).toHaveLength(4);
+    expect(res.body.meta.busListCount).toBe(4);
+    expect(res.body.meta.lang).toBe("ko");
+    expect(res.body.data).toHaveLength(4);
   });
 
   it("each busList item has required fields", async () => {
-    const res = await request(app).get("/mobile/v1/mainpage/buslist");
+    const res = await request(app).get("/ui/home/buslist");
     const requiredFields = [
       "title",
       "subtitle",
@@ -91,25 +92,33 @@ describe("GET /mobile/v1/mainpage/buslist", () => {
       "showAnimation",
       "showNoticeText",
     ];
-    res.body.busList.forEach((item) => {
+    res.body.data.forEach((item) => {
       requiredFields.forEach((field) => {
         expect(item).toHaveProperty(field);
       });
     });
   });
+
+  it("returns English text with Accept-Language: en", async () => {
+    const res = await request(app)
+      .get("/ui/home/buslist")
+      .set("Accept-Language", "en");
+    expect(res.body.meta.lang).toBe("en");
+    expect(res.body.data[0].title).toBe("HSSC Shuttle Bus");
+  });
 });
 
-describe("GET /mobile/v1/mainpage/scrollcomponent", () => {
-  it("returns scrollcomponent with correct metaData count", async () => {
-    const res = await request(app).get("/mobile/v1/mainpage/scrollcomponent");
+describe("GET /ui/home/scroll", () => {
+  it("returns scroll items with correct meta count", async () => {
+    const res = await request(app).get("/ui/home/scroll");
     expect(res.status).toBe(200);
-    expect(res.body.metaData.item_count).toBe(3);
-    expect(res.body.itemList).toHaveLength(3);
+    expect(res.body.meta.itemCount).toBe(3);
+    expect(res.body.data).toHaveLength(3);
   });
 
   it("each item has required fields", async () => {
-    const res = await request(app).get("/mobile/v1/mainpage/scrollcomponent");
-    res.body.itemList.forEach((item) => {
+    const res = await request(app).get("/ui/home/scroll");
+    res.body.data.forEach((item) => {
       expect(item).toHaveProperty("title");
       expect(item).toHaveProperty("pageLink");
       expect(item).toHaveProperty("useAltPageLink");
@@ -117,18 +126,18 @@ describe("GET /mobile/v1/mainpage/scrollcomponent", () => {
   });
 });
 
-describe("GET /ad/v1/placements", () => {
-  it("returns only enabled placements with metaData count", async () => {
-    const res = await request(app).get("/ad/v1/placements");
+describe("GET /ad/placements", () => {
+  it("returns only enabled placements with meta count", async () => {
+    const res = await request(app).get("/ad/placements");
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("metaData");
-    expect(res.body.metaData.count).toBe(2); // only splash + main_banner enabled
-    expect(res.body).toHaveProperty("placements");
+    expect(res.body).toHaveProperty("meta");
+    expect(res.body.meta.count).toBe(2); // only splash + main_banner enabled
+    expect(res.body).toHaveProperty("data");
   });
 
   it("each placement has required fields including adId", async () => {
-    const res = await request(app).get("/ad/v1/placements");
-    const placements = res.body.placements;
+    const res = await request(app).get("/ad/placements");
+    const placements = res.body.data;
     Object.values(placements).forEach((p) => {
       expect(p).toHaveProperty("type");
       expect(p).toHaveProperty("linkUrl");
@@ -138,20 +147,20 @@ describe("GET /ad/v1/placements", () => {
   });
 
   it("does not include disabled placements", async () => {
-    const res = await request(app).get("/ad/v1/placements");
-    const keys = Object.keys(res.body.placements);
+    const res = await request(app).get("/ad/placements");
+    const keys = Object.keys(res.body.data);
     expect(keys).not.toContain("main_notice");
     expect(keys).not.toContain("bus_bottom");
   });
 });
 
-describe("POST /ad/v1/events", () => {
+describe("POST /ad/events", () => {
   it("records a valid event with adId", async () => {
     const res = await request(app)
-      .post("/ad/v1/events")
+      .post("/ad/events")
       .send({ placement: "splash", event: "view" });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({
+    expect(res.body.data).toEqual({
       placement: "splash",
       event: "view",
       adId: "000000000000000000000001",
@@ -160,24 +169,24 @@ describe("POST /ad/v1/events", () => {
 
   it("accepts explicit adId from client", async () => {
     const res = await request(app)
-      .post("/ad/v1/events")
+      .post("/ad/events")
       .send({
         placement: "splash",
         event: "click",
         adId: "aaaaaaaaaaaaaaaaaaaaaaaa",
       });
     expect(res.status).toBe(200);
-    expect(res.body.adId).toBe("aaaaaaaaaaaaaaaaaaaaaaaa");
+    expect(res.body.data.adId).toBe("aaaaaaaaaaaaaaaaaaaaaaaa");
   });
 
   it("rejects missing fields", async () => {
-    const res = await request(app).post("/ad/v1/events").send({});
+    const res = await request(app).post("/ad/events").send({});
     expect(res.status).toBe(400);
   });
 
   it("rejects unknown placement", async () => {
     const res = await request(app)
-      .post("/ad/v1/events")
+      .post("/ad/events")
       .send({ placement: "unknown", event: "view" });
     expect(res.status).toBe(400);
   });

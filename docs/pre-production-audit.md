@@ -147,14 +147,14 @@ Files: `hssc.fetcher.js:37`, `jongro.fetcher.js:20,71`, `station.fetcher.js:9`, 
 
 | # | Finding | File | Status |
 |---|---------|------|--------|
-| 13 | Error handler logs full stack to stdout | `index.js:60` | PENDING |
-| 14 | No request logging (morgan/pino) | `index.js` | PENDING |
-| 15 | Docker compose: no `mem_limit` or log rotation | `docker-compose.yml` | PENDING |
-| 16 | No readiness probe (`/health/ready`) | `index.js` | PENDING |
-| 17 | Fix 4 ESLint warnings (unused vars) | Various | PENDING |
+| 13 | Error handler logs full stack to stdout | `index.js` | DONE (Phase 1 — pino structured logging) |
+| 14 | No request logging (morgan/pino) | `index.js` | DONE (Phase 1 — pino-http with request ID, appVersion, platform) |
+| 15 | Docker compose: no `mem_limit` or log rotation | `docker-compose.yml` | DONE (Second Audit Items D+E) |
+| 16 | No readiness probe (`/health/ready`) | `index.js` | DONE (Phase 1 — DB ping + poller check) |
+| 17 | Fix 4 ESLint warnings (unused vars) | Various | DONE (Phase 1 — ESLint 0 warnings) |
 | 18 | Test coverage gaps: search.routes 37%, ad.data 30%, campus.routes 0% | Various | PENDING |
-| 19 | MongoClient has no pool config | `lib/db.js:8` | PENDING |
-| 20 | Poller overlap possible (no in-flight guard) | `lib/pollers.js` | PENDING |
+| 19 | MongoClient has no pool config | `lib/db.js` | DONE (Phase 1 — maxPoolSize:5, minPoolSize:1) |
+| 20 | Poller overlap possible (no in-flight guard) | `lib/pollers.js` | DONE (Phase 1 — in-flight guard) |
 
 ---
 
@@ -210,7 +210,7 @@ Deep inspection across security, reliability, and deployment. Items A-G are new 
 
 ---
 
-### C. `placement`/`event` not type-checked in POST /ad/v1/events
+### C. `placement`/`event` not type-checked in POST /ad/events
 
 **Problem**: `ad.routes.js:39` — sending `{"placement": {"$gt": ""}}` passes truthiness check, inserts malformed doc into MongoDB.
 

@@ -5,64 +5,66 @@ const { option1 } = require("./search.building");
 const { option1_detail } = require("./search.building-detail");
 const { option3 } = require("./search.space");
 
-router.get("/all/:inputquery", asyncHandler(async (req, res) => {
-  const option1_hssc = await option1(req.params.inputquery, 1);
-  const option1_nsc = await option1(req.params.inputquery, 2);
+router.get("/all/:query", asyncHandler(async (req, res) => {
+  const option1Hssc = await option1(req.params.query, 1);
+  const option1Nsc = await option1(req.params.query, 2);
 
-  const option1_hsscCount = option1_hssc.length;
-  const option1_nscCount = option1_nsc.length;
-  const option1_totalCount = option1_hssc.length + option1_nsc.length;
+  const buildingsHsscCount = option1Hssc.length;
+  const buildingsNscCount = option1Nsc.length;
+  const buildingsTotalCount = option1Hssc.length + option1Nsc.length;
 
-  const option3_hssc = await option3(req.params.inputquery, 1);
-  const option3_nsc = await option3(req.params.inputquery, 2);
+  const option3Hssc = await option3(req.params.query, 1);
+  const option3Nsc = await option3(req.params.query, 2);
 
-  const option3_hsscCount = option3_hssc.length;
-  const option3_nscCount = option3_nsc.length;
-  const option3_totalCount = option3_hssc.length + option3_nsc.length;
+  const facilitiesHsscCount = option3Hssc.length;
+  const facilitiesNscCount = option3Nsc.length;
+  const facilitiesTotalCount = option3Hssc.length + option3Nsc.length;
 
-  const total_hsscCount = option1_hsscCount + option3_hsscCount;
-  const total_nscCount = option1_nscCount + option3_nscCount;
-  const total_totalCount = total_hsscCount + total_nscCount;
+  const totalHsscCount = buildingsHsscCount + facilitiesHsscCount;
+  const totalNscCount = buildingsNscCount + facilitiesNscCount;
+  const totalCount = totalHsscCount + totalNscCount;
 
-  res.json({
-    metaData: {
-      keyword: req.params.inputquery,
-      total_totalCount,
-      total_hsscCount,
-      total_nscCount,
-      option1_totalCount,
-      option1_hsscCount,
-      option1_nscCount,
-      option3_totalCount,
-      option3_hsscCount,
-      option3_nscCount,
+  res.success(
+    {
+      buildings: { hssc: option1Hssc, nsc: option1Nsc },
+      facilities: { hssc: option3Hssc, nsc: option3Nsc },
     },
-    option1Items: { hssc: option1_hssc, nsc: option1_nsc },
-    option3Items: { hssc: option3_hssc, nsc: option3_nsc },
-  });
+    {
+      keyword: req.params.query,
+      totalCount,
+      totalHsscCount,
+      totalNscCount,
+      buildingsTotalCount,
+      buildingsHsscCount,
+      buildingsNscCount,
+      facilitiesTotalCount,
+      facilitiesHsscCount,
+      facilitiesNscCount,
+    }
+  );
 }));
 
 router.get("/detail/:buildNo/:id", asyncHandler(async (req, res) => {
   const mergedResults = await option1_detail(req.params.buildNo, req.params.id);
-  res.json(mergedResults);
+  res.success(mergedResults);
 }));
 
-router.get("/option3/:inputquery", asyncHandler(async (req, res) => {
-  const option3_hssc = await option3(req.params.inputquery, 1);
-  const option3_nsc = await option3(req.params.inputquery, 2);
-  const option3_hsscCount = option3_hssc.length;
-  const option3_nscCount = option3_nsc.length;
-  const option3_totalCount = option3_hssc.length + option3_nsc.length;
+router.get("/facilities/:query", asyncHandler(async (req, res) => {
+  const facilitiesHssc = await option3(req.params.query, 1);
+  const facilitiesNsc = await option3(req.params.query, 2);
+  const facilitiesHsscCount = facilitiesHssc.length;
+  const facilitiesNscCount = facilitiesNsc.length;
+  const facilitiesTotalCount = facilitiesHssc.length + facilitiesNsc.length;
 
-  res.json({
-    metaData: {
-      keyword: req.params.inputquery,
-      option3_totalCount,
-      option3_hsscCount,
-      option3_nscCount,
-    },
-    option3Items: { hssc: option3_hssc, nsc: option3_nsc },
-  });
+  res.success(
+    { hssc: facilitiesHssc, nsc: facilitiesNsc },
+    {
+      keyword: req.params.query,
+      facilitiesTotalCount,
+      facilitiesHsscCount,
+      facilitiesNscCount,
+    }
+  );
 }));
 
 module.exports = router;

@@ -28,7 +28,7 @@ The codebase was recently refactored (response format standardization, module ex
 
 ### 1c. Uid-Based Rate Limiting
 - **`index.js:28-35`**: `searchLimiter` — 60 req/min per uid
-- **`ad.routes.js:8-15`**: `eventLimiter` — 120 req/min per uid (scoped to POST `/v1/events`)
+- **`ad.routes.js:8-15`**: `eventLimiter` — 120 req/min per uid (scoped to POST `/events`)
 - **Key generator**: `req.uid || ipKeyGenerator(req.ip)` — uses `ipKeyGenerator()` wrapper for IPv6 safety (express-rate-limit v7+ requirement, raw `req.ip` throws `ERR_ERL_KEY_GEN_IPV6`)
 - **Route middleware order**: `verifyToken` → rate limiter → route handler
   - `/search/*`: `verifyToken` + `searchLimiter` (`index.js:44`)
@@ -152,14 +152,9 @@ The codebase was recently refactored (response format standardization, module ex
 
 ---
 
-## Step 7: Document Response Key Exceptions in CLAUDE.md — DONE
+## Step 7: Document Response Key Exceptions in CLAUDE.md — DONE (SUPERSEDED)
 
-**Problem**: CLAUDE.md said `{ metaData, dataItems }` but some endpoints use domain-specific keys (`placements`, `stationData`).
-
-**Changes** in **`CLAUDE.md`**:
-
-- Response format bullet: Added exception note for `ad.routes.js` (`placements`), `station.routes.js` (`stationData`), and `POST /ad/v1/events` (bare confirmation object)
-- Commands section: Added `npm run lint`
+> **Note**: The response format exceptions documented here (`placements`, `stationData`, bare POST response) were eliminated in the API v2 migration. All endpoints now use the standardized `{ meta, data }` envelope. See `docs/api-migration-v2.md` for the current API contract.
 
 ---
 
