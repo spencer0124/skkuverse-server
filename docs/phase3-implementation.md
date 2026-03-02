@@ -1,7 +1,7 @@
 # Phase 3 — Detailed Implementation Guide
 
 **Date**: 2026-03-02
-**Status**: Code changes done (3-A~3-D), server setup pending (3-E~3-H)
+**Status**: Complete (all items 3-A through 3-H done)
 **Prerequisites**: Oracle Cloud VM (bare, SSH verified), Cloudflare domain `skkuuniverse.com` (purchased), GitHub Secrets configured
 
 ---
@@ -368,17 +368,17 @@ curl https://api.skkuuniverse.com/health
 
 ### After code changes (local)
 
-- [ ] `npm test` — all tests pass (logger silent in test mode)
-- [ ] `npm run lint` — 0 errors
-- [ ] `docker compose config` — validates new multi-service YAML
-- [ ] `NODE_ENV=production node -e "require('./lib/logger').info('test')"` — JSON to stdout, no crash
+- [x] `npm test` — all 142 tests pass (logger silent in test mode)
+- [x] `npm run lint` — 0 errors
+- [x] `docker compose config` — validates new multi-service YAML
+- [x] `NODE_ENV=production node -e "require('./lib/logger').info('test')"` — JSON to stdout, no crash
 
 ### After server deployment
 
-- [ ] `docker compose ps` — 3 containers running (poller, api-1, api-2)
-- [ ] `curl http://localhost:3001/health/ready` → `{"status":"ready"}`
-- [ ] `curl http://localhost:3002/health/ready` → `{"status":"ready"}`
-- [ ] `curl https://api.skkuuniverse.com/health` → `{"status":"ok"}`
-- [ ] `curl -vI https://api.skkuuniverse.com` — SSL valid, Cloudflare headers present
-- [ ] Push a commit to `main` → GitHub Actions runs → deploys automatically
-- [ ] UptimeRobot dashboard shows UP status
+- [x] `docker compose ps` — 3 containers running (poller, api-1, api-2)
+- [x] `curl http://localhost:3001/health/ready` → `{"status":"ready"}`
+- [x] `curl http://localhost:3002/health/ready` → `{"status":"ready"}`
+- [x] `curl https://api.skkuuniverse.com/health` → `{"status":"ok"}`
+- [x] `curl -vI https://api.skkuuniverse.com` — SSL valid, TLS 1.3, Cloudflare headers present
+- [x] Push a commit to `main` → GitHub Actions runs → deploys automatically (rolling update confirmed)
+- [x] UptimeRobot dashboard shows UP status

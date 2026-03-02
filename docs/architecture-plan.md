@@ -1,21 +1,21 @@
 # Pro-Level Distribution Architecture Plan
 
 **Date**: 2026-03-02
-**Status**: Phase 3 in progress (code changes done, server setup pending)
+**Status**: Phase 3 complete
 
 ---
 
 ## Diagnosis: Current State vs Gaps
 
-| Layer | Before Phase 1 | After Phase 2 | Remaining Gap |
+| Layer | Before Phase 1 | After Phase 2 | After Phase 3 |
 |---|---|---|---|
-| **Compute** | 1 container, 1 CPU, 512MB | poller (0.5 CPU, 256MB) + api (1.5 CPU, 768MB) | 2nd API replica not yet deployed |
+| **Compute** | 1 container, 1 CPU, 512MB | poller + api (single) | poller + api-1 + api-2 (2 replicas) ✓ |
 | **Polling** | `setInterval` → in-memory only | Pollers → MongoDB TTL `bus_cache` | Solved ✓ |
 | **DB** | No pool config | `maxPoolSize: 5`, `minPoolSize: 1` | Solved ✓ |
 | **HTTP** | Stateful (in-process data) | Stateless (`cachedRead` → MongoDB → fallback) | Solved ✓ |
-| **Proxy** | Nginx → single container | Nginx → single container (same) | Needs upstream block for 2 replicas |
-| **CI/CD** | Manual `git pull + docker compose` | Manual (same) | No automation, no rollback |
-| **Observability** | `console.log` | `pino` structured JSON + `/health/ready` | No log aggregation, no uptime monitor |
+| **Proxy** | Nginx → single container | Nginx → single container | Nginx upstream → 2 replicas ✓ |
+| **CI/CD** | Manual `git pull + docker compose` | Manual (same) | GitHub Actions → rolling deploy ✓ |
+| **Observability** | `console.log` | `pino` structured JSON + `/health/ready` | BetterStack + UptimeRobot ✓ |
 
 ---
 
@@ -129,10 +129,10 @@ Client → Cloudflare (DNS Proxy, DDoS, SSL) → Oracle VM → Nginx (host)
 | 3-B | Nginx upstream + passive health check | Code + Server | `infra/nginx/api.skkuuniverse.com` (new) | DONE |
 | 3-C | BetterStack log shipping (pino multi-transport) | Code | `lib/logger.js`, `package.json` | DONE |
 | 3-D | GitHub Actions CI/CD (test → rolling deploy) | Code | `.github/workflows/deploy.yml` (new) | DONE |
-| 3-E | Oracle Cloud VM setup | Server | `docs/docker-deploy.md` (reference) | |
-| 3-F | Cloudflare DNS + SSL | External | Cloudflare dashboard | |
-| 3-G | Initial production deployment | Server | SSH to Oracle VM | |
-| 3-H | UptimeRobot monitoring | External | UptimeRobot dashboard | |
+| 3-E | Oracle Cloud VM setup | Server | `docs/docker-deploy.md` (reference) | DONE |
+| 3-F | Cloudflare DNS + SSL | External | Cloudflare dashboard | DONE |
+| 3-G | Initial production deployment | Server | SSH to Oracle VM | DONE |
+| 3-H | UptimeRobot monitoring | External | UptimeRobot dashboard | DONE |
 
 ### Execution Order
 
@@ -172,15 +172,15 @@ Server + external setup (manual, one-time):
 ## Phased Roadmap Summary
 
 ```
-Phase 1 (done ✓)       Phase 2 (done ✓)        Phase 3 (next)
+Phase 1 (done ✓)       Phase 2 (done ✓)        Phase 3 (done ✓)
 ─────────────          ──────────────          ────────────────
-✓ P0/P1 audit done     ✓ bus_cache collection  Docker 2 API replicas
-✓ pino logging         ✓ Pollers → MongoDB     Nginx upstream + health
-✓ Pool config          ✓ Routes ← MongoDB      BetterStack log shipping
-✓ Poller guard         ✓ 5s in-memory layer    GitHub Actions CI/CD
-✓ Docker 2CPU/1GB      ✓ Poller/API split      Oracle VM + Cloudflare setup
-✓ ESLint 0 warnings    ✓ Stateless HTTP layer  Initial production deploy
-✓ /health/ready                                 UptimeRobot monitoring
+✓ P0/P1 audit done     ✓ bus_cache collection  ✓ Docker 2 API replicas
+✓ pino logging         ✓ Pollers → MongoDB     ✓ Nginx upstream + health
+✓ Pool config          ✓ Routes ← MongoDB      ✓ BetterStack log shipping
+✓ Poller guard         ✓ 5s in-memory layer    ✓ GitHub Actions CI/CD
+✓ Docker 2CPU/1GB      ✓ Poller/API split      ✓ Oracle VM + Cloudflare setup
+✓ ESLint 0 warnings    ✓ Stateless HTTP layer  ✓ Initial production deploy
+✓ /health/ready                                 ✓ UptimeRobot monitoring
 ```
 
 ---
