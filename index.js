@@ -88,7 +88,9 @@ const generalLimiter = rateLimit({
 
 // Feature routes
 const searchRoute = require("./features/search/search.routes");
-const { hsscRoutes, jongroRoutes, campusRoutes } = require("./features/bus/bus.routes");
+const hsscRoutes = require("./features/bus/hssc.routes");
+const jongroRoutes = require("./features/bus/jongro.routes");
+const campusRoutes = require("./features/bus/campus.routes");
 const stationRoute = require("./features/station/station.routes");
 const uiRoute = require("./features/ui/ui.routes");
 const adRoute = require("./features/ad/ad.routes");
