@@ -131,7 +131,7 @@ describe("Jongro edge cases", () => {
 
     const { getJongroBusList } = require("../features/bus/jongro.fetcher");
 
-    await jest.advanceTimersByTimeAsync(15000);
+    await jest.advanceTimersByTimeAsync(40000);
 
     const result = getJongroBusList("07");
     expect(result).toHaveLength(0);
@@ -158,7 +158,7 @@ describe("Jongro edge cases", () => {
 
     const { getJongroBusList } = require("../features/bus/jongro.fetcher");
 
-    await jest.advanceTimersByTimeAsync(15000);
+    await jest.advanceTimersByTimeAsync(40000);
 
     expect(getJongroBusList("07")).toBeUndefined();
     consoleSpy.mockRestore();
@@ -187,7 +187,7 @@ describe("Station edge cases", () => {
 
     const { getStationInfo } = require("../features/station/station.fetcher");
 
-    await jest.advanceTimersByTimeAsync(15000);
+    await jest.advanceTimersByTimeAsync(40000);
 
     expect(getStationInfo()).toBe("정보 없음");
     consoleSpy.mockRestore();
@@ -222,7 +222,7 @@ describe("Station edge cases", () => {
     // Default value before any interval fires
     expect(getStationInfo()).toBe("정보 없음");
 
-    await jest.advanceTimersByTimeAsync(15000);
+    await jest.advanceTimersByTimeAsync(40000);
 
     expect(getStationInfo()).toBe("3분후[1번째 전]");
   });
@@ -253,11 +253,11 @@ describe("Station edge cases", () => {
     const { getStationInfo } = require("../features/station/station.fetcher");
 
     // First tick: data arrives
-    await jest.advanceTimersByTimeAsync(15000);
+    await jest.advanceTimersByTimeAsync(40000);
     expect(getStationInfo()).toBe("2분후 도착");
 
     // Second tick: empty response → must reset, not keep ghost "2분후 도착"
-    await jest.advanceTimersByTimeAsync(15000);
+    await jest.advanceTimersByTimeAsync(40000);
     expect(getStationInfo()).toBe("정보 없음");
     expect(mockWrite).toHaveBeenLastCalledWith("station", "정보 없음");
   });
@@ -285,11 +285,11 @@ describe("Station edge cases", () => {
 
     const { getStationInfo } = require("../features/station/station.fetcher");
 
-    await jest.advanceTimersByTimeAsync(15000);
+    await jest.advanceTimersByTimeAsync(40000);
     expect(getStationInfo()).toBe("1분후 도착");
 
     // Network error: state must NOT change
-    await jest.advanceTimersByTimeAsync(15000);
+    await jest.advanceTimersByTimeAsync(40000);
     expect(getStationInfo()).toBe("1분후 도착");
     consoleSpy.mockRestore();
   });

@@ -115,6 +115,6 @@ pollers.registerPoller(() => {
   updateJongroBusList(config.api.jongro02List, "02").catch((err) => logger.error({ err: err.message }, "[jongro] Poller error"));
   updateJongroBusLocation(config.api.jongro07Loc, "07").catch((err) => logger.error({ err: err.message }, "[jongro] Poller error"));
   updateJongroBusLocation(config.api.jongro02Loc, "02").catch((err) => logger.error({ err: err.message }, "[jongro] Poller error"));
-}, 15000, "jongro");
+}, 40000, "jongro");
 
 module.exports = { getJongroBusList, getJongroBusLocation };

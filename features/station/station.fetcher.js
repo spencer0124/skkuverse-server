@@ -26,6 +26,6 @@ function getStationInfo() {
 
 pollers.registerPoller(() => {
   updateStation().catch((err) => logger.error({ err: err.message }, "[station] Poller error"));
-}, 15000, "station");
+}, 40000, "station");
 
 module.exports = { getStationInfo };

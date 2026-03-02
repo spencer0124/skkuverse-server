@@ -77,7 +77,7 @@ describe("Jongro fetchjongro.js", () => {
       // bus location calls will error (wrong shape) but that's caught
       const { getJongroBusList } = setupModule(busListData);
 
-      await jest.advanceTimersByTimeAsync(15000);
+      await jest.advanceTimersByTimeAsync(40000);
 
       const result = getJongroBusList("07");
       expect(result).toHaveLength(1);
@@ -115,7 +115,7 @@ describe("Jongro fetchjongro.js", () => {
         },
       });
 
-      await jest.advanceTimersByTimeAsync(15000);
+      await jest.advanceTimersByTimeAsync(40000);
 
       // Both 07 and 02 get the same data
       const result07 = getJongroBusList("07");
@@ -154,7 +154,7 @@ describe("Jongro fetchjongro.js", () => {
         });
       });
 
-      await jest.advanceTimersByTimeAsync(15000);
+      await jest.advanceTimersByTimeAsync(40000);
 
       const result = getJongroBusLocation("07");
       expect(result).toHaveLength(1);
@@ -183,7 +183,7 @@ describe("Jongro fetchjongro.js", () => {
 
       const { getJongroBusList } = require("../features/bus/jongro.fetcher");
 
-      await jest.advanceTimersByTimeAsync(15000);
+      await jest.advanceTimersByTimeAsync(40000);
 
       expect(getJongroBusList("07")).toBeUndefined();
       consoleSpy.mockRestore();
@@ -193,7 +193,7 @@ describe("Jongro fetchjongro.js", () => {
       const consoleSpy = jest.spyOn(console, "log").mockImplementation();
       const { getJongroBusList } = setupModule();
 
-      await jest.advanceTimersByTimeAsync(15000);
+      await jest.advanceTimersByTimeAsync(40000);
 
       const result = getJongroBusList("07");
       expect(result).toHaveLength(0);
