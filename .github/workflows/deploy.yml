@@ -1,0 +1,52 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.ORACLE_VM_HOST }}
+          username: ${{ secrets.ORACLE_VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.DEPLOY_PATH }}
+            git pull origin main
+
+            # Update Nginx config
+            sudo cp infra/nginx/api.skkuuniverse.com /etc/nginx/sites-available/
+            sudo nginx -t && sudo systemctl reload nginx
+
+            # Build new images
+            docker compose build
+
+            # Rolling update: one replica at a time
+            docker compose up -d --no-deps api-1
+            sleep 15
+            curl -f http://localhost:3001/health/ready || exit 1
+
+            docker compose up -d --no-deps api-2
+            sleep 15
+            curl -f http://localhost:3002/health/ready || exit 1
+
+            # Update poller last (no downtime impact)
+            docker compose up -d --no-deps poller

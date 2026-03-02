@@ -1,21 +1,21 @@
 # Pro-Level Distribution Architecture Plan
 
 **Date**: 2026-03-02
-**Status**: Phase 2 complete ✓
+**Status**: Phase 3 in progress (code changes done, server setup pending)
 
 ---
 
 ## Diagnosis: Current State vs Gaps
 
-| Layer | Current State | Gap |
-|---|---|---|
-| **Compute** | 1 Docker container, 1 CPU, 512MB | 3 OCPUs + 23.5GB unused on ARM VM |
-| **Polling** | In-process `setInterval` → in-memory cache | Blocks horizontal scaling |
-| **DB** | MongoDB Atlas, no pool config | Risk of connection exhaustion |
-| **Proxy** | Nginx → Docker (correct) | No request logging, no rate limit at Nginx layer |
-| **CI/CD** | Manual `git pull + docker compose` | No automation, no rollback |
-| **Observability** | `console.log` + Docker logs | No structured logs, no uptime monitoring |
-| **Pending P2** | Items 13–20 from pre-production-audit.md | ESLint warnings, pool config, poller overlap guard |
+| Layer | Before Phase 1 | After Phase 2 | Remaining Gap |
+|---|---|---|---|
+| **Compute** | 1 container, 1 CPU, 512MB | poller (0.5 CPU, 256MB) + api (1.5 CPU, 768MB) | 2nd API replica not yet deployed |
+| **Polling** | `setInterval` → in-memory only | Pollers → MongoDB TTL `bus_cache` | Solved ✓ |
+| **DB** | No pool config | `maxPoolSize: 5`, `minPoolSize: 1` | Solved ✓ |
+| **HTTP** | Stateful (in-process data) | Stateless (`cachedRead` → MongoDB → fallback) | Solved ✓ |
+| **Proxy** | Nginx → single container | Nginx → single container (same) | Needs upstream block for 2 replicas |
+| **CI/CD** | Manual `git pull + docker compose` | Manual (same) | No automation, no rollback |
+| **Observability** | `console.log` | `pino` structured JSON + `/health/ready` | No log aggregation, no uptime monitor |
 
 ---
 
@@ -98,22 +98,56 @@ Client → Cloudflare (DNS Proxy, DDoS, SSL) → Nginx (host) → Docker (Expres
 
 ---
 
-## Phase 3 — CI/CD + Observability
+## Phase 3 — Infrastructure, CI/CD & Observability
 
-**Goal**: Automate deployments. Add structured log aggregation and uptime monitoring.
+**Goal**: Deploy to production. Automate future deployments. Add log aggregation and uptime monitoring.
+
+**Starting point**: Oracle Cloud VM (bare, no config) + Cloudflare domain `skkuuniverse.com` (purchased, not configured).
 
 ```
-GitHub (push to main)
-        │
-        ▼
-GitHub Actions Workflow
-  ├── npm ci + npm test
-  ├── npm run lint
-  ├── SSH to Oracle VM
-  └── docker compose pull && docker compose up -d --build
-              │
-              ▼
-        Zero-downtime deploy (health check confirms before traffic)
+Client → Cloudflare (DNS Proxy, DDoS, SSL) → Oracle VM → Nginx (host)
+                                                              │
+                                            ┌─────────────────┼─────────────────┐
+                                            ▼                                   ▼
+                                     Docker api-1                        Docker api-2
+                                   (127.0.0.1:3001)                   (127.0.0.1:3002)
+                                            │                                   │
+                                            └───────────┬───────────────────────┘
+                                                        ▼
+                                             MongoDB Atlas (cloud)
+                                                        ▲
+                                                        │
+                                                 Docker poller
+                                                (1 replica, writes)
+```
+
+### Items
+
+| # | Item | Type | File(s) / Where | Status |
+|---|------|------|-----------------|--------|
+| 3-A | Docker Compose 2 API replicas | Code | `docker-compose.yml` | DONE |
+| 3-B | Nginx upstream + passive health check | Code + Server | `infra/nginx/api.skkuuniverse.com` (new) | DONE |
+| 3-C | BetterStack log shipping (pino multi-transport) | Code | `lib/logger.js`, `package.json` | DONE |
+| 3-D | GitHub Actions CI/CD (test → rolling deploy) | Code | `.github/workflows/deploy.yml` (new) | DONE |
+| 3-E | Oracle Cloud VM setup | Server | `docs/docker-deploy.md` (reference) | |
+| 3-F | Cloudflare DNS + SSL | External | Cloudflare dashboard | |
+| 3-G | Initial production deployment | Server | SSH to Oracle VM | |
+| 3-H | UptimeRobot monitoring | External | UptimeRobot dashboard | |
+
+### Execution Order
+
+```
+Code changes (local, commit to repo):
+  3-A  Docker Compose split → api-1/api-2
+  3-B  Nginx config with upstream block
+  3-C  BetterStack pino transport
+  3-D  GitHub Actions workflow
+
+Server + external setup (manual, one-time):
+  3-E  Oracle VM: Docker, Nginx, git, firewall
+  3-F  Cloudflare: DNS A record, SSL Full (Strict), Origin Certificate
+  3-G  First deploy: git clone, .env, docker compose up, nginx enable
+  3-H  UptimeRobot: monitor https://api.skkuuniverse.com/health/ready
 ```
 
 ### Observability Stack (all free tier)
@@ -122,8 +156,16 @@ GitHub Actions Workflow
 |------|---------|------|
 | pino → BetterStack Logtail | Structured log aggregation, search, alerts | Free: 1GB/month |
 | UptimeRobot | `/health/ready` monitoring, email alerts | Free: 5-min intervals |
-| Cloudflare Analytics | Request volume, error rates | Free (already active) |
+| Cloudflare Analytics | Request volume, error rates | Free (included) |
 | MongoDB Atlas Monitoring | Connection count, query performance | Free (built in) |
+
+### Infrastructure Notes
+
+**Oracle Cloud firewall**: No new ports needed beyond 80/443 (already in `docs/docker-deploy.md`). API replicas bind to `127.0.0.1:3001/3002` — localhost only, invisible from outside. Nginx on the host connects to them directly.
+
+**Cloudflare**: DNS A record `api` → Oracle VM public IP (proxy ON). SSL mode Full (Strict) with free Origin Certificate. Cache bypass rule for API responses.
+
+**Rolling deploy**: Deploy script updates one API replica at a time — Nginx `max_fails=3 fail_timeout=30s` routes traffic to the healthy replica while the other restarts.
 
 ---
 
@@ -132,13 +174,13 @@ GitHub Actions Workflow
 ```
 Phase 1 (done ✓)       Phase 2 (done ✓)        Phase 3 (next)
 ─────────────          ──────────────          ────────────────
-✓ P0/P1 audit done     ✓ bus_cache collection  GitHub Actions CI/CD
-✓ pino logging         ✓ Pollers → MongoDB     BetterStack log shipping
-✓ Pool config          ✓ Routes ← MongoDB      UptimeRobot
-✓ Poller guard         ✓ 5s in-memory layer    Nginx upstream health
-✓ Docker 2CPU/1GB      ✓ Poller/API split      Zero-downtime deploys
-✓ ESLint 0 warnings    ✓ Stateless HTTP layer
-✓ /health/ready
+✓ P0/P1 audit done     ✓ bus_cache collection  Docker 2 API replicas
+✓ pino logging         ✓ Pollers → MongoDB     Nginx upstream + health
+✓ Pool config          ✓ Routes ← MongoDB      BetterStack log shipping
+✓ Poller guard         ✓ 5s in-memory layer    GitHub Actions CI/CD
+✓ Docker 2CPU/1GB      ✓ Poller/API split      Oracle VM + Cloudflare setup
+✓ ESLint 0 warnings    ✓ Stateless HTTP layer  Initial production deploy
+✓ /health/ready                                 UptimeRobot monitoring
 ```
 
 ---

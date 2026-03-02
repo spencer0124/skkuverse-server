@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npx jest __tests__/hssc-transform.test.js` — Run a single test file
 - `npm run swagger` — Regenerate Swagger docs (`swagger/swagger-output.json`)
 - `npm run lint` — Run ESLint (0 errors expected, warnings OK)
-- `docker compose up --build` — Build and run via Docker (NODE_ENV=production, host port 1398 → container 3000)
+- `docker compose up --build` — Build and run via Docker (NODE_ENV=production, 3 services: poller + api-1:3001 + api-2:3002)
 
 ## App
 

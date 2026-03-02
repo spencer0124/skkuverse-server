@@ -78,32 +78,13 @@ Install Nginx on the host to handle SSL termination and proxying:
 sudo apt install -y nginx
 ```
 
-Nginx config (`/etc/nginx/sites-available/api.skkuuniverse.com`):
+Nginx config is version-controlled at `infra/nginx/api.skkuuniverse.com` in the repo. Copy it to the server:
 
-```nginx
-server {
-    listen 80;
-    server_name api.skkuuniverse.com;
-    return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name api.skkuuniverse.com;
-
-    # Cloudflare Origin Certificate (15-year, free)
-    ssl_certificate /etc/ssl/cloudflare/origin.pem;
-    ssl_certificate_key /etc/ssl/cloudflare/origin-key.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:1398;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
+```bash
+sudo cp infra/nginx/api.skkuuniverse.com /etc/nginx/sites-available/
 ```
+
+The config uses an upstream block with passive health checks for load balancing between two API replicas. See `infra/nginx/api.skkuuniverse.com` for the full config.
 
 Enable the site:
 ```bash
@@ -144,19 +125,25 @@ docker compose up -d --build
 
 # Verify
 docker compose ps
-curl http://localhost:1398/health
+curl http://localhost:3001/health/ready
+curl http://localhost:3002/health/ready
 ```
 
-### 7. docker-compose.yml Adjustment
+### 7. docker-compose.yml Port Binding
 
-Change the port binding to localhost-only (since Nginx handles external traffic):
+The docker-compose.yml runs two API replicas with localhost-only ports (Nginx handles external traffic):
 
 ```yaml
+# api-1
 ports:
-  - "127.0.0.1:1398:3000"  # was "1398:3000"
+  - "127.0.0.1:3001:3000"
+
+# api-2
+ports:
+  - "127.0.0.1:3002:3000"
 ```
 
-This prevents direct access to the Express app, forcing all traffic through Nginx.
+This prevents direct access to the Express app, forcing all traffic through Nginx. The Nginx upstream block load-balances between the two replicas.
 
 ### 8. Swagger URL Update
 
@@ -175,7 +162,7 @@ MongoDB is hosted on Atlas (cloud). No need to run MongoDB on the Oracle VM.
 
 - [ ] **Allowlist Oracle VM's public IP** in Atlas → Network Access → IP Access List
 - [ ] Verify `MONGO_URL` in `.env` points to Atlas cluster
-- [ ] Test connectivity from VM: `docker compose exec skkumap-server wget -qO- --timeout=5 https://cloud.mongodb.com` (basic DNS check)
+- [ ] Test connectivity from VM: `docker compose exec api-1 wget -qO- --timeout=5 https://cloud.mongodb.com` (basic DNS check)
 - [ ] Consider: allowlist `0.0.0.0/0` temporarily during setup, then restrict to VM IP only
 
 ---

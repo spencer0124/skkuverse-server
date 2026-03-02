@@ -100,7 +100,7 @@ npm start
 docker compose up --build
 ```
 
-Runs on host port **1398** → container port **3000**, `NODE_ENV=production`.
+Runs 3 services: `poller`, `api-1` (127.0.0.1:3001), `api-2` (127.0.0.1:3002). `NODE_ENV=production`.
 
 ---
 
