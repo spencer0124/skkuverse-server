@@ -34,7 +34,10 @@ async function updateJongroBusLocation(url, busnumber) {
       .map((item) => {
         const { lastStnId, tmX, tmY, plainNo } = item;
         const mapping = busStationMapping[busnumber]?.[lastStnId];
-        if (!mapping) return null;
+        if (!mapping) {
+          logger.debug({ lastStnId, busnumber }, "[jongro] Unmapped station ID");
+          return null;
+        }
 
         let estimatedTime = 0;
 
@@ -57,7 +60,7 @@ async function updateJongroBusLocation(url, busnumber) {
         return {
           sequence: mapping.sequence.toString(),
           stationName: mapping.stationName,
-          carNumber: plainNo.slice(-4),
+          carNumber: (plainNo || "").trim().slice(-4) || "----",
           eventDate: currentBusStationTimes[lastStnId],
           estimatedTime: estimatedTime,
 
@@ -88,7 +91,7 @@ async function updateJongroBusList(url, busnumber) {
         stationId: stId,
         sequence: staOrd,
         stationName: stNm,
-        carNumber: plainNo1.slice(-4),
+        carNumber: (plainNo1 || "").trim().slice(-4) || "----",
         eventDate: mkTm,
         stationNumber: arsId,
         eta: arrmsg1,

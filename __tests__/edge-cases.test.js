@@ -110,6 +110,83 @@ describe("HSSC edge cases", () => {
   });
 });
 
+describe("HSSC edge cases — non-array response guard", () => {
+  it("non-array response.data does not crash, keeps previous data", async () => {
+    jest.useFakeTimers();
+    jest.resetModules();
+
+    const moment = require("moment-timezone");
+    require("moment/locale/ko");
+    const now = moment().tz("Asia/Seoul").locale("ko").format("YYYY-MM-DD a h:mm:ss");
+
+    const mockGet = jest.fn();
+    // First call: valid array data
+    mockGet.mockResolvedValueOnce({
+      data: [
+        {
+          stop_name: "혜화동로터리",
+          seq: "6",
+          get_date: now,
+          line_no: "1",
+          stop_no: "1",
+        },
+      ],
+    });
+    // Second call: non-array response (e.g., HTML error page or object)
+    mockGet.mockResolvedValueOnce({ data: "<html>Service Unavailable</html>" });
+
+    jest.doMock("axios", () => ({ get: mockGet }));
+    jest.doMock("../lib/pollers", () => ({
+      registerPoller: (fn, ms) => setInterval(fn, ms),
+      startAll: jest.fn(),
+      stopAll: jest.fn(),
+    }));
+    jest.doMock("../lib/busCache", () => ({
+      write: jest.fn().mockResolvedValue(),
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
+    }));
+
+    const { getHSSCBusList } = require("../features/bus/hssc.fetcher");
+
+    // First tick: valid data loads
+    await jest.advanceTimersByTimeAsync(10000);
+    expect(getHSSCBusList().length).toBe(1);
+
+    // Second tick: non-array response → guard returns early, keeps previous data
+    await jest.advanceTimersByTimeAsync(10000);
+    expect(getHSSCBusList().length).toBe(1);
+  });
+
+  it("object response.data does not crash", async () => {
+    jest.useFakeTimers();
+    jest.resetModules();
+
+    jest.doMock("axios", () => ({
+      get: jest.fn().mockResolvedValue({
+        data: { error: "internal server error" },
+      }),
+    }));
+    jest.doMock("../lib/pollers", () => ({
+      registerPoller: (fn, ms) => setInterval(fn, ms),
+      startAll: jest.fn(),
+      stopAll: jest.fn(),
+    }));
+    jest.doMock("../lib/busCache", () => ({
+      write: jest.fn().mockResolvedValue(),
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
+    }));
+
+    const { getHSSCBusList } = require("../features/bus/hssc.fetcher");
+
+    await jest.advanceTimersByTimeAsync(10000);
+
+    // Should return initial empty array, not crash
+    expect(getHSSCBusList()).toEqual([]);
+  });
+});
+
 describe("Jongro edge cases", () => {
   it("empty itemList results in empty arrays", async () => {
     jest.useFakeTimers();
@@ -164,6 +241,195 @@ describe("Jongro edge cases", () => {
 
     expect(getJongroBusList("07")).toBeUndefined();
     consoleSpy.mockRestore();
+  });
+});
+
+describe("Jongro edge cases — plainNo (location API) whitespace handling", () => {
+  it("null plainNo in location data returns '----'", async () => {
+    jest.useFakeTimers();
+    jest.resetModules();
+
+    jest.doMock("axios", () => ({
+      get: jest.fn().mockResolvedValue({
+        data: {
+          msgBody: {
+            itemList: [
+              {
+                lastStnId: "100900197",
+                tmX: "126.998",
+                tmY: "37.587",
+                plainNo: null,
+              },
+            ],
+          },
+        },
+      }),
+    }));
+    jest.doMock("../lib/pollers", () => ({
+      registerPoller: (fn, ms) => setInterval(fn, ms),
+      startAll: jest.fn(),
+      stopAll: jest.fn(),
+    }));
+    jest.doMock("../lib/busCache", () => ({
+      write: jest.fn().mockResolvedValue(),
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
+    }));
+
+    const { getJongroBusLocation } = require("../features/bus/jongro.fetcher");
+
+    await jest.advanceTimersByTimeAsync(40000);
+
+    const result = getJongroBusLocation("07");
+    expect(result[0].carNumber).toBe("----");
+  });
+});
+
+describe("Jongro edge cases — plainNo1 (list API) whitespace handling", () => {
+  it("plainNo1 with single space returns '----' not ' '", async () => {
+    jest.useFakeTimers();
+    jest.resetModules();
+
+    jest.doMock("axios", () => ({
+      get: jest.fn().mockResolvedValue({
+        data: {
+          msgBody: {
+            itemList: [
+              {
+                stId: "100",
+                staOrd: "1",
+                stNm: "명륜새마을금고",
+                plainNo1: " ",
+                mkTm: "2025-03-03 08:00:00",
+                arsId: "01592",
+                arrmsg1: "출발대기",
+              },
+            ],
+          },
+        },
+      }),
+    }));
+    jest.doMock("../lib/pollers", () => ({
+      registerPoller: (fn, ms) => setInterval(fn, ms),
+      startAll: jest.fn(),
+      stopAll: jest.fn(),
+    }));
+    jest.doMock("../lib/busCache", () => ({
+      write: jest.fn().mockResolvedValue(),
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
+    }));
+
+    const { getJongroBusList } = require("../features/bus/jongro.fetcher");
+
+    await jest.advanceTimersByTimeAsync(40000);
+
+    const result = getJongroBusList("07");
+    expect(result[0].carNumber).toBe("----");
+  });
+
+  it("null plainNo1 returns '----'", async () => {
+    jest.useFakeTimers();
+    jest.resetModules();
+
+    jest.doMock("axios", () => ({
+      get: jest.fn().mockResolvedValue({
+        data: {
+          msgBody: {
+            itemList: [
+              {
+                stId: "100",
+                staOrd: "1",
+                stNm: "명륜새마을금고",
+                plainNo1: null,
+                mkTm: "2025-03-03 08:00:00",
+                arsId: "01592",
+                arrmsg1: "운행종료",
+              },
+            ],
+          },
+        },
+      }),
+    }));
+    jest.doMock("../lib/pollers", () => ({
+      registerPoller: (fn, ms) => setInterval(fn, ms),
+      startAll: jest.fn(),
+      stopAll: jest.fn(),
+    }));
+    jest.doMock("../lib/busCache", () => ({
+      write: jest.fn().mockResolvedValue(),
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
+    }));
+
+    const { getJongroBusList } = require("../features/bus/jongro.fetcher");
+
+    await jest.advanceTimersByTimeAsync(40000);
+
+    const result = getJongroBusList("07");
+    expect(result[0].carNumber).toBe("----");
+  });
+});
+
+describe("Station edge cases — malformed response handling", () => {
+  it("response with missing msgBody does not crash (optional chaining)", async () => {
+    jest.useFakeTimers();
+    jest.resetModules();
+
+    const mockGet = jest.fn()
+      .mockResolvedValueOnce({
+        data: { msgBody: { itemList: [{ arrmsg1: "3분후 도착" }] } },
+      })
+      // Second response: msgBody is missing entirely
+      .mockResolvedValueOnce({ data: {} });
+
+    jest.doMock("axios", () => ({ get: mockGet }));
+    jest.doMock("../lib/pollers", () => ({
+      registerPoller: (fn, ms) => setInterval(fn, ms),
+      startAll: jest.fn(),
+      stopAll: jest.fn(),
+    }));
+    jest.doMock("../lib/busCache", () => ({
+      write: jest.fn().mockResolvedValue(),
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
+    }));
+
+    const { getStationInfo } = require("../features/station/station.fetcher");
+
+    // First tick: valid data
+    await jest.advanceTimersByTimeAsync(40000);
+    expect(getStationInfo()).toBe("3분후 도착");
+
+    // Second tick: malformed response → early return, keeps previous state
+    await jest.advanceTimersByTimeAsync(40000);
+    expect(getStationInfo()).toBe("3분후 도착");
+  });
+
+  it("null response.data does not crash", async () => {
+    jest.useFakeTimers();
+    jest.resetModules();
+
+    jest.doMock("axios", () => ({
+      get: jest.fn().mockResolvedValue({ data: null }),
+    }));
+    jest.doMock("../lib/pollers", () => ({
+      registerPoller: (fn, ms) => setInterval(fn, ms),
+      startAll: jest.fn(),
+      stopAll: jest.fn(),
+    }));
+    jest.doMock("../lib/busCache", () => ({
+      write: jest.fn().mockResolvedValue(),
+      read: jest.fn().mockResolvedValue(null),
+      ensureIndex: jest.fn().mockResolvedValue(),
+    }));
+
+    const { getStationInfo } = require("../features/station/station.fetcher");
+
+    await jest.advanceTimersByTimeAsync(40000);
+
+    // Should keep default value, not crash
+    expect(getStationInfo()).toBe("정보 없음");
   });
 });
 

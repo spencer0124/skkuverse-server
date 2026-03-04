@@ -27,6 +27,14 @@ describe("computeEta", () => {
       expect(computeEta(makeStation(6), [])).toBe("도착 정보 없음");
     });
 
+    it("returns '도착 정보 없음' when busData is null", () => {
+      expect(computeEta(makeStation(6), null)).toBe("도착 정보 없음");
+    });
+
+    it("returns '도착 정보 없음' when busData is undefined", () => {
+      expect(computeEta(makeStation(6), undefined)).toBe("도착 정보 없음");
+    });
+
     it("returns '도착 정보 없음' when all buses are past the station", () => {
       const buses = [makeBus(7), makeBus(8)];
       expect(computeEta(makeStation(6), buses)).toBe("도착 정보 없음");

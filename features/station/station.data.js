@@ -30,6 +30,7 @@ const NO_INFO = "도착 정보 없음";
  * @returns {string} ETA display string
  */
 function computeEta(station, busData) {
+  if (!Array.isArray(busData)) return NO_INFO;
   const busesApproaching = busData
     .filter((bus) => parseInt(bus.sequence) <= station.sequence)
     .sort((a, b) => parseInt(b.sequence) - parseInt(a.sequence)); // descending: closest first

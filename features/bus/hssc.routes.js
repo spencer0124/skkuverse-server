@@ -25,7 +25,7 @@ router.get("/stations", asyncHandler(async (req, res) => {
       minute: "2-digit",
       hour12: true,
     }),
-    totalBuses: dynamicBusData.length,
+    totalBuses: Array.isArray(dynamicBusData) ? dynamicBusData.length : 0,
     lastStationIndex: 10,
   };
   res.success(HSSCStations, meta);

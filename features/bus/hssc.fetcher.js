@@ -40,6 +40,7 @@ async function updateHSSCBusList() {
     const response = await axios.get(config.api.hsscNew, { timeout: 10000 });
 
     const apiData = response.data;
+    if (!Array.isArray(apiData)) return;
     const currentTime = moment().tz("Asia/Seoul");
 
     const updatedData = apiData
