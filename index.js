@@ -100,7 +100,7 @@ app.use("/search", verifyToken, searchLimiter, searchRoute);
 app.use("/bus/hssc", generalLimiter, hsscRoutes);
 app.use("/bus/jongro", generalLimiter, jongroRoutes);
 app.use("/bus/station", generalLimiter, stationRoute);
-app.use("/bus/schedule", generalLimiter, campusRoutes);
+app.use("/bus/campus", generalLimiter, campusRoutes);
 app.use("/ui", generalLimiter, uiRoute);
 app.use("/ad", verifyToken, adRoute);
 app.use("/app", generalLimiter, appRoute);

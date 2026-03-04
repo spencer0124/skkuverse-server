@@ -242,7 +242,26 @@
         }
       }
     },
-    "/bus/schedule/{bustype}": {
+    "/bus/campus/eta": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/bus/campus/{bustype}": {
       "get": {
         "description": "",
         "parameters": [

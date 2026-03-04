@@ -26,7 +26,7 @@ The server API has been migrated with 4 major changes:
 | `/bus/hssc/v1/busstation` | `/bus/hssc/stations` | GET |
 | `/bus/jongro/v1/buslocation/:line` | `/bus/jongro/location/:line` | GET |
 | `/bus/jongro/v1/busstation/:line` | `/bus/jongro/stations/:line` | GET |
-| `/campus/v1/campus/:bustype` | `/bus/schedule/:bustype` | GET |
+| `/campus/v1/campus/:bustype` | `/bus/campus/:bustype` | GET |
 | `/station/v1/:stationId` | `/bus/station/:stationId` | GET |
 | `/mobile/v1/mainpage/buslist` | `/ui/home/buslist` | GET |
 | `/mobile/v1/mainpage/scrollcomponent` | `/ui/home/scroll` | GET |
@@ -196,7 +196,7 @@ Old: /bus/jongro/v1/busstation/:line
 
 ---
 
-### GET /bus/schedule/:bustype
+### GET /bus/campus/:bustype
 
 ```
 Old: /campus/v1/campus/:bustype
@@ -612,7 +612,7 @@ Based on the fetch files from Step 1f in `production-ready.md`:
 | `lib/app/utils/api_fetch/fetch_ad.dart` | URL: drop `/v1/`. Parse: `json['data']` instead of `json['placements']`, error: `json['error']['message']` |
 | `lib/app/utils/api_fetch/search_all.dart` (or equivalent) | URL: `/search/all/` → `/search/buildings/`. Parse: `json['data']` instead of `json['option1Items']`/`json['option3Items']` |
 | `lib/app/utils/api_fetch/search_option3.dart` | URL: `/search/option3/` → `/search/facilities/`. Parse: `json['data']` instead of `json['option3Items']` |
-| `lib/app/utils/api_fetch/fetch_campus.dart` (or equivalent) | URL: `/campus/v1/campus/` → `/bus/schedule/`. Parse: `json['data']` instead of `json['result']` |
+| `lib/app/utils/api_fetch/fetch_campus.dart` (or equivalent) | URL: `/campus/v1/campus/` → `/bus/campus/`. Parse: `json['data']` instead of `json['result']` |
 | `lib/app/utils/constants.dart` | *(Optional)* Update base URL if domain changes |
 | Dart models for station | Rename snake_case fields to camelCase (see Section 3 station table) |
 | Dart models for search | Rename snake_case meta fields to camelCase |
@@ -629,7 +629,7 @@ After Flutter update, verify each endpoint:
 - [ ] `GET /bus/hssc/stations` → `json['data']` is array, `json['meta']['currentTime']` exists
 - [ ] `GET /bus/jongro/location/07` → `json['data']` is array
 - [ ] `GET /bus/jongro/stations/07` → `json['data']` is array with ETA
-- [ ] `GET /bus/schedule/INJA_weekday` → `json['data']` is array
+- [ ] `GET /bus/campus/INJA_weekday` → `json['data']` is array
 - [ ] `GET /bus/station/01592` → `json['data']` has camelCase fields (`msg1Message`, not `msg1_message`)
 - [ ] `GET /ui/home/buslist` → `json['data']` is array of 4
 - [ ] `GET /ui/home/scroll` → `json['data']` is array of 3
