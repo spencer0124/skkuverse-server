@@ -97,6 +97,9 @@ const stationRoute = require("./features/station/station.routes");
 const uiRoute = require("./features/ui/ui.routes");
 const adRoute = require("./features/ad/ad.routes");
 const appRoute = require("./features/app/app.routes");
+const mapConfigRoutes = require("./features/map/map-config.routes");
+const mapMarkersRoutes = require("./features/map/map-markers.routes");
+const mapOverlaysRoutes = require("./features/map/map-overlays.routes");
 
 app.use("/search", verifyToken, searchLimiter, searchRoute);
 app.use("/bus/hssc", generalLimiter, hsscRoutes);
@@ -108,6 +111,9 @@ app.use("/bus/route", generalLimiter, routeOverlayRoutes);
 app.use("/ui", generalLimiter, uiRoute);
 app.use("/ad", verifyToken, adRoute);
 app.use("/app", generalLimiter, appRoute);
+app.use("/map/config", generalLimiter, mapConfigRoutes);
+app.use("/map/markers", generalLimiter, mapMarkersRoutes);
+app.use("/map/overlays", generalLimiter, mapOverlaysRoutes);
 
 // 404 handler (after all routes, before error handler)
 app.use((req, res) => {
