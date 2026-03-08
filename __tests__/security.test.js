@@ -12,10 +12,18 @@ jest.mock("../features/station/station.fetcher", () => ({
   getStationInfo: jest.fn().mockReturnValue("정보 없음"),
 }));
 
-jest.mock("../features/bus/campus.data", () => ({
-  getData: jest.fn().mockResolvedValue([]),
-  resolveCollectionName: jest.fn(),
-  findNextBusTime: jest.fn(),
+jest.mock("../features/bus/schedule.data", () => ({
+  resolveWeek: jest.fn().mockResolvedValue(null),
+  clearCache: jest.fn(),
+  clearCacheForService: jest.fn(),
+}));
+
+jest.mock("../features/bus/schedule-db", () => ({
+  ensureScheduleIndexes: jest.fn().mockResolvedValue(),
+}));
+
+jest.mock("../features/bus/campus-eta.data", () => ({
+  getEtaData: jest.fn().mockResolvedValue({ inja: null, jain: null }),
   clearCache: jest.fn(),
 }));
 

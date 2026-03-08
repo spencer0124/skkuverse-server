@@ -53,6 +53,20 @@ jest.mock("../lib/firebase", () => ({
   }),
 }));
 
+// Mock schedule modules to avoid MongoDB connection
+jest.mock("../features/bus/schedule.data", () => ({
+  resolveWeek: jest.fn().mockResolvedValue(null),
+  clearCache: jest.fn(),
+  clearCacheForService: jest.fn(),
+}));
+jest.mock("../features/bus/schedule-db", () => ({
+  ensureScheduleIndexes: jest.fn().mockResolvedValue(),
+}));
+jest.mock("../features/bus/campus-eta.data", () => ({
+  getEtaData: jest.fn().mockResolvedValue({ inja: null, jain: null }),
+  clearCache: jest.fn(),
+}));
+
 // Mock busCache to avoid real MongoDB connection
 // cachedRead returns null → routes fall back to in-memory getters
 jest.mock("../lib/busCache", () => ({
@@ -71,31 +85,27 @@ afterEach(() => {
 });
 
 describe("GET /ui/home/buslist", () => {
-  it("returns busList with correct meta count", async () => {
+  it("returns busList with dynamic meta count", async () => {
     const res = await request(app).get("/ui/home/buslist");
     expect(res.status).toBe(200);
-    expect(res.body.meta.busListCount).toBe(4);
+    expect(res.body.meta.busListCount).toBeGreaterThanOrEqual(4);
     expect(res.body.meta.lang).toBe("ko");
-    expect(res.body.data).toHaveLength(4);
+    expect(res.body.data.length).toBe(res.body.meta.busListCount);
   });
 
-  it("each busList item has required fields", async () => {
+  it("each busList item has groupId, card, and action", async () => {
     const res = await request(app).get("/ui/home/buslist");
-    const requiredFields = [
-      "title",
-      "subtitle",
-      "busTypeText",
-      "busTypeBgColor",
-      "pageLink",
-      "pageWebviewLink",
-      "useAltPageLink",
-      "showAnimation",
-      "showNoticeText",
-    ];
     res.body.data.forEach((item) => {
-      requiredFields.forEach((field) => {
-        expect(item).toHaveProperty(field);
-      });
+      expect(item).toHaveProperty("groupId");
+      expect(item).toHaveProperty("card");
+      expect(item.card).toHaveProperty("label");
+      expect(item.card).toHaveProperty("themeColor");
+      expect(item.card).toHaveProperty("iconType");
+      expect(item.card).toHaveProperty("busTypeText");
+      expect(item).toHaveProperty("action");
+      expect(item.action).toHaveProperty("route");
+      expect(item.action).toHaveProperty("groupId");
+      expect(["/bus/realtime", "/bus/schedule"]).toContain(item.action.route);
     });
   });
 
@@ -104,7 +114,7 @@ describe("GET /ui/home/buslist", () => {
       .get("/ui/home/buslist")
       .set("Accept-Language", "en");
     expect(res.body.meta.lang).toBe("en");
-    expect(res.body.data[0].title).toBe("HSSC Shuttle Bus");
+    expect(res.body.data[0].card.label).toBe("HSSC Shuttle Bus");
   });
 });
 

@@ -22,6 +22,20 @@ jest.mock("../lib/firebase", () => ({
   }),
 }));
 
+// Mock schedule modules to avoid MongoDB connection
+jest.mock("../features/bus/schedule.data", () => ({
+  resolveWeek: jest.fn().mockResolvedValue(null),
+  clearCache: jest.fn(),
+  clearCacheForService: jest.fn(),
+}));
+jest.mock("../features/bus/schedule-db", () => ({
+  ensureScheduleIndexes: jest.fn().mockResolvedValue(),
+}));
+jest.mock("../features/bus/campus-eta.data", () => ({
+  getEtaData: jest.fn().mockResolvedValue({ inja: null, jain: null }),
+  clearCache: jest.fn(),
+}));
+
 // Mock busCache to avoid real MongoDB connection
 jest.mock("../lib/busCache", () => ({
   ensureIndex: jest.fn().mockResolvedValue(),

@@ -37,15 +37,15 @@
 - `hssc-transform.test.js`: stopNameMapping, sequence 변환, 시간 필터링
 - `route-responses.test.js`: HTTP 응답 스키마 (meta, data 구조)
 
-## 라우트 (`/bus/hssc/stations`, `/bus/hssc/location`)
+## 라우트 (`/bus/realtime/data/hssc`)
 
-- `totalBuses`: `Array.isArray(dynamicBusData) ? dynamicBusData.length : 0` — 방어적 길이 체크
-- `/location`: 필터링된 버스 배열 직접 반환
+- `realtime.routes.js`에서 통합 제공 (buses + stationEtas)
+- `mapBuses()`: fetcher의 1-based `sequence` → 0-based `stationIndex` 변환
+- stations는 `/bus/config/hssc` 응답에 포함 (config/data 분리)
 
 ## 수정 이력
 
 - **2025-03 비배열 응답 guard 추가** (`hssc.fetcher.js` line 43): `if (!Array.isArray(apiData)) return;`
   - 원인: API가 HTML 에러 페이지나 객체를 반환할 경우 `.map()` 크래시 방지
   - 테스트: `edge-cases.test.js` — "non-array response" 2건 추가, 통과 확인
-- **2025-03 라우트 방어적 길이 체크** (`hssc.routes.js` line 28): `dynamicBusData.length` → `Array.isArray(dynamicBusData) ? dynamicBusData.length : 0`
-  - 원인: 데이터 흐름상 항상 배열이지만 jongro.routes.js와 일관성 확보
+- **2026-03 config/data 분리**: `hssc.routes.js` + `jongro.routes.js` → `realtime.routes.js` 통합. stations는 `bus-config.data.js`로 이동.

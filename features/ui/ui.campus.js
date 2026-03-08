@@ -1,6 +1,6 @@
 const { t } = require("../../lib/i18n");
 
-function getCampusServices(lang = "ko") {
+function getCampusServiceItems(lang = "ko") {
   return [
     {
       id: "building_map",
@@ -8,7 +8,6 @@ function getCampusServices(lang = "ko") {
       emoji: "🏢",
       actionType: "route",
       actionValue: "/map/hssc",
-      enabled: true,
     },
     {
       id: "building_code",
@@ -16,7 +15,6 @@ function getCampusServices(lang = "ko") {
       emoji: "🔢",
       actionType: "route",
       actionValue: "/search",
-      enabled: true,
     },
     {
       id: "lost_found",
@@ -26,7 +24,6 @@ function getCampusServices(lang = "ko") {
       actionValue: "https://webview.skkuuniverse.com/#/skku/lostandfound",
       webviewTitle: t("campus.lostFound.title", lang),
       webviewColor: "003626",
-      enabled: true,
     },
     {
       id: "inquiry",
@@ -34,9 +31,27 @@ function getCampusServices(lang = "ko") {
       emoji: "💬",
       actionType: "external",
       actionValue: "http://pf.kakao.com/_cjxexdG/chat",
-      enabled: true,
     },
   ];
 }
 
-module.exports = { getCampusServices };
+function getCampusSections(lang = "ko") {
+  return {
+    minAppVersion: "2.0.0",
+    sections: [
+      {
+        type: "section_title",
+        id: "campus_title",
+        title: t("campus.title", lang),
+      },
+      {
+        type: "button_grid",
+        id: "campus_buttons",
+        columns: 4,
+        items: getCampusServiceItems(lang),
+      },
+    ],
+  };
+}
+
+module.exports = { getCampusSections };

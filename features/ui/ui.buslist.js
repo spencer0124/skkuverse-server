@@ -1,68 +1,39 @@
-const { t } = require("../../lib/i18n");
+const moment = require("moment-timezone");
+const { getBusGroups } = require("../bus/bus-config.data");
 
-const AppColors = { deepgreen: "003626", green: "4CAF50" };
+const TZ = "Asia/Seoul";
+
+function isVisible(visibility, now) {
+  if (visibility.type === "always") return true;
+  if (visibility.type === "dateRange") {
+    const from = moment.tz(visibility.from, "YYYY-MM-DD", TZ).startOf("day");
+    const until = moment.tz(visibility.until, "YYYY-MM-DD", TZ).endOf("day");
+    return now.isBetween(from, until, null, "[]");
+  }
+  return true;
+}
+
+function screenRoute(screenType) {
+  return screenType === "realtime" ? "/bus/realtime" : "/bus/schedule";
+}
 
 function getBusList(lang = "ko") {
-  return [
-    {
-      title: t("buslist.hssc.title", lang),
-      subtitle: t("buslist.hssc.subtitle", lang),
-      busTypeText: t("buslist.hssc.busTypeText", lang),
-      busTypeBgColor: AppColors.deepgreen,
-      pageLink: "/bus/realtime",
-      pageWebviewLink: null,
-      altPageLink: "https://namu.wiki/w/%EB%8F%84%EB%A7%9D%EC%B3%90",
-      useAltPageLink: false,
-      noticeText: null,
-      showAnimation: false,
-      showNoticeText: false,
-      busConfigId: "hssc",
-    },
-    {
-      title: t("buslist.inja.title", lang),
-      subtitle: t("buslist.inja.subtitle", lang),
-      busTypeText: t("buslist.hssc.busTypeText", lang),
-      busTypeBgColor: AppColors.deepgreen,
-      pageLink: "/bus/campus",
-      pageWebviewLink: null,
-      altPageLink: "https://namu.wiki/w/%EB%8F%84%EB%A7%9D%EC%B3%90",
-      useAltPageLink: false,
-      noticeText: t("buslist.inja.notice", lang),
-      showAnimation: false,
-      showNoticeText: true,
-      busConfigId: "campus",
-    },
-    {
-      title: t("buslist.jongro02.title", lang),
-      subtitle: t("buslist.jongro02.subtitle", lang),
-      busTypeText: t("buslist.village.busTypeText", lang),
-      busTypeBgColor: AppColors.green,
-      pageLink: "/bus/realtime",
-      pageWebviewLink: null,
-      altPageLink:
-        "http://m.bus.go.kr/mBus/bus.bms?search=%EC%A2%85%EB%A1%9C02&searchType=B",
-      useAltPageLink: false,
-      noticeText: null,
-      showAnimation: false,
-      showNoticeText: false,
-      busConfigId: "jongro02",
-    },
-    {
-      title: t("buslist.jongro07.title", lang),
-      subtitle: t("buslist.jongro07.subtitle", lang),
-      busTypeText: t("buslist.village.busTypeText", lang),
-      busTypeBgColor: AppColors.green,
-      pageLink: "/bus/realtime",
-      pageWebviewLink: null,
-      altPageLink:
-        "http://m.bus.go.kr/mBus/bus.bms?search=%EC%A2%85%EB%A1%9C07&searchType=B",
-      useAltPageLink: false,
-      noticeText: null,
-      showAnimation: false,
-      showNoticeText: false,
-      busConfigId: "jongro07",
-    },
-  ];
+  const now = moment.tz(TZ);
+  return getBusGroups(lang)
+    .filter((g) => isVisible(g.visibility, now))
+    .map((g) => ({
+      groupId: g.id,
+      card: {
+        label: g.label,
+        themeColor: g.card.themeColor,
+        iconType: g.card.iconType,
+        busTypeText: g.card.busTypeText,
+      },
+      action: {
+        route: screenRoute(g.screenType),
+        groupId: g.id,
+      },
+    }));
 }
 
 module.exports = { getBusList };
