@@ -48,8 +48,9 @@ MongoDB (bus_campus_dev / bus_campus)
 
 | File | Role |
 |------|------|
-| `features/bus/bus-config.data.js` | `getBusGroups(lang)` — SSOT for all bus groups; `getGroupById()`, `computeGroupEtag()` |
+| `features/bus/bus-config.data.js` | `getBusGroups(lang)` — SSOT for all bus groups (includes stations for realtime); `getGroupById()`, `computeGroupEtag()` |
 | `features/bus/bus-config.routes.js` | `GET /bus/config` — all groups; `GET /bus/config/:groupId` — single group with ETag/304 |
+| `features/bus/realtime.routes.js` | `GET /bus/realtime/data/:groupId` — live bus positions + stationEtas |
 | `features/bus/service.config.js` | Static config: serviceId → `{ nonOperatingDayDisplay, notices }` |
 | `features/bus/schedule.data.js` | `resolveWeek(serviceId, from)` — core resolution engine |
 | `features/bus/schedule.routes.js` | `GET /bus/schedule/data/:serviceId/week` — HTTP handler |
@@ -127,10 +128,18 @@ GET /bus/config/unknown → 404 { meta: { error: "GROUP_NOT_FOUND" }, data: null
 
 ### Screen types
 
-**realtime** — the client navigates to a realtime polling screen:
+**realtime** — the client polls for live bus positions:
 ```js
 screen: {
-  endpoint: "/bus/realtime/ui/hssc"      // SDUI endpoint for the realtime screen
+  dataEndpoint: "/bus/realtime/data/hssc",  // polled at refreshInterval
+  refreshInterval: 10,                      // seconds between polls
+  lastStationIndex: 10,                     // last valid station index
+  stations: [                               // static station list (fetched once with config)
+    { index: 0, name: "농구장", stationNumber: null, isFirstStation: true, ... },
+    // ...
+  ],
+  routeOverlay: null,                       // or { routeId, endpoint } for Jongro
+  features: []
 }
 ```
 
@@ -460,7 +469,17 @@ Since bus config is static code (no DB reads), the ETag only changes on deployme
 
 ### HTTP-level caching
 
-Both endpoints set `Cache-Control: public, max-age=300`, allowing CDN/browser caching for 5 minutes. Combined with ETag, clients get fast 304 responses after the cache expires.
+Both schedule/config endpoints set `Cache-Control: public, max-age=300`, allowing CDN/browser caching for 5 minutes. Combined with ETag, clients get fast 304 responses after the cache expires.
+
+### Realtime data caching
+
+| Property | Value |
+|----------|-------|
+| Location | `realtime.routes.js` — no server cache |
+| HTTP | `Cache-Control: no-store` |
+| Client | Polls at `refreshInterval` from config (10s for HSSC, 40s for Jongro) |
+
+Realtime data is always fresh — the server reads from in-memory fetcher state (or busCache fallback) on every request.
 
 ---
 
@@ -753,7 +772,8 @@ node scripts/seed-eskara.js
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/bus/config` | GET | Bus groups array (SDUI config) |
-| `/bus/config/:groupId` | GET | Single group config (on-demand) |
+| `/bus/config/:groupId` | GET | Single group config (on-demand, includes stations for realtime) |
+| `/bus/realtime/data/:groupId` | GET | Realtime bus positions + stationEtas (polled) |
 | `/bus/schedule/data/:serviceId/week` | GET | 7-day resolved schedule |
 | `/bus/schedule/data/:serviceId/week?from=YYYY-MM-DD` | GET | 7-day schedule for specific week |
 | `/bus/campus/eta` | GET | Driving ETA between campuses |
@@ -786,7 +806,7 @@ node scripts/seed-eskara.js
 │       │              │              │                │
 │       ▼              ▼              ▼                │
 │  /bus/realtime  /bus/schedule   /bus/schedule        │
-│  /ui/hssc      /data/campus-   /data/fasttrack-     │
+│  /data/hssc    /data/campus-   /data/fasttrack-     │
 │                 inja/week       inja/week            │
 │       │              │              │                │
 │       ▼              ▼              ▼                │
@@ -796,6 +816,6 @@ node scripts/seed-eskara.js
 └─────────────────────────────────────────────────────┘
 ```
 
-**Realtime buses** (hssc, jongro02, jongro07): Data comes from external APIs polled every 10-15 seconds. No MongoDB involvement. The client hits an SDUI endpoint that returns pre-rendered UI components.
+**Realtime buses** (hssc, jongro02, jongro07): Config (stations, refreshInterval, routeOverlay) is served via `/bus/config/:groupId` — fetched once and ETag-cached. Dynamic data (bus positions, stationEtas) is served via `/bus/realtime/data/:groupId` — polled at `refreshInterval` (10-40s) with `Cache-Control: no-store`. No MongoDB involvement; data comes from external APIs.
 
 **Schedule buses** (campus, fasttrack): Data comes from MongoDB collections. The client fetches a 7-day resolved schedule and renders the timetable locally. Supports offline viewing since the full week is downloaded at once.

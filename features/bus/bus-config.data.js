@@ -1,5 +1,19 @@
 const crypto = require("crypto");
 const { t } = require("../../lib/i18n");
+const { HSSCStations } = require("./hssc.stations");
+const { Jongro02Stations, Jongro07Stations } = require("./jongro.stations");
+
+function mapStations(stations) {
+  return stations.map((s, i) => ({
+    index: i,
+    name: s.stationName,
+    stationNumber: s.stationNumber || null,
+    isFirstStation: s.isFirstStation,
+    isLastStation: s.isLastStation,
+    isRotationStation: s.isRotationStation,
+    transferLines: s.transferLines,
+  }));
+}
 
 const etagCache = new Map();
 
@@ -24,7 +38,12 @@ function getBusGroups(lang = "ko") {
         busTypeText: t("buslist.hssc.busTypeText", lang),
       },
       screen: {
-        endpoint: "/bus/realtime/ui/hssc",
+        dataEndpoint: "/bus/realtime/data/hssc",
+        refreshInterval: 10,
+        lastStationIndex: 10,
+        stations: mapStations(HSSCStations),
+        routeOverlay: null,
+        features: [],
       },
     },
 
@@ -107,7 +126,12 @@ function getBusGroups(lang = "ko") {
         busTypeText: t("buslist.village.busTypeText", lang),
       },
       screen: {
-        endpoint: "/bus/realtime/ui/jongro02",
+        dataEndpoint: "/bus/realtime/data/jongro02",
+        refreshInterval: 40,
+        lastStationIndex: 25,
+        stations: mapStations(Jongro02Stations),
+        routeOverlay: { routeId: "jongro02", endpoint: "/bus/route/jongro02" },
+        features: [],
       },
     },
 
@@ -123,7 +147,12 @@ function getBusGroups(lang = "ko") {
         busTypeText: t("buslist.village.busTypeText", lang),
       },
       screen: {
-        endpoint: "/bus/realtime/ui/jongro07",
+        dataEndpoint: "/bus/realtime/data/jongro07",
+        refreshInterval: 40,
+        lastStationIndex: 18,
+        stations: mapStations(Jongro07Stations),
+        routeOverlay: { routeId: "jongro07", endpoint: "/bus/route/jongro07" },
+        features: [],
       },
     },
   ];

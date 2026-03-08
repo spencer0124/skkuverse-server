@@ -89,8 +89,7 @@ const generalLimiter = rateLimit({
 
 // Feature routes
 const searchRoute = require("./features/search/search.routes");
-const hsscRoutes = require("./features/bus/hssc.routes");
-const jongroRoutes = require("./features/bus/jongro.routes");
+const realtimeRoutes = require("./features/bus/realtime.routes");
 const campusEtaRoutes = require("./features/bus/campus-eta.routes");
 const scheduleRoutes = require("./features/bus/schedule.routes");
 const busConfigRoutes = require("./features/bus/bus-config.routes");
@@ -104,8 +103,7 @@ const mapMarkersRoutes = require("./features/map/map-markers.routes");
 const mapOverlaysRoutes = require("./features/map/map-overlays.routes");
 
 app.use("/search", verifyToken, searchLimiter, searchRoute);
-app.use("/bus/hssc", generalLimiter, hsscRoutes);
-app.use("/bus/jongro", generalLimiter, jongroRoutes);
+app.use("/bus/realtime", generalLimiter, realtimeRoutes);
 app.use("/bus/station", generalLimiter, stationRoute);
 app.use("/bus/campus", generalLimiter, campusEtaRoutes);
 app.use("/bus/schedule", generalLimiter, scheduleRoutes);

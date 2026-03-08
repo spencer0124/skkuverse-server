@@ -100,9 +100,28 @@ describe("GET /bus/config/:groupId", () => {
     expect(screen.routeBadges.length).toBeGreaterThan(0);
   });
 
-  it("hssc screen has endpoint", async () => {
+  it("hssc screen has dataEndpoint, refreshInterval, stations, routeOverlay", async () => {
     const res = await request(app).get("/bus/config/hssc");
-    expect(res.body.data.screen).toHaveProperty("endpoint");
-    expect(res.body.data.screen.endpoint).toMatch(/^\/bus\/realtime\/ui\//);
+    const screen = res.body.data.screen;
+    expect(screen.dataEndpoint).toBe("/bus/realtime/data/hssc");
+    expect(screen.refreshInterval).toBe(10);
+    expect(screen.lastStationIndex).toBe(10);
+    expect(Array.isArray(screen.stations)).toBe(true);
+    expect(screen.stations).toHaveLength(11);
+    expect(screen.stations[0]).toHaveProperty("index", 0);
+    expect(screen.stations[0]).toHaveProperty("name");
+    expect(screen.routeOverlay).toBeNull();
+  });
+
+  it("jongro07 screen has stations and routeOverlay", async () => {
+    const res = await request(app).get("/bus/config/jongro07");
+    const screen = res.body.data.screen;
+    expect(screen.dataEndpoint).toBe("/bus/realtime/data/jongro07");
+    expect(screen.refreshInterval).toBe(40);
+    expect(screen.stations).toHaveLength(19);
+    expect(screen.routeOverlay).toEqual({
+      routeId: "jongro07",
+      endpoint: "/bus/route/jongro07",
+    });
   });
 });

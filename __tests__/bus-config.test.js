@@ -21,14 +21,20 @@ describe("getBusGroups", () => {
     }
   });
 
-  // Test 3: Realtime groups have screen.endpoint
-  it("realtime groups have screen.endpoint", () => {
+  // Test 3: Realtime groups have screen.dataEndpoint, stations, refreshInterval
+  it("realtime groups have screen.dataEndpoint, stations, refreshInterval", () => {
     const groups = getBusGroups("ko");
     const realtime = groups.filter((g) => g.screenType === "realtime");
     expect(realtime.length).toBeGreaterThan(0);
     for (const g of realtime) {
-      expect(g.screen).toHaveProperty("endpoint");
-      expect(g.screen.endpoint).toMatch(/^\/bus\/realtime\/ui\//);
+      expect(g.screen).toHaveProperty("dataEndpoint");
+      expect(g.screen.dataEndpoint).toMatch(/^\/bus\/realtime\/data\//);
+      expect(g.screen).toHaveProperty("refreshInterval");
+      expect(typeof g.screen.refreshInterval).toBe("number");
+      expect(Array.isArray(g.screen.stations)).toBe(true);
+      expect(g.screen.stations.length).toBeGreaterThan(0);
+      expect(g.screen.stations[0]).toHaveProperty("index", 0);
+      expect(g.screen.stations[0]).toHaveProperty("name");
     }
   });
 

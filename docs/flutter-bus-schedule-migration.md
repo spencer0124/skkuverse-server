@@ -23,8 +23,8 @@ Config Layer (어떻게 구성할지)
 
 Data Layer (실제 데이터)
   GET /bus/schedule/data/:serviceId/week
-  GET /bus/realtime/ui/:id
-  → 기존과 동일
+  GET /bus/realtime/data/:groupId
+  → buses + stationEtas (refreshInterval마다 polling)
 ```
 
 ### Flutter 데이터 흐름
@@ -34,7 +34,8 @@ Data Layer (실제 데이터)
   └─ GET /ui/home/buslist → 카드 목록 렌더링 (서버가 visibility 필터링 완료)
 
 카드 탭
-  ├─ realtime → action.route="/bus/realtime", 기존 realtime 화면으로 이동
+  ├─ realtime → GET /bus/config/{groupId} → stations + refreshInterval
+  │             └─ poll GET {screen.dataEndpoint} every {refreshInterval}s
   └─ schedule → GET /bus/config/{action.groupId} → full group config 획득
                 └─ GET {service.weekEndpoint} → 주간 스케줄 데이터
 ```
@@ -360,6 +361,97 @@ Cache-Control: public, max-age=300
 
 주의: 전역 에러 형식 `{ error: { code, message } }`와 **다름**.
 `meta.error` 존재 여부로 분기 필요.
+
+---
+
+## 3-1. `/bus/realtime/data/:groupId` — 실시간 버스 데이터
+
+Config/Data 분리: stations (정적) → config에 포함, buses+stationEtas (동적) → data endpoint에서 polling.
+
+### Config 응답 (GET /bus/config/hssc, 1회 fetch + ETag 캐싱)
+
+```json
+{
+  "data": {
+    "id": "hssc",
+    "screenType": "realtime",
+    "screen": {
+      "dataEndpoint": "/bus/realtime/data/hssc",
+      "refreshInterval": 10,
+      "lastStationIndex": 10,
+      "stations": [
+        { "index": 0, "name": "농구장", "stationNumber": null, "isFirstStation": true, "isLastStation": false, "isRotationStation": false, "transferLines": [] },
+        { "index": 1, "name": "학생회관", "stationNumber": null, "..." : "..." }
+      ],
+      "routeOverlay": null,
+      "features": []
+    }
+  }
+}
+```
+
+### Data 응답 (GET /bus/realtime/data/hssc, refreshInterval마다 polling)
+
+```json
+{
+  "meta": { "lang": "ko", "currentTime": "02:30 PM", "totalBuses": 2 },
+  "data": {
+    "groupId": "hssc",
+    "buses": [
+      { "stationIndex": 0, "carNumber": "0000", "estimatedTime": 30 }
+    ],
+    "stationEtas": []
+  }
+}
+```
+
+Jongro의 경우 `stationEtas`가 채워짐:
+
+```json
+{
+  "data": {
+    "groupId": "jongro07",
+    "buses": [
+      { "stationIndex": 5, "carNumber": "5537", "estimatedTime": 100, "latitude": 37.58, "longitude": 127.0 }
+    ],
+    "stationEtas": [
+      { "stationIndex": 0, "eta": "3분후[1번째 전]" }
+    ]
+  }
+}
+```
+
+### Flutter 흐름
+
+```
+화면 진입
+  └─ GET /bus/config/{groupId} → stations[], refreshInterval, routeOverlay
+     └─ stations로 역 목록 렌더링 (1회)
+     └─ Timer.periodic(refreshInterval초)
+        └─ GET {screen.dataEndpoint} → buses[], stationEtas[]
+           └─ buses → 지도/목록에 버스 위치 표시 (stationIndex로 매칭)
+           └─ stationEtas → 역별 도착 정보 표시
+```
+
+### 캐싱
+
+| Layer | 캐싱 방식 |
+|-------|----------|
+| Config (stations) | `Cache-Control: public, max-age=300` + ETag → 304 |
+| Data (buses) | `Cache-Control: no-store` → 매번 fresh fetch |
+
+### 주요 필드
+
+| 필드 | 설명 |
+|------|------|
+| `buses[].stationIndex` | 0-based station index (config의 stations[].index와 매칭) |
+| `buses[].carNumber` | 차량번호 |
+| `buses[].estimatedTime` | 마지막 위치 보고 후 경과 시간 (초) |
+| `buses[].latitude/longitude` | GPS 좌표 (Jongro만, HSSC는 없음) |
+| `stationEtas[].stationIndex` | 도착 정보가 있는 역의 index |
+| `stationEtas[].eta` | 도착 예정 문자열 (예: "3분후[1번째 전]") |
+| `meta.currentTime` | 서버 시각 (KST, 표시용) |
+| `meta.totalBuses` | 현재 운행 중인 버스 수 |
 
 ---
 

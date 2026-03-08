@@ -131,107 +131,68 @@ describe("Readiness probe", () => {
   });
 });
 
-describe("HSSC routes", () => {
-  describe("GET /bus/hssc/stations", () => {
-    it("returns meta and 11 stations", async () => {
+describe("Realtime routes", () => {
+  describe("GET /bus/realtime/data/hssc", () => {
+    it("returns buses and empty stationEtas", async () => {
       getHSSCBusList.mockReturnValue([]);
-
-      const res = await request(app).get("/bus/hssc/stations");
+      const res = await request(app).get("/bus/realtime/data/hssc");
       expect(res.status).toBe(200);
+      expect(res.body.data.groupId).toBe("hssc");
+      expect(res.body.data.buses).toEqual([]);
+      expect(res.body.data.stationEtas).toEqual([]);
+      expect(res.body.meta.totalBuses).toBe(0);
       expect(res.body.meta).toHaveProperty("currentTime");
-      expect(res.body.meta).toHaveProperty("totalBuses", 0);
-      expect(res.body.meta).toHaveProperty("lastStationIndex", 10);
-      expect(res.body.meta).toHaveProperty("lang", "ko");
-      expect(res.body.data).toHaveLength(11);
+      expect(res.headers["cache-control"]).toBe("no-store");
     });
 
-    it("station items have required fields", async () => {
-      getHSSCBusList.mockReturnValue([]);
-
-      const res = await request(app).get("/bus/hssc/stations");
-      res.body.data.forEach((station) => {
-        expect(station).toHaveProperty("sequence");
-        expect(station).toHaveProperty("stationName");
-        expect(station).toHaveProperty("eta");
-        expect(station).toHaveProperty("busType", "BusType.hsscBus");
-      });
-    });
-  });
-
-  describe("GET /bus/hssc/location", () => {
-    it("returns empty array when no buses", async () => {
-      getHSSCBusList.mockReturnValue([]);
-
-      const res = await request(app).get("/bus/hssc/location");
-      expect(res.status).toBe(200);
-      expect(res.body.data).toEqual([]);
-    });
-
-    it("returns bus location data when available", async () => {
+    it("maps bus data with stationIndex", async () => {
       getHSSCBusList.mockReturnValue([
-        {
-          sequence: "1",
-          stationName: "농구장 (셔틀버스정류소)",
-          carNumber: "0000",
-          estimatedTime: 30,
-        },
+        { sequence: "1", stationName: "농구장 (셔틀버스정류소)", carNumber: "0000", estimatedTime: 30 },
       ]);
-
-      const res = await request(app).get("/bus/hssc/location");
-      expect(res.status).toBe(200);
-      expect(res.body.data).toHaveLength(1);
+      const res = await request(app).get("/bus/realtime/data/hssc");
+      expect(res.body.data.buses).toHaveLength(1);
+      expect(res.body.data.buses[0].stationIndex).toBe(0);
+      expect(res.body.data.buses[0].carNumber).toBe("0000");
+      expect(res.body.meta.totalBuses).toBe(1);
     });
   });
-});
 
-describe("Jongro routes", () => {
-  describe("GET /bus/jongro/stations/07", () => {
-    it("returns meta with lastStationIndex 18 and 19 stations", async () => {
+  describe("GET /bus/realtime/data/jongro07", () => {
+    it("returns empty buses and stationEtas when no data", async () => {
       getJongroBusList.mockReturnValue(undefined);
       getJongroBusLocation.mockReturnValue(undefined);
-
-      const res = await request(app).get("/bus/jongro/stations/07");
+      const res = await request(app).get("/bus/realtime/data/jongro07");
       expect(res.status).toBe(200);
-      expect(res.body.meta.lastStationIndex).toBe(18);
-      expect(res.body.data).toHaveLength(19);
+      expect(res.body.data.groupId).toBe("jongro07");
+      expect(res.body.data.buses).toEqual([]);
+      expect(res.body.data.stationEtas).toEqual([]);
+    });
+
+    it("builds stationEtas from busList data", async () => {
+      getJongroBusList.mockReturnValue([
+        { stationName: "명륜새마을금고", eta: "3분후[1번째 전]" },
+      ]);
+      getJongroBusLocation.mockReturnValue(undefined);
+      const res = await request(app).get("/bus/realtime/data/jongro07");
+      expect(res.body.data.stationEtas).toHaveLength(1);
+      expect(res.body.data.stationEtas[0]).toEqual({ stationIndex: 0, eta: "3분후[1번째 전]" });
     });
   });
 
-  describe("GET /bus/jongro/stations/02", () => {
-    it("returns meta with lastStationIndex 25 and 26 stations", async () => {
+  describe("GET /bus/realtime/data/jongro02", () => {
+    it("returns 200 with correct groupId", async () => {
       getJongroBusList.mockReturnValue(undefined);
       getJongroBusLocation.mockReturnValue(undefined);
-
-      const res = await request(app).get("/bus/jongro/stations/02");
-      expect(res.status).toBe(200);
-      expect(res.body.meta.lastStationIndex).toBe(25);
-      expect(res.body.data).toHaveLength(26);
+      const res = await request(app).get("/bus/realtime/data/jongro02");
+      expect(res.body.data.groupId).toBe("jongro02");
     });
   });
 
-  describe("GET /bus/jongro/location/07", () => {
-    it("returns empty array when no data", async () => {
-      getJongroBusLocation.mockReturnValue(undefined);
-
-      const res = await request(app).get("/bus/jongro/location/07");
-      expect(res.status).toBe(200);
-      expect(res.body.data).toEqual([]);
-    });
-
-    it("returns location data with isLastBus field", async () => {
-      getJongroBusLocation.mockReturnValue([
-        {
-          sequence: "1",
-          stationName: "명륜새마을금고",
-          carNumber: "5537",
-          estimatedTime: 100,
-        },
-      ]);
-
-      const res = await request(app).get("/bus/jongro/location/07");
-      expect(res.status).toBe(200);
-      expect(res.body.data).toHaveLength(1);
-      expect(res.body.data[0].isLastBus).toBe(false);
+  describe("GET /bus/realtime/data/unknown", () => {
+    it("returns 404", async () => {
+      const res = await request(app).get("/bus/realtime/data/unknown");
+      expect(res.status).toBe(404);
+      expect(res.body.meta.error).toBe("GROUP_NOT_FOUND");
     });
   });
 });
