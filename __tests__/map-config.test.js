@@ -36,10 +36,10 @@ describe("getMapConfig()", () => {
   it("includes required layer fields", () => {
     const layer = getMapConfig("ko").layers[0];
     expect(layer).toMatchObject({
-      id: expect.any(String),
-      type: expect.any(String),
+      id: "campus_buildings",
+      type: "marker",
       label: expect.any(String),
-      endpoint: expect.any(String),
+      endpoint: "/map/overlays?category=hssc",
     });
   });
 
