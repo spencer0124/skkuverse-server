@@ -164,6 +164,53 @@ describe("GET /ad/placements", () => {
   });
 });
 
+describe("GET /map/overlays?category=", () => {
+  it("returns 200 with overlays for hssc category", async () => {
+    const res = await request(app).get("/map/overlays?category=hssc");
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({
+      category: "hssc",
+      overlays: expect.any(Array),
+    });
+    expect(res.body.data.overlays.length).toBe(12);
+    // Verify discriminated union shape
+    const overlay = res.body.data.overlays[0];
+    expect(overlay.type).toBe("marker");
+    expect(overlay).toHaveProperty("id");
+    expect(overlay).toHaveProperty("position.lat");
+    expect(overlay).toHaveProperty("position.lng");
+    expect(overlay).toHaveProperty("marker.label");
+    expect(overlay).toHaveProperty("marker.subLabel");
+  });
+
+  it("returns English labels with Accept-Language: en", async () => {
+    const res = await request(app)
+      .get("/map/overlays?category=hssc")
+      .set("Accept-Language", "en");
+    expect(res.body.meta.lang).toBe("en");
+    const labels = res.body.data.overlays.map((o) => o.marker.label);
+    expect(labels).toContain("Law School");
+  });
+
+  it("returns 400 when category param is missing", async () => {
+    const res = await request(app).get("/map/overlays");
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("MISSING_PARAM");
+  });
+
+  it("returns 404 for unknown category", async () => {
+    const res = await request(app).get("/map/overlays?category=unknown");
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("NOT_FOUND");
+  });
+
+  it("includes ETag and Cache-Control headers", async () => {
+    const res = await request(app).get("/map/overlays?category=hssc");
+    expect(res.headers["etag"]).toMatch(/^"[a-f0-9]{32}"$/);
+    expect(res.headers["cache-control"]).toBe("public, max-age=300");
+  });
+});
+
 describe("POST /ad/events", () => {
   it("records a valid event with adId", async () => {
     const res = await request(app)
