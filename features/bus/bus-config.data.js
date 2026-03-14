@@ -65,12 +65,12 @@ function getBusGroups(lang = "ko") {
           {
             serviceId: "campus-inja",
             label: t("busconfig.service.campus-inja", lang),
-            weekEndpoint: "/bus/schedule/data/campus-inja/week",
+            endpoint: "/bus/schedule/data/campus-inja/smart",
           },
           {
             serviceId: "campus-jain",
             label: t("busconfig.service.campus-jain", lang),
-            weekEndpoint: "/bus/schedule/data/campus-jain/week",
+            endpoint: "/bus/schedule/data/campus-jain/smart",
           },
         ],
         heroCard: {
@@ -104,7 +104,7 @@ function getBusGroups(lang = "ko") {
           {
             serviceId: "fasttrack-inja",
             label: t("busconfig.service.campus-inja", lang),
-            weekEndpoint: "/bus/schedule/data/fasttrack-inja/week",
+            endpoint: "/bus/schedule/data/fasttrack-inja/smart",
           },
         ],
         heroCard: null,

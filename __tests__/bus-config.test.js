@@ -39,7 +39,7 @@ describe("getBusGroups", () => {
   });
 
   // Test 4: Schedule groups have services[], defaultServiceId, routeBadges
-  it("schedule groups have services with weekEndpoint, defaultServiceId, routeBadges", () => {
+  it("schedule groups have services with endpoint, defaultServiceId, routeBadges", () => {
     const groups = getBusGroups("ko");
     const schedule = groups.filter((g) => g.screenType === "schedule");
     expect(schedule.length).toBeGreaterThan(0);
@@ -51,8 +51,8 @@ describe("getBusGroups", () => {
       for (const svc of g.screen.services) {
         expect(svc).toHaveProperty("serviceId");
         expect(svc).toHaveProperty("label");
-        expect(svc).toHaveProperty("weekEndpoint");
-        expect(svc.weekEndpoint).toMatch(/^\/bus\/schedule\/data\//);
+        expect(svc).toHaveProperty("endpoint");
+        expect(svc.endpoint).toMatch(/^\/bus\/schedule\/data\//);
       }
     }
   });
