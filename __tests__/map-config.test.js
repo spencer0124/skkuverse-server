@@ -50,6 +50,41 @@ describe("getMapConfig()", () => {
       expect(l.style).toMatchObject({ color: expect.any(String) });
     }
   });
+
+  it("includes naver.styleId from env var", () => {
+    const config = getMapConfig("ko");
+    expect(config.naver).toEqual({
+      styleId: expect.any(String),
+    });
+    expect(config.naver.styleId.length).toBeGreaterThan(0);
+  });
+
+  it("naver config is language-independent", () => {
+    const ko = getMapConfig("ko");
+    const en = getMapConfig("en");
+    expect(ko.naver).toEqual(en.naver);
+  });
+});
+
+describe("getMapConfig() naver env var", () => {
+  const originalEnv = process.env.NAVER_MAP_STYLE_ID;
+
+  afterEach(() => {
+    if (originalEnv !== undefined) {
+      process.env.NAVER_MAP_STYLE_ID = originalEnv;
+    } else {
+      delete process.env.NAVER_MAP_STYLE_ID;
+    }
+    jest.resetModules();
+  });
+
+  it("uses env var value when set", () => {
+    process.env.NAVER_MAP_STYLE_ID = "custom-style-id";
+    jest.resetModules();
+    const { getMapConfig: fresh } = require("../features/map/map-config.data");
+    const config = fresh("ko");
+    expect(config.naver.styleId).toBe("custom-style-id");
+  });
 });
 
 describe("getCampusMarkers()", () => {

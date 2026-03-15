@@ -1,4 +1,5 @@
 const { t } = require("../../lib/i18n");
+const config = require("../../lib/config");
 
 /**
  * Returns map layer configuration with campus definitions.
@@ -8,6 +9,7 @@ const { t } = require("../../lib/i18n");
  */
 function getMapConfig(lang = "ko") {
   return {
+    naver: { styleId: config.naver.styleId },
     campuses: [
       {
         id: "hssc",
