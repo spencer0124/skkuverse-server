@@ -14,6 +14,12 @@ function getBuildingsCollection() {
     .collection(config.building.collections.buildings);
 }
 
+function getRawBuildingsCollection() {
+  return getClient()
+    .db(config.building.dbName)
+    .collection(config.building.collections.buildingsRaw);
+}
+
 function getSpacesCollection() {
   return getClient()
     .db(config.building.dbName)
@@ -24,13 +30,16 @@ function getSpacesCollection() {
 
 async function ensureIndexes() {
   const buildings = getBuildingsCollection();
+  const buildingsRaw = getRawBuildingsCollection();
   const spaces = getSpacesCollection();
 
   await Promise.all([
-    // buildings
+    // buildings (enriched)
     buildings.createIndex({ campus: 1 }),
     buildings.createIndex({ buildNo: 1, campus: 1 }),
     buildings.createIndex({ location: "2dsphere" }),
+    // buildings_raw
+    buildingsRaw.createIndex({ campus: 1 }),
     // spaces
     spaces.createIndex(
       { spaceCd: 1, buildNo: 1, campus: 1 },
@@ -82,7 +91,7 @@ async function getAllBuildings(campus) {
 
   const col = getBuildingsCollection();
   const docs = await col
-    .find({}, { projection: { extensions: 0, sync: 0 } })
+    .find({}, { projection: { extensions: 0, sync: 0, enrichVersion: 0 } })
     .sort({ _id: 1 })
     .toArray();
 
@@ -97,7 +106,7 @@ async function getBuildingBySkkuId(skkuId) {
   const col = getBuildingsCollection();
   return col.findOne(
     { _id: parseInt(skkuId, 10) },
-    { projection: { sync: 0 } },
+    { projection: { sync: 0, enrichVersion: 0 } },
   );
 }
 
@@ -144,7 +153,7 @@ async function searchBuildings(query, campus) {
   }
 
   return col
-    .find(filter, { projection: { extensions: 0, sync: 0 } })
+    .find(filter, { projection: { extensions: 0, sync: 0, enrichVersion: 0 } })
     .limit(5)
     .toArray();
 }
@@ -176,6 +185,7 @@ function clearCache() {
 
 module.exports = {
   getBuildingsCollection,
+  getRawBuildingsCollection,
   getSpacesCollection,
   ensureIndexes,
   toDisplayNo,
