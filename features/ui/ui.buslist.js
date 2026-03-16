@@ -28,6 +28,7 @@ function getBusList(lang = "ko") {
         themeColor: g.card.themeColor,
         iconType: g.card.iconType,
         busTypeText: g.card.busTypeText,
+        subtitle: g.card.subtitle || null,
       },
       action: {
         route: screenRoute(g.screenType),

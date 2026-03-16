@@ -37,6 +37,7 @@ function getBusGroups(lang = "ko") {
         themeColor: "003626",
         iconType: "shuttle",
         busTypeText: t("buslist.hssc.busTypeText", lang),
+        subtitle: t("buslist.hssc.subtitle", lang),
       },
       screen: {
         dataEndpoint: "/bus/realtime/data/hssc",
@@ -58,6 +59,7 @@ function getBusGroups(lang = "ko") {
         themeColor: "003626",
         iconType: "shuttle",
         busTypeText: t("buslist.hssc.busTypeText", lang),
+        subtitle: t("buslist.inja.subtitle", lang),
       },
       screen: {
         defaultServiceId: "campus-inja",
@@ -97,6 +99,7 @@ function getBusGroups(lang = "ko") {
         themeColor: "E65100",
         iconType: "shuttle",
         busTypeText: t("busconfig.badge.fasttrack", lang),
+        subtitle: t("buslist.fasttrack.subtitle", lang),
       },
       screen: {
         defaultServiceId: "fasttrack-inja",
@@ -125,6 +128,7 @@ function getBusGroups(lang = "ko") {
         themeColor: "4CAF50",
         iconType: "village",
         busTypeText: t("buslist.village.busTypeText", lang),
+        subtitle: t("buslist.jongro02.subtitle", lang),
       },
       screen: {
         dataEndpoint: "/bus/realtime/data/jongro02",
@@ -146,6 +150,7 @@ function getBusGroups(lang = "ko") {
         themeColor: "4CAF50",
         iconType: "village",
         busTypeText: t("buslist.village.busTypeText", lang),
+        subtitle: t("buslist.jongro07.subtitle", lang),
       },
       screen: {
         dataEndpoint: "/bus/realtime/data/jongro07",
