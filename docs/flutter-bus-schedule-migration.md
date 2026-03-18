@@ -22,7 +22,7 @@ Config Layer (어떻게 구성할지)
   → full group (screen.services[], routeBadges, heroCard 등)
 
 Data Layer (실제 데이터)
-  GET /bus/schedule/data/:serviceId/week
+  GET /bus/schedule/data/:serviceId/smart  ← status-aware (active/suspended/noData)
   GET /bus/realtime/data/:groupId
   → buses + stationEtas (refreshInterval마다 polling)
 ```
@@ -37,7 +37,7 @@ Data Layer (실제 데이터)
   ├─ realtime → GET /bus/config/{groupId} → stations + refreshInterval
   │             └─ poll GET {screen.dataEndpoint} every {refreshInterval}s
   └─ schedule → GET /bus/config/{action.groupId} → full group config 획득
-                └─ GET {service.weekEndpoint} → 주간 스케줄 데이터
+                └─ GET {service.endpoint} → smart 스케줄 데이터 (status-aware)
 ```
 
 ---
@@ -48,7 +48,7 @@ Data Layer (실제 데이터)
 |--------|-------|
 | `GET /bus/config` → `{ hssc: {...}, campus: {...} }` | `GET /bus/config` → `{ groups: [...] }` (backward compat) |
 | `GET /bus/config/version` → `{ configVersion: N }` | 삭제 — ETag/304로 대체 |
-| `GET /bus/campus/inja/{dayType}` | `GET /bus/schedule/data/{serviceId}/week?from=YYYY-MM-DD` |
+| `GET /bus/campus/inja/{dayType}` | `GET /bus/schedule/data/{serviceId}/smart` (status-aware, auto-select) |
 | `GET /bus/campus/jain/{dayType}` | 위와 동일 (serviceId: campus-jain) |
 | `GET /bus/campus/eta` | 변경 없음 |
 | `/ui/home/buslist` → `{ title, subtitle, ... }` | `/ui/home/buslist` → `{ groupId, card, action }` |
@@ -86,8 +86,8 @@ Data Layer (실제 데이터)
         "screen": {
           "defaultServiceId": "campus-inja",
           "services": [
-            { "serviceId": "campus-inja", "label": "인사캠 → 자과캠", "weekEndpoint": "/bus/schedule/data/campus-inja/week" },
-            { "serviceId": "campus-jain", "label": "자과캠 → 인사캠", "weekEndpoint": "/bus/schedule/data/campus-jain/week" }
+            { "serviceId": "campus-inja", "label": "인사캠 → 자과캠", "endpoint": "/bus/schedule/data/campus-inja/smart" },
+            { "serviceId": "campus-jain", "label": "자과캠 → 인사캠", "endpoint": "/bus/schedule/data/campus-jain/smart" }
           ],
           "heroCard": {
             "etaEndpoint": "/bus/campus/eta",
@@ -111,7 +111,7 @@ Data Layer (실제 데이터)
         "screen": {
           "defaultServiceId": "fasttrack-inja",
           "services": [
-            { "serviceId": "fasttrack-inja", "label": "인사캠 → 자과캠", "weekEndpoint": "/bus/schedule/data/fasttrack-inja/week" }
+            { "serviceId": "fasttrack-inja", "label": "인사캠 → 자과캠", "endpoint": "/bus/schedule/data/fasttrack-inja/smart" }
           ],
           "heroCard": null,
           "routeBadges": [
@@ -286,77 +286,92 @@ GET /bus/config/unknown
 
 ---
 
-## 3. `/bus/schedule/data/:serviceId/week` 응답 구조
+## 3. `/bus/schedule/data/:serviceId/smart` 응답 구조
 
 ```
-GET /bus/schedule/data/campus-inja/week?from=2026-03-09
+GET /bus/schedule/data/campus-inja/smart
 ```
 
+서버가 자동으로 최적의 주간 + 날짜를 선택하고, `status` 필드로 현재 상태를 명시적으로 전달.
+
+**`status: "active"` — 정상 운행:**
 ```json
 {
   "meta": { "lang": "ko" },
   "data": {
     "serviceId": "campus-inja",
-    "requestedFrom": "2026-03-09",
-    "from": "2026-03-09",
+    "status": "active",
+    "from": "2026-03-16",
+    "selectedDate": "2026-03-16",
     "days": [
       {
-        "date": "2026-03-09",
-        "dayOfWeek": 1,
-        "display": "schedule",
+        "date": "2026-03-16", "dayOfWeek": 1, "display": "schedule",
         "label": null,
-        "notices": [
-          { "style": "info", "text": "25년도 2학기 인자셔틀 시간표 업데이트", "source": "service" }
-        ],
-        "schedule": [
-          { "index": 1, "time": "07:00", "routeType": "regular", "busCount": 1, "notes": null },
-          { "index": 2, "time": "10:00", "routeType": "regular", "busCount": 1, "notes": null }
-        ]
-      },
-      {
-        "date": "2026-03-14",
-        "dayOfWeek": 6,
-        "display": "noService",
-        "label": null,
-        "notices": [],
-        "schedule": []
+        "notices": [{ "style": "info", "text": "...", "source": "service" }],
+        "schedule": [{ "index": 1, "time": "08:00", "routeType": "regular", "busCount": 1, "notes": null }]
       }
     ]
   }
 }
 ```
 
+**`status: "suspended"` — 운휴 기간 (서버 config에 명시):**
+```json
+{
+  "meta": { "lang": "ko" },
+  "data": {
+    "serviceId": "campus-inja",
+    "status": "suspended",
+    "resumeDate": "2026-09-01",
+    "from": null,
+    "selectedDate": null,
+    "days": [],
+    "message": "운휴 기간입니다"
+  }
+}
+```
+
+**`status: "noData"` — 데이터 갭 (2주 내 운행일 없음):**
+```json
+{
+  "meta": { "lang": "en" },
+  "data": {
+    "serviceId": "campus-inja",
+    "status": "noData",
+    "from": null,
+    "selectedDate": null,
+    "days": [],
+    "message": "Schedule information is being prepared"
+  }
+}
+```
+
 ### 필드 설명
 
-| 필드 | 설명 |
-|------|------|
-| `from` | Monday로 정규화된 주간 시작일 |
-| `requestedFrom` | 클라이언트가 보낸 원본 값 (없으면 `null`) |
-| `days[].display` | `"schedule"` = 시간표 있음, `"noService"` = 운행 없음, `"hidden"` = UI에서 숨김 |
-| `days[].label` | override 있을 때만 값 있음 (예: "ESKARA 1일차", "삼일절") |
-| `days[].notices[]` | `{ style, text, source }` — source가 `"service"` 또는 `"override"` |
-| `days[].schedule[]` | `{ index, time, routeType, busCount, notes }` |
-
-### `from` 파라미터 동작
-
-- **생략** → 현재 주의 월요일 (서버 KST 기준)
-- **월요일이 아닌 날짜** → 해당 주의 월요일로 정규화
-- **잘못된 형식** → `400 { meta: { error: "INVALID_DATE_FORMAT" }, data: null }`
+| 필드 | 조건 | 설명 |
+|------|------|------|
+| `status` | 항상 | `"active"` / `"suspended"` / `"noData"` |
+| `from` | active만 | Monday로 정규화된 주간 시작일 |
+| `selectedDate` | active만 | 서버가 자동 선택한 운행일 |
+| `resumeDate` | suspended만 | 운행 재개 예정일 (until + 1일) |
+| `message` | suspended, noData | i18n 번역된 상태 메시지 (active에는 없음) |
+| `days[]` | active만 | hidden 필터링된 가시 날짜 배열 (suspended/noData → `[]`) |
+| `days[].display` | — | `"schedule"` / `"noService"` (hidden은 서버에서 제거됨) |
+| `days[].label` | — | override 라벨 (예: "ESKARA 1일차", "삼일절") |
 
 ### ETag 캐싱
 
 ```
-ETag: "week-campus-inja-2026-03-09-{md5}"
+active:    ETag: "smart-campus-inja-2026-03-16-{md5}"
+suspended: ETag: "smart-campus-inja-suspended-{md5}"
+noData:    ETag: "smart-campus-inja-noData-{md5}"
 Cache-Control: public, max-age=300
 ```
-
-`safeGetConditional`으로 캐싱. 5분 TTL.
 
 ### 에러 응답 (schedule 전용 형식)
 
 ```json
 { "meta": { "error": "SERVICE_NOT_FOUND", "message": "..." }, "data": null }
-{ "meta": { "error": "INVALID_DATE_FORMAT", "message": "..." }, "data": null }
 ```
 
 주의: 전역 에러 형식 `{ error: { code, message } }`와 **다름**.
@@ -603,13 +618,13 @@ class BusGroupVisibility {
 class BusService {
   final String serviceId;
   final String label;
-  final String weekEndpoint;
+  final String endpoint;  // "/bus/schedule/data/{serviceId}/smart"
 
   BusService({...});
   factory BusService.fromJson(Map<String, dynamic> json) => BusService(
     serviceId: json['serviceId'],
     label: json['label'],
-    weekEndpoint: json['weekEndpoint'],
+    endpoint: json['endpoint'],
   );
 }
 
@@ -638,39 +653,47 @@ class HeroCard {
 }
 ```
 
-### 새 모델: `WeekSchedule`, `DaySchedule`, `ScheduleEntry`, `ScheduleNotice`
+### 새 모델: `SmartSchedule`, `DaySchedule`, `ScheduleEntry`, `ScheduleNotice`
 
 ```dart
-// lib/app/model/week_schedule.dart
+// lib/app/model/smart_schedule.dart
 
-class WeekSchedule {
+/// Smart schedule response — status-aware (active/suspended/noData)
+class SmartSchedule {
   final String serviceId;
-  final String? requestedFrom;
-  final String from;
-  final List<DaySchedule> days;
+  final String status;          // "active" | "suspended" | "noData"
+  final String? from;           // active only
+  final String? selectedDate;   // active only
+  final String? resumeDate;     // suspended only
+  final String? message;        // suspended/noData only (i18n)
+  final List<DaySchedule> days; // active: filtered days, others: []
 
-  WeekSchedule({...});
+  SmartSchedule({...});
 
-  factory WeekSchedule.fromJson(Map<String, dynamic> json) {
-    final data = json['data'] as Map<String, dynamic>;
-    return WeekSchedule(
-      serviceId: data['serviceId'],
-      requestedFrom: data['requestedFrom'],
-      from: data['from'],
-      days: (data['days'] as List)
+  factory SmartSchedule.fromJson(Map<String, dynamic> json) {
+    return SmartSchedule(
+      serviceId: json['serviceId'],
+      status: json['status'],
+      from: json['from'],
+      selectedDate: json['selectedDate'],
+      resumeDate: json['resumeDate'],
+      message: json['message'],
+      days: (json['days'] as List)
           .map((d) => DaySchedule.fromJson(d))
           .toList(),
     );
   }
 
-  /// 오늘 날짜에 해당하는 DaySchedule 반환
-  DaySchedule? today(DateTime now) {
-    final dateStr = _formatDate(now);
-    return days.where((d) => d.date == dateStr).firstOrNull;
-  }
+  bool get isActive => status == 'active';
+  bool get isSuspended => status == 'suspended';
+  bool get isNoData => status == 'noData';
 
-  static String _formatDate(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  /// selectedDate에 해당하는 DaySchedule의 인덱스
+  int get selectedDayIndex {
+    if (selectedDate == null) return 0;
+    final idx = days.indexWhere((d) => d.date == selectedDate);
+    return idx >= 0 ? idx : 0;
+  }
 }
 
 class DaySchedule {
@@ -810,22 +833,23 @@ class _GroupCache {
 > **기존 `GET /bus/config` (전체 groups)는 backward compat으로 유지되지만**,
 > 권장 흐름은 buslist → per-group config. 전체 fetch가 필요한 경우에만 사용.
 
-### `BusRepository` — week endpoint 추가
+### `BusRepository` — smart schedule 추가
 
 ```dart
 class BusRepository {
   final ApiClient _client;
 
-  /// 주간 스케줄 조회 (ETag 캐싱)
-  Future<Result<ConditionalResult<WeekSchedule>>> getWeekSchedule(
-    String weekEndpoint, {
-    String? from,
+  /// Smart 스케줄 조회 (status-aware, ETag 캐싱)
+  Future<Result<ConditionalResult<SmartSchedule>>> getSmartSchedule(
+    String endpoint, {
     String? ifNoneMatch,
   }) async {
-    return _client.safeGetConditional<WeekSchedule>(
-      weekEndpoint,
-      (json) => WeekSchedule.fromJson(json),
-      queryParameters: from != null ? {'from': from} : null,
+    return _client.safeGetConditional<SmartSchedule>(
+      endpoint,
+      (json) {
+        final data = json['data'] as Map<String, dynamic>;
+        return SmartSchedule.fromJson(data);
+      },
       ifNoneMatch: ifNoneMatch,
     );
   }
@@ -850,13 +874,13 @@ class ApiEndpoints {
   static String busConfigGroup(String groupId) => '/bus/config/$groupId';
   static const buslist = '/ui/home/buslist';
 
-  // 참고용 (실제 endpoint는 config의 weekEndpoint 사용):
-  // static String scheduleWeek(String serviceId) => '/bus/schedule/data/$serviceId/week';
+  // 참고용 (실제 endpoint는 config의 endpoint 사용):
+  // static String scheduleSmart(String serviceId) => '/bus/schedule/data/$serviceId/smart';
 }
 ```
 
-> weekEndpoint는 `/bus/config/:groupId` 응답의 `screen.services[].weekEndpoint`에서 내려오므로,
-> 하드코딩하지 않고 서버가 준 값을 그대로 사용.
+> endpoint는 `/bus/config/:groupId` 응답의 `screen.services[].endpoint`에서 내려오므로,
+> 하드코딩하지 않고 서버가 준 값을 그대로 사용. (현재: `/bus/schedule/data/{serviceId}/smart`)
 
 ---
 
@@ -908,9 +932,9 @@ class BusScheduleController extends GetxController {
   // 현재 선택된 service (탭)
   late Rx<BusService> currentService;
 
-  // 주간 스케줄 데이터
-  var weekSchedule = Rx<WeekSchedule?>(null);
-  var selectedDayIndex = 0.obs; // 0=Mon, 6=Sun
+  // Smart 스케줄 데이터 (status-aware)
+  var schedule = Rx<SmartSchedule?>(null);
+  var selectedDayIndex = 0.obs;
   var isLoading = false.obs;
 
   // ETag 캐시 (serviceId별)
@@ -923,33 +947,34 @@ class BusScheduleController extends GetxController {
       (s) => s.serviceId == group.defaultServiceId,
       orElse: () => group.services.first,
     ));
-    _fetchCurrentWeek();
+    _fetchSchedule();
   }
 
   /// 서비스 탭 전환
   void switchService(BusService service) {
     currentService.value = service;
-    weekSchedule.value = null;
-    _fetchCurrentWeek();
+    schedule.value = null;
+    _fetchSchedule();
   }
 
-  /// 주간 데이터 fetch
-  Future<void> _fetchCurrentWeek({String? from}) async {
+  /// Smart 스케줄 fetch
+  Future<void> _fetchSchedule() async {
     isLoading.value = true;
     final svc = currentService.value;
     final etag = _etagMap[svc.serviceId];
 
-    final result = await _busRepo.getWeekSchedule(
-      svc.weekEndpoint,
-      from: from,
+    final result = await _busRepo.getSmartSchedule(
+      svc.endpoint,
       ifNoneMatch: etag,
     );
 
     switch (result) {
       case Ok(:final data):
         if (!data.notModified && data.data != null) {
-          weekSchedule.value = data.data;
+          schedule.value = data.data;
           _etagMap[svc.serviceId] = data.etag ?? '';
+          // Auto-select the server-recommended day
+          selectedDayIndex.value = data.data!.selectedDayIndex;
         }
       case Err(:final failure):
         logger.e('Schedule fetch failed: $failure');
@@ -957,10 +982,26 @@ class BusScheduleController extends GetxController {
     isLoading.value = false;
   }
 
-  // --- Computed getters ---
+  // --- Status-based getters ---
 
-  DaySchedule? get selectedDay =>
-      weekSchedule.value?.days[selectedDayIndex.value];
+  bool get isActive => schedule.value?.isActive ?? false;
+  bool get isSuspended => schedule.value?.isSuspended ?? false;
+  bool get isNoData => schedule.value?.isNoData ?? false;
+
+  /// 상태 메시지 (suspended, noData)
+  String? get statusMessage => schedule.value?.message;
+
+  /// 운행 재개 예정일 (suspended)
+  String? get resumeDate => schedule.value?.resumeDate;
+
+  // --- Active-state getters ---
+
+  DaySchedule? get selectedDay {
+    final s = schedule.value;
+    if (s == null || !s.isActive || s.days.isEmpty) return null;
+    final idx = selectedDayIndex.value.clamp(0, s.days.length - 1);
+    return s.days[idx];
+  }
 
   List<ScheduleEntry> get currentEntries =>
       selectedDay?.schedule ?? [];
@@ -979,19 +1020,67 @@ class BusScheduleController extends GetxController {
 
 ## 7. UI 렌더링 가이드
 
-### 요일 선택 바 (Week Day Selector)
+### Status-based 최상위 분기 (가장 먼저)
+
+```dart
+// 서버의 status를 신뢰 — 클라이언트가 빈 화면 사유를 추측하지 않음
+if (controller.isLoading) {
+  return LoadingIndicator();
+}
+
+final schedule = controller.schedule.value;
+if (schedule == null) {
+  return ErrorView();
+}
+
+switch (schedule.status) {
+  case 'active':
+    return _buildScheduleView();    // 요일 칩 + 시간표
+  case 'suspended':
+    return _buildSuspendedView();   // empty state + message + resumeDate
+  case 'noData':
+    return _buildNoDataView();      // empty state + message
+}
+```
+
+### Suspended Empty State
+
+```dart
+Widget _buildSuspendedView() {
+  return EmptyStateWidget(
+    icon: Icons.pause_circle_outline,
+    message: controller.statusMessage!,  // "운휴 기간입니다"
+    detail: controller.resumeDate != null
+      ? '운행 재개: ${controller.resumeDate}'
+      : null,
+  );
+}
+```
+
+### NoData Empty State
+
+```dart
+Widget _buildNoDataView() {
+  return EmptyStateWidget(
+    icon: Icons.schedule,
+    message: controller.statusMessage!,  // "시간표 정보를 준비 중입니다"
+  );
+}
+```
+
+### 요일 선택 바 (Active 상태에서만)
 
 ```
-월  화  수  목  금  토  일
-─────────────────────────
- ●                        ← selectedDayIndex
+월  화  수  목  금
+──────────────────
+         ●         ← selectedDayIndex (서버의 selectedDate 기반)
 ```
 
-- `weekSchedule.days`의 7개 항목 사용
-- `display == "hidden"` 인 날은 회색 처리 또는 숨김
+- `schedule.days`의 항목 사용 (hidden은 서버에서 이미 제거됨)
+- `selectedDayIndex`는 서버의 `selectedDate`로 자동 설정됨
 - `label != null`이면 날짜 아래에 라벨 표시 (예: "ESKARA 1일차")
 
-### display별 렌더링
+### display별 렌더링 (Active 상태 내부)
 
 ```dart
 switch (selectedDay.display) {
@@ -1002,11 +1091,10 @@ switch (selectedDay.display) {
   case 'noService':
     // "운행 없음" 표시 + label 있으면 사유 표시 (삼일절 등)
     break;
-  case 'hidden':
-    // 해당 날 선택 불가 또는 빈 상태
-    break;
 }
 ```
+
+> Note: `hidden`은 서버에서 필터링되므로 클라이언트에 도달하지 않음.
 
 ### 스케줄 엔트리 렌더링
 
@@ -1053,26 +1141,7 @@ if (group.heroCard != null) {
 
 ---
 
-## 8. 주간 네비게이션
-
-```dart
-// 이전 주 / 다음 주
-void goToPreviousWeek() {
-  final current = DateTime.parse(weekSchedule.value!.from);
-  final prev = current.subtract(Duration(days: 7));
-  _fetchCurrentWeek(from: _formatDate(prev));
-}
-
-void goToNextWeek() {
-  final current = DateTime.parse(weekSchedule.value!.from);
-  final next = current.add(Duration(days: 7));
-  _fetchCurrentWeek(from: _formatDate(next));
-}
-```
-
----
-
-## 9. 에러 처리 주의사항
+## 8. 에러 처리 주의사항
 
 schedule 엔드포인트의 에러 형식이 전역과 다름:
 
@@ -1096,19 +1165,19 @@ final result = await _client.safeGet(endpoint, (json) {
 
 ---
 
-## 10. 마이그레이션 체크리스트
+## 9. 마이그레이션 체크리스트
 
 ### 모델
 - [ ] `bus_route_config.dart` → 삭제
 - [ ] `bus_list_item.dart` 신규 생성 (BusListItem, BusListCard, BusListAction)
 - [ ] `bus_group.dart` 신규 생성 (BusGroup, BusGroupVisibility, BusGroupCard, BusService, RouteBadge, HeroCard)
-- [ ] `week_schedule.dart` 신규 생성 (WeekSchedule, DaySchedule, ScheduleEntry, ScheduleNotice)
+- [ ] `smart_schedule.dart` 신규 생성 (SmartSchedule, DaySchedule, ScheduleEntry, ScheduleNotice)
 - [ ] 기존 buslist 모델 삭제 (title/subtitle/pageLink 기반)
 
 ### Repository
 - [ ] `ui_repository.dart`에 `getBusList()` 추가 (GET /ui/home/buslist)
 - [ ] `bus_config_repository.dart` 전면 교체 (per-group on-demand fetch, ETag 캐싱)
-- [ ] `bus_repository.dart`에 `getWeekSchedule()` 추가
+- [ ] `bus_repository.dart`에 `getSmartSchedule()` 추가
 - [ ] `api_endpoints.dart`: `busConfigVersion()` 삭제, `busConfigGroup()` + `buslist` 추가
 
 ### Controller
@@ -1119,14 +1188,16 @@ final result = await _client.safeGet(endpoint, (json) {
 ### UI
 - [ ] 메인 bus list: buslist 응답의 card/action으로 렌더링 (title→card.label, busTypeBgColor→card.themeColor)
 - [ ] 카드 탭: action.route로 분기 (realtime vs schedule)
-- [ ] schedule 화면: 7일 요일 선택 바 + display별 분기 + routeBadge 색상 매칭
+- [ ] schedule 화면 최상위: `status` 기반 분기 (active → 시간표, suspended → empty state, noData → empty state)
+- [ ] suspended empty state: message + resumeDate 표시
+- [ ] noData empty state: message 표시
+- [ ] active 상태: 요일 선택 바 + display별 분기 + routeBadge 색상 매칭
 - [ ] notice 렌더링 (style별 색상 분기)
-- [ ] 주간 네비게이션 (이전 주 / 다음 주)
-- [ ] ETag 캐싱 적용 (per-group config + week schedule)
+- [ ] ETag 캐싱 적용 (per-group config + smart schedule)
 
 ### 삭제
 - [ ] `/bus/config/version` 호출 코드
 - [ ] 클라이언트 visibility 필터링 로직 (서버에서 처리)
 - [ ] `ServiceCalendar`, `ServiceException` 관련 로직 (서버가 display 필드로 대체)
-- [ ] `BusDirection.endpoint` + `{dayType}` 치환 로직 (weekEndpoint로 대체)
+- [ ] `BusDirection.endpoint` + `{dayType}` 치환 로직 (smart endpoint로 대체)
 - [ ] 기존 buslist 파싱 코드 (title/subtitle/pageLink → groupId/card/action)

@@ -24,17 +24,17 @@ Client
   ├── GET /bus/config          → all groups[] (backward compat)
   ├── GET /bus/config/:groupId → single group config (on-demand)
   │
-  └── GET /bus/schedule/data/:serviceId/week?from=YYYY-MM-DD
-                               → 7-day resolved schedule
+  ├── GET /bus/schedule/data/:serviceId/smart     ← 메인 (auto-select + status)
+  └── GET /bus/schedule/data/:serviceId/week      ← deprecated (raw 7-day)
 
 Server
   │
   ├── bus-config.data.js       → getBusGroups() — SSOT for all bus groups
   │     ├── ui.buslist.js      → reads getBusGroups(), filters visibility, maps to cards
   │     └── bus-config.routes  → serves full group(s) with ETag/304
-  ├── service.config.js        → per-service operational defaults
-  ├── schedule.data.js         → resolveWeek() — 3-step resolution engine
-  └── schedule.routes.js       → HTTP handler + ETag caching
+  ├── service.config.js        → per-service operational defaults + suspend config
+  ├── schedule.data.js         → resolveWeek() + resolveSmartSchedule() — resolution engine
+  └── schedule.routes.js       → HTTP handler + ETag caching + i18n message injection
 
 MongoDB (bus_campus_dev / bus_campus)
   │
@@ -51,9 +51,9 @@ MongoDB (bus_campus_dev / bus_campus)
 | `features/bus/bus-config.data.js` | `getBusGroups(lang)` — SSOT for all bus groups (includes stations for realtime); `getGroupById()`, `computeGroupEtag()` |
 | `features/bus/bus-config.routes.js` | `GET /bus/config` — all groups; `GET /bus/config/:groupId` — single group with ETag/304 |
 | `features/bus/realtime.routes.js` | `GET /bus/realtime/data/:groupId` — live bus positions + stationEtas |
-| `features/bus/service.config.js` | Static config: serviceId → `{ nonOperatingDayDisplay, notices }` |
-| `features/bus/schedule.data.js` | `resolveWeek(serviceId, from)` — core resolution engine |
-| `features/bus/schedule.routes.js` | `GET /bus/schedule/data/:serviceId/week` — HTTP handler |
+| `features/bus/service.config.js` | Static config: serviceId → `{ nonOperatingDayDisplay, notices, suspend }` |
+| `features/bus/schedule.data.js` | `resolveWeek()` + `resolveSmartSchedule()` — resolution engine |
+| `features/bus/schedule.routes.js` | `/smart` (main) + `/week` (deprecated) — HTTP handlers |
 | `features/bus/schedule-db.js` | `ensureScheduleIndexes()` — creates DB indexes at startup |
 | `features/bus/campus-eta.routes.js` | `GET /bus/campus/eta` — driving ETA between campuses (separate) |
 | `lib/i18n.js` | Translation keys for group labels, service tabs, badges |
@@ -151,12 +151,12 @@ screen: {
     {
       serviceId: "campus-inja",
       label: "인사캠 → 자과캠",
-      weekEndpoint: "/bus/schedule/data/campus-inja/week"
+      endpoint: "/bus/schedule/data/campus-inja/smart"
     },
     {
       serviceId: "campus-jain",
       label: "자과캠 → 인사캠",
-      weekEndpoint: "/bus/schedule/data/campus-jain/week"
+      endpoint: "/bus/schedule/data/campus-jain/smart"
     }
   ],
   heroCard: {                            // optional — real-time ETA card above schedule
@@ -201,20 +201,23 @@ A static JS object that maps every known `serviceId` to its operational defaults
 ```js
 module.exports = {
   "campus-inja": {
-    nonOperatingDayDisplay: "noService",    // what to show on days with no pattern
-    notices: [                              // always-on notices for this service
+    nonOperatingDayDisplay: "hidden",
+    notices: [
       { style: "info", text: "25년도 2학기 인자셔틀 시간표 업데이트" }
     ],
+    suspend: null,                          // null = 운행 중
   },
   "campus-jain": {
-    nonOperatingDayDisplay: "noService",
+    nonOperatingDayDisplay: "hidden",
     notices: [],
+    suspend: null,
   },
   "fasttrack-inja": {
-    nonOperatingDayDisplay: "hidden",       // don't show the day at all
+    nonOperatingDayDisplay: "hidden",
     notices: [
       { style: "warning", text: "ESKARA 기간 한정 운행" }
     ],
+    suspend: null,
   },
 };
 ```
@@ -228,7 +231,7 @@ When the resolution engine finds no pattern and no override for a given day:
 | `"noService"` | Show the day with a "운행 없음" (no service) message |
 | `"hidden"` | Completely hide the day from the schedule view |
 
-Campus shuttles use `"noService"` (Sat/Sun show as "no service"). Fasttrack uses `"hidden"` (only event days are visible).
+All current services use `"hidden"` (Sat/Sun or non-event days are hidden from the schedule chip bar).
 
 ### `notices`
 
@@ -237,6 +240,25 @@ Array of persistent notices attached to every day that has `display: "schedule"`
 - `text`: notice message
 
 These get tagged with `source: "service"` in the resolved output (see resolution engine).
+
+### `suspend`
+
+Controls service-wide suspension (e.g., vacation periods). When set, `resolveSmartSchedule` returns immediately with `status: "suspended"` — **zero DB queries**.
+
+| Value | Meaning |
+|-------|---------|
+| `null` | Normal operation |
+| `{ from: "YYYY-MM-DD", until: "YYYY-MM-DD" }` | Suspended during this period (both inclusive) |
+
+Example — summer vacation:
+```js
+suspend: { from: "2026-06-21", until: "2026-08-31" }
+// → resumeDate auto-calculated: "2026-09-01" (until + 1 day)
+```
+
+**Validation**: At runtime, `resolveSmartSchedule` checks `moment.isValid()` and `from <= until`. Invalid config is ignored with `logger.warn` — fail-open to prevent config typos from breaking the entire service.
+
+**Boundary behavior**: `moment.isBetween(from, until, 'day', '[]')` — both `from` and `until` days are inclusive. On `until` day 23:59 KST the service is still suspended; at `until + 1` day 00:00 KST it becomes active.
 
 ---
 
@@ -403,30 +425,191 @@ Service notices appear on every `display: "schedule"` day. Override notices only
 
 ---
 
-## 5. Schedule Route (`/bus/schedule/data/:serviceId/week`)
+## 5. Smart Schedule Engine (`resolveSmartSchedule`)
 
-### Request
+Wraps `resolveWeek` to provide a client-ready response with auto-selected date and status field.
+
+### Algorithm
 
 ```
-GET /bus/schedule/data/campus-inja/week
-GET /bus/schedule/data/campus-inja/week?from=2026-03-12
+1. Check suspend config
+   ├── svcCfg.suspend exists AND today ∈ [from, until] (inclusive)
+   │     → return { status: "suspended", resumeDate: until+1, days: [] }
+   │     → 0 DB queries
+   ├── invalid suspend config (bad dates, from > until)
+   │     → logger.warn, ignore suspend, continue
+   └── suspend null or outside range → continue
+
+2. Scan this week (resolveWeek with this Monday)
+   └── From today's index to Sunday, find first display:"schedule" day
+
+3. If not found, scan next week (resolveWeek with next Monday)
+   └── From Monday to Sunday, find first display:"schedule" day
+
+4. Result:
+   ├── selectedDate found → status: "active"
+   │     filter out hidden days → return visibleDays
+   └── selectedDate null → status: "noData"
+         logger.warn, return { days: [] }
 ```
 
-### Validation
+### Response shapes
+
+**`status: "active"`** — normal operation:
+```json
+{
+  "serviceId": "campus-inja",
+  "status": "active",
+  "from": "2026-03-16",
+  "selectedDate": "2026-03-16",
+  "days": [...]
+}
+```
+
+**`status: "suspended"`** — within suspend period:
+```json
+{
+  "serviceId": "campus-inja",
+  "status": "suspended",
+  "resumeDate": "2026-09-01",
+  "from": null,
+  "selectedDate": null,
+  "days": []
+}
+```
+
+**`status: "noData"`** — no schedule found within 2 weeks (data gap):
+```json
+{
+  "serviceId": "campus-inja",
+  "status": "noData",
+  "from": null,
+  "selectedDate": null,
+  "days": []
+}
+```
+
+### Status semantics
+
+| Status | When | DB queries | Logger | Client behavior |
+|--------|------|-----------|--------|-----------------|
+| `active` | Schedule found | 2-4 (1-2 weeks) | — | Render timetable |
+| `suspended` | Today ∈ suspend range | 0 | — | Show empty state + message + resumeDate |
+| `noData` | No suspend, no schedule in 2 weeks | 4 | `logger.warn` | Show empty state + message |
+
+### Message injection (route layer)
+
+`resolveSmartSchedule` returns raw status without message. The route handler adds i18n messages:
+
+```js
+const data = result.status === "active"
+  ? { ...result }
+  : { ...result, message: t(`schedule.${result.status}`, req.lang) };
+```
+
+| Key | ko | en | zh |
+|-----|----|----|-----|
+| `schedule.suspended` | 운휴 기간입니다 | Service is suspended | 停运期间 |
+| `schedule.noData` | 시간표 정보를 준비 중입니다 | Schedule information is being prepared | 正在准备时刻表信息 |
+
+`active` responses do **not** include a `message` field.
+
+---
+
+## 6. Schedule Routes (`/bus/schedule/data/:serviceId/...`)
+
+### `GET /data/:serviceId/smart` — Main endpoint
+
+Returns the most relevant week with auto-selected date and status field. Hidden days are filtered out.
+
+```
+GET /bus/schedule/data/campus-inja/smart
+Accept-Language: ko|en|zh
+```
+
+**Active response:**
+```json
+{
+  "meta": { "lang": "ko" },
+  "data": {
+    "serviceId": "campus-inja",
+    "status": "active",
+    "from": "2026-03-16",
+    "selectedDate": "2026-03-16",
+    "days": [
+      {
+        "date": "2026-03-16", "dayOfWeek": 1, "display": "schedule",
+        "label": null,
+        "notices": [{ "style": "info", "text": "...", "source": "service" }],
+        "schedule": [{ "index": 1, "time": "08:00", "routeType": "regular", "busCount": 1, "notes": null }]
+      }
+    ]
+  }
+}
+```
+
+**Suspended response:**
+```json
+{
+  "meta": { "lang": "ko" },
+  "data": {
+    "serviceId": "campus-inja",
+    "status": "suspended",
+    "resumeDate": "2026-09-01",
+    "from": null,
+    "selectedDate": null,
+    "days": [],
+    "message": "운휴 기간입니다"
+  }
+}
+```
+
+**NoData response:**
+```json
+{
+  "meta": { "lang": "en" },
+  "data": {
+    "serviceId": "campus-inja",
+    "status": "noData",
+    "from": null,
+    "selectedDate": null,
+    "days": [],
+    "message": "Schedule information is being prepared"
+  }
+}
+```
+
+### ETag (smart)
+
+Format varies by status:
+
+| Status | ETag format |
+|--------|-------------|
+| `active` | `"smart-{serviceId}-{from}-{md5}"` |
+| `suspended` | `"smart-{serviceId}-suspended-{md5}"` |
+| `noData` | `"smart-{serviceId}-noData-{md5}"` |
+
+Implementation: `data.from || data.status` — uses `from` when present, falls back to `status` when `from` is null.
+
+- `If-None-Match` → `304 Not Modified`
+- `Cache-Control: public, max-age=300` (5 min)
+
+### `GET /data/:serviceId/week` — Deprecated
+
+Raw 7-day resolved schedule. Logs `req.log.warn("deprecated: /week endpoint called, use /smart")` on every call.
+
+```
+GET /bus/schedule/data/campus-inja/week?from=2026-03-09
+```
+
+Still returns the same response shape as before (no `status` field). Maintained for backward compatibility during app update transition.
+
+### Validation (both endpoints)
 
 | Condition | Response |
 |-----------|----------|
-| `from` provided but not `YYYY-MM-DD` | `400 { meta: { error: "INVALID_DATE_FORMAT" } }` |
+| `from` provided but not `YYYY-MM-DD` (week only) | `400 { meta: { error: "INVALID_DATE_FORMAT" } }` |
 | `serviceId` not in service.config.js | `404 { meta: { error: "SERVICE_NOT_FOUND" } }` |
-
-### ETag
-
-Format: `"week-{serviceId}-{from}-{md5Hash}"`
-
-Example: `"week-campus-inja-2026-03-09-a1b2c3d4..."`
-
-- `If-None-Match: "week-..."` → `304 Not Modified`
-- `Cache-Control: public, max-age=300` (5 min)
 
 ### Error format
 
@@ -442,7 +625,7 @@ Schedule endpoints use a different error format from the global `res.error()`:
 
 ---
 
-## 6. Caching
+## 7. Caching
 
 ### Schedule data cache (in-memory)
 
@@ -483,7 +666,7 @@ Realtime data is always fresh — the server reads from in-memory fetcher state 
 
 ---
 
-## 7. How to Add a New Schedule-Type Bus
+## 8. How to Add a New Schedule-Type Bus
 
 Step-by-step guide to adding a new bus service (e.g., a new shuttle route "nsc-express").
 
@@ -497,6 +680,7 @@ module.exports = {
   "nsc-express": {
     nonOperatingDayDisplay: "noService",  // or "hidden" for event-only
     notices: [],                          // persistent notices, or leave empty
+    suspend: null,                        // null = operating, or { from, until }
   },
 };
 ```
@@ -535,7 +719,7 @@ db.bus_overrides.insertOne({
 });
 ```
 
-At this point, `GET /bus/schedule/data/nsc-express/week` already works. The service config + DB data is all the resolution engine needs.
+At this point, `GET /bus/schedule/data/nsc-express/smart` already works. The service config + DB data is all the resolution engine needs.
 
 ### Step 3: Add i18n keys
 
@@ -582,7 +766,7 @@ Add a new entry to the array inside `getBusGroups()`. This is the **only place**
       {
         serviceId: "nsc-express",
         label: t("busconfig.service.nsc-express", lang),
-        weekEndpoint: "/bus/schedule/data/nsc-express/week",
+        endpoint: "/bus/schedule/data/nsc-express/smart",
       },
     ],
     heroCard: null,
@@ -617,7 +801,7 @@ No route changes needed — `schedule.routes.js` handles any serviceId dynamical
 
 ---
 
-## 8. How to Add Overrides (Holidays, Events)
+## 9. How to Add Overrides (Holidays, Events)
 
 ### Holiday (no service)
 
@@ -674,7 +858,7 @@ If the server is running, the in-memory cache may still serve stale data (up to 
 
 ---
 
-## 9. Entry Shape Reference
+## 10. Entry Shape Reference
 
 Every schedule entry (in both `bus_schedules` and `bus_overrides`) has:
 
@@ -695,7 +879,7 @@ Every schedule entry (in both `bus_schedules` and `bus_overrides`) has:
 
 ---
 
-## 10. Testing
+## 11. Testing
 
 ### Running tests
 
@@ -712,11 +896,11 @@ npx jest __tests__/service-config.test.js        # service config only
 Tests mock MongoDB via `jest.mock("../../lib/db")` and inject fake data. No real DB connection needed.
 
 Key test files:
-- `__tests__/schedule-data.test.js` — 16 tests covering all resolution paths (patterns, overrides, fallbacks, caching)
-- `__tests__/schedule-routes.test.js` — 8 tests for HTTP handling (validation, ETag, 304)
+- `__tests__/schedule-data.test.js` — 25 tests: resolveWeek (14) + resolveSmartSchedule (10, incl. suspend/noData/boundary) + cache (1)
+- `__tests__/schedule-routes.test.js` — 19 tests: /week (8) + /smart (11, incl. status/message/ETag/i18n)
 - `__tests__/bus-config.test.js` — 19 tests for group structure, i18n, ETag, per-group lookup
 - `__tests__/bus-config-routes.test.js` — 6 tests for per-group HTTP endpoint (200/404/304, ETag)
-- `__tests__/service-config.test.js` — 10 tests for config shape validation
+- `__tests__/service-config.test.js` — 11 tests for config shape validation (incl. suspend field)
 
 ### What's mocked in test files that load `index.js`
 
@@ -725,6 +909,7 @@ Any test that `require("../index")` (e.g., `route-responses.test.js`, `app-confi
 ```js
 jest.mock("../features/bus/schedule.data", () => ({
   resolveWeek: jest.fn().mockResolvedValue(null),
+  resolveSmartSchedule: jest.fn().mockResolvedValue(null),
   clearCache: jest.fn(),
   clearCacheForService: jest.fn(),
 }));
@@ -739,7 +924,7 @@ jest.mock("../features/bus/campus-eta.data", () => ({
 
 ---
 
-## 11. Scripts
+## 12. Scripts
 
 ### `scripts/migrate-schedules.js`
 
@@ -767,15 +952,16 @@ node scripts/seed-eskara.js
 
 ---
 
-## 12. Endpoint Summary
+## 13. Endpoint Summary
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/bus/config` | GET | Bus groups array (SDUI config) |
 | `/bus/config/:groupId` | GET | Single group config (on-demand, includes stations for realtime) |
 | `/bus/realtime/data/:groupId` | GET | Realtime bus positions + stationEtas (polled) |
-| `/bus/schedule/data/:serviceId/week` | GET | 7-day resolved schedule |
-| `/bus/schedule/data/:serviceId/week?from=YYYY-MM-DD` | GET | 7-day schedule for specific week |
+| `/bus/schedule/data/:serviceId/smart` | GET | **Main** — Smart schedule with status + auto-selected date |
+| `/bus/schedule/data/:serviceId/week` | GET | **Deprecated** — Raw 7-day resolved schedule |
+| `/bus/schedule/data/:serviceId/week?from=YYYY-MM-DD` | GET | **Deprecated** — 7-day schedule for specific week |
 | `/bus/campus/eta` | GET | Driving ETA between campuses |
 
 ### Headers
@@ -795,27 +981,32 @@ node scripts/seed-eskara.js
 ## Appendix: Realtime vs Schedule Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    /bus/config                       │
-│            groups[] (5 bus services)                 │
-│                                                     │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐          │
-│  │   hssc   │  │  campus  │  │fasttrack │  ...      │
-│  │ realtime │  │ schedule │  │ schedule │           │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘          │
-│       │              │              │                │
-│       ▼              ▼              ▼                │
-│  /bus/realtime  /bus/schedule   /bus/schedule        │
-│  /data/hssc    /data/campus-   /data/fasttrack-     │
-│                 inja/week       inja/week            │
-│       │              │              │                │
-│       ▼              ▼              ▼                │
-│  External API   MongoDB         MongoDB             │
-│  (polling)      bus_schedules   bus_overrides        │
-│                 bus_overrides                        │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                    /bus/config                        │
+│            groups[] (5 bus services)                  │
+│                                                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
+│  │   hssc   │  │  campus  │  │fasttrack │  ...       │
+│  │ realtime │  │ schedule │  │ schedule │            │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘           │
+│       │              │              │                 │
+│       ▼              ▼              ▼                 │
+│  /bus/realtime  /bus/schedule   /bus/schedule         │
+│  /data/hssc    /data/campus-   /data/fasttrack-      │
+│                 inja/smart      inja/smart            │
+│       │              │              │                 │
+│       │         ┌────┴────┐    ┌────┴────┐           │
+│       │         │ suspend │    │ suspend │           │
+│       │         │ check   │    │ check   │           │
+│       │         └────┬────┘    └────┬────┘           │
+│       │              │              │                 │
+│       ▼              ▼              ▼                 │
+│  External API   MongoDB         MongoDB              │
+│  (polling)      bus_schedules   bus_overrides         │
+│                 bus_overrides                         │
+└──────────────────────────────────────────────────────┘
 ```
 
 **Realtime buses** (hssc, jongro02, jongro07): Config (stations, refreshInterval, routeOverlay) is served via `/bus/config/:groupId` — fetched once and ETag-cached. Dynamic data (bus positions, stationEtas) is served via `/bus/realtime/data/:groupId` — polled at `refreshInterval` (10-40s) with `Cache-Control: no-store`. No MongoDB involvement; data comes from external APIs.
 
-**Schedule buses** (campus, fasttrack): Data comes from MongoDB collections. The client fetches a 7-day resolved schedule and renders the timetable locally. Supports offline viewing since the full week is downloaded at once.
+**Schedule buses** (campus, fasttrack): Data comes from MongoDB collections via `/smart` endpoint. The server auto-selects the best week and date, returns a status field (`active`/`suspended`/`noData`), and filters out hidden days. Suspend periods skip DB entirely. Supports offline viewing since the full week is downloaded at once.

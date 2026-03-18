@@ -80,14 +80,9 @@ Quota is per-function. Endpoints using the same function share its 20,000/day li
 | # | Source | Env Var | Purpose | Interval | Quota |
 |---|--------|---------|---------|----------|-------|
 | 1 | SKKU shuttle system | `API_HSSC_NEW_PROD` / `_DEV` | HSSC campus shuttle bus positions | 10s | None (SKKU internal) |
+| 2 | skku.edu | Hardcoded URL | Building/space data sync (3-phase: buildList→buildInfo→spaceList) | 7 days | None (SKKU public) |
 
-### On-Demand (Per User Request)
-
-| # | Source | URL | Purpose |
-|---|--------|-----|---------|
-| 2 | skku.edu | `campusMap.do?mode=buildList` | Building search by name |
-| 3 | skku.edu | `campusMap.do?mode=buildInfo` | Building floor/room detail |
-| 4 | skku.edu | `campusMap.do?mode=spaceList` | Space/room search by code |
+> **Building sync** moved from on-demand (per user request) to weekly background sync in `building.sync.js`. Data is stored in MongoDB (`skkumap` DB) and served via `/building/*` routes. See `docs/flutter-building-api-guide.md` for endpoint details.
 
 ### Old Server Only (ec2-snapshot, not in new server)
 
@@ -110,4 +105,4 @@ Quota is per-function. Endpoints using the same function share its 20,000/day li
 - 공공데이터포털 quota is **per function per API key per day**, not per URL.
 - Jongro 07 and 02 List endpoints call the same `getArrInfoByRouteAllList` function with different route parameters — they share one 20,000 pool.
 - `API_STATION_HEWA` has no PROD/DEV split (single env var). All other polled APIs use `apiUrl()` for environment selection.
-- The `skku.edu` URLs are hardcoded (not env-var-configured). No known rate limits, but usage is low (only fires on user search requests).
+- The `skku.edu` building sync URLs are hardcoded (not env-var-configured). No known rate limits. Sync runs once per 7 days (~4 calls per sync: 2×buildList + 59×buildInfo + 2×spaceList = 63 total).

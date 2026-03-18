@@ -1,4 +1,5 @@
 const { t } = require("../../lib/i18n");
+const config = require("../../lib/config");
 
 /**
  * Returns map layer configuration with campus definitions.
@@ -8,6 +9,7 @@ const { t } = require("../../lib/i18n");
  */
 function getMapConfig(lang = "ko") {
   return {
+    naver: { styleId: config.naver.styleId },
     campuses: [
       {
         id: "hssc",
@@ -26,11 +28,20 @@ function getMapConfig(lang = "ko") {
     ],
     layers: [
       {
-        id: "campus_buildings",
+        id: "building_numbers",
         type: "marker",
-        label: t("map.layer.campus_buildings", lang),
+        markerStyle: "numberCircle",
+        label: t("map.layer.building_numbers", lang),
         defaultVisible: true,
-        endpoint: "/map/overlays?category=hssc",
+        endpoint: "/map/markers/campus?overlay=number",
+      },
+      {
+        id: "building_labels",
+        type: "marker",
+        markerStyle: "textLabel",
+        label: t("map.layer.building_labels", lang),
+        defaultVisible: true,
+        endpoint: "/map/markers/campus?overlay=label",
       },
       {
         id: "bus_route_jongro07",

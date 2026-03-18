@@ -36,6 +36,10 @@ The server API has been migrated with 4 major changes:
 | `/ad/v1/placements` | `/ad/placements` | GET |
 | `/ad/v1/events` | `/ad/events` | POST |
 | *(new)* | `/app/config` | GET |
+| *(new)* | `/map/config` | GET |
+| *(new)* | `/map/markers/campus` | GET |
+| *(new)* | `/map/overlays?category=hssc\|nsc` | GET |
+| *(new)* | `/map/overlays/:overlayId` | GET |
 
 `/health` and `/health/ready` are unchanged.
 

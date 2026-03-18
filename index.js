@@ -12,6 +12,8 @@ const langMiddleware = require("./lib/langMiddleware");
 const responseHelper = require("./lib/responseHelper");
 const { ensureIndexes, seedIfEmpty } = require("./features/ad/ad.data");
 const { ensureScheduleIndexes } = require("./features/bus/schedule-db");
+const { ensureIndexes: ensureBuildingIndexes } = require("./features/building/building.data");
+require("./features/building/building.sync"); // poller registration (side-effect)
 const busCache = require("./lib/busCache");
 
 let swaggerFile;
@@ -101,6 +103,7 @@ const appRoute = require("./features/app/app.routes");
 const mapConfigRoutes = require("./features/map/map-config.routes");
 const mapMarkersRoutes = require("./features/map/map-markers.routes");
 const mapOverlaysRoutes = require("./features/map/map-overlays.routes");
+const buildingRoutes = require("./features/building/building.routes");
 
 app.use("/search", verifyToken, searchLimiter, searchRoute);
 app.use("/bus/realtime", generalLimiter, realtimeRoutes);
@@ -115,6 +118,7 @@ app.use("/app", generalLimiter, appRoute);
 app.use("/map/config", generalLimiter, mapConfigRoutes);
 app.use("/map/markers", generalLimiter, mapMarkersRoutes);
 app.use("/map/overlays", generalLimiter, mapOverlaysRoutes);
+app.use("/building", generalLimiter, buildingRoutes);
 
 // 404 handler (after all routes, before error handler)
 app.use((req, res) => {
@@ -162,6 +166,14 @@ if (require.main === module) {
       logger.warn({ err: err.message }, "[schedule] Index setup failed");
     }
 
+    // Ensure building indexes (non-fatal)
+    try {
+      await ensureBuildingIndexes();
+      logger.info("[building] Indexes ensured");
+    } catch (err) {
+      logger.warn({ err: err.message }, "[building] Index setup failed");
+    }
+
     // ROLE=poller: run pollers only, no HTTP server
     // ROLE=api: run HTTP server only, no pollers (reads from bus_cache written by poller service)
     // ROLE=combined (default): run both — single-container backward-compatible mode
@@ -191,6 +203,7 @@ if (require.main === module) {
         port: config.port,
         db: config.mongo.dbName,
         adDb: config.ad.dbName,
+        buildingDb: config.building.dbName,
         api: config.useProdApi ? "PROD" : "DEV",
         role,
       }, "Server started");

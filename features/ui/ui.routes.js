@@ -5,7 +5,7 @@ const { getBusList } = require("./ui.buslist");
 const { getScrollComponent } = require("./ui.scroll");
 const { getCampusSections } = require("./ui.campus");
 
-router.get("/home/buslist", asyncHandler(async (req, res) => {
+router.get("/home/transitlist", asyncHandler(async (req, res) => {
   const busList = getBusList(req.lang);
   res.success(busList, { busListCount: busList.length });
 }));

@@ -19,3 +19,4 @@ __fixtures__/
 
 # Lock files (project uses npm/package-lock.json)
 yarn.lock
+__backups__/

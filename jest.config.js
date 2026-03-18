@@ -3,6 +3,10 @@ module.exports = {
   collectCoverage: true,
   coverageDirectory: "coverage",
   coverageReporters: ["text", "lcov"],
+  coveragePathIgnorePatterns: [
+    "/node_modules/",
+    "building\\.sync\\.js$", // external API sync — integration-only
+  ],
   coverageThreshold: {
     global: {
       branches: 50,
