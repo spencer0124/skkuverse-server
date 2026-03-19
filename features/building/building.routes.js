@@ -1,5 +1,6 @@
 const { Router } = require("express");
 const asyncHandler = require("../../lib/asyncHandler");
+const { t } = require("../../lib/i18n");
 const {
   getAllBuildings,
   getBuildingBySkkuId,
@@ -12,6 +13,16 @@ const {
 
 const router = Router();
 
+/** Add campusLabel to a building document. */
+function withCampusLabel(building, lang) {
+  return { ...building, campusLabel: t(`map.campus.${building.campus}.label`, lang) };
+}
+
+/** Fill empty .en with .ko for bilingual fields. */
+function fillEnFallback(obj) {
+  if (obj && !obj.en && obj.ko) obj.en = obj.ko;
+}
+
 // GET /building/list?campus=hssc
 router.get(
   "/list",
@@ -22,7 +33,7 @@ router.get(
     }
 
     const buildings = await getAllBuildings(campus);
-    res.success({ buildings });
+    res.success({ buildings: buildings.map((b) => withCampusLabel(b, req.lang)) });
   }),
 );
 
@@ -51,6 +62,13 @@ router.get(
       allBuildings.filter((b) => b.buildNo).map((b) => [b.buildNo, b._id]),
     );
 
+    // Fill empty English with Korean fallback
+    for (const s of spaces) {
+      fillEnFallback(s.name);
+      fillEnFallback(s.buildingName);
+      fillEnFallback(s.floor);
+    }
+
     // Group spaces by buildNo
     const spaceGroups = [];
     const groupMap = new Map();
@@ -60,6 +78,8 @@ router.get(
           skkuId: buildNoToSkkuId.get(s.buildNo) || null,
           buildNo: s.buildNo,
           displayNo: toDisplayNo(s.buildNo, s.campus),
+          campus: s.campus,
+          campusLabel: t(`map.campus.${s.campus}.label`, req.lang),
           buildingName: s.buildingName,
           items: [],
         };
@@ -73,8 +93,10 @@ router.get(
       });
     }
 
+    const buildingsWithLabel = buildings.map((b) => withCampusLabel(b, req.lang));
+
     res.success(
-      { buildings, spaces: spaceGroups },
+      { buildings: buildingsWithLabel, spaces: spaceGroups },
       { keyword: q, buildingCount: buildings.length, spaceCount: spaces.length },
     );
   }),
@@ -99,7 +121,19 @@ router.get(
       getConnectionsForBuilding(skkuId),
     ]);
 
-    res.success({ building, floors, connections });
+    // Fill empty English with Korean fallback in floor spaces
+    for (const f of floors) {
+      fillEnFallback(f.floor);
+      for (const s of f.spaces) {
+        fillEnFallback(s.name);
+      }
+    }
+
+    res.success({
+      building: withCampusLabel(building, req.lang),
+      floors,
+      connections,
+    });
   }),
 );
 
