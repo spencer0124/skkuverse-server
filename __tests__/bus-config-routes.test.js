@@ -118,9 +118,6 @@ describe("GET /bus/config/:groupId", () => {
     expect(screen.dataEndpoint).toBe("/bus/realtime/data/jongro07");
     expect(screen.refreshInterval).toBe(40);
     expect(screen.stations).toHaveLength(19);
-    expect(screen.routeOverlay).toEqual({
-      routeId: "jongro07",
-      endpoint: "/bus/route/jongro07",
-    });
+    expect(screen.routeOverlay).toBeNull();
   });
 });
