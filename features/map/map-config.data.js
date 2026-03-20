@@ -43,22 +43,22 @@ function getMapConfig(lang = "ko") {
         defaultVisible: true,
         endpoint: "/map/markers/campus?overlay=label",
       },
-      {
-        id: "bus_route_jongro07",
-        type: "polyline",
-        label: t("map.layer.bus_route_jongro07", lang),
-        defaultVisible: true,
-        endpoint: "/map/overlays/jongro07",
-        style: { color: "4CAF50" },
-      },
-      {
-        id: "bus_route_jongro02",
-        type: "polyline",
-        label: t("map.layer.bus_route_jongro02", lang),
-        defaultVisible: true,
-        endpoint: "/map/overlays/jongro02",
-        style: { color: "4CAF50" },
-      },
+      // {
+      //   id: "bus_route_jongro07",
+      //   type: "polyline",
+      //   label: t("map.layer.bus_route_jongro07", lang),
+      //   defaultVisible: true,
+      //   endpoint: "/map/overlays/jongro07",
+      //   style: { color: "4CAF50" },
+      // },
+      // {
+      //   id: "bus_route_jongro02",
+      //   type: "polyline",
+      //   label: t("map.layer.bus_route_jongro02", lang),
+      //   defaultVisible: true,
+      //   endpoint: "/map/overlays/jongro02",
+      //   style: { color: "4CAF50" },
+      // },
     ],
   };
 }
