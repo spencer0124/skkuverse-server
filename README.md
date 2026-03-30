@@ -1,4 +1,4 @@
-# SKKUBUS Server
+# skkuverse-server
 
 ![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white)
@@ -46,7 +46,7 @@ The companion Flutter app ([skkumap](../skkumap)) shows students:
 ## Project Structure
 
 ```
-skkumap-server-express/
+skkuverse-server/
 ├── index.js              # Entry point: routes, startup, graceful shutdown
 ├── lib/
 │   ├── config.js         # Env var loading & validation

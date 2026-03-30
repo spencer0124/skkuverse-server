@@ -1,4 +1,4 @@
-# skkumap-server-express 프로젝트 문서
+# skkuverse-server 프로젝트 문서
 
 > 15개 개별 문서를 하나로 통합 (2026-03-28)
 
@@ -6,7 +6,7 @@
 
 # Part 1: Server & Deployment
 
-# Deployment Guide: skkumap-server-express → Oracle Cloud Free Tier
+# Deployment Guide: skkuverse-server → Oracle Cloud Free Tier
 
 ## Context
 
@@ -122,8 +122,8 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ```bash
 # On the Oracle VM
-git clone <your-repo> ~/skkumap-server-express
-cd ~/skkumap-server-express
+git clone <your-repo> ~/skkuverse-server
+cd ~/skkuverse-server
 
 # Create .env with production values
 nano .env
