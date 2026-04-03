@@ -40,11 +40,6 @@ function getCampusSections(lang = "ko") {
     minAppVersion: "2.0.0",
     sections: [
       {
-        type: "section_title",
-        id: "campus_title",
-        title: t("campus.title", lang),
-      },
-      {
         type: "button_grid",
         id: "campus_buttons",
         columns: 4,
