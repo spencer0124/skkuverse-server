@@ -186,6 +186,30 @@ async function searchSpaces(query, campus) {
     .toArray();
 }
 
+async function countSearchBuildings(query) {
+  const col = getBuildingsCollection();
+  const regex = { $regex: escapeRegex(query), $options: "i" };
+  const baseOr = [{ "name.ko": regex }, { "name.en": regex }, { "description.ko": regex }];
+  if (/^\d+$/.test(query)) baseOr.push({ displayNo: query });
+  const [hssc, nsc] = await Promise.all([
+    col.countDocuments({ $or: baseOr, campus: "hssc" }),
+    col.countDocuments({ $or: baseOr, campus: "nsc" }),
+  ]);
+  return { hssc, nsc, total: hssc + nsc };
+}
+
+async function countSearchSpaces(query) {
+  const col = getSpacesCollection();
+  const regex = { $regex: escapeRegex(query), $options: "i" };
+  const baseOr = [{ "name.ko": regex }, { "name.en": regex }, { "buildingName.ko": regex }];
+  if (/^[\da-zA-Z]+$/.test(query)) baseOr.push({ spaceCd: query });
+  const [hssc, nsc] = await Promise.all([
+    col.countDocuments({ $or: baseOr, campus: "hssc" }),
+    col.countDocuments({ $or: baseOr, campus: "nsc" }),
+  ]);
+  return { hssc, nsc, total: hssc + nsc };
+}
+
 // --- Connections ---
 
 async function getConnectionsForBuilding(skkuId) {
@@ -248,5 +272,7 @@ module.exports = {
   getConnectionsForBuilding,
   searchBuildings,
   searchSpaces,
+  countSearchBuildings,
+  countSearchSpaces,
   clearCache,
 };

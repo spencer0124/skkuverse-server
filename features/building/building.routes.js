@@ -8,6 +8,8 @@ const {
   getConnectionsForBuilding,
   searchBuildings,
   searchSpaces,
+  countSearchBuildings,
+  countSearchSpaces,
   toDisplayNo,
 } = require("./building.data");
 
@@ -51,10 +53,12 @@ router.get(
       return res.error(400, "INVALID_CAMPUS", "campus must be 'hssc' or 'nsc'");
     }
 
-    const [buildings, spaces, allBuildings] = await Promise.all([
+    const [buildings, spaces, allBuildings, buildingCounts, spaceCounts] = await Promise.all([
       searchBuildings(q, campus),
       searchSpaces(q, campus),
       getAllBuildings(),
+      countSearchBuildings(q),
+      countSearchSpaces(q),
     ]);
 
     // buildNo → skkuId lookup (from cached buildings)
@@ -97,7 +101,15 @@ router.get(
 
     res.success(
       { buildings: buildingsWithLabel, spaces: spaceGroups },
-      { keyword: q, buildingCount: buildings.length, spaceCount: spaces.length },
+      {
+        keyword: q,
+        buildingCount: buildings.length,
+        spaceCount: spaces.length,
+        counts: {
+          building: buildingCounts,
+          space: spaceCounts,
+        },
+      },
     );
   }),
 );
