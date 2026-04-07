@@ -59,19 +59,13 @@ describe("GET /app/config", () => {
     expect(res.body.meta).toHaveProperty("lang", "ko");
     expect(res.body.data).toHaveProperty("ios");
     expect(res.body.data).toHaveProperty("android");
-    expect(res.body.data).toHaveProperty("forceUpdate");
     expect(res.body.data.ios).toHaveProperty("minVersion");
-    expect(res.body.data.ios).toHaveProperty("latestVersion");
     expect(res.body.data.ios).toHaveProperty("updateUrl");
     expect(res.body.data.android).toHaveProperty("minVersion");
-    expect(res.body.data.android).toHaveProperty("latestVersion");
     expect(res.body.data.android).toHaveProperty("updateUrl");
-  });
-
-  it("forceUpdate is false when all minVersions equal latestVersions", async () => {
-    const res = await request(app).get("/app/config");
-    // Default env vars set all to "1.0.0"
-    expect(res.body.data.forceUpdate).toBe(false);
+    expect(res.body.data.ios).not.toHaveProperty("latestVersion");
+    expect(res.body.data.android).not.toHaveProperty("latestVersion");
+    expect(res.body.data).not.toHaveProperty("forceUpdate");
   });
 
   it("respects Accept-Language header", async () => {
