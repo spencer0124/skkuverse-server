@@ -1,0 +1,1154 @@
+[
+  {
+    "id": "skku-main",
+    "name": "학부통합(학사)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "health",
+    "name": "건강센터",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "arch",
+    "name": "건축학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "biz-undergrad",
+    "name": "경영대학(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "biz-grad",
+    "name": "경영대학(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "ecostat-undergrad",
+    "name": "경제대학(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "ecostat-grad",
+    "name": "경제대학(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "ccrf",
+    "name": "공동기기원",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "enc-undergrad",
+    "name": "공과대학(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "enc-grad",
+    "name": "공과대학(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "skku-edu-undergrad",
+    "name": "교육학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "skku-edu-grad",
+    "name": "교육학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "korean-undergrad",
+    "name": "국어국문학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "korean-grad",
+    "name": "국어국문학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "globalbiz",
+    "name": "글로벌경영학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "globalecon",
+    "name": "글로벌경제학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "gld",
+    "name": "글로벌리더학부",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "gbme-undergrad",
+    "name": "글로벌바이오메디컬공학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "gbme-grad",
+    "name": "글로벌바이오메디컬공학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "sco",
+    "name": "글로벌융합학부",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "mech-undergrad",
+    "name": "기계공학부(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "mech-grad",
+    "name": "기계공학부(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "saint",
+    "name": "나노과학기술원",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "sco-data",
+    "name": "데이터사이언스융합전공",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "german",
+    "name": "독어독문학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "design-undergrad",
+    "name": "디자인학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "design-grad",
+    "name": "디자인학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "russian",
+    "name": "러시아어문학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "dance",
+    "name": "무용학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "liberalarts-undergrad",
+    "name": "문과대학(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "liberalarts-grad",
+    "name": "문과대학(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "lis-undergrad",
+    "name": "문헌정보학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "lis-grad",
+    "name": "문헌정보학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "physics",
+    "name": "물리학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "mediacomm-undergrad",
+    "name": "미디어커뮤니케이션학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "mediacomm-grad",
+    "name": "미디어커뮤니케이션학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "biomecha",
+    "name": "바이오메카트로닉스학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "sls-general",
+    "name": "법학과(일반대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "sls-special",
+    "name": "법학전문대학원",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "coe-undergrad",
+    "name": "사범대학(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "coe-grad",
+    "name": "사범대학(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "history-undergrad",
+    "name": "사학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "history-grad",
+    "name": "사학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "sscience-undergrad",
+    "name": "사회과학대학(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "sscience-grad",
+    "name": "사회과학대학(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "welfare",
+    "name": "사회복지학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "soc",
+    "name": "사회학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "biotech-undergrad",
+    "name": "생명공학대학(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "biotech-grad",
+    "name": "생명공학대학(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "skku-notice02",
+    "name": "성균관대_통합(학사)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "skku-notice03",
+    "name": "성균관대_통합(입학)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "skku-notice04",
+    "name": "성균관대_통합(취업)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "skku-notice05",
+    "name": "성균관대_통합(채용·모집)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "skku-notice06",
+    "name": "성균관대_통합(장학)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "skku-notice07",
+    "name": "성균관대_통합(행사·세미나)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "skku-notice08",
+    "name": "성균관대_통합(일반)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "ics",
+    "name": "성균융합원",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "chec",
+    "name": "성균인성교육센터",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "cf",
+    "name": "소비자학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "mcce",
+    "name": "소재부품융합공학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "sw-undergrad",
+    "name": "소프트웨어융합대학(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "sw-grad",
+    "name": "소프트웨어융합대학(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "cse-undergrad",
+    "name": "소프트웨어학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "cse-grad",
+    "name": "소프트웨어학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "math-undergrad",
+    "name": "수학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "math-grad",
+    "name": "수학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "mathedu",
+    "name": "수학교육과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "sport-undergrad",
+    "name": "스포츠과학대학(스포츠과학과)(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "sport-grad",
+    "name": "스포츠과학대학(스포츠과학과)(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "ie-undergrad",
+    "name": "시스템경영공학과(산업공학과)(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "ie-grad",
+    "name": "시스템경영공학과(산업공학과)(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "foodlife-undergrad",
+    "name": "식품생명공학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "foodlife-grad",
+    "name": "식품생명공학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "amse-undergrad",
+    "name": "신소재공학부(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "amse-grad",
+    "name": "신소재공학부(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "larc",
+    "name": "실험동물센터",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "psych-undergrad",
+    "name": "심리학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "psych-grad",
+    "name": "심리학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "child-undergrad",
+    "name": "아동·청소년학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "child-grad",
+    "name": "아동·청소년학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "qie",
+    "name": "양자정보공학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "energy",
+    "name": "에너지학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "acting",
+    "name": "연기예술학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "english-undergrad",
+    "name": "영어영문학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "english-grad",
+    "name": "영어영문학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "art-undergrad",
+    "name": "예술대학(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "art-grad",
+    "name": "예술대학(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "scos-undergrad",
+    "name": "유학대학(유학동양학과)(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "scos-grad",
+    "name": "유학대학(유학동양학과)(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "gene",
+    "name": "융합생명공학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "aicon",
+    "name": "응용AI융합학부",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "fashion-undergrad",
+    "name": "의상학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "fashion-grad",
+    "name": "의상학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "sco-ai",
+    "name": "인공지능융합전공",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "helper",
+    "name": "인권센터",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "sco-magnetic",
+    "name": "자기설계융합전공",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "cscience-undergrad",
+    "name": "자연과학대학(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "cscience-grad",
+    "name": "자연과학대학(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "support",
+    "name": "장애학생지원센터",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "eee-undergrad",
+    "name": "전자전기공학부(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "eee-job",
+    "name": "전자전기공학부(취업)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "ice-undergrad",
+    "name": "정보통신대학(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "ice-grad",
+    "name": "정보통신대학(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "psd-undergrad",
+    "name": "정치외교학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "psd-grad",
+    "name": "정치외교학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "chinese-undergrad",
+    "name": "중어중문학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "chinese-grad",
+    "name": "중어중문학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "intelligentsw",
+    "name": "지능형소프트웨어학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "ase",
+    "name": "차세대반도체공학연계전공",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "philosophy-undergrad",
+    "name": "철학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "philosophy-grad",
+    "name": "철학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "scc",
+    "name": "카운슬링센터",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "comedu-undergrad",
+    "name": "컴퓨터교육과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "comedu-grad",
+    "name": "컴퓨터교육과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "quant",
+    "name": "퀀트응용경제학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "stat-undergrad",
+    "name": "통계학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "stat-grad",
+    "name": "통계학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "french-undergrad",
+    "name": "프랑스어문학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "french-grad",
+    "name": "프랑스어문학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "hakbu",
+    "name": "학부대학(계열제)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "hakbu-portal",
+    "name": "학부통합(전체)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "hakbu-portal-sugang",
+    "name": "학부통합(수강신청)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "hakbu-portal-admission",
+    "name": "학부통합(입학)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "hakbu-portal-job",
+    "name": "학부통합(취업)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "hakbu-portal-recruit",
+    "name": "학부통합(채용·모집)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "hakbu-portal-scholarship",
+    "name": "학부통합(장학)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "hakbu-portal-event",
+    "name": "학부통합(행사·세미나)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "hakbu-portal-general",
+    "name": "학부통합(일반)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "success",
+    "name": "학생성공센터",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "klccedu",
+    "name": "한문교육과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "klcc-undergrad",
+    "name": "한문학과(학부생)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "klcc-grad",
+    "name": "한문학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "gsg",
+    "name": "행정학과(국정전문대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "chem",
+    "name": "화학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
+    "id": "cheme",
+    "name": "화학공학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": false,
+    "hasAuthor": false
+  },
+  {
+    "id": "medicine",
+    "name": "의과대학",
+    "campus": null,
+    "category": null,
+    "hasCategory": false,
+    "hasAuthor": true
+  },
+  {
+    "id": "dorm-seoul",
+    "name": "명륜학사 (인사캠 기숙사)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": false
+  },
+  {
+    "id": "dorm-suwon",
+    "name": "봉룡학사 (자과캠 기숙사)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": false
+  },
+  {
+    "id": "cal-undergrad",
+    "name": "건설환경공학부(학부)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": false
+  },
+  {
+    "id": "cal-grad",
+    "name": "건설환경공학부(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": true,
+    "hasAuthor": false
+  },
+  {
+    "id": "bio-undergrad",
+    "name": "생명과학과(학부)",
+    "campus": null,
+    "category": null,
+    "hasCategory": false,
+    "hasAuthor": true
+  },
+  {
+    "id": "bio-grad",
+    "name": "생명과학과(대학원)",
+    "campus": null,
+    "category": null,
+    "hasCategory": false,
+    "hasAuthor": true
+  },
+  {
+    "id": "pharm",
+    "name": "약학대학",
+    "campus": null,
+    "category": null,
+    "hasCategory": false,
+    "hasAuthor": true
+  },
+  {
+    "id": "nano",
+    "name": "나노공학과",
+    "campus": null,
+    "category": null,
+    "hasCategory": false,
+    "hasAuthor": true
+  }
+]

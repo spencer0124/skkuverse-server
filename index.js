@@ -104,6 +104,17 @@ const mapConfigRoutes = require("./features/map/map-config.routes");
 const mapMarkersRoutes = require("./features/map/map-markers.routes");
 const mapOverlaysRoutes = require("./features/map/map-overlays.routes");
 const buildingRoutes = require("./features/building/building.routes");
+const noticesRoute = require("./features/notices/notices.routes");
+const { ensureNoticeIndexes } = require("./features/notices/notices.data");
+
+const noticesLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  keyGenerator: (req) => req.uid || ipKeyGenerator(req.ip),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { code: "RATE_LIMIT", message: "Too many requests" } },
+});
 
 app.use("/search", verifyToken, searchLimiter, searchRoute);
 app.use("/bus/realtime", generalLimiter, realtimeRoutes);
@@ -119,6 +130,7 @@ app.use("/map/config", generalLimiter, mapConfigRoutes);
 app.use("/map/markers", generalLimiter, mapMarkersRoutes);
 app.use("/map/overlays", generalLimiter, mapOverlaysRoutes);
 app.use("/building", generalLimiter, buildingRoutes);
+app.use("/notices", verifyToken, noticesLimiter, noticesRoute);
 
 // 404 handler (after all routes, before error handler)
 app.use((req, res) => {
@@ -174,6 +186,32 @@ if (require.main === module) {
       logger.warn({ err: err.message }, "[building] Index setup failed");
     }
 
+    // Ensure notice indexes (non-fatal but logged at error level on final
+    // failure — without this index, list queries fall back to full collection
+    // scan, which is expensive for the 54MB+ notices collection).
+    try {
+      let lastErr;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await ensureNoticeIndexes();
+          logger.info({ attempt }, "[notices] Indexes ensured");
+          lastErr = null;
+          break;
+        } catch (err) {
+          lastErr = err;
+          if (attempt < 3) await new Promise((r) => setTimeout(r, 1000 * attempt));
+        }
+      }
+      if (lastErr) {
+        logger.error(
+          { err: lastErr.message },
+          "[notices] Index setup failed after 3 attempts — list queries will full-scan"
+        );
+      }
+    } catch (err) {
+      logger.error({ err: err.message }, "[notices] Index setup crashed");
+    }
+
     // ROLE=poller: run pollers only, no HTTP server
     // ROLE=api: run HTTP server only, no pollers (reads from bus_cache written by poller service)
     // ROLE=combined (default): run both — single-container backward-compatible mode
@@ -204,6 +242,7 @@ if (require.main === module) {
         db: config.mongo.dbName,
         adDb: config.ad.dbName,
         buildingDb: config.building.dbName,
+        noticesDb: config.notices.dbName,
         api: config.useProdApi ? "PROD" : "DEV",
         role,
       }, "Server started");
