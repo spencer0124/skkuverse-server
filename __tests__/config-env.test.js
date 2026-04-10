@@ -1,10 +1,28 @@
+// Mock dotenv so lib/config does not re-populate process.env from the .env
+// file on disk on each loadConfig() call. Without this, tests that assert
+// "crash when X is missing" (e.g. `process.env.X = ""`) would be defeated
+// because dotenv treats "" or undefined as "missing" and restores the value
+// from disk. All tests in this file set env vars explicitly via setBaseEnv,
+// so a no-op dotenv has no effect on the happy-path tests.
+jest.mock("dotenv", () => ({
+  config: jest.fn().mockReturnValue({ parsed: {} }),
+}));
+
 const ORIGINAL_ENV = { ...process.env };
 
-// Provide all required env vars so config validation passes
+// Provide all required env vars so config validation passes.
+// Must mirror the `required` array in lib/config.js — if you add a new
+// required entry there, add the env var here too or every test breaks.
 function setBaseEnv() {
   process.env.MONGO_URL = "mongodb://localhost:27017";
   process.env.MONGO_DB_NAME_BUS_CAMPUS = "bus_campus";
   process.env.MONGO_AD_DB_NAME = "skkubus_ads";
+  process.env.MONGO_BUILDING_DB_NAME = "skkumap";
+  process.env.MONGO_NOTICES_DB_NAME = "skku_notices";
+  process.env.NOTICES_SERVICE_START_DATE = "2026-03-09";
+  process.env.NAVER_API_KEY_ID = "naver-id";
+  process.env.NAVER_API_KEY = "naver-key";
+  process.env.NAVER_MAP_STYLE_ID = "naver-style";
   process.env.API_HSSC_NEW_PROD = "http://prod-hssc";
   process.env.API_HSSC_NEW_DEV = "http://dev-hssc";
   process.env.API_JONGRO07_LIST_PROD = "http://prod-jongro07-list";
@@ -183,7 +201,7 @@ describe("getModeLabel()", () => {
   });
 });
 
-describe("ad.dbName fallback", () => {
+describe("ad.dbName (strict, no fallback)", () => {
   it("uses MONGO_AD_DB_NAME when set", () => {
     setBaseEnv();
     process.env.MONGO_AD_DB_NAME = "custom_ads";
@@ -197,5 +215,83 @@ describe("ad.dbName fallback", () => {
     process.env.NODE_ENV = "development";
     const config = loadConfig();
     expect(config.ad.dbName).toBe("skkubus_ads_dev");
+  });
+
+  it("does NOT silently fall back to MONGO_DB_NAME_BUS_CAMPUS when missing", () => {
+    setBaseEnv();
+    // NODE_ENV=production to reach the `if (!isTest)` exit branch —
+    // test mode intentionally suppresses process.exit to keep jest alive,
+    // so we have to simulate prod to verify the crash actually triggers.
+    process.env.NODE_ENV = "production";
+    // Empty string instead of delete — config.js's `!value` check treats
+    // "" as falsy, and dotenv (mocked above) cannot re-populate from disk.
+    process.env.MONGO_AD_DB_NAME = "";
+    process.env.MONGO_DB_NAME_BUS_CAMPUS = "bus_campus";
+    const exitSpy = jest.spyOn(process, "exit");
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    loadConfig();
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+});
+
+describe("strict config validation (no silent fallbacks)", () => {
+  it("crashes when MONGO_AD_DB_NAME is missing", () => {
+    setBaseEnv();
+    process.env.NODE_ENV = "production";
+    process.env.MONGO_AD_DB_NAME = "";
+    const exitSpy = jest.spyOn(process, "exit");
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    loadConfig();
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(errSpy.mock.calls[0][0]).toMatch(/ad\.dbName/);
+    expect(errSpy.mock.calls[0][0]).toMatch(/MONGO_AD_DB_NAME/);
+  });
+
+  it("crashes when MONGO_NOTICES_DB_NAME is missing", () => {
+    setBaseEnv();
+    process.env.NODE_ENV = "production";
+    process.env.MONGO_NOTICES_DB_NAME = "";
+    const exitSpy = jest.spyOn(process, "exit");
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    loadConfig();
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(errSpy.mock.calls[0][0]).toMatch(/notices\.dbName/);
+    expect(errSpy.mock.calls[0][0]).toMatch(/MONGO_NOTICES_DB_NAME/);
+  });
+
+  it("crashes when NOTICES_SERVICE_START_DATE is missing", () => {
+    setBaseEnv();
+    process.env.NODE_ENV = "production";
+    process.env.NOTICES_SERVICE_START_DATE = "";
+    const exitSpy = jest.spyOn(process, "exit");
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    loadConfig();
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(errSpy.mock.calls[0][0]).toMatch(/NOTICES_SERVICE_START_DATE/);
+  });
+
+  it("error message lists ALL missing env vars at once", () => {
+    setBaseEnv();
+    process.env.MONGO_AD_DB_NAME = "";
+    process.env.MONGO_NOTICES_DB_NAME = "";
+    process.env.NOTICES_SERVICE_START_DATE = "";
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    jest.spyOn(process, "exit").mockImplementation(() => {});
+    loadConfig();
+    const msg = errSpy.mock.calls[0][0];
+    expect(msg).toContain("MONGO_AD_DB_NAME");
+    expect(msg).toContain("MONGO_NOTICES_DB_NAME");
+    expect(msg).toContain("NOTICES_SERVICE_START_DATE");
+    // Actionable format: "FATAL: Missing required config — set these env vars:"
+    expect(msg).toMatch(/FATAL.*set these env vars/);
+  });
+
+  it("loads successfully when every required var is set", () => {
+    setBaseEnv();
+    const exitSpy = jest.spyOn(process, "exit");
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    loadConfig();
+    expect(exitSpy).not.toHaveBeenCalled();
+    expect(errSpy).not.toHaveBeenCalled();
   });
 });
