@@ -105,9 +105,16 @@ describe("GET /notices/dept/:deptId", () => {
     expect(res.body.error.code).toBe("INVALID_CURSOR");
   });
 
-  it("maps docs through toListItem and never leaks content/cleanHtml/contentText", async () => {
+  it("maps docs through toListItem and never leaks content/cleanHtml/cleanMarkdown/contentText", async () => {
     mockFindByDept.mockResolvedValue({
-      items: [rawDoc({ content: "<p>x</p>", cleanHtml: "<p>x</p>", contentText: "x" })],
+      items: [
+        rawDoc({
+          content: "<p>x</p>",
+          cleanHtml: "<p>x</p>",
+          cleanMarkdown: "**x**",
+          contentText: "x",
+        }),
+      ],
       nextCursor: null,
       hasMore: false,
     });
@@ -117,8 +124,10 @@ describe("GET /notices/dept/:deptId", () => {
     const item = res.body.data.notices[0];
     expect(item).not.toHaveProperty("content");
     expect(item).not.toHaveProperty("cleanHtml");
+    expect(item).not.toHaveProperty("cleanMarkdown");
     expect(item).not.toHaveProperty("contentText");
     expect(item).not.toHaveProperty("contentHtml"); // list-specific invariant
+    expect(item).not.toHaveProperty("contentMarkdown"); // list-specific invariant
     expect(item.hasContent).toBe(true);
     expect(item.deptId).toBe("skku-main");
     expect(res.body.data.hasMore).toBe(false);
@@ -196,23 +205,30 @@ describe("GET /notices/:deptId/:articleNo", () => {
     expect(res.body.error.code).toBe("NOT_FOUND");
   });
 
-  it("maps through toDetailItem: content → contentHtml, includes contentText", async () => {
+  it("maps through toDetailItem: cleanMarkdown → contentMarkdown, legacy body fields omitted", async () => {
     mockFindByArticleNo.mockResolvedValue(
-      rawDoc({ content: "<p>body</p>", contentText: "body" })
+      rawDoc({
+        content: "<p>body</p>",
+        cleanHtml: "<p>body</p>",
+        contentText: "body",
+        cleanMarkdown: "**body**",
+      })
     );
     const res = await request(app).get("/notices/skku-main/136023");
     expect(res.status).toBe(200);
-    expect(res.body.data.contentHtml).toBe("<p>body</p>");
-    expect(res.body.data.contentText).toBe("body");
+    expect(res.body.data.contentMarkdown).toBe("**body**");
     expect(res.body.data).not.toHaveProperty("content");
+    expect(res.body.data).not.toHaveProperty("contentHtml");
+    expect(res.body.data).not.toHaveProperty("contentText");
     expect(res.body.data).not.toHaveProperty("cleanHtml");
+    expect(res.body.data).not.toHaveProperty("cleanMarkdown");
   });
 
-  it("contentHtml is null (not empty string) when content missing", async () => {
-    mockFindByArticleNo.mockResolvedValue(rawDoc({ content: undefined }));
+  it("contentMarkdown is null when cleanMarkdown missing", async () => {
+    mockFindByArticleNo.mockResolvedValue(rawDoc({ cleanMarkdown: undefined }));
     const res = await request(app).get("/notices/skku-main/136023");
     expect(res.status).toBe(200);
-    expect(res.body.data.contentHtml).toBeNull();
+    expect(res.body.data.contentMarkdown).toBeNull();
   });
 });
 

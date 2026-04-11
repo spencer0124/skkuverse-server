@@ -23,7 +23,7 @@ The server only:
 |---|---|---|
 | GET | `/notices/departments` | Full 144-entry list + sha256 `version` + ETag. Client compares against its bundled fallback. |
 | GET | `/notices/dept/:deptId` | Paginated list. Query: `cursor`, `limit` (1–50, default 20), `type` (`action_required` \| `event` \| `informational`). |
-| GET | `/notices/:deptId/:articleNo` | Detail view including `contentHtml`, `contentText` fallback, full summary block, and edit history. |
+| GET | `/notices/:deptId/:articleNo` | Detail view including `contentMarkdown`, attachments, full summary block, and edit history. |
 
 All routes are behind `verifyToken` (optional Firebase ID token) + a
 uid/IP-keyed 120 req/min limiter.
@@ -54,17 +54,27 @@ The cursor is filter-agnostic — switching the `type` param mid-scroll is
 allowed but may skip items. Clients should reset the list when the filter
 changes.
 
-## HTML sanitization
+## Body rendering
 
-`contentHtml` is already sanitized by the crawler (`nh3` allowlist: p, br,
-div, span, h1–h4, strong, b, em, i, u, mark, ul, ol, li, table variants,
-img, a, hr; styles: color, background-color, text-align, text-decoration,
-font-weight, font-style; schemes: http, https, mailto, tel). **The server
-does no additional sanitization.** Do not weaken this assumption without
-coordinating with the crawler repo.
+The detail response exposes exactly one body representation:
+**`contentMarkdown`** — a GitHub-flavored Markdown string produced by the
+crawler from its sanitized HTML (via `markdownify` + SKKU-specific
+pre-processing: 1-cell layout table unwrap, bold first-row `<thead>`
+promotion, block flatten inside table cells). The app is expected to feed
+this directly to a native markdown renderer.
 
-If `contentHtml` is `null`, the app should fall back to `contentText` or,
-if both are missing, show an "open original" CTA linking to `sourceUrl`.
+- `contentMarkdown` may be `null` when the crawler's detail fetch failed
+  or the sanitized HTML exceeded the size cap. In that case the app shows
+  an "open original" CTA linking to `sourceUrl`.
+- `contentMarkdown` is detail-only; the list response omits it to keep
+  payloads small. Use `hasContent` (derived from `contentHash`) on the
+  list item to decide whether to route the user to the detail screen or
+  straight to `sourceUrl`.
+
+**No HTML or plain-text body is exposed.** The legacy `contentHtml` /
+`contentText` fields were removed once the app fully migrated to the
+markdown path — clients that still need raw HTML must go through the
+crawler directly.
 
 ## `departments.json` maintenance
 

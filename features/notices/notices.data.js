@@ -34,9 +34,11 @@ const LIST_PROJECTION = Object.freeze({
   summaryAt: 1,
 });
 
-// Inclusion projection — detail. Adds content + contentText + editHistory
-// + summaryModel. Excludes cleanHtml / contentHash / summaryContentHash /
-// summaryFailures / consecutiveFailures / isDeleted / detailPath.
+// Inclusion projection — detail. Adds cleanMarkdown + editHistory +
+// summaryModel. Excludes legacy HTML/plain-text body fields (content /
+// cleanHtml / contentText) — the app renders from cleanMarkdown only.
+// Also excludes contentHash / summaryContentHash / summaryFailures /
+// consecutiveFailures / isDeleted / detailPath.
 const DETAIL_PROJECTION = Object.freeze({
   _id: 1,
   sourceDeptId: 1,
@@ -47,8 +49,7 @@ const DETAIL_PROJECTION = Object.freeze({
   department: 1,
   date: 1,
   views: 1,
-  content: 1,
-  contentText: 1,
+  cleanMarkdown: 1,
   attachments: 1,
   sourceUrl: 1,
   lastModified: 1,
