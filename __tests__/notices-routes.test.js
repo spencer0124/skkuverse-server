@@ -134,6 +134,53 @@ describe("GET /notices/dept/:deptId", () => {
     expect(res.body.data.nextCursor).toBeNull();
   });
 
+  it("does not crash when .map leaks array index into toListItem's now param (regression: action_required best-pick)", async () => {
+    // Two action_required docs. The first has no meaningful periods so
+    // selectEffectivePeriod early-returns null (this is the only case
+    // that used to hide the bug). The second has a real upcoming
+    // deadline, so selectEffectivePeriod reaches `now.getTime()`. If
+    // `items.map(toListItem)` is called bare, Array.prototype.map passes
+    // the index (0, 1, …) as the 2nd argument, which shadows `now`
+    // with a number and crashes with TypeError at `now.getTime()`.
+    mockFindByDept.mockResolvedValue({
+      items: [
+        rawDoc({
+          _id: new ObjectId("66a1b2c3d4e5f6a7b8c9d0e1"),
+          articleNo: 999001,
+          summaryAt: new Date("2026-04-11T00:00:00.000Z"),
+          summaryType: "action_required",
+          summaryPeriods: [],
+        }),
+        rawDoc({
+          _id: new ObjectId("66a1b2c3d4e5f6a7b8c9d0e2"),
+          articleNo: 999002,
+          summaryAt: new Date("2026-04-11T00:00:00.000Z"),
+          summaryType: "action_required",
+          summaryPeriods: [
+            {
+              label: "1차 신청",
+              startDate: "2026-04-05",
+              startTime: null,
+              endDate: "2026-04-20",
+              endTime: "17:00",
+            },
+          ],
+        }),
+      ],
+      nextCursor: null,
+      hasMore: false,
+    });
+    const res = await request(app).get("/notices/dept/skku-main");
+    expect(res.status).toBe(200);
+    expect(res.body.data.notices).toHaveLength(2);
+    expect(res.body.data.notices[1].summary).toEqual({
+      oneLiner: null,
+      type: "action_required",
+      startAt: { date: "2026-04-05", time: null },
+      endAt: { date: "2026-04-20", time: "17:00", label: "1차 신청" },
+    });
+  });
+
   it("clamps limit to 1..50 range", async () => {
     mockFindByDept.mockResolvedValue({ items: [], nextCursor: null, hasMore: false });
     await request(app).get("/notices/dept/skku-main?limit=999");

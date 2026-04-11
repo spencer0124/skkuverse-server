@@ -87,7 +87,11 @@ router.get(
       limit,
       type,
     });
-    const notices = items.map(toListItem);
+    // Explicit arrow wrapper: `Array.prototype.map` passes (element, index,
+    // array) — passing `toListItem` bare would leak the numeric index into
+    // `toListItem`'s second `now` param and crash action_required best-pick
+    // at `now.getTime()`. See regression test in notices-routes.test.js.
+    const notices = items.map((doc) => toListItem(doc));
     res.success(
       { notices, nextCursor, hasMore },
       { count: notices.length }
