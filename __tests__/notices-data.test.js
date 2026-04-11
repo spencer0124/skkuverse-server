@@ -177,12 +177,19 @@ describe("findNoticeByArticleNo", () => {
     expect(result).toBe(doc);
   });
 
-  it("DETAIL_PROJECTION includes content and contentText but excludes cleanHtml", () => {
-    expect(DETAIL_PROJECTION.content).toBe(1);
-    expect(DETAIL_PROJECTION.contentText).toBe(1);
+  it("DETAIL_PROJECTION includes cleanMarkdown and excludes all legacy body fields", () => {
+    expect(DETAIL_PROJECTION.cleanMarkdown).toBe(1);
+    // legacy body fields — no longer exposed
+    expect(DETAIL_PROJECTION.content).toBeUndefined();
+    expect(DETAIL_PROJECTION.contentText).toBeUndefined();
     expect(DETAIL_PROJECTION.cleanHtml).toBeUndefined();
+    // internal hygiene fields — never exposed
     expect(DETAIL_PROJECTION.contentHash).toBeUndefined();
     expect(DETAIL_PROJECTION.summaryContentHash).toBeUndefined();
     expect(DETAIL_PROJECTION.summaryFailures).toBeUndefined();
+  });
+
+  it("LIST_PROJECTION excludes cleanMarkdown (detail-only field)", () => {
+    expect(LIST_PROJECTION).not.toHaveProperty("cleanMarkdown");
   });
 });

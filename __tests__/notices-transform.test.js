@@ -504,17 +504,20 @@ describe("toListItem", () => {
     expect(toListItem(makeDoc({ views: undefined })).views).toBe(0);
   });
 
-  it("does NOT include content/cleanHtml/contentText keys", () => {
+  it("does NOT include content/cleanHtml/cleanMarkdown/contentText keys", () => {
     const doc = makeDoc({
       content: "<p>body</p>",
       cleanHtml: "<p>body</p>",
+      cleanMarkdown: "**body**",
       contentText: "body",
     });
     const item = toListItem(doc);
     expect(item).not.toHaveProperty("content");
     expect(item).not.toHaveProperty("cleanHtml");
+    expect(item).not.toHaveProperty("cleanMarkdown");
     expect(item).not.toHaveProperty("contentText");
     expect(item).not.toHaveProperty("contentHtml");
+    expect(item).not.toHaveProperty("contentMarkdown");
   });
 
   it("summary is brief (4 fields) not full", () => {
@@ -545,22 +548,34 @@ describe("toListItem", () => {
 });
 
 describe("toDetailItem", () => {
-  it("renames content→contentHtml and includes contentText", () => {
-    const doc = makeDoc({ content: "<p>h</p>", contentText: "h" });
+  it("renames cleanMarkdown→contentMarkdown", () => {
+    const doc = makeDoc({ cleanMarkdown: "**hello**\n\n- a\n- b" });
     const item = toDetailItem(doc);
-    expect(item.contentHtml).toBe("<p>h</p>");
-    expect(item.contentText).toBe("h");
-    expect(item).not.toHaveProperty("content");
+    expect(item.contentMarkdown).toBe("**hello**\n\n- a\n- b");
+    expect(item).not.toHaveProperty("cleanMarkdown");
   });
 
-  it("contentHtml is null (not empty string) when content is missing", () => {
-    const item = toDetailItem(makeDoc({ content: undefined }));
-    expect(item.contentHtml).toBeNull();
-    expect(item).not.toHaveProperty("content");
+  it("contentMarkdown is null (not empty string) when cleanMarkdown is missing", () => {
+    const item = toDetailItem(makeDoc({ cleanMarkdown: undefined }));
+    expect(item.contentMarkdown).toBeNull();
   });
 
-  it("contentText is null when missing", () => {
-    expect(toDetailItem(makeDoc({ contentText: undefined })).contentText).toBeNull();
+  it("contentMarkdown is null when cleanMarkdown is explicitly null", () => {
+    const item = toDetailItem(makeDoc({ cleanMarkdown: null }));
+    expect(item.contentMarkdown).toBeNull();
+  });
+
+  it("does NOT expose legacy body fields (content/contentHtml/contentText/cleanHtml)", () => {
+    const doc = makeDoc({
+      content: "<p>h</p>",
+      cleanHtml: "<p>h</p>",
+      contentText: "h",
+    });
+    const item = toDetailItem(doc);
+    expect(item).not.toHaveProperty("content");
+    expect(item).not.toHaveProperty("contentHtml");
+    expect(item).not.toHaveProperty("contentText");
+    expect(item).not.toHaveProperty("cleanHtml");
   });
 
   it("editInfo is null when editCount is 0", () => {

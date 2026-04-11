@@ -147,7 +147,7 @@
 ```js
 const LIST_PROJECTION = Object.freeze({
   _id: 1, sourceDeptId: 1, articleNo: 1, title: 1, ...
-  // content, cleanHtml, contentText 의도적으로 제외
+  // content, cleanHtml, cleanMarkdown, contentText 의도적으로 제외
 });
 ```
 
@@ -159,19 +159,25 @@ const LIST_PROJECTION = Object.freeze({
 
 **트레이드오프:** AI가 진짜로 유용한 새 type을 만들어도 서버가 `informational`로 짜부라뜨린다. 장점이 더 크다고 판단 — 새 type을 지원하고 싶으면 서버 한 줄만 추가하면 됨.
 
-### 3.6 `contentHtml: null` fallback (빈 문자열 금지)
+### 3.6 본문은 `contentMarkdown` 단일 경로 (`contentHtml` / `contentText` 제거)
 
-**문제:** 초기 설계는 `content || ""`. 그런데 이러면 `hasContent: true`인데 `contentHtml === ""`인 모순 상태가 가능.
+**문제:** 초기 설계는 HTML (`contentHtml`) + plain text (`contentText`)를 병행 노출해 앱이 HTML 렌더 실패 시 plain으로 fallback 하게 했다. 그러나 앱이 네이티브 마크다운 렌더러로 전환하면서 HTML·plain 경로는 **dead weight**가 됐다.
 
-**결정:** `content ?? null`. 클라이언트는 `contentHtml == null ? fallback : render(contentHtml)`로 명확히 분기.
-
-### 3.7 상세에 `contentText` 포함, 리스트엔 제외
-
-**문제:** HTML 렌더에 실패하거나 앱 일부 화면이 HTML 지원 안 될 수 있다.
+**배경:** 크롤러가 `cleanHtml` → GFM 변환 파이프라인을 추가(`markdownify` + SKKU 특수 전처리: 1-cell layout table unwrap, bold 첫 행 `<thead>` 승격, table cell block flatten)하여 `cleanMarkdown` 필드를 MongoDB에 쓴다. prod 126건 전부 채워져 있고, 평균 1.2KB, max 6.3KB로 payload 부담이 작다.
 
 **결정:**
-- 상세 → `contentText` 포함 (HTML fallback)
-- 리스트 → `contentText` 제외 (payload 최소화)
+- 상세 `DETAIL_PROJECTION`에 `cleanMarkdown: 1`만 포함. `content` / `contentText` / `cleanHtml` **모두 제거**
+- `toDetailItem`에서 `cleanMarkdown` → **`contentMarkdown`** 으로 rename. 다른 본문 필드는 응답에 없음
+- null fallback: `doc.cleanMarkdown ?? null` — 빈 문자열 금지. 클라이언트는 `contentMarkdown == null`이면 `sourceUrl` 외부 링크로 분기
+- 리스트는 그대로 제외 (inclusion projection이라 자동 차단, 방어적 테스트로 pin)
+
+**하위호환 포기의 이유:** 앱이 아직 HTML 경로를 쓰고 있다면 이 PR은 배포 전에 앱 릴리스와 조율돼야 한다. 장기 유지되는 이중 렌더 경로보다 한 번의 조율 비용이 싸다고 판단.
+
+**크롤러와 coupling:** `cleanMarkdown`은 크롤러 소유 필드다. 변환 품질 이슈(bold 쪼개짐, GFM 테이블 misalign 등)는 서버가 아니라 크롤러 `markdown_converter.py`에서 해결한다.
+
+### 3.7 `hasContent`는 유지
+
+리스트 셀에서 "본문 있는 공지 vs 크롤 실패 공지"를 구분해 주는 신호로 `hasContent = contentHash != null`이 여전히 유용하다. 본문 필드 자체가 아니라 **존재 여부 flag**이므로 본문 경로 단일화와 무관하게 남겨 둔다.
 
 ### 3.8 리스트 summary는 brief, 상세는 full
 
@@ -249,13 +255,13 @@ const LIST_PROJECTION = Object.freeze({
 | skkumed-asp | ✗ | ✓ | 1 |
 | wordpress-api | ✗ | ✗ | 1 |
 
-### 3.13 HTML sanitize는 크롤러가 담당, 서버는 pass-through
+### 3.13 본문 정제는 크롤러가 담당, 서버는 pass-through
 
-**문제:** 어디서 XSS 방어를 해야 하나?
+**문제:** XSS·정제 책임을 어디에 둘 것인가?
 
-**결정:** 크롤러가 이미 `nh3` (Rust 기반 sanitize 라이브러리)로 5단계 파이프라인을 거친다. 허용 태그: p/br/div/span/h1-h4/strong/b/em/i/u/mark/ul/ol/li/table 계열/img/a/hr. 허용 스타일: color/background-color/text-align/text-decoration/font-weight/font-style. 허용 스킴: http/https/mailto/tel. 서버는 sanitize를 중복하지 않고 `content` → `contentHtml`로 이름만 바꿔 그대로 내려준다.
+**결정:** 크롤러가 `cleanHtml`을 `nh3`로 sanitize한 뒤 `markdownify`로 GFM `cleanMarkdown`까지 변환해 MongoDB에 저장한다. 서버는 `cleanMarkdown`을 `contentMarkdown`으로 rename만 하고 그대로 내려준다 (재정제·재변환 없음). HTML·plain 본문은 API에 노출되지 않으므로 서버 레이어의 XSS 공격 표면도 사라졌다 — 앱의 마크다운 렌더러가 자체 sanitize 책임을 진다.
 
-**문서화:** 이 가정은 `features/notices/README.md`에 명시. 크롤러가 sanitize 정책을 바꾸면 이 가정이 깨짐 — 두 repo가 합의해야 하는 경계.
+**문서화:** 이 가정은 `features/notices/README.md`에 명시. 크롤러가 변환 정책을 바꾸면 이 가정이 깨짐 — 두 repo가 합의해야 하는 경계.
 
 ### 3.14 ETag 체크는 `req.fresh` 사용
 
@@ -427,8 +433,7 @@ After:  pre-deploy dry-load 2초 → non-zero exit → git revert → exit 1
     "deptId": "skku-main",
     "articleNo": 136023,
     "title": "...",
-    "contentHtml": "<p>...</p>",
-    "contentText": "성균인 여러분...",
+    "contentMarkdown": "**[모집] 2026 학생 창업유망팀 300+ ...**\n\n성균인 여러분 ...",
     "attachments": [{ "name": "...", "url": "..." }],
     "sourceUrl": "...",
     "editInfo": { "count": 2, "history": [...] },
@@ -545,7 +550,7 @@ jest.config.js         # + setupFiles: ["<rootDir>/jest.setup.js"]
 - [x] `npm run swagger` — 3개 라우트 자동 등록
 - [x] 실서버 기동 → `GET /notices/departments` 144개 + version
 - [x] `GET /notices/dept/skku-main?limit=2` + `cursor` round-trip 페이지네이션 동작
-- [x] `GET /notices/:deptId/:articleNo` 실제 문서 상세 반환, `contentHtml`/`contentText` 모두 존재
+- [x] `GET /notices/:deptId/:articleNo` 실제 문서 상세 반환, `contentMarkdown` 존재 (legacy HTML/text 필드 미노출)
 - [x] 존재하지 않는 `articleNo` → 404
 - [x] 알 수 없는 `deptId` → 400 (DB 호출 없이 즉시)
 - [x] 알 수 없는 `type` → 400

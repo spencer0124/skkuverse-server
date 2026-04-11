@@ -3,8 +3,7 @@
  *
  * Invariants:
  * - Empty-string category/author → null
- * - content (HTML) → contentHtml, null fallback (not "")
- * - contentText → present only on detail, null fallback
+ * - cleanMarkdown (GFM) → contentMarkdown, null fallback (detail only)
  * - contentHash != null → hasContent: true (list)
  * - editCount > 0 → isEdited (list) / editInfo (detail)
  * - summaryAt missing/null → summary: null
@@ -149,8 +148,7 @@ function toDetailItem(doc) {
     department: doc.department || null,
     date: doc.date,
     views: doc.views ?? 0,
-    contentHtml: doc.content ?? null,
-    contentText: doc.contentText ?? null,
+    contentMarkdown: doc.cleanMarkdown ?? null,
     attachments: (doc.attachments || []).map((a) => ({ name: a.name, url: a.url })),
     sourceUrl: doc.sourceUrl,
     lastModified: doc.lastModified || null,
