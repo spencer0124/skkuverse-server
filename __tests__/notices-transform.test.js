@@ -89,7 +89,7 @@ describe("buildSummaryBrief — shape & type handling", () => {
     expect(brief.oneLiner).toBe("한 줄 요약");
     expect(brief.type).toBe("action_required");
     expect(brief.startAt).toEqual({ date: "2026-04-01", time: "09:00" });
-    expect(brief.endAt).toEqual({ date: "2026-04-09", time: "18:00", label: null, altCount: 0 });
+    expect(brief.endAt).toEqual({ date: "2026-04-09", time: "18:00", label: null });
   });
 
   it("returns endAt null when summaryPeriods is []", () => {
@@ -145,11 +145,9 @@ describe("selectEffectivePeriod — action_required best-pick", () => {
       { label: "신입 모집",     startDate: "2026-04-01", startTime: "11:00", endDate: "2026-04-13", endTime: "11:00" },
       { label: "전환형 인턴 모집", startDate: "2026-04-08", startTime: "11:00", endDate: "2026-04-20", endTime: "11:00" },
     ];
-    const result = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-10T09:00:00"));
-    expect(result.period.label).toBe("신입 모집");
-    expect(result.period.endDate).toBe("2026-04-13");
-    // 신입 모집(4/13) 선택, 전환형(4/20)도 미래 → altCount === 1
-    expect(result.altCount).toBe(1);
+    const selected = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-10T09:00:00"));
+    expect(selected.label).toBe("신입 모집");
+    expect(selected.endDate).toBe("2026-04-13");
   });
 
   it("rolls forward when the earlier deadline has passed (기아 채용, now=4/14)", () => {
@@ -157,11 +155,9 @@ describe("selectEffectivePeriod — action_required best-pick", () => {
       { label: "신입 모집",     startDate: "2026-04-01", startTime: "11:00", endDate: "2026-04-13", endTime: "11:00" },
       { label: "전환형 인턴 모집", startDate: "2026-04-08", startTime: "11:00", endDate: "2026-04-20", endTime: "11:00" },
     ];
-    const result = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-14T00:00:00"));
-    expect(result.period.label).toBe("전환형 인턴 모집");
-    expect(result.period.endDate).toBe("2026-04-20");
-    // 신입 모집은 이미 past → 전환형만 미래 → altCount === 0
-    expect(result.altCount).toBe(0);
+    const selected = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-14T00:00:00"));
+    expect(selected.label).toBe("전환형 인턴 모집");
+    expect(selected.endDate).toBe("2026-04-20");
   });
 
   it("excludes same-day time-boxed events via rule (a) — Elsevier Osmosis", () => {
@@ -171,11 +167,9 @@ describe("selectEffectivePeriod — action_required best-pick", () => {
       // [1] 진짜 신청마감
       { label: "신청기간", startDate: null, startTime: null, endDate: "2026-03-23", endTime: "24:00" },
     ];
-    const result = selectEffectivePeriod(periods, TYPE, kstNow("2026-03-20T09:00:00"));
-    expect(result.period.label).toBe("신청기간");
-    expect(result.period.endDate).toBe("2026-03-23");
-    // 설명회는 rule (a)로 제외됨 → 후보 1개뿐 → altCount === 0
-    expect(result.altCount).toBe(0);
+    const selected = selectEffectivePeriod(periods, TYPE, kstNow("2026-03-20T09:00:00"));
+    expect(selected.label).toBe("신청기간");
+    expect(selected.endDate).toBe("2026-03-23");
   });
 
   it("date-only 면접 edge: accepted as candidate (감수 엣지) — 창업지원단 before 4/16", () => {
@@ -185,11 +179,9 @@ describe("selectEffectivePeriod — action_required best-pick", () => {
       { label: "면접", startDate: "2026-04-20", startTime: null, endDate: "2026-04-20", endTime: null },
     ];
     // 4/12 기준: 접수(4/16 24:00 KST) vs 면접(4/20 23:59:59 KST) → 접수가 더 가까움
-    const result = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-12T09:00:00"));
-    expect(result.period.endDate).toBe("2026-04-16");
-    expect(result.period.label).toBeNull();
-    // 면접도 미래 후보라 altCount === 1
-    expect(result.altCount).toBe(1);
+    const selected = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-12T09:00:00"));
+    expect(selected.endDate).toBe("2026-04-16");
+    expect(selected.label).toBeNull();
   });
 
   it("date-only 면접 edge: falls through to 면접 after 접수 passes (감수 엣지)", () => {
@@ -198,21 +190,19 @@ describe("selectEffectivePeriod — action_required best-pick", () => {
       { label: "면접", startDate: "2026-04-20", startTime: null, endDate: "2026-04-20", endTime: null },
     ];
     // 4/17 기준: 접수 지남, 면접만 미래 → 면접 선택 (D-day가 면접일로 뜸, 감수)
-    const result = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-17T09:00:00"));
-    expect(result.period.label).toBe("면접");
-    expect(result.period.endDate).toBe("2026-04-20");
-    expect(result.altCount).toBe(0);
+    const selected = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-17T09:00:00"));
+    expect(selected.label).toBe("면접");
+    expect(selected.endDate).toBe("2026-04-20");
   });
 
-  it("all candidates past → returns most recently passed (closed), altCount 0", () => {
+  it("all candidates past → returns most recently passed (closed)", () => {
     const periods = [
       { label: "1차", startDate: "2026-02-10", startTime: null, endDate: "2026-02-14", endTime: null },
       { label: "2차", startDate: "2026-02-24", startTime: null, endDate: "2026-02-26", endTime: null },
     ];
-    const result = selectEffectivePeriod(periods, TYPE, kstNow("2026-03-05T00:00:00"));
-    expect(result.period.label).toBe("2차");
-    expect(result.period.endDate).toBe("2026-02-26");
-    expect(result.altCount).toBe(0);
+    const selected = selectEffectivePeriod(periods, TYPE, kstNow("2026-03-05T00:00:00"));
+    expect(selected.label).toBe("2차");
+    expect(selected.endDate).toBe("2026-02-26");
   });
 
   it("FGI: all periods same-day time-boxed → null (no badge)", () => {
@@ -224,53 +214,28 @@ describe("selectEffectivePeriod — action_required best-pick", () => {
       { label: null, startDate: "2026-04-16", startTime: "13:00", endDate: "2026-04-16", endTime: "14:30" },
       { label: null, startDate: "2026-04-17", startTime: "10:30", endDate: "2026-04-17", endTime: "12:00" },
     ];
-    const result = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-11T00:00:00"));
-    expect(result).toBeNull();
+    const selected = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-11T00:00:00"));
+    expect(selected).toBeNull();
   });
 
   it("endDate null → candidate excluded", () => {
     const periods = [
       { label: null, startDate: "2026-04-15", startTime: "14:00", endDate: null, endTime: null },
     ];
-    const result = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-11T00:00:00"));
-    expect(result).toBeNull();
+    const selected = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-11T00:00:00"));
+    expect(selected).toBeNull();
   });
 
-  it("복수전공: 4 periods, 4/11 now → earliest future picked (4/24 tie), altCount 3", () => {
+  it("복수전공: 4 periods, 4/11 now → earliest future picked (4/24 tie)", () => {
     const periods = [
       { label: "1차 이수 신청", startDate: "2026-04-20", startTime: null, endDate: "2026-04-24", endTime: null },
       { label: "1차 포기 신청", startDate: "2026-03-23", startTime: null, endDate: "2026-04-24", endTime: null },
       { label: "2차 이수 신청", startDate: "2026-07-13", startTime: null, endDate: "2026-07-17", endTime: null },
       { label: "2차 포기 신청", startDate: "2026-07-13", startTime: null, endDate: "2026-07-17", endTime: null },
     ];
-    const result = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-11T00:00:00"));
-    expect(result.period.endDate).toBe("2026-04-24");
-    expect(["1차 이수 신청", "1차 포기 신청"]).toContain(result.period.label);
-    // 4개 전부 미래 → 선택 외 3개 남음
-    expect(result.altCount).toBe(3);
-  });
-
-  it("금연상담교실: 자연 past + 인문 future (병렬 2개) → altCount 0", () => {
-    const periods = [
-      { label: "자연계열 접수", startDate: null, startTime: null, endDate: "2026-04-07", endTime: null },
-      { label: "인문계열 접수", startDate: null, startTime: null, endDate: "2026-04-14", endTime: null },
-    ];
-    const result = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-11T00:00:00"));
-    expect(result.period.label).toBe("인문계열 접수");
-    expect(result.period.endDate).toBe("2026-04-14");
-    expect(result.altCount).toBe(0);
-  });
-
-  it("금연상담교실: 자연/인문 둘 다 미래 (now=4/06) → altCount 1", () => {
-    const periods = [
-      { label: "자연계열 접수", startDate: null, startTime: null, endDate: "2026-04-07", endTime: null },
-      { label: "인문계열 접수", startDate: null, startTime: null, endDate: "2026-04-14", endTime: null },
-    ];
-    const result = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-06T09:00:00"));
-    // 자연계열이 더 가까움
-    expect(result.period.label).toBe("자연계열 접수");
-    expect(result.period.endDate).toBe("2026-04-07");
-    expect(result.altCount).toBe(1);
+    const selected = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-11T00:00:00"));
+    expect(selected.endDate).toBe("2026-04-24");
+    expect(["1차 이수 신청", "1차 포기 신청"]).toContain(selected.label);
   });
 });
 
@@ -281,17 +246,16 @@ describe("selectEffectivePeriod — KST boundary & endTime", () => {
     const periods = [
       { label: null, startDate: null, startTime: null, endDate: "2026-04-13", endTime: "11:00" },
     ];
-    const result = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-13T12:00:00"));
+    const selected = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-13T12:00:00"));
     // only 1 candidate, all past → returns it (closed)
-    expect(result.period.endDate).toBe("2026-04-13");
-    expect(result.altCount).toBe(0);
+    expect(selected.endDate).toBe("2026-04-13");
     // verify it was truly treated as past: if there were a later future candidate,
     // it would have been picked instead. Add a later one and check.
     const periods2 = [
       { label: "A", startDate: null, startTime: null, endDate: "2026-04-13", endTime: "11:00" },
       { label: "B", startDate: null, startTime: null, endDate: "2026-04-15", endTime: null },
     ];
-    expect(selectEffectivePeriod(periods2, TYPE, kstNow("2026-04-13T12:00:00")).period.label).toBe("B");
+    expect(selectEffectivePeriod(periods2, TYPE, kstNow("2026-04-13T12:00:00")).label).toBe("B");
   });
 
   it("endDate=4/13, endTime=null, now = 4/13 23:59:00 KST → still future (D-0)", () => {
@@ -299,9 +263,8 @@ describe("selectEffectivePeriod — KST boundary & endTime", () => {
       { label: "A", startDate: null, startTime: null, endDate: "2026-04-13", endTime: null },
       { label: "B", startDate: null, startTime: null, endDate: "2026-04-20", endTime: null },
     ];
-    const result = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-13T23:59:00"));
-    expect(result.period.label).toBe("A");
-    expect(result.altCount).toBe(1);
+    const selected = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-13T23:59:00"));
+    expect(selected.label).toBe("A");
   });
 
   it("endDate=4/13, endTime=null, now = 4/14 00:00:01 KST → past", () => {
@@ -309,9 +272,8 @@ describe("selectEffectivePeriod — KST boundary & endTime", () => {
       { label: "A", startDate: null, startTime: null, endDate: "2026-04-13", endTime: null },
       { label: "B", startDate: null, startTime: null, endDate: "2026-04-20", endTime: null },
     ];
-    const result = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-14T00:00:01"));
-    expect(result.period.label).toBe("B");
-    expect(result.altCount).toBe(0);
+    const selected = selectEffectivePeriod(periods, TYPE, kstNow("2026-04-14T00:00:01"));
+    expect(selected.label).toBe("B");
   });
 });
 
@@ -321,10 +283,9 @@ describe("selectEffectivePeriod — event / informational passthrough", () => {
       // same-day time-boxed — would be excluded if action_required
       { label: null, startDate: "2026-04-29", startTime: "15:00", endDate: "2026-04-29", endTime: "16:30" },
     ];
-    const result = selectEffectivePeriod(periods, "event", kstNow("2026-04-11T00:00:00"));
-    expect(result.period.startDate).toBe("2026-04-29");
-    expect(result.period.endTime).toBe("16:30");
-    expect(result.altCount).toBe(0);
+    const selected = selectEffectivePeriod(periods, "event", kstNow("2026-04-11T00:00:00"));
+    expect(selected.startDate).toBe("2026-04-29");
+    expect(selected.endTime).toBe("16:30");
   });
 
   it("informational: returns periods[0] regardless of multi-period", () => {
@@ -334,10 +295,9 @@ describe("selectEffectivePeriod — event / informational passthrough", () => {
     ];
     // 3 different now values — result must be stable (periods[0])
     for (const now of [kstNow("2026-04-11T00:00:00"), kstNow("2026-04-25T00:00:00"), kstNow("2026-05-10T00:00:00")]) {
-      const result = selectEffectivePeriod(periods, "informational", now);
-      expect(result.period.label).toBe("중간시험");
-      expect(result.period.endDate).toBe("2026-04-24");
-      expect(result.altCount).toBe(0);
+      const selected = selectEffectivePeriod(periods, "informational", now);
+      expect(selected.label).toBe("중간시험");
+      expect(selected.endDate).toBe("2026-04-24");
     }
   });
 
@@ -345,18 +305,18 @@ describe("selectEffectivePeriod — event / informational passthrough", () => {
     const periods = [
       { label: null, startDate: "2026-04-13", startTime: null, endDate: "2026-04-26", endTime: null },
     ];
-    const result = selectEffectivePeriod(periods, "informational", kstNow("2026-04-11T00:00:00"));
-    expect(result.period.startDate).toBe("2026-04-13");
-    expect(result.period.endDate).toBe("2026-04-26");
+    const selected = selectEffectivePeriod(periods, "informational", kstNow("2026-04-11T00:00:00"));
+    expect(selected.startDate).toBe("2026-04-13");
+    expect(selected.endDate).toBe("2026-04-26");
   });
 
   it("informational: endDate null in periods[0] still returned (brief handles null)", () => {
     const periods = [
       { label: null, startDate: "2026-02-23", startTime: null, endDate: null, endTime: null },
     ];
-    const result = selectEffectivePeriod(periods, "informational", kstNow("2026-04-11T00:00:00"));
-    expect(result.period.startDate).toBe("2026-02-23");
-    expect(result.period.endDate).toBeNull();
+    const selected = selectEffectivePeriod(periods, "informational", kstNow("2026-04-11T00:00:00"));
+    expect(selected.startDate).toBe("2026-02-23");
+    expect(selected.endDate).toBeNull();
   });
 
   it("empty periods → null", () => {
@@ -377,30 +337,8 @@ describe("buildSummaryBrief — integration with selectEffectivePeriod", () => {
       ],
     });
     const brief = buildSummaryBrief(doc, kstNow("2026-04-14T00:00:00"));
-    expect(brief.endAt).toEqual({ date: "2026-04-20", time: "11:00", label: "전환형 인턴 모집", altCount: 0 });
+    expect(brief.endAt).toEqual({ date: "2026-04-20", time: "11:00", label: "전환형 인턴 모집" });
     expect(brief.startAt).toEqual({ date: "2026-04-08", time: "11:00" });
-  });
-
-  it("action_required: parallel futures → endAt.altCount reflects other future deadlines", () => {
-    // 금연상담교실: 자연(4/07) + 인문(4/14), now=4/06 → 둘 다 미래
-    const doc = makeDoc({
-      summaryAt: new Date(),
-      summaryType: "action_required",
-      summaryPeriods: [
-        { label: "자연계열 접수", startDate: null, startTime: null, endDate: "2026-04-07", endTime: null },
-        { label: "인문계열 접수", startDate: null, startTime: null, endDate: "2026-04-14", endTime: null },
-      ],
-    });
-    const briefBoth = buildSummaryBrief(doc, kstNow("2026-04-06T09:00:00"));
-    expect(briefBoth.endAt).toEqual({
-      date: "2026-04-07", time: null, label: "자연계열 접수", altCount: 1,
-    });
-
-    // now=4/11: 자연 past, 인문만 미래 → altCount 0
-    const briefOne = buildSummaryBrief(doc, kstNow("2026-04-11T00:00:00"));
-    expect(briefOne.endAt).toEqual({
-      date: "2026-04-14", time: null, label: "인문계열 접수", altCount: 0,
-    });
   });
 
   it("informational: exposes both startAt and endAt for range-state UI", () => {
@@ -413,7 +351,7 @@ describe("buildSummaryBrief — integration with selectEffectivePeriod", () => {
     });
     const brief = buildSummaryBrief(doc, kstNow("2026-04-11T00:00:00"));
     expect(brief.startAt).toEqual({ date: "2026-04-13", time: null });
-    expect(brief.endAt).toEqual({ date: "2026-04-26", time: null, label: null, altCount: 0 });
+    expect(brief.endAt).toEqual({ date: "2026-04-26", time: null, label: null });
   });
 
   it("informational with endDate=null: startAt set, endAt null", () => {
@@ -596,7 +534,7 @@ describe("toListItem", () => {
     });
     const item = toListItem(doc, kstNow("2026-04-05T00:00:00"));
     expect(Object.keys(item.summary).sort()).toEqual(["endAt", "oneLiner", "startAt", "type"]);
-    expect(item.summary.endAt).toEqual({ date: "2026-04-09", time: null, label: null, altCount: 0 });
+    expect(item.summary.endAt).toEqual({ date: "2026-04-09", time: null, label: null });
     expect(item.summary.startAt).toBeNull();
     expect(item.summary).not.toHaveProperty("text");
     expect(item.summary).not.toHaveProperty("details");

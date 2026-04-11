@@ -177,7 +177,7 @@ describe("GET /notices/dept/:deptId", () => {
       oneLiner: null,
       type: "action_required",
       startAt: { date: "2026-04-05", time: null },
-      endAt: { date: "2026-04-20", time: "17:00", label: "1차 신청", altCount: 0 },
+      endAt: { date: "2026-04-20", time: "17:00", label: "1차 신청" },
     });
   });
 
