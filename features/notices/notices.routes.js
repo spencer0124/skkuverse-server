@@ -4,6 +4,7 @@ const axios = require("axios");
 const asyncHandler = require("../../lib/asyncHandler");
 const {
   findNoticesByDept,
+  findNoticesByDepts,
   findNoticeByArticleNo,
 } = require("./notices.data");
 const {
@@ -92,6 +93,68 @@ router.get(
     // array) — passing `toListItem` bare would leak the numeric index into
     // `toListItem`'s second `now` param and crash action_required best-pick
     // at `now.getTime()`. See regression test in notices-routes.test.js.
+    const notices = items.map((doc) => toListItem(doc));
+    res.success(
+      { notices, nextCursor, hasMore },
+      { count: notices.length }
+    );
+  })
+);
+
+// GET /notices?deptIds=cs,sw&limit=20&type=…&cursor=…
+// Multi-department merged list — uses the existing compound index via $in.
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const rawIds = (req.query.deptIds || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (rawIds.length === 0 || rawIds.length > 5) {
+      return res.error(
+        400,
+        "INVALID_PARAMS",
+        "deptIds: 1-5 comma-separated department IDs required"
+      );
+    }
+    for (const id of rawIds) {
+      if (!departments.map.has(id)) {
+        return res.error(400, "INVALID_DEPT_ID", `unknown deptId: ${id}`);
+      }
+    }
+
+    const rawLimit = parseInt(req.query.limit, 10);
+    const limit = Math.min(
+      Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1),
+      50
+    );
+
+    const type = req.query.type;
+    if (type && !VALID_SUMMARY_TYPES.has(type)) {
+      return res.error(
+        400,
+        "INVALID_PARAMS",
+        "type must be one of: action_required, event, informational"
+      );
+    }
+
+    let cursor = null;
+    if (req.query.cursor) {
+      try {
+        cursor = decodeCursor(req.query.cursor);
+      } catch (err) {
+        if (err instanceof InvalidCursorError) {
+          return res.error(400, "INVALID_CURSOR", "cursor is malformed");
+        }
+        throw err;
+      }
+    }
+
+    const { items, nextCursor, hasMore } = await findNoticesByDepts(rawIds, {
+      cursor,
+      limit,
+      type,
+    });
     const notices = items.map((doc) => toListItem(doc));
     res.success(
       { notices, nextCursor, hasMore },

@@ -83,14 +83,12 @@ async function ensureNoticeIndexes() {
 }
 
 /**
- * Paginated list of notices for a department.
- * @param {string} deptId
- * @param {{cursor?: {d,c,i}|null, limit: number, type?: string}} opts
- * @returns {Promise<{items: object[], nextCursor: string|null, hasMore: boolean}>}
+ * Shared pagination query — accepts a pre-built sourceDeptId filter
+ * (equality for single dept, $in for multi-dept).
  */
-async function findNoticesByDept(deptId, { cursor = null, limit, type } = {}) {
+async function _findNotices(deptFilter, { cursor = null, limit, type } = {}) {
   const filter = {
-    sourceDeptId: deptId,
+    ...deptFilter,
     isDeleted: { $ne: true },
   };
   if (type) filter.summaryType = type;
@@ -125,6 +123,28 @@ async function findNoticesByDept(deptId, { cursor = null, limit, type } = {}) {
 }
 
 /**
+ * Paginated list of notices for a single department.
+ * @param {string} deptId
+ * @param {{cursor?: {d,c,i}|null, limit: number, type?: string}} opts
+ * @returns {Promise<{items: object[], nextCursor: string|null, hasMore: boolean}>}
+ */
+function findNoticesByDept(deptId, opts) {
+  return _findNotices({ sourceDeptId: deptId }, opts);
+}
+
+/**
+ * Paginated list of notices across multiple departments.
+ * Uses the existing (sourceDeptId, date, crawledAt, _id) compound index
+ * via $in — MongoDB merge-sorts the per-dept index scans internally.
+ * @param {string[]} deptIds
+ * @param {{cursor?: {d,c,i}|null, limit: number, type?: string}} opts
+ * @returns {Promise<{items: object[], nextCursor: string|null, hasMore: boolean}>}
+ */
+function findNoticesByDepts(deptIds, opts) {
+  return _findNotices({ sourceDeptId: { $in: deptIds } }, opts);
+}
+
+/**
  * Detail lookup by composite key.
  * Returns null for missing or soft-deleted notices.
  */
@@ -146,5 +166,6 @@ module.exports = {
   getNoticesCollection,
   ensureNoticeIndexes,
   findNoticesByDept,
+  findNoticesByDepts,
   findNoticeByArticleNo,
 };
