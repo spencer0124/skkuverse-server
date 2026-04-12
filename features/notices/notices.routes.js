@@ -172,14 +172,15 @@ router.get(
     const filename = name || new URL(url).pathname.split("/").pop() || "attachment";
     const upstreamCt = upstream.headers["content-type"];
 
-    res.setHeader("Content-Type", resolveContentType(upstreamCt, filename));
-
     if (mode === "download") {
+      // Force octet-stream so Safari/Chrome downloads instead of previewing
+      res.setHeader("Content-Type", "application/octet-stream");
       res.setHeader(
         "Content-Disposition",
         `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
       );
     } else {
+      res.setHeader("Content-Type", resolveContentType(upstreamCt, filename));
       res.setHeader("Content-Disposition", "inline");
     }
 
