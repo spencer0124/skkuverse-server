@@ -100,14 +100,50 @@ router.get(
   })
 );
 
-// GET /notices/proxy/attachment?url=...&referer=...&mode=inline|download
+// GET /notices/proxy/attachment?url=...&referer=...&mode=inline|download&name=...
 // Proxies attachment downloads with a Referer header to bypass hotlink
 // protection on some SKKU department servers (e.g. cal.skku.edu).
 // Only *.skku.edu hosts are allowed to prevent open-proxy abuse.
+//
+// Fixes two upstream quirks:
+// 1. Some servers return application/unknown for .hwp — corrected via ext map
+// 2. Content-Disposition filenames are often mojibake — use client-supplied name
+
+const EXT_MIME = {
+  ".pdf": "application/pdf",
+  ".hwp": "application/x-hwp",
+  ".hwpx": "application/x-hwpx",
+  ".doc": "application/msword",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xls": "application/vnd.ms-excel",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".ppt": "application/vnd.ms-powerpoint",
+  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ".zip": "application/zip",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+};
+
+function resolveContentType(upstreamCt, filename) {
+  // Trust upstream if it's specific (not generic/unknown)
+  if (
+    upstreamCt &&
+    upstreamCt !== "application/unknown" &&
+    upstreamCt !== "application/octet-stream"
+  ) {
+    return upstreamCt;
+  }
+  // Fall back to extension-based lookup
+  const ext = (filename.match(/\.[^.]+$/) || [""])[0].toLowerCase();
+  return EXT_MIME[ext] || upstreamCt || "application/octet-stream";
+}
+
 router.get(
   "/proxy/attachment",
   asyncHandler(async (req, res) => {
-    const { url, referer, mode } = req.query;
+    const { url, referer, mode, name } = req.query;
     if (!url || !referer) {
       return res.error(400, "INVALID_PARAMS", "url and referer required");
     }
@@ -132,22 +168,18 @@ router.get(
       timeout: 15000,
     });
 
-    const ct = upstream.headers["content-type"];
-    if (ct) res.setHeader("Content-Type", ct);
+    // Use client-supplied name (from crawler), fall back to URL path
+    const filename = name || new URL(url).pathname.split("/").pop() || "attachment";
+    const upstreamCt = upstream.headers["content-type"];
+
+    res.setHeader("Content-Type", resolveContentType(upstreamCt, filename));
 
     if (mode === "download") {
-      // Extract filename from upstream Content-Disposition or URL
-      const upstreamCd = upstream.headers["content-disposition"];
-      const filenameMatch = upstreamCd && upstreamCd.match(/filename\*?=(?:UTF-8''|"?)([^";]+)/i);
-      const filename = filenameMatch
-        ? decodeURIComponent(filenameMatch[1].replace(/^"/, ""))
-        : new URL(url).pathname.split("/").pop() || "attachment";
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${encodeURIComponent(filename)}"`
+        `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
       );
     } else {
-      // mode=inline (default): force inline display
       res.setHeader("Content-Disposition", "inline");
     }
 
