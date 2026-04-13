@@ -280,8 +280,10 @@ router.get(
       return res.error(400, "INVALID_PARAMS", "malformed url");
     }
 
-    if (!parsed.hostname.endsWith("skku.edu")) {
-      return res.error(403, "FORBIDDEN", "only skku.edu hosts allowed");
+    const ALLOWED_HOSTS = ["skku.edu", "skkumed.ac.kr"];
+
+    if (!ALLOWED_HOSTS.some((h) => parsed.hostname.endsWith(h))) {
+      return res.error(403, "FORBIDDEN", "host not allowed");
     }
 
     const headers = { "User-Agent": "Mozilla/5.0" };
