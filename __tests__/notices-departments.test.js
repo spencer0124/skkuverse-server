@@ -1,8 +1,8 @@
 const departments = require("../features/notices/departments");
 
 describe("departments loader", () => {
-  it("loads 144 entries", () => {
-    expect(departments.list).toHaveLength(144);
+  it("loads 147 entries", () => {
+    expect(departments.list).toHaveLength(147);
   });
 
   it("every entry has the required shape", () => {

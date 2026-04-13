@@ -60,12 +60,12 @@ beforeEach(() => {
 });
 
 describe("GET /notices/departments", () => {
-  it("returns 144 departments with version and meta envelope", async () => {
+  it("returns 147 departments with version and meta envelope", async () => {
     const res = await request(app).get("/notices/departments");
     expect(res.status).toBe(200);
     expect(res.body.meta).toHaveProperty("lang");
-    expect(res.body.meta.count).toBe(144);
-    expect(res.body.data.departments).toHaveLength(144);
+    expect(res.body.meta.count).toBe(147);
+    expect(res.body.data.departments).toHaveLength(147);
     expect(res.body.data.version).toMatch(/^[0-9a-f]{64}$/);
   });
 
