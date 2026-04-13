@@ -189,13 +189,28 @@ const EXT_MIME = {
   ".gif": "image/gif",
 };
 
+const VALID_MIME_TYPES = [
+  "application",
+  "text",
+  "image",
+  "audio",
+  "video",
+  "font",
+  "multipart",
+  "message",
+];
+
 function resolveContentType(upstreamCt, filename) {
-  // Trust upstream if it's specific (not generic/unknown)
-  if (
+  // Trust upstream only if it uses a standard top-level MIME type
+  // (rejects non-standard types like "file/unknown" from gnuboard)
+  const type = (upstreamCt || "").split("/")[0];
+  const isSpecific =
     upstreamCt &&
+    VALID_MIME_TYPES.includes(type) &&
     upstreamCt !== "application/unknown" &&
-    upstreamCt !== "application/octet-stream"
-  ) {
+    upstreamCt !== "application/octet-stream";
+
+  if (isSpecific) {
     return upstreamCt;
   }
   // Fall back to extension-based lookup
