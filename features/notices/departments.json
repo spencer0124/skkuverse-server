@@ -1153,7 +1153,7 @@
   },
   {
     "id": "lib-seoul",
-    "name": "도서관(인사캠/중앙학술정보관)",
+    "name": "중앙학술정보관",
     "campus": null,
     "category": null,
     "hasCategory": true,
@@ -1161,7 +1161,7 @@
   },
   {
     "id": "lib-suwon",
-    "name": "도서관(자과캠/삼성학술정보관)",
+    "name": "삼성학술정보관",
     "campus": null,
     "category": null,
     "hasCategory": true,
@@ -1169,7 +1169,7 @@
   },
   {
     "id": "lib-all",
-    "name": "도서관(전체/양캠퍼스공통)",
+    "name": "공통",
     "campus": null,
     "category": null,
     "hasCategory": true,
