@@ -149,7 +149,11 @@ function toDetailItem(doc) {
     date: doc.date,
     views: doc.views ?? 0,
     contentMarkdown: doc.cleanMarkdown ?? null,
-    attachments: (doc.attachments || []).map((a) => ({ name: a.name, url: a.url })),
+    attachments: (doc.attachments || []).map((a) => {
+      const att = { name: a.name, url: a.url };
+      if (a.referer) att.referer = a.referer;
+      return att;
+    }),
     sourceUrl: doc.sourceUrl,
     lastModified: doc.lastModified || null,
     crawledAt: doc.crawledAt,

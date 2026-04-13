@@ -203,51 +203,133 @@ function resolveContentType(upstreamCt, filename) {
   return EXT_MIME[ext] || upstreamCt || "application/octet-stream";
 }
 
+// --- Gnuboard session cache (PHPSESSID per domain, 5min TTL) ---
+const SESSION_CACHE_TTL = 5 * 60 * 1000;
+const sessionCache = new Map();
+
+const _sessionCleanup = setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of sessionCache) {
+    if (now - val.time >= SESSION_CACHE_TTL) sessionCache.delete(key);
+  }
+}, SESSION_CACHE_TTL);
+_sessionCleanup.unref();
+
+async function getSessionId(refererUrl) {
+  const domain = new URL(refererUrl).hostname;
+  const cached = sessionCache.get(domain);
+  if (cached && Date.now() - cached.time < SESSION_CACHE_TTL) {
+    return cached.sessionId;
+  }
+
+  const resp = await axios.get(refererUrl, {
+    headers: { "User-Agent": "Mozilla/5.0" },
+    maxRedirects: 5,
+    timeout: 10000,
+    responseType: "stream",
+  });
+  resp.data.destroy();
+
+  const setCookie = resp.headers["set-cookie"] || [];
+  let sessionId = null;
+  for (const c of setCookie) {
+    const match = c.match(/PHPSESSID=([^;]+)/);
+    if (match) {
+      sessionId = match[1];
+      break;
+    }
+  }
+
+  if (sessionId) {
+    sessionCache.set(domain, { sessionId, time: Date.now() });
+  }
+  return sessionId;
+}
+
+function pipeDownload(upstream, res, url, name, mode) {
+  const filename =
+    name || new URL(url).pathname.split("/").pop() || "attachment";
+  const upstreamCt = upstream.headers["content-type"];
+
+  if (mode === "download") {
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+    );
+  } else {
+    res.setHeader("Content-Type", resolveContentType(upstreamCt, filename));
+    res.setHeader("Content-Disposition", "inline");
+  }
+
+  upstream.data.pipe(res);
+}
+
 router.get(
   "/proxy/attachment",
   asyncHandler(async (req, res) => {
     const { url, referer, mode, name } = req.query;
-    if (!url || !referer) {
-      return res.error(400, "INVALID_PARAMS", "url and referer required");
+    if (!url) {
+      return res.error(400, "INVALID_PARAMS", "url is required");
     }
 
-    let targetHost;
+    let parsed;
     try {
-      targetHost = new URL(url).hostname;
+      parsed = new URL(url);
     } catch {
       return res.error(400, "INVALID_PARAMS", "malformed url");
     }
 
-    if (!targetHost.endsWith("skku.edu")) {
+    if (!parsed.hostname.endsWith("skku.edu")) {
       return res.error(403, "FORBIDDEN", "only skku.edu hosts allowed");
     }
 
+    const headers = { "User-Agent": "Mozilla/5.0" };
+
+    if (referer) {
+      headers.Referer = referer;
+      try {
+        const sessionId = await getSessionId(referer);
+        if (sessionId) headers.Cookie = `PHPSESSID=${sessionId}`;
+      } catch (err) {
+        req.log.warn(
+          { err: err.message, referer },
+          "gnuboard session fetch failed"
+        );
+      }
+    }
+
     const upstream = await axios.get(url, {
-      headers: {
-        Referer: referer,
-        "User-Agent": "Mozilla/5.0",
-      },
+      headers,
       responseType: "stream",
       timeout: 15000,
     });
 
-    // Use client-supplied name (from crawler), fall back to URL path
-    const filename = name || new URL(url).pathname.split("/").pop() || "attachment";
-    const upstreamCt = upstream.headers["content-type"];
-
-    if (mode === "download") {
-      // Force octet-stream so Safari/Chrome downloads instead of previewing
-      res.setHeader("Content-Type", "application/octet-stream");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
-      );
-    } else {
-      res.setHeader("Content-Type", resolveContentType(upstreamCt, filename));
-      res.setHeader("Content-Disposition", "inline");
+    // Session expired: expected file download but got HTML (login page / error)
+    // → invalidate cache and retry once with fresh session
+    const ct = upstream.headers["content-type"] || "";
+    if (referer && ct.includes("text/html")) {
+      upstream.data.destroy();
+      const domain = new URL(referer).hostname;
+      sessionCache.delete(domain);
+      try {
+        const newSessionId = await getSessionId(referer);
+        if (newSessionId) headers.Cookie = `PHPSESSID=${newSessionId}`;
+      } catch (err) {
+        req.log.warn(
+          { err: err.message, referer },
+          "gnuboard session retry fetch failed"
+        );
+      }
+      const retry = await axios.get(url, {
+        headers,
+        responseType: "stream",
+        timeout: 15000,
+      });
+      return pipeDownload(retry, res, url, name, mode);
     }
 
-    upstream.data.pipe(res);
+    pipeDownload(upstream, res, url, name, mode);
   })
 );
 
