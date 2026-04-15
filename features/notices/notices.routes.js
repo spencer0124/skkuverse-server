@@ -14,33 +14,19 @@ const {
 } = require("./notices.transform");
 const { decodeCursor, InvalidCursorError } = require("./notices.cursor");
 const departments = require("./departments");
+const tabConfig = require("./tabConfig");
 
-// Route order matters: `/departments` and `/dept/:deptId` must appear BEFORE
+// Route order matters: `/tabs` and `/dept/:deptId` must appear BEFORE
 // the catch-all `/:deptId/:articleNo`, otherwise the dynamic pattern shadows
 // them.
 
-// GET /notices/departments
+// GET /notices/tabs — server-driven tab configuration
 router.get(
-  "/departments",
+  "/tabs",
   asyncHandler(async (req, res) => {
-    const etag = `W/"${departments.version.slice(0, 16)}"`;
-    res.setHeader(
-      "Cache-Control",
-      "public, max-age=300, stale-while-revalidate=3600"
-    );
-    res.setHeader("ETag", etag);
-    // Express's `req.fresh` reads the response's ETag + Last-Modified headers
-    // and compares them against If-None-Match / If-Modified-Since. It handles
-    // weak/strong and comma-delimited lists for us. Must be called AFTER
-    // setHeader("ETag", …) so the comparison sees our tag.
-    if (req.fresh) return res.status(304).end();
-    res.success(
-      {
-        departments: departments.list,
-        version: departments.version,
-      },
-      { count: departments.list.length }
-    );
+    const lang = req.lang === "ko" ? "ko" : "en"; // zh → en fallback
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    res.success(tabConfig.responseByLang[lang]);
   })
 );
 

@@ -1,0 +1,236 @@
+[
+  {
+    "id": "dept",
+    "label": {
+      "ko": "학과",
+      "en": "Department"
+    },
+    "tabMode": "picker",
+    "deptIds": [
+      "arch",
+      "biz-undergrad",
+      "biz-grad",
+      "ecostat-undergrad",
+      "ecostat-grad",
+      "enc-undergrad",
+      "enc-grad",
+      "skku-edu-undergrad",
+      "skku-edu-grad",
+      "korean-undergrad",
+      "korean-grad",
+      "globalbiz",
+      "globalecon",
+      "gld",
+      "gbme-undergrad",
+      "gbme-grad",
+      "sco",
+      "mech-undergrad",
+      "mech-grad",
+      "sco-data",
+      "german",
+      "design-undergrad",
+      "design-grad",
+      "russian",
+      "dance",
+      "liberalarts-undergrad",
+      "liberalarts-grad",
+      "lis-undergrad",
+      "lis-grad",
+      "physics",
+      "mediacomm-undergrad",
+      "mediacomm-grad",
+      "biomecha",
+      "sls-general",
+      "sls-special",
+      "coe-undergrad",
+      "coe-grad",
+      "history-undergrad",
+      "history-grad",
+      "sscience-undergrad",
+      "sscience-grad",
+      "welfare",
+      "soc",
+      "biotech-undergrad",
+      "biotech-grad",
+      "ics",
+      "cf",
+      "mcce",
+      "sw-undergrad",
+      "sw-grad",
+      "cse-undergrad",
+      "cse-grad",
+      "math-undergrad",
+      "math-grad",
+      "mathedu",
+      "sport-undergrad",
+      "sport-grad",
+      "ie-undergrad",
+      "ie-grad",
+      "foodlife-undergrad",
+      "foodlife-grad",
+      "amse-undergrad",
+      "amse-grad",
+      "psych-undergrad",
+      "psych-grad",
+      "child-undergrad",
+      "child-grad",
+      "qie",
+      "energy",
+      "acting",
+      "english-undergrad",
+      "english-grad",
+      "art-undergrad",
+      "art-grad",
+      "scos-undergrad",
+      "scos-grad",
+      "gene",
+      "aicon",
+      "fashion-undergrad",
+      "fashion-grad",
+      "sco-ai",
+      "sco-magnetic",
+      "cscience-undergrad",
+      "cscience-grad",
+      "eee-undergrad",
+      "eee-job",
+      "ice-undergrad",
+      "ice-grad",
+      "psd-undergrad",
+      "psd-grad",
+      "chinese-undergrad",
+      "chinese-grad",
+      "intelligentsw",
+      "ase",
+      "philosophy-undergrad",
+      "philosophy-grad",
+      "comedu-undergrad",
+      "comedu-grad",
+      "quant",
+      "stat-undergrad",
+      "stat-grad",
+      "french-undergrad",
+      "french-grad",
+      "hakbu",
+      "hakbu-portal",
+      "hakbu-portal-sugang",
+      "hakbu-portal-admission",
+      "hakbu-portal-job",
+      "hakbu-portal-recruit",
+      "hakbu-portal-scholarship",
+      "hakbu-portal-event",
+      "hakbu-portal-general",
+      "klccedu",
+      "klcc-undergrad",
+      "klcc-grad",
+      "gsg",
+      "chem",
+      "cheme",
+      "medicine",
+      "cal-undergrad",
+      "cal-grad",
+      "bio-undergrad",
+      "bio-grad",
+      "pharm",
+      "nano"
+    ],
+    "maxSelection": 5
+  },
+  {
+    "id": "academic",
+    "label": {
+      "ko": "학사",
+      "en": "Academic"
+    },
+    "tabMode": "fixed",
+    "deptId": "skku-notice02"
+  },
+  {
+    "id": "scholarship",
+    "label": {
+      "ko": "장학",
+      "en": "Scholarship"
+    },
+    "tabMode": "fixed",
+    "deptId": "skku-notice06"
+  },
+  {
+    "id": "career",
+    "label": {
+      "ko": "취업",
+      "en": "Career"
+    },
+    "tabMode": "fixed",
+    "deptId": "skku-notice04"
+  },
+  {
+    "id": "recruitment",
+    "label": {
+      "ko": "모집",
+      "en": "Recruitment"
+    },
+    "tabMode": "fixed",
+    "deptId": "skku-notice05"
+  },
+  {
+    "id": "event",
+    "label": {
+      "ko": "행사",
+      "en": "Events"
+    },
+    "tabMode": "fixed",
+    "deptId": "skku-notice07"
+  },
+  {
+    "id": "library",
+    "label": {
+      "ko": "도서관",
+      "en": "Library"
+    },
+    "tabMode": "picker",
+    "deptIds": [
+      "lib-hssc",
+      "lib-nsc",
+      "lib-all"
+    ],
+    "maxSelection": 3,
+    "defaultDeptIds": [
+      "lib-hssc",
+      "lib-nsc"
+    ]
+  },
+  {
+    "id": "dorm",
+    "label": {
+      "ko": "기숙사",
+      "en": "Dormitory"
+    },
+    "tabMode": "picker",
+    "deptIds": [
+      "dorm-hssc",
+      "dorm-nsc"
+    ],
+    "maxSelection": 2
+  },
+  {
+    "id": "general",
+    "label": {
+      "ko": "일반",
+      "en": "General"
+    },
+    "tabMode": "picker",
+    "deptIds": [
+      "health",
+      "ccrf",
+      "saint",
+      "skku-notice03",
+      "skku-notice08",
+      "chec",
+      "larc",
+      "helper",
+      "support",
+      "scc",
+      "success"
+    ],
+    "maxSelection": 5
+  }
+]

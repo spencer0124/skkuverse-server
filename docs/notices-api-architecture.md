@@ -1,7 +1,7 @@
 # Notices API — 아키텍처 & 설계 결정 기록
 
 - **도입일:** 2026-04-10
-- **Feature:** `/notices/*` 읽기 전용 API (3 endpoints)
+- **Feature:** `/notices/*` 읽기 전용 API (5 endpoints)
 - **범위:** `skku_notices` MongoDB 컬렉션을 읽어 앱(SKKUverse / skkumap)에 144개 학과 공지 리스트 + 상세를 서빙
 - **관련 repo:**
   - 이 서버 (`skkuverse-server`) — 읽기만, 이 문서의 주제
@@ -365,25 +365,45 @@ After:  pre-deploy dry-load 2초 → non-zero exit → git revert → exit 1
 
 ## 4. 엔드포인트 스펙
 
-### 4.1 `GET /notices/departments`
+### 4.1 `GET /notices/tabs` *(2026-04-15 추가)*
 
-144개 학과 + version hash + ETag. `Cache-Control: public, max-age=300, stale-while-revalidate=3600`.
+서버 기반 탭 구성. 앱의 공지 탭 UI를 이 응답으로 렌더링한다. `categories.json` + `departments.json`을 조합하여 반환.
+
+- `Cache-Control: private, max-age=3600`
+- `Accept-Language`에 따라 `label` 로컬라이즈 (ko/en, zh → en fallback)
+- 배열 순서 = 탭 표시 순서
+- Tagged payload: `tabMode: "fixed"` → `fixed: { deptId, name, campus }`, `tabMode: "picker"` → `picker: { departments, maxSelection, defaultDeptIds }`
+- 앱이 모르는 `tabMode` → 해당 탭 skip (forward compat)
 
 응답 예:
 ```jsonc
 {
-  "meta": { "lang": "ko", "count": 144 },
+  "meta": { "lang": "ko" },
   "data": {
-    "departments": [
-      { "id": "skku-main", "name": "학부통합(학사)",
-        "campus": null, "category": null,
-        "hasCategory": true, "hasAuthor": true }
-      // ... 143개 더
-    ],
-    "version": "00f484092d4ded0aa40ee451d42cecae3822a573e710294c284997f7e788b973"
+    "schemaVersion": 1,
+    "tabs": [
+      {
+        "key": "dept", "label": "학과", "tabMode": "picker",
+        "picker": {
+          "departments": [
+            { "id": "arch", "name": "건축학과", "campus": "nsc" }
+            // ... 125개
+          ],
+          "maxSelection": 5,
+          "defaultDeptIds": []
+        }
+      },
+      {
+        "key": "academic", "label": "학사", "tabMode": "fixed",
+        "fixed": { "deptId": "skku-notice02", "name": "성균관대_통합(학사)", "campus": "both" }
+      }
+      // ... 9개 탭
+    ]
   }
 }
 ```
+
+> ~~`GET /notices/departments`~~: 2026-04-15 삭제. 학과 목록은 `/notices/tabs`의 picker 탭 `departments` 배열에 포함.
 
 ### 4.2 `GET /notices/dept/:deptId`
 
@@ -472,12 +492,14 @@ After:  pre-deploy dry-load 2초 → non-zero exit → git revert → exit 1
 
 ```
 features/notices/
-├── notices.routes.js      # Express router, 3 endpoints
+├── notices.routes.js      # Express router, 5 endpoints (tabs, dept, multi, detail, proxy)
 ├── notices.data.js        # DB access, ensureNoticeIndexes, projections
 ├── notices.transform.js   # pure toListItem/toDetailItem, summary brief/full
 ├── notices.cursor.js      # encode/decode/buildCursorFilter + InvalidCursorError
-├── departments.json       # 144 entries, scaffolded
+├── departments.json       # 147 entries, SSOT from skkuverse-crawler
 ├── departments.js         # loader + sha256 version + Map
+├── categories.json        # 9 tab definitions, SSOT from skkuverse-crawler
+├── tabConfig.js           # tab config loader + startup validation + pre-computed responses
 └── README.md              # maintenance guide
 
 __tests__/
@@ -485,7 +507,7 @@ __tests__/
 ├── notices-cursor.test.js       # 13 tests — pure
 ├── notices-departments.test.js  # 10 tests — loader
 ├── notices-data.test.js         # 15 tests — Mongo mocked
-└── notices-routes.test.js       # 17 tests — supertest + all mocks
+└── notices-routes.test.js       # 28 tests — supertest + all mocks (incl. 11 tabs tests)
 
 수정:
   lib/config.js       # config.notices + required (2026-04-10: strict, no fallback)

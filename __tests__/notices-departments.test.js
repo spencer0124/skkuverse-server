@@ -11,9 +11,9 @@ describe("departments loader", () => {
       expect(typeof d.name).toBe("string");
       expect(typeof d.hasCategory).toBe("boolean");
       expect(typeof d.hasAuthor).toBe("boolean");
-      // campus/category are scaffolded as null
+      // campus/appCategory are scaffolded as null
       expect(d).toHaveProperty("campus");
-      expect(d).toHaveProperty("category");
+      expect(d).toHaveProperty("appCategory");
     }
   });
 
