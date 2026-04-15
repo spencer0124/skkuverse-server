@@ -59,29 +59,85 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe("GET /notices/departments", () => {
-  it("returns 147 departments with version and meta envelope", async () => {
-    const res = await request(app).get("/notices/departments");
+describe("GET /notices/tabs", () => {
+  it("returns tab config with schemaVersion and tabs array", async () => {
+    const res = await request(app).get("/notices/tabs");
     expect(res.status).toBe(200);
     expect(res.body.meta).toHaveProperty("lang");
-    expect(res.body.meta.count).toBe(147);
-    expect(res.body.data.departments).toHaveLength(147);
-    expect(res.body.data.version).toMatch(/^[0-9a-f]{64}$/);
+    expect(res.body.data.schemaVersion).toBe(1);
+    expect(Array.isArray(res.body.data.tabs)).toBe(true);
+    expect(res.body.data.tabs.length).toBeGreaterThan(0);
   });
 
-  it("sets ETag and Cache-Control headers", async () => {
-    const res = await request(app).get("/notices/departments");
-    expect(res.headers.etag).toBeDefined();
-    expect(res.headers["cache-control"]).toContain("max-age=300");
+  it("returns Korean labels by default", async () => {
+    const res = await request(app).get("/notices/tabs");
+    const deptTab = res.body.data.tabs.find((t) => t.key === "dept");
+    expect(deptTab.label).toBe("학과");
   });
 
-  it("returns 304 when If-None-Match matches", async () => {
-    const first = await request(app).get("/notices/departments");
-    const etag = first.headers.etag;
-    const second = await request(app)
-      .get("/notices/departments")
-      .set("If-None-Match", etag);
-    expect(second.status).toBe(304);
+  it("returns English labels for Accept-Language: en", async () => {
+    const res = await request(app)
+      .get("/notices/tabs")
+      .set("Accept-Language", "en");
+    const deptTab = res.body.data.tabs.find((t) => t.key === "dept");
+    expect(deptTab.label).toBe("Department");
+  });
+
+  it("falls back to English for unsupported language (zh)", async () => {
+    const res = await request(app)
+      .get("/notices/tabs")
+      .set("Accept-Language", "zh");
+    const deptTab = res.body.data.tabs.find((t) => t.key === "dept");
+    expect(deptTab.label).toBe("Department");
+  });
+
+  it("fixed tabs have tagged payload with deptId, name, campus", async () => {
+    const res = await request(app).get("/notices/tabs");
+    const academic = res.body.data.tabs.find((t) => t.key === "academic");
+    expect(academic.tabMode).toBe("fixed");
+    expect(academic.fixed).toBeDefined();
+    expect(academic.fixed.deptId).toBe("skku-notice02");
+    expect(typeof academic.fixed.name).toBe("string");
+    expect(academic.fixed).toHaveProperty("campus");
+    expect(academic).not.toHaveProperty("picker");
+  });
+
+  it("picker tabs have tagged payload with departments, maxSelection, defaultDeptIds", async () => {
+    const res = await request(app).get("/notices/tabs");
+    const library = res.body.data.tabs.find((t) => t.key === "library");
+    expect(library.tabMode).toBe("picker");
+    expect(library.picker).toBeDefined();
+    expect(Array.isArray(library.picker.departments)).toBe(true);
+    expect(library.picker.departments.length).toBeGreaterThan(0);
+    expect(typeof library.picker.maxSelection).toBe("number");
+    expect(library.picker.maxSelection).toBeGreaterThanOrEqual(1);
+    expect(library.picker.maxSelection).toBeLessThanOrEqual(library.picker.departments.length);
+    expect(Array.isArray(library.picker.defaultDeptIds)).toBe(true);
+    expect(library).not.toHaveProperty("fixed");
+  });
+
+  it("picker department entries have id, name, campus", async () => {
+    const res = await request(app).get("/notices/tabs");
+    const deptTab = res.body.data.tabs.find((t) => t.key === "dept");
+    const first = deptTab.picker.departments[0];
+    expect(first).toHaveProperty("id");
+    expect(first).toHaveProperty("name");
+    expect(first).toHaveProperty("campus");
+  });
+
+  it("sets Cache-Control private, max-age=3600", async () => {
+    const res = await request(app).get("/notices/tabs");
+    expect(res.headers["cache-control"]).toContain("private");
+    expect(res.headers["cache-control"]).toContain("max-age=3600");
+  });
+
+  it("tab array order matches categories.json order", async () => {
+    const res = await request(app).get("/notices/tabs");
+    const keys = res.body.data.tabs.map((t) => t.key);
+    expect(keys[0]).toBe("dept");
+    expect(keys[1]).toBe("academic");
+    // Last tab
+    expect(keys[keys.length - 1]).toBe("general");
   });
 });
 
@@ -280,10 +336,10 @@ describe("GET /notices/:deptId/:articleNo", () => {
 });
 
 describe("route ordering", () => {
-  it("/departments is NOT treated as a deptId", async () => {
+  it("/tabs is NOT treated as a deptId", async () => {
     // If routing were wrong, this would hit /:deptId/:articleNo handler and 400.
-    const res = await request(app).get("/notices/departments");
+    const res = await request(app).get("/notices/tabs");
     expect(res.status).toBe(200);
-    expect(res.body.data.departments).toBeDefined();
+    expect(res.body.data.tabs).toBeDefined();
   });
 });
