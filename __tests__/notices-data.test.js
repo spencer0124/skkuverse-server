@@ -15,7 +15,7 @@ const { ObjectId } = require("mongodb");
 const {
   getNoticesCollection,
   ensureNoticeIndexes,
-  findNoticesByDept,
+  findNoticesBySource,
   findNoticeByArticleNo,
   LIST_PROJECTION,
   DETAIL_PROJECTION,
@@ -35,7 +35,7 @@ function stubFindChain(docs) {
 function makeDoc(i, extra = {}) {
   return {
     _id: new ObjectId(),
-    sourceDeptId: "skku-main",
+    sourceId: "skku-main",
     articleNo: 100 + i,
     title: `t${i}`,
     date: "2026-04-10",
@@ -61,7 +61,7 @@ describe("ensureNoticeIndexes", () => {
     await ensureNoticeIndexes();
     expect(mockCollection.createIndex).toHaveBeenCalledTimes(1);
     expect(mockCollection.createIndex).toHaveBeenCalledWith(
-      { sourceDeptId: 1, date: -1, crawledAt: -1, _id: -1 }
+      { sourceId: 1, date: -1, crawledAt: -1, _id: -1 }
     );
   });
 
@@ -71,12 +71,12 @@ describe("ensureNoticeIndexes", () => {
   });
 });
 
-describe("findNoticesByDept", () => {
+describe("findNoticesBySource", () => {
   it("applies the base filter with serviceStartDate and isDeleted", async () => {
     stubFindChain([]);
-    await findNoticesByDept("skku-main", { limit: 20 });
+    await findNoticesBySource("skku-main", { limit: 20 });
     const [filter] = mockCollection.find.mock.calls[0];
-    expect(filter.sourceDeptId).toBe("skku-main");
+    expect(filter.sourceId).toBe("skku-main");
     expect(filter.isDeleted).toEqual({ $ne: true });
     // serviceStartDate is inside $and
     expect(filter.$and).toEqual(
@@ -86,7 +86,7 @@ describe("findNoticesByDept", () => {
 
   it("passes LIST_PROJECTION (not detail projection)", async () => {
     stubFindChain([]);
-    await findNoticesByDept("skku-main", { limit: 20 });
+    await findNoticesBySource("skku-main", { limit: 20 });
     const [, options] = mockCollection.find.mock.calls[0];
     expect(options.projection).toBe(LIST_PROJECTION);
     // defensive: LIST_PROJECTION must not include heavy fields
@@ -98,19 +98,19 @@ describe("findNoticesByDept", () => {
 
   it("sorts by {date:-1, crawledAt:-1, _id:-1}", async () => {
     const chain = stubFindChain([]);
-    await findNoticesByDept("skku-main", { limit: 20 });
+    await findNoticesBySource("skku-main", { limit: 20 });
     expect(chain.sort).toHaveBeenCalledWith({ date: -1, crawledAt: -1, _id: -1 });
   });
 
   it("fetches limit+1 docs to compute hasMore", async () => {
     const chain = stubFindChain([]);
-    await findNoticesByDept("skku-main", { limit: 5 });
+    await findNoticesBySource("skku-main", { limit: 5 });
     expect(chain.limit).toHaveBeenCalledWith(6);
   });
 
   it("hasMore=false when fewer than limit+1 returned", async () => {
     stubFindChain([makeDoc(1), makeDoc(2)]);
-    const result = await findNoticesByDept("skku-main", { limit: 5 });
+    const result = await findNoticesBySource("skku-main", { limit: 5 });
     expect(result.hasMore).toBe(false);
     expect(result.items).toHaveLength(2);
     expect(result.nextCursor).toBeNull();
@@ -120,7 +120,7 @@ describe("findNoticesByDept", () => {
     // limit=2 → fetch 3 → hasMore=true, retain 2, cursor from items[1]
     const docs = [makeDoc(1), makeDoc(2), makeDoc(3)];
     stubFindChain(docs);
-    const result = await findNoticesByDept("skku-main", { limit: 2 });
+    const result = await findNoticesBySource("skku-main", { limit: 2 });
     expect(result.hasMore).toBe(true);
     expect(result.items).toHaveLength(2);
     expect(result.nextCursor).toBeTruthy();
@@ -132,7 +132,7 @@ describe("findNoticesByDept", () => {
 
   it("adds summaryType filter when type is passed", async () => {
     stubFindChain([]);
-    await findNoticesByDept("skku-main", { limit: 20, type: "action_required" });
+    await findNoticesBySource("skku-main", { limit: 20, type: "action_required" });
     const [filter] = mockCollection.find.mock.calls[0];
     expect(filter.summaryType).toBe("action_required");
   });
@@ -144,7 +144,7 @@ describe("findNoticesByDept", () => {
       c: "2026-04-05T00:00:00.000Z",
       i: "66a1b2c3d4e5f6a7b8c9d0e1",
     };
-    await findNoticesByDept("skku-main", { limit: 20, cursor });
+    await findNoticesBySource("skku-main", { limit: 20, cursor });
     const [filter] = mockCollection.find.mock.calls[0];
     // $and should contain BOTH the serviceStartDate AND the cursor $or
     expect(filter.$and).toHaveLength(2);
@@ -155,11 +155,11 @@ describe("findNoticesByDept", () => {
 });
 
 describe("findNoticeByArticleNo", () => {
-  it("queries by sourceDeptId + articleNo + isDeleted:$ne:true with DETAIL_PROJECTION", async () => {
+  it("queries by sourceId + articleNo + isDeleted:$ne:true with DETAIL_PROJECTION", async () => {
     mockCollection.findOne.mockResolvedValue(null);
     await findNoticeByArticleNo("skku-main", 136023);
     expect(mockCollection.findOne).toHaveBeenCalledWith(
-      { sourceDeptId: "skku-main", articleNo: 136023, isDeleted: { $ne: true } },
+      { sourceId: "skku-main", articleNo: 136023, isDeleted: { $ne: true } },
       { projection: DETAIL_PROJECTION }
     );
   });

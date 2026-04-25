@@ -2,7 +2,7 @@
  * Data access layer for the notices feature.
  *
  * Reads only — the skkuverse-crawler owns writes and the unique index
- * `articleNo_1_sourceDeptId_1`. This module adds the read-path compound
+ * `articleNo_1_sourceId_1`. This module adds the read-path compound
  * index that covers list queries with the {date, crawledAt, _id} cursor.
  */
 
@@ -14,7 +14,7 @@ const { buildCursorFilter, encodeCursor } = require("./notices.cursor");
 // (content/cleanHtml/contentText/editHistory) are intentionally omitted.
 const LIST_PROJECTION = Object.freeze({
   _id: 1,
-  sourceDeptId: 1,
+  sourceId: 1,
   articleNo: 1,
   title: 1,
   category: 1,
@@ -41,7 +41,7 @@ const LIST_PROJECTION = Object.freeze({
 // consecutiveFailures / isDeleted / detailPath.
 const DETAIL_PROJECTION = Object.freeze({
   _id: 1,
-  sourceDeptId: 1,
+  sourceId: 1,
   articleNo: 1,
   title: 1,
   category: 1,
@@ -79,16 +79,16 @@ function getNoticesCollection() {
  */
 async function ensureNoticeIndexes() {
   const col = getNoticesCollection();
-  await col.createIndex({ sourceDeptId: 1, date: -1, crawledAt: -1, _id: -1 });
+  await col.createIndex({ sourceId: 1, date: -1, crawledAt: -1, _id: -1 });
 }
 
 /**
- * Shared pagination query — accepts a pre-built sourceDeptId filter
- * (equality for single dept, $in for multi-dept).
+ * Shared pagination query — accepts a pre-built sourceId filter
+ * (equality for single source, $in for multi-source).
  */
-async function _findNotices(deptFilter, { cursor = null, limit, type } = {}) {
+async function _findNotices(sourceFilter, { cursor = null, limit, type } = {}) {
   const filter = {
-    ...deptFilter,
+    ...sourceFilter,
     isDeleted: { $ne: true },
   };
   if (type) filter.summaryType = type;
@@ -123,36 +123,36 @@ async function _findNotices(deptFilter, { cursor = null, limit, type } = {}) {
 }
 
 /**
- * Paginated list of notices for a single department.
- * @param {string} deptId
+ * Paginated list of notices for a single source.
+ * @param {string} sourceId
  * @param {{cursor?: {d,c,i}|null, limit: number, type?: string}} opts
  * @returns {Promise<{items: object[], nextCursor: string|null, hasMore: boolean}>}
  */
-function findNoticesByDept(deptId, opts) {
-  return _findNotices({ sourceDeptId: deptId }, opts);
+function findNoticesBySource(sourceId, opts) {
+  return _findNotices({ sourceId: sourceId }, opts);
 }
 
 /**
- * Paginated list of notices across multiple departments.
- * Uses the existing (sourceDeptId, date, crawledAt, _id) compound index
- * via $in — MongoDB merge-sorts the per-dept index scans internally.
- * @param {string[]} deptIds
+ * Paginated list of notices across multiple sources.
+ * Uses the existing (sourceId, date, crawledAt, _id) compound index
+ * via $in — MongoDB merge-sorts the per-source index scans internally.
+ * @param {string[]} sourceIds
  * @param {{cursor?: {d,c,i}|null, limit: number, type?: string}} opts
  * @returns {Promise<{items: object[], nextCursor: string|null, hasMore: boolean}>}
  */
-function findNoticesByDepts(deptIds, opts) {
-  return _findNotices({ sourceDeptId: { $in: deptIds } }, opts);
+function findNoticesBySources(sourceIds, opts) {
+  return _findNotices({ sourceId: { $in: sourceIds } }, opts);
 }
 
 /**
  * Detail lookup by composite key.
  * Returns null for missing or soft-deleted notices.
  */
-async function findNoticeByArticleNo(deptId, articleNo) {
+async function findNoticeByArticleNo(sourceId, articleNo) {
   const col = getNoticesCollection();
   return col.findOne(
     {
-      sourceDeptId: deptId,
+      sourceId: sourceId,
       articleNo: Number(articleNo),
       isDeleted: { $ne: true },
     },
@@ -165,7 +165,7 @@ module.exports = {
   DETAIL_PROJECTION,
   getNoticesCollection,
   ensureNoticeIndexes,
-  findNoticesByDept,
-  findNoticesByDepts,
+  findNoticesBySource,
+  findNoticesBySources,
   findNoticeByArticleNo,
 };

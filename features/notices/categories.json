@@ -6,7 +6,7 @@
       "en": "Department"
     },
     "tabMode": "picker",
-    "deptIds": [
+    "sourceIds": [
       "arch",
       "biz-undergrad",
       "biz-grad",
@@ -142,7 +142,7 @@
       "en": "Academic"
     },
     "tabMode": "fixed",
-    "deptId": "skku-notice02"
+    "sourceId": "skku-notice02"
   },
   {
     "id": "scholarship",
@@ -151,7 +151,7 @@
       "en": "Scholarship"
     },
     "tabMode": "fixed",
-    "deptId": "skku-notice06"
+    "sourceId": "skku-notice06"
   },
   {
     "id": "career",
@@ -160,7 +160,7 @@
       "en": "Career"
     },
     "tabMode": "fixed",
-    "deptId": "skku-notice04"
+    "sourceId": "skku-notice04"
   },
   {
     "id": "recruitment",
@@ -169,7 +169,7 @@
       "en": "Recruitment"
     },
     "tabMode": "fixed",
-    "deptId": "skku-notice05"
+    "sourceId": "skku-notice05"
   },
   {
     "id": "event",
@@ -178,7 +178,7 @@
       "en": "Events"
     },
     "tabMode": "fixed",
-    "deptId": "skku-notice07"
+    "sourceId": "skku-notice07"
   },
   {
     "id": "library",
@@ -187,16 +187,23 @@
       "en": "Library"
     },
     "tabMode": "picker",
-    "deptIds": [
+    "sourceIds": [
       "lib-hssc",
       "lib-nsc",
       "lib-all"
     ],
     "maxSelection": 3,
-    "defaultDeptIds": [
-      "lib-hssc",
-      "lib-nsc"
-    ]
+    "defaultIds": [
+      "lib-all"
+    ],
+    "campusDefaultIds": {
+      "hssc": [
+        "lib-hssc"
+      ],
+      "nsc": [
+        "lib-nsc"
+      ]
+    }
   },
   {
     "id": "dorm",
@@ -205,11 +212,20 @@
       "en": "Dormitory"
     },
     "tabMode": "picker",
-    "deptIds": [
+    "sourceIds": [
       "dorm-hssc",
       "dorm-nsc"
     ],
-    "maxSelection": 2
+    "maxSelection": 2,
+    "defaultIds": [],
+    "campusDefaultIds": {
+      "hssc": [
+        "dorm-hssc"
+      ],
+      "nsc": [
+        "dorm-nsc"
+      ]
+    }
   },
   {
     "id": "general",
@@ -218,7 +234,7 @@
       "en": "General"
     },
     "tabMode": "picker",
-    "deptIds": [
+    "sourceIds": [
       "health",
       "ccrf",
       "saint",

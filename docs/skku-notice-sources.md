@@ -272,7 +272,7 @@
 
 ## 크롤러 구현 상태 (2026-03-29)
 
-`skku-notice-crawler` 프로젝트의 `departments.json`에 등록된 소스 현황.
+`skku-notice-crawler` 프로젝트의 `sources.json`에 등록된 소스 현황.
 
 ### 요약
 

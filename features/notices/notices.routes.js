@@ -3,8 +3,8 @@ const router = express.Router();
 const axios = require("axios");
 const asyncHandler = require("../../lib/asyncHandler");
 const {
-  findNoticesByDept,
-  findNoticesByDepts,
+  findNoticesBySource,
+  findNoticesBySources,
   findNoticeByArticleNo,
 } = require("./notices.data");
 const {
@@ -13,11 +13,11 @@ const {
   VALID_SUMMARY_TYPES,
 } = require("./notices.transform");
 const { decodeCursor, InvalidCursorError } = require("./notices.cursor");
-const departments = require("./departments");
+const sources = require("./sources");
 const tabConfig = require("./tabConfig");
 
-// Route order matters: `/tabs` and `/dept/:deptId` must appear BEFORE
-// the catch-all `/:deptId/:articleNo`, otherwise the dynamic pattern shadows
+// Route order matters: `/tabs` and `/source/:sourceId` must appear BEFORE
+// the catch-all `/:sourceId/:articleNo`, otherwise the dynamic pattern shadows
 // them.
 
 // GET /notices/tabs — server-driven tab configuration
@@ -30,16 +30,16 @@ router.get(
   })
 );
 
-// GET /notices/dept/:deptId
+// GET /notices/source/:sourceId
 router.get(
-  "/dept/:deptId",
+  "/source/:sourceId",
   asyncHandler(async (req, res) => {
-    const { deptId } = req.params;
-    if (!departments.map.has(deptId)) {
+    const { sourceId } = req.params;
+    if (!sources.map.has(sourceId)) {
       return res.error(
         400,
-        "INVALID_DEPT_ID",
-        `unknown deptId: ${deptId}`
+        "INVALID_SOURCE_ID",
+        `unknown sourceId: ${sourceId}`
       );
     }
 
@@ -70,7 +70,7 @@ router.get(
       }
     }
 
-    const { items, nextCursor, hasMore } = await findNoticesByDept(deptId, {
+    const { items, nextCursor, hasMore } = await findNoticesBySource(sourceId, {
       cursor,
       limit,
       type,
@@ -87,12 +87,12 @@ router.get(
   })
 );
 
-// GET /notices?deptIds=cs,sw&limit=20&type=…&cursor=…
-// Multi-department merged list — uses the existing compound index via $in.
+// GET /notices?sourceIds=cs,sw&limit=20&type=…&cursor=…
+// Multi-source merged list — uses the existing compound index via $in.
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const rawIds = (req.query.deptIds || "")
+    const rawIds = (req.query.sourceIds || "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
@@ -100,12 +100,12 @@ router.get(
       return res.error(
         400,
         "INVALID_PARAMS",
-        "deptIds: 1-5 comma-separated department IDs required"
+        "sourceIds: 1-5 comma-separated source IDs required"
       );
     }
     for (const id of rawIds) {
-      if (!departments.map.has(id)) {
-        return res.error(400, "INVALID_DEPT_ID", `unknown deptId: ${id}`);
+      if (!sources.map.has(id)) {
+        return res.error(400, "INVALID_SOURCE_ID", `unknown sourceId: ${id}`);
       }
     }
 
@@ -136,7 +136,7 @@ router.get(
       }
     }
 
-    const { items, nextCursor, hasMore } = await findNoticesByDepts(rawIds, {
+    const { items, nextCursor, hasMore } = await findNoticesBySources(rawIds, {
       cursor,
       limit,
       type,
@@ -336,22 +336,22 @@ router.get(
   })
 );
 
-// GET /notices/:deptId/:articleNo
+// GET /notices/:sourceId/:articleNo
 router.get(
-  "/:deptId/:articleNo",
+  "/:sourceId/:articleNo",
   asyncHandler(async (req, res) => {
-    const { deptId, articleNo } = req.params;
-    if (!departments.map.has(deptId)) {
+    const { sourceId, articleNo } = req.params;
+    if (!sources.map.has(sourceId)) {
       return res.error(
         400,
-        "INVALID_DEPT_ID",
-        `unknown deptId: ${deptId}`
+        "INVALID_SOURCE_ID",
+        `unknown sourceId: ${sourceId}`
       );
     }
     if (!/^\d+$/.test(articleNo)) {
       return res.error(400, "INVALID_PARAMS", "articleNo must be numeric");
     }
-    const doc = await findNoticeByArticleNo(deptId, Number(articleNo));
+    const doc = await findNoticeByArticleNo(sourceId, Number(articleNo));
     if (!doc) {
       return res.error(404, "NOT_FOUND", "notice not found");
     }

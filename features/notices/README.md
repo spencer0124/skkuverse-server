@@ -4,16 +4,16 @@ Read-only API for SKKU department notices. This server does **not** crawl
 or summarize — writes are owned by:
 
 - `skkuverse-crawler` (Python) — writes notice documents, owns the
-  `articleNo_1_sourceDeptId_1` unique index.
+  `articleNo_1_sourceId_1` unique index.
 - `skkuverse-ai` / `notices_summary` processor — writes `summary*` fields.
 
 The server only:
 
 1. Serves paginated lists and details to the app.
 2. Creates the read-optimization compound index
-   `{sourceDeptId:1, date:-1, crawledAt:-1, _id:-1}` at startup so list
+   `{sourceId:1, date:-1, crawledAt:-1, _id:-1}` at startup so list
    queries stay index-covered.
-3. Owns `departments.json`, a vendored + enriched copy of the crawler's
+3. Owns `sources.json`, a vendored + enriched copy of the crawler's
    department list with UX-only fields (`campus`, `category`, `hasCategory`,
    `hasAuthor`).
 
@@ -22,7 +22,7 @@ The server only:
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/notices/departments` | Full 144-entry list + sha256 `version` + ETag. Client compares against its bundled fallback. |
-| GET | `/notices/dept/:deptId` | Paginated list. Query: `cursor`, `limit` (1–50, default 20), `type` (`action_required` \| `event` \| `informational`). |
+| GET | `/notices/source/:sourceId` | Paginated list. Query: `cursor`, `limit` (1–50, default 20), `type` (`action_required` \| `event` \| `informational`). |
 | GET | `/notices/:deptId/:articleNo` | Detail view including `contentMarkdown`, attachments, full summary block, and edit history. |
 
 All routes are behind `verifyToken` (optional Firebase ID token) + a
@@ -36,10 +36,10 @@ Consistent with the rest of the server:
 // success
 { "meta": { "lang": "ko", "count": 20 }, "data": { ... } }
 // error
-{ "error": { "code": "INVALID_DEPT_ID", "message": "..." } }
+{ "error": { "code": "INVALID_SOURCE_ID", "message": "..." } }
 ```
 
-Error codes: `INVALID_DEPT_ID`, `INVALID_PARAMS`, `INVALID_CURSOR`,
+Error codes: `INVALID_SOURCE_ID`, `INVALID_PARAMS`, `INVALID_CURSOR`,
 `NOT_FOUND`, `RATE_LIMIT`, `AUTH_INVALID`.
 
 ## Cursor format
@@ -76,10 +76,10 @@ this directly to a native markdown renderer.
 markdown path — clients that still need raw HTML must go through the
 crawler directly.
 
-## `departments.json` maintenance
+## `sources.json` maintenance
 
 Scaffolded at implementation time from
-`skkuverse-crawler/py/src/skkuverse_crawler/notices/config/departments.json`
+`skkuverse-crawler/py/src/skkuverse_crawler/notices/config/sources.json`
 (144 entries). The strategy → flag matrix:
 
 | strategy | hasCategory | hasAuthor |
@@ -112,5 +112,5 @@ will get the fresh list on their next `If-None-Match` round-trip.
   `normalizeSummaryType` + summary brief/full builders
 - `notices.cursor.js` — `encodeCursor` / `decodeCursor` / `buildCursorFilter`
   + `InvalidCursorError`
-- `departments.json` — 144 entries (vendored + enriched)
-- `departments.js` — loader with freeze + sha256 version + Map lookup
+- `sources.json` — 144 entries (vendored + enriched)
+- `sources.js` — loader with freeze + sha256 version + Map lookup

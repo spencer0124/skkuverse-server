@@ -13,7 +13,7 @@ const {
 function makeDoc(overrides = {}) {
   return {
     _id: new ObjectId("66a1b2c3d4e5f6a7b8c9d0e1"),
-    sourceDeptId: "skku-main",
+    sourceId: "skku-main",
     articleNo: 136023,
     department: "학부통합(학사)",
     title: "[모집] 테스트 공지",
@@ -472,7 +472,7 @@ describe("toListItem", () => {
     const doc = makeDoc({ contentHash: "h1", attachments: [{ name: "a", url: "u" }], editCount: 2 });
     const item = toListItem(doc);
     expect(item.id).toBe("66a1b2c3d4e5f6a7b8c9d0e1");
-    expect(item.deptId).toBe("skku-main");
+    expect(item.sourceId).toBe("skku-main");
     expect(item.articleNo).toBe(136023);
     expect(item.hasContent).toBe(true);
     expect(item.hasAttachments).toBe(true);

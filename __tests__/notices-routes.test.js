@@ -22,11 +22,11 @@ jest.mock("../features/ad/ad.data", () => ({
 }));
 
 // Mock the notices.data layer
-const mockFindByDept = jest.fn();
+const mockFindBySource = jest.fn();
 const mockFindByArticleNo = jest.fn();
 jest.mock("../features/notices/notices.data", () => ({
   ensureNoticeIndexes: jest.fn().mockResolvedValue(),
-  findNoticesByDept: (...args) => mockFindByDept(...args),
+  findNoticesBySource: (...args) => mockFindBySource(...args),
   findNoticeByArticleNo: (...args) => mockFindByArticleNo(...args),
 }));
 
@@ -38,7 +38,7 @@ const { encodeCursor } = require("../features/notices/notices.cursor");
 function rawDoc(overrides = {}) {
   return {
     _id: new ObjectId("66a1b2c3d4e5f6a7b8c9d0e1"),
-    sourceDeptId: "skku-main",
+    sourceId: "skku-main",
     articleNo: 136023,
     department: "학부통합(학사)",
     title: "[모집] 테스트",
@@ -91,35 +91,35 @@ describe("GET /notices/tabs", () => {
     expect(deptTab.label).toBe("Department");
   });
 
-  it("fixed tabs have tagged payload with deptId, name, campus", async () => {
+  it("fixed tabs have tagged payload with sourceId, name, campus", async () => {
     const res = await request(app).get("/notices/tabs");
     const academic = res.body.data.tabs.find((t) => t.key === "academic");
     expect(academic.tabMode).toBe("fixed");
     expect(academic.fixed).toBeDefined();
-    expect(academic.fixed.deptId).toBe("skku-notice02");
+    expect(academic.fixed.sourceId).toBe("skku-notice02");
     expect(typeof academic.fixed.name).toBe("string");
     expect(academic.fixed).toHaveProperty("campus");
     expect(academic).not.toHaveProperty("picker");
   });
 
-  it("picker tabs have tagged payload with departments, maxSelection, defaultDeptIds", async () => {
+  it("picker tabs have tagged payload with sources, maxSelection, defaultIds", async () => {
     const res = await request(app).get("/notices/tabs");
     const library = res.body.data.tabs.find((t) => t.key === "library");
     expect(library.tabMode).toBe("picker");
     expect(library.picker).toBeDefined();
-    expect(Array.isArray(library.picker.departments)).toBe(true);
-    expect(library.picker.departments.length).toBeGreaterThan(0);
+    expect(Array.isArray(library.picker.sources)).toBe(true);
+    expect(library.picker.sources.length).toBeGreaterThan(0);
     expect(typeof library.picker.maxSelection).toBe("number");
     expect(library.picker.maxSelection).toBeGreaterThanOrEqual(1);
-    expect(library.picker.maxSelection).toBeLessThanOrEqual(library.picker.departments.length);
-    expect(Array.isArray(library.picker.defaultDeptIds)).toBe(true);
+    expect(library.picker.maxSelection).toBeLessThanOrEqual(library.picker.sources.length);
+    expect(Array.isArray(library.picker.defaultIds)).toBe(true);
     expect(library).not.toHaveProperty("fixed");
   });
 
-  it("picker department entries have id, name, campus", async () => {
+  it("picker source entries have id, name, campus", async () => {
     const res = await request(app).get("/notices/tabs");
     const deptTab = res.body.data.tabs.find((t) => t.key === "dept");
-    const first = deptTab.picker.departments[0];
+    const first = deptTab.picker.sources[0];
     expect(first).toHaveProperty("id");
     expect(first).toHaveProperty("name");
     expect(first).toHaveProperty("campus");
@@ -141,28 +141,28 @@ describe("GET /notices/tabs", () => {
   });
 });
 
-describe("GET /notices/dept/:deptId", () => {
-  it("returns 400 INVALID_DEPT_ID for unknown dept (no DB hit)", async () => {
-    const res = await request(app).get("/notices/dept/nope-not-real");
+describe("GET /notices/source/:sourceId", () => {
+  it("returns 400 INVALID_SOURCE_ID for unknown source (no DB hit)", async () => {
+    const res = await request(app).get("/notices/source/nope-not-real");
     expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe("INVALID_DEPT_ID");
-    expect(mockFindByDept).not.toHaveBeenCalled();
+    expect(res.body.error.code).toBe("INVALID_SOURCE_ID");
+    expect(mockFindBySource).not.toHaveBeenCalled();
   });
 
   it("returns 400 INVALID_PARAMS for unknown type", async () => {
-    const res = await request(app).get("/notices/dept/skku-main?type=bogus");
+    const res = await request(app).get("/notices/source/skku-main?type=bogus");
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("INVALID_PARAMS");
   });
 
   it("returns 400 INVALID_CURSOR for malformed cursor", async () => {
-    const res = await request(app).get("/notices/dept/skku-main?cursor=!!!");
+    const res = await request(app).get("/notices/source/skku-main?cursor=!!!");
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("INVALID_CURSOR");
   });
 
   it("maps docs through toListItem and never leaks content/cleanHtml/cleanMarkdown/contentText", async () => {
-    mockFindByDept.mockResolvedValue({
+    mockFindBySource.mockResolvedValue({
       items: [
         rawDoc({
           content: "<p>x</p>",
@@ -174,7 +174,7 @@ describe("GET /notices/dept/:deptId", () => {
       nextCursor: null,
       hasMore: false,
     });
-    const res = await request(app).get("/notices/dept/skku-main");
+    const res = await request(app).get("/notices/source/skku-main");
     expect(res.status).toBe(200);
     expect(res.body.data.notices).toHaveLength(1);
     const item = res.body.data.notices[0];
@@ -185,7 +185,7 @@ describe("GET /notices/dept/:deptId", () => {
     expect(item).not.toHaveProperty("contentHtml"); // list-specific invariant
     expect(item).not.toHaveProperty("contentMarkdown"); // list-specific invariant
     expect(item.hasContent).toBe(true);
-    expect(item.deptId).toBe("skku-main");
+    expect(item.sourceId).toBe("skku-main");
     expect(res.body.data.hasMore).toBe(false);
     expect(res.body.data.nextCursor).toBeNull();
   });
@@ -198,7 +198,7 @@ describe("GET /notices/dept/:deptId", () => {
     // `items.map(toListItem)` is called bare, Array.prototype.map passes
     // the index (0, 1, …) as the 2nd argument, which shadows `now`
     // with a number and crashes with TypeError at `now.getTime()`.
-    mockFindByDept.mockResolvedValue({
+    mockFindBySource.mockResolvedValue({
       items: [
         rawDoc({
           _id: new ObjectId("66a1b2c3d4e5f6a7b8c9d0e1"),
@@ -226,7 +226,7 @@ describe("GET /notices/dept/:deptId", () => {
       nextCursor: null,
       hasMore: false,
     });
-    const res = await request(app).get("/notices/dept/skku-main");
+    const res = await request(app).get("/notices/source/skku-main");
     expect(res.status).toBe(200);
     expect(res.body.data.notices).toHaveLength(2);
     expect(res.body.data.notices[1].summary).toEqual({
@@ -238,39 +238,39 @@ describe("GET /notices/dept/:deptId", () => {
   });
 
   it("clamps limit to 1..50 range", async () => {
-    mockFindByDept.mockResolvedValue({ items: [], nextCursor: null, hasMore: false });
-    await request(app).get("/notices/dept/skku-main?limit=999");
-    expect(mockFindByDept).toHaveBeenCalledWith(
+    mockFindBySource.mockResolvedValue({ items: [], nextCursor: null, hasMore: false });
+    await request(app).get("/notices/source/skku-main?limit=999");
+    expect(mockFindBySource).toHaveBeenCalledWith(
       "skku-main",
       expect.objectContaining({ limit: 50 })
     );
 
-    mockFindByDept.mockClear();
-    await request(app).get("/notices/dept/skku-main?limit=0");
-    expect(mockFindByDept).toHaveBeenCalledWith(
+    mockFindBySource.mockClear();
+    await request(app).get("/notices/source/skku-main?limit=0");
+    expect(mockFindBySource).toHaveBeenCalledWith(
       "skku-main",
       expect.objectContaining({ limit: 1 })
     );
   });
 
   it("default limit is 20 when not provided", async () => {
-    mockFindByDept.mockResolvedValue({ items: [], nextCursor: null, hasMore: false });
-    await request(app).get("/notices/dept/skku-main");
-    expect(mockFindByDept).toHaveBeenCalledWith(
+    mockFindBySource.mockResolvedValue({ items: [], nextCursor: null, hasMore: false });
+    await request(app).get("/notices/source/skku-main");
+    expect(mockFindBySource).toHaveBeenCalledWith(
       "skku-main",
       expect.objectContaining({ limit: 20 })
     );
   });
 
   it("forwards a valid cursor as a decoded object to the data layer", async () => {
-    mockFindByDept.mockResolvedValue({ items: [], nextCursor: null, hasMore: false });
+    mockFindBySource.mockResolvedValue({ items: [], nextCursor: null, hasMore: false });
     const cursor = encodeCursor({
       d: "2026-04-01",
       c: "2026-04-01T00:00:00.000Z",
       i: "66a1b2c3d4e5f6a7b8c9d0e1",
     });
-    await request(app).get(`/notices/dept/skku-main?cursor=${cursor}`);
-    const callArgs = mockFindByDept.mock.calls[0][1];
+    await request(app).get(`/notices/source/skku-main?cursor=${cursor}`);
+    const callArgs = mockFindBySource.mock.calls[0][1];
     expect(callArgs.cursor).toEqual({
       d: "2026-04-01",
       c: "2026-04-01T00:00:00.000Z",
@@ -279,20 +279,20 @@ describe("GET /notices/dept/:deptId", () => {
   });
 
   it("forwards type filter", async () => {
-    mockFindByDept.mockResolvedValue({ items: [], nextCursor: null, hasMore: false });
-    await request(app).get("/notices/dept/skku-main?type=action_required");
-    expect(mockFindByDept).toHaveBeenCalledWith(
+    mockFindBySource.mockResolvedValue({ items: [], nextCursor: null, hasMore: false });
+    await request(app).get("/notices/source/skku-main?type=action_required");
+    expect(mockFindBySource).toHaveBeenCalledWith(
       "skku-main",
       expect.objectContaining({ type: "action_required" })
     );
   });
 });
 
-describe("GET /notices/:deptId/:articleNo", () => {
-  it("returns 400 INVALID_DEPT_ID for unknown dept", async () => {
+describe("GET /notices/:sourceId/:articleNo", () => {
+  it("returns 400 INVALID_SOURCE_ID for unknown source", async () => {
     const res = await request(app).get("/notices/nope/12345");
     expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe("INVALID_DEPT_ID");
+    expect(res.body.error.code).toBe("INVALID_SOURCE_ID");
   });
 
   it("returns 400 INVALID_PARAMS for non-numeric articleNo", async () => {
@@ -336,8 +336,8 @@ describe("GET /notices/:deptId/:articleNo", () => {
 });
 
 describe("route ordering", () => {
-  it("/tabs is NOT treated as a deptId", async () => {
-    // If routing were wrong, this would hit /:deptId/:articleNo handler and 400.
+  it("/tabs is NOT treated as a sourceId", async () => {
+    // If routing were wrong, this would hit /:sourceId/:articleNo handler and 400.
     const res = await request(app).get("/notices/tabs");
     expect(res.status).toBe(200);
     expect(res.body.data.tabs).toBeDefined();

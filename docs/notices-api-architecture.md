@@ -34,7 +34,7 @@
 | 4 | 크롤러/요약기가 DB에 계속 필드를 추가할 수 있음 | 서버가 exclusion projection을 쓰면 새 내부 필드가 자동 노출됨. |
 | 5 | AI가 만드는 `summaryType`이 언젠가 확장될 수 있음 | 프롬프트가 변해 `"meeting"` 같은 새 값이 나오면 기존 앱이 깨질 수 있음. |
 | 6 | 크롤러가 쓰는 인덱스와 서버가 필요한 인덱스가 겹침 | 중복 생성 시 `IndexOptionsConflict`, 소유권 불명확. |
-| 7 | `departments.json` 같은 UX 메타는 크롤러 관심사가 아님 | 크롤러는 selector만 알고 "명륜/율전" 같은 에디토리얼 그룹핑은 모름. |
+| 7 | `sources.json` 같은 UX 메타는 크롤러 관심사가 아님 | 크롤러는 selector만 알고 "명륜/율전" 같은 에디토리얼 그룹핑은 모름. |
 | 8 | 공유 IP 환경에서 rate limit | IP 기반 limit은 캠퍼스 공용 와이파이에서 전체가 한 유저처럼 취급됨. |
 | 9 | 본문 HTML XSS 위험 | 크롤링한 HTML을 그대로 뿌리면 XSS 가능. 어디서 sanitize할지 책임 경계가 중요. |
 | 10 | 커서가 stale해질 수 있음 | 필터(`type`)를 바꾸면 예전 커서는 의미가 달라짐. |
@@ -49,7 +49,7 @@
               │ skkuverse-crawler  │  (Python, 배치 주기 실행)
               │  - 공지 크롤       │
               │  - content nh3     │
-              │  - unique index    │ articleNo_1_sourceDeptId_1
+              │  - unique index    │ articleNo_1_sourceId_1
               └─────────┬──────────┘
                         │ write notices
                         ▼
@@ -69,7 +69,7 @@
                                           │  routes → data → col    │
                                           │                        │
                                           │ ensureNoticeIndexes:    │
-                                          │  sourceDeptId, date,    │
+                                          │  sourceId, date,    │
                                           │  crawledAt, _id          │
                                           └────────▲───────────────┘
                                                    │
@@ -103,7 +103,7 @@
 
 **문제:** 원래 생각은 `(date, crawledAt)` 두 개로 tiebreak. 그런데 크롤러가 `insert_many`로 배치 삽입하면 같은 millisecond에 수십 개가 동일한 `crawledAt`을 가질 수 있다. 이 상황에서 두 개 튜플만으로는 커서 경계가 모호해 **페이지 경계에서 중복·스킵**이 발생한다.
 
-**결정:** 커서에 `_id` ObjectId를 세 번째 키로 포함. 인덱스도 `{sourceDeptId:1, date:-1, crawledAt:-1, _id:-1}` 네 키로 구성. 이유:
+**결정:** 커서에 `_id` ObjectId를 세 번째 키로 포함. 인덱스도 `{sourceId:1, date:-1, crawledAt:-1, _id:-1}` 네 키로 구성. 이유:
 
 - `_id`는 배치 내부에서도 고유하므로 tiebreak 100% 보장.
 - 인덱스 suffix에 명시되어 있으면 Mongo가 `sort({date:-1, crawledAt:-1, _id:-1})` 를 **`SORT` 스테이지 없이 `IXSCAN`만으로 처리**. `limit(limit+1)` fetch가 진짜 O(limit).
@@ -128,7 +128,7 @@
 
 ```js
 {
-  sourceDeptId: deptId,
+  sourceId: deptId,
   isDeleted: { $ne: true },
   summaryType: type,  // optional
   $and: [
@@ -146,7 +146,7 @@
 
 ```js
 const LIST_PROJECTION = Object.freeze({
-  _id: 1, sourceDeptId: 1, articleNo: 1, title: 1, ...
+  _id: 1, sourceId: 1, articleNo: 1, title: 1, ...
   // content, cleanHtml, cleanMarkdown, contentText 의도적으로 제외
 });
 ```
@@ -196,11 +196,11 @@ const LIST_PROJECTION = Object.freeze({
 
 ### 3.9 인덱스 소유권 분리: 서버는 read-only 인덱스만 만든다
 
-**문제:** 크롤러가 `articleNo_1_sourceDeptId_1` unique 인덱스를 이미 만든다. 서버도 동일한 인덱스를 `createIndex`하면 `IndexOptionsConflict` 발생 가능. 또 소유권이 불명확해짐 — 크롤러가 삭제하면 서버가 다시 만들어 쓰기 성능을 망칠 수도.
+**문제:** 크롤러가 `articleNo_1_sourceId_1` unique 인덱스를 이미 만든다. 서버도 동일한 인덱스를 `createIndex`하면 `IndexOptionsConflict` 발생 가능. 또 소유권이 불명확해짐 — 크롤러가 삭제하면 서버가 다시 만들어 쓰기 성능을 망칠 수도.
 
 **결정:**
 - 크롤러가 만드는 unique 인덱스는 **서버가 건드리지 않는다**. 상세 조회(`findOne`)는 이 기존 인덱스를 그대로 히트.
-- 서버가 만드는 건 **리스트 전용** 복합 인덱스 `sourceDeptId_1_date_-1_crawledAt_-1__id_-1` 하나뿐.
+- 서버가 만드는 건 **리스트 전용** 복합 인덱스 `sourceId_1_date_-1_crawledAt_-1__id_-1` 하나뿐.
 - startup에 `ensureNoticeIndexes()`를 idempotent하게 호출. `createIndex`는 이미 있으면 no-op.
 
 ### 3.10 Startup 인덱스 생성 실패 시 3회 재시도 + `logger.error`
@@ -228,17 +228,17 @@ const LIST_PROJECTION = Object.freeze({
 
 **왜 중요한가:** 기존 합의된 보안 모델을 재사용했기 때문에 별도의 보안 검토가 필요 없음. "다른 거 한 것처럼"이라는 사용자 요구사항을 정확히 반영.
 
-### 3.12 `departments.json` 서버 소유 + sha256 version
+### 3.12 `sources.json` 서버 소유 + sha256 version
 
-**문제:** 크롤러에도 `departments.json`이 있다. 그런데 크롤러의 파일은 selector 설정용이라 `campus`(명륜/율전), `category`(대학공통/단과대학/기숙사) 같은 **UX 에디토리얼 메타**가 없다. 누가 이걸 관리하나?
+**문제:** 크롤러에도 `sources.json`이 있다. 그런데 크롤러의 파일은 selector 설정용이라 `campus`(명륜/율전), `category`(대학공통/단과대학/기숙사) 같은 **UX 에디토리얼 메타**가 없다. 누가 이걸 관리하나?
 
 **결정:**
-- 서버가 별도 `features/notices/departments.json`을 vendor.
+- 서버가 별도 `features/notices/sources.json`을 vendor.
 - 크롤러 config에서 `id`, `name`을 그대로 복사.
 - `strategy` 값으로부터 `hasCategory`/`hasAuthor`를 자동 유도 (jq 스크립트 1회 실행).
 - `campus`/`category`는 scaffold 시 `null`. 이후 수동으로 편집하며 점진 개선.
-- `departments.js` loader가 파일을 읽어 **sha256 version hash**를 startup에 한 번 계산. `{list, version, map}`으로 export.
-- 클라이언트는 `/notices/departments` 응답의 `version` 필드를 자신의 번들 fallback 버전과 비교해 교체 여부 판단 가능.
+- `sources.js` loader가 파일을 읽어 **sha256 version hash**를 startup에 한 번 계산. `{list, version, map}`으로 export.
+- 클라이언트는 `/notices/sources` 응답의 `version` 필드를 자신의 번들 fallback 버전과 비교해 교체 여부 판단 가능.
 - ETag 헤더로 변경 없을 때 304.
 
 **부수 효과:** `campus`/`category`를 나중에 채워도 **앱 재배포 불필요**. 서버 JSON 파일만 수정 → 다음 요청에서 version 해시 바뀜 → 앱이 자동으로 새 그룹핑 메타 받음.
@@ -367,7 +367,7 @@ After:  pre-deploy dry-load 2초 → non-zero exit → git revert → exit 1
 
 ### 4.1 `GET /notices/tabs` *(2026-04-15 추가)*
 
-서버 기반 탭 구성. 앱의 공지 탭 UI를 이 응답으로 렌더링한다. `categories.json` + `departments.json`을 조합하여 반환.
+서버 기반 탭 구성. 앱의 공지 탭 UI를 이 응답으로 렌더링한다. `categories.json` + `sources.json`을 조합하여 반환.
 
 - `Cache-Control: private, max-age=3600`
 - `Accept-Language`에 따라 `label` 로컬라이즈 (ko/en, zh → en fallback)
@@ -403,9 +403,9 @@ After:  pre-deploy dry-load 2초 → non-zero exit → git revert → exit 1
 }
 ```
 
-> ~~`GET /notices/departments`~~: 2026-04-15 삭제. 학과 목록은 `/notices/tabs`의 picker 탭 `departments` 배열에 포함.
+> ~~`GET /notices/sources`~~: 2026-04-15 삭제. 학과 목록은 `/notices/tabs`의 picker 탭 `departments` 배열에 포함.
 
-### 4.2 `GET /notices/dept/:deptId`
+### 4.2 `GET /notices/source/:sourceId`
 
 쿼리: `cursor` (base64url), `limit` (1~50, default 20), `type` (optional: `action_required | event | informational`).
 
@@ -479,7 +479,7 @@ After:  pre-deploy dry-load 2초 → non-zero exit → git revert → exit 1
 
 | HTTP | code | 상황 |
 |---|---|---|
-| 400 | `INVALID_DEPT_ID` | `departments.json`에 없는 deptId |
+| 400 | `INVALID_SOURCE_ID` | `sources.json`에 없는 deptId |
 | 400 | `INVALID_PARAMS` | articleNo 숫자 아님, limit 범위 초과, 알 수 없는 type |
 | 400 | `INVALID_CURSOR` | base64url 디코딩·JSON 파싱·shape 검증 실패 |
 | 401 | `AUTH_INVALID` | 토큰 검증 실패 (optional auth — 토큰 없으면 401 아님) |
@@ -496,8 +496,8 @@ features/notices/
 ├── notices.data.js        # DB access, ensureNoticeIndexes, projections
 ├── notices.transform.js   # pure toListItem/toDetailItem, summary brief/full
 ├── notices.cursor.js      # encode/decode/buildCursorFilter + InvalidCursorError
-├── departments.json       # 147 entries, SSOT from skkuverse-crawler
-├── departments.js         # loader + sha256 version + Map
+├── sources.json       # 147 entries, SSOT from skkuverse-crawler
+├── sources.js         # loader + sha256 version + Map
 ├── categories.json        # 9 tab definitions, SSOT from skkuverse-crawler
 ├── tabConfig.js           # tab config loader + startup validation + pre-computed responses
 └── README.md              # maintenance guide
@@ -536,7 +536,7 @@ jest.config.js         # + setupFiles: ["<rootDir>/jest.setup.js"]
 
 1. `notices.transform.js` — 순수 함수. Mongo 의존성 없음. 28개 테스트 먼저 → 구현. 100% statement coverage.
 2. `notices.cursor.js` — 순수 함수. ObjectId만 Mongo 의존. 13개 테스트 먼저 → 구현.
-3. `departments.js` — 파일 로드 + 해시 계산. 10개 테스트.
+3. `sources.js` — 파일 로드 + 해시 계산. 10개 테스트.
 4. `notices.data.js` — Mongo chain mock (`find().sort().limit().toArray()`). 15개 테스트. 100% coverage.
 5. `notices.routes.js` — supertest + `lib/db`·`lib/firebase`·`features/notices/notices.data` 전부 mock. 17개 테스트. Express app 전체 startup 경로까지 커버.
 
@@ -554,7 +554,7 @@ jest.config.js         # + setupFiles: ["<rootDir>/jest.setup.js"]
 
 구현하지 않았지만 운영 중 필요해질 수 있는 것들:
 
-1. **전체 최신순 피드** (`/notices/feed`) — 학과 무관 최신순. 별도 `{date:-1, crawledAt:-1, _id:-1}` 인덱스 필요 (sourceDeptId 제외).
+1. **전체 최신순 피드** (`/notices/feed`) — 학과 무관 최신순. 별도 `{date:-1, crawledAt:-1, _id:-1}` 인덱스 필요 (sourceId 제외).
 2. **검색** (`/notices/search?q=...`) — `title`, `contentText`에 text 인덱스 필요. 한국어 tokenization 고려.
 3. **구독 알림** — 사용자별 구독 학과 정보를 서버에서 관리하고 새 공지 발행 시 FCM push. 크롤러와 이벤트 버스로 연결해야 함.
 4. **`campus`/`category` 채우기** — 현재 144개 모두 null. 2박3일 정도 들여 학사 규정 확인하며 채워야 할 수 동 작업.
@@ -570,16 +570,16 @@ jest.config.js         # + setupFiles: ["<rootDir>/jest.setup.js"]
 - [x] `npm run lint` — 0 errors
 - [x] `npm test` — 전체 389/389 green
 - [x] `npm run swagger` — 3개 라우트 자동 등록
-- [x] 실서버 기동 → `GET /notices/departments` 144개 + version
-- [x] `GET /notices/dept/skku-main?limit=2` + `cursor` round-trip 페이지네이션 동작
+- [x] 실서버 기동 → `GET /notices/sources` 144개 + version
+- [x] `GET /notices/source/skku-main?limit=2` + `cursor` round-trip 페이지네이션 동작
 - [x] `GET /notices/:deptId/:articleNo` 실제 문서 상세 반환, `contentMarkdown` 존재 (legacy HTML/text 필드 미노출)
 - [x] 존재하지 않는 `articleNo` → 404
 - [x] 알 수 없는 `deptId` → 400 (DB 호출 없이 즉시)
 - [x] 알 수 없는 `type` → 400
 - [x] 깨진 `cursor` → 400
 - [x] ETag `If-None-Match` → 304
-- [x] MongoDB MCP로 `sourceDeptId_1_date_-1_crawledAt_-1__id_-1` 인덱스 실제 생성 확인
-- [x] 크롤러 소유 `articleNo_1_sourceDeptId_1` 인덱스 그대로 유지 (건드리지 않음)
+- [x] MongoDB MCP로 `sourceId_1_date_-1_crawledAt_-1__id_-1` 인덱스 실제 생성 확인
+- [x] 크롤러 소유 `articleNo_1_sourceId_1` 인덱스 그대로 유지 (건드리지 않음)
 
 ---
 
@@ -624,7 +624,7 @@ jest.config.js         # + setupFiles: ["<rootDir>/jest.setup.js"]
 | 07:07 | VM git state 정리: `detached HEAD 2b836e5` → `git checkout main && git pull` → `337a666` |
 | 07:08 | `gh run rerun 24230429834 --failed` |
 | 07:09 | **deploy GREEN (48초)**, 프로덕션에 notices 엔드포인트 live |
-| 07:10 | smoke test 통과: `/health/ready`, `/notices/departments` (144), `/notices/dept/skku-main` (페이지네이션) |
+| 07:10 | smoke test 통과: `/health/ready`, `/notices/sources` (144), `/notices/source/skku-main` (페이지네이션) |
 | 07:42 | PR #44 (strict config) merge → deploy 53초 success |
 | 07:53 | PR #45 (pre-deploy validation) merge → deploy 1분1초 success (새 validation step 첫 실행) |
 

@@ -720,12 +720,12 @@
         }
       }
     },
-    "/notices/dept/{deptId}": {
+    "/notices/source/{sourceId}": {
       "get": {
         "description": "",
         "parameters": [
           {
-            "name": "deptId",
+            "name": "sourceId",
             "in": "path",
             "required": true,
             "schema": {
@@ -768,12 +768,12 @@
         }
       }
     },
-    "/notices/{deptId}/{articleNo}": {
+    "/notices/{sourceId}/{articleNo}": {
       "get": {
         "description": "",
         "parameters": [
           {
-            "name": "deptId",
+            "name": "sourceId",
             "in": "path",
             "required": true,
             "schema": {

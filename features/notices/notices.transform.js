@@ -121,7 +121,7 @@ function buildSummaryFull(doc) {
 function toListItem(doc, now = new Date()) {
   return {
     id: doc._id.toHexString(),
-    deptId: doc.sourceDeptId,
+    sourceId: doc.sourceId,
     articleNo: doc.articleNo,
     title: doc.title,
     category: doc.category || null,
@@ -140,7 +140,7 @@ function toListItem(doc, now = new Date()) {
 function toDetailItem(doc) {
   return {
     id: doc._id.toHexString(),
-    deptId: doc.sourceDeptId,
+    sourceId: doc.sourceId,
     articleNo: doc.articleNo,
     title: doc.title,
     category: doc.category || null,
