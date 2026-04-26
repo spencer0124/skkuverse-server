@@ -13,6 +13,7 @@ const {
   VALID_SUMMARY_TYPES,
 } = require("./notices.transform");
 const { decodeCursor, InvalidCursorError } = require("./notices.cursor");
+const { validateQ } = require("./notices.search");
 const sources = require("./sources");
 const tabConfig = require("./tabConfig");
 
@@ -70,11 +71,17 @@ router.get(
       }
     }
 
-    const { items, nextCursor, hasMore } = await findNoticesBySource(sourceId, {
-      cursor,
-      limit,
-      type,
-    });
+    // validateQ silently returns null for missing / empty / control-char
+    // / over-100-codepoint inputs. The data layer treats absent q as
+    // "no search clause", so we conditionally include q in opts.
+    const q = validateQ(req.query.q);
+
+    const opts = { cursor, limit, type };
+    if (q) opts.q = q;
+    const { items, nextCursor, hasMore } = await findNoticesBySource(
+      sourceId,
+      opts
+    );
     // Explicit arrow wrapper: `Array.prototype.map` passes (element, index,
     // array) — passing `toListItem` bare would leak the numeric index into
     // `toListItem`'s second `now` param and crash action_required best-pick
@@ -87,7 +94,7 @@ router.get(
   })
 );
 
-// GET /notices?sourceIds=cs,sw&limit=20&type=…&cursor=…
+// GET /notices?sourceIds=cs,sw&limit=20&type=…&cursor=…&q=…
 // Multi-source merged list — uses the existing compound index via $in.
 router.get(
   "/",
@@ -136,11 +143,16 @@ router.get(
       }
     }
 
-    const { items, nextCursor, hasMore } = await findNoticesBySources(rawIds, {
-      cursor,
-      limit,
-      type,
-    });
+    // Same validateQ contract as the single-source endpoint — null on
+    // any rejection, route omits the key so the data layer skips $or.
+    const q = validateQ(req.query.q);
+
+    const opts = { cursor, limit, type };
+    if (q) opts.q = q;
+    const { items, nextCursor, hasMore } = await findNoticesBySources(
+      rawIds,
+      opts
+    );
     const notices = items.map((doc) => toListItem(doc));
     res.success(
       { notices, nextCursor, hasMore },

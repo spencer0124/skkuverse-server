@@ -9,6 +9,17 @@
 const { getClient } = require("../../lib/db");
 const config = require("../../lib/config");
 const { buildCursorFilter, encodeCursor } = require("./notices.cursor");
+const { escapeRegex } = require("./notices.search");
+
+// 4-key compound index — declared in ensureNoticeIndexes(). We .hint()
+// every query to this index to defend against the planner picking the
+// orphan 2-key sourceId_1_date_-1 index that exists on prod (undeclared
+// by app code, origin TBD). Without the hint, multi-source $in queries
+// pick the 2-key and incur an in-memory SORT stage because the sort
+// spec {date, crawledAt, _id} extends past what the 2-key covers.
+// Verified prod measurement Phase 0a 2026-04-26: with hint, multiIn
+// keysExamined drops 904 → 465 (-49%), executionTime 9ms → 3ms (-67%).
+const FORCE_INDEX = { sourceId: 1, date: -1, crawledAt: -1, _id: -1 };
 
 // Inclusion projection — lightweight list items. Heavy fields
 // (content/cleanHtml/contentText/editHistory) are intentionally omitted.
@@ -85,8 +96,19 @@ async function ensureNoticeIndexes() {
 /**
  * Shared pagination query — accepts a pre-built sourceId filter
  * (equality for single source, $in for multi-source).
+ *
+ * Optional `q` adds a case-insensitive regex $or over (title,
+ * summaryOneLiner). The regex pattern is escaped to keep user
+ * metacharacters literal. The $or is composed inside the same $and
+ * that holds the cursor keyset so no top-level $or conflict arises;
+ * MongoDB native $or treats null/missing summaryOneLiner as the second
+ * branch evaluating false, giving an automatic title-only fallback for
+ * notes whose AI summary cron hasn't filled the field yet.
  */
-async function _findNotices(sourceFilter, { cursor = null, limit, type } = {}) {
+async function _findNotices(
+  sourceFilter,
+  { cursor = null, limit, type, q } = {}
+) {
   const filter = {
     ...sourceFilter,
     isDeleted: { $ne: true },
@@ -95,12 +117,22 @@ async function _findNotices(sourceFilter, { cursor = null, limit, type } = {}) {
 
   const andClauses = [{ date: { $gte: config.notices.serviceStartDate } }];
   if (cursor) andClauses.push(buildCursorFilter(cursor));
+  if (q) {
+    const escaped = escapeRegex(q);
+    andClauses.push({
+      $or: [
+        { title: { $regex: escaped, $options: "i" } },
+        { summaryOneLiner: { $regex: escaped, $options: "i" } },
+      ],
+    });
+  }
   filter.$and = andClauses;
 
   const col = getNoticesCollection();
   const docs = await col
     .find(filter, { projection: LIST_PROJECTION })
     .sort({ date: -1, crawledAt: -1, _id: -1 })
+    .hint(FORCE_INDEX)
     .limit(limit + 1)
     .toArray();
 

@@ -23,10 +23,12 @@ jest.mock("../features/ad/ad.data", () => ({
 
 // Mock the notices.data layer
 const mockFindBySource = jest.fn();
+const mockFindBySources = jest.fn();
 const mockFindByArticleNo = jest.fn();
 jest.mock("../features/notices/notices.data", () => ({
   ensureNoticeIndexes: jest.fn().mockResolvedValue(),
   findNoticesBySource: (...args) => mockFindBySource(...args),
+  findNoticesBySources: (...args) => mockFindBySources(...args),
   findNoticeByArticleNo: (...args) => mockFindByArticleNo(...args),
 }));
 
@@ -341,5 +343,169 @@ describe("route ordering", () => {
     const res = await request(app).get("/notices/tabs");
     expect(res.status).toBe(200);
     expect(res.body.data.tabs).toBeDefined();
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// Notice search (q parameter) — routes-level integration tests.
+// The data layer is mocked, so these tests verify the route's parsing,
+// validation, and pass-through behavior. Query-shape composition (regex
+// escape, $or branches, .hint(), $and order) lives in notices-data.test.js
+// where the mocked find chain lets us assert the actual filter object.
+//
+// Plan-mandated cases (all six are exercised here at the route layer;
+// the data-layer mirrors live in notices-data.test.js):
+//   (a) regex metachars pass through to data layer raw — escape is the
+//       data layer's responsibility, so the route hands off the user
+//       string unchanged.
+//   (b) q="" treated as missing — no q reaches the data layer.
+//   (c) q + cursor round-trip — both forwarded together.
+//   (d) cursor + regex $and composition — verified at data layer; route
+//       just confirms cursor and q both reach the data layer call.
+//   (e) summaryOneLiner null fallback — verified at data layer (query
+//       has both branches; MongoDB native $or treats missing fields as
+//       false). Route layer cannot exercise the actual fallback without
+//       a real DB; we confirm pass-through here.
+//   (f) type filter + q both apply — both reach the data layer.
+// ──────────────────────────────────────────────────────────────────────
+
+describe("GET /notices/source/:sourceId — search query", () => {
+  beforeEach(() => {
+    mockFindBySource.mockResolvedValue({
+      items: [],
+      nextCursor: null,
+      hasMore: false,
+    });
+  });
+
+  // Case (a)
+  it("forwards regex-metachar q raw to the data layer (escape is data-layer's job)", async () => {
+    await request(app).get("/notices/source/skku-main?q=.%2A%2B%3F"); // .*+?
+    expect(mockFindBySource).toHaveBeenCalledWith(
+      "skku-main",
+      expect.objectContaining({ q: ".*+?" })
+    );
+  });
+
+  // Case (b)
+  it("treats q='' as missing — no q in data layer call", async () => {
+    await request(app).get("/notices/source/skku-main?q=");
+    const callArgs = mockFindBySource.mock.calls[0][1];
+    expect(callArgs.q).toBeUndefined();
+  });
+
+  it("treats whitespace-only q as missing", async () => {
+    await request(app).get("/notices/source/skku-main?q=%20%20%20");
+    const callArgs = mockFindBySource.mock.calls[0][1];
+    expect(callArgs.q).toBeUndefined();
+  });
+
+  it("missing q (param absent) is missing — no q in data layer call", async () => {
+    await request(app).get("/notices/source/skku-main");
+    const callArgs = mockFindBySource.mock.calls[0][1];
+    expect(callArgs.q).toBeUndefined();
+  });
+
+  // Case (c) + (d) bridge
+  it("round-trips q + cursor together to the data layer", async () => {
+    const cursor = encodeCursor({
+      d: "2026-04-01",
+      c: "2026-04-01T00:00:00.000Z",
+      i: "66a1b2c3d4e5f6a7b8c9d0e1",
+    });
+    await request(app).get(
+      `/notices/source/skku-main?q=%EA%B3%B5%EC%A7%80&cursor=${cursor}`
+    );
+    const callArgs = mockFindBySource.mock.calls[0][1];
+    expect(callArgs.q).toBe("공지");
+    expect(callArgs.cursor).toEqual({
+      d: "2026-04-01",
+      c: "2026-04-01T00:00:00.000Z",
+      i: "66a1b2c3d4e5f6a7b8c9d0e1",
+    });
+  });
+
+  // Case (f)
+  it("forwards q + type filter together", async () => {
+    await request(app).get(
+      "/notices/source/skku-main?q=%EC%9E%A5%ED%95%99%EA%B8%88&type=action_required"
+    );
+    expect(mockFindBySource).toHaveBeenCalledWith(
+      "skku-main",
+      expect.objectContaining({
+        q: "장학금",
+        type: "action_required",
+      })
+    );
+  });
+
+  it("trims surrounding whitespace before forwarding", async () => {
+    await request(app).get("/notices/source/skku-main?q=%20%20hello%20%20");
+    expect(mockFindBySource).toHaveBeenCalledWith(
+      "skku-main",
+      expect.objectContaining({ q: "hello" })
+    );
+  });
+
+  it("silently drops q exceeding 100 codepoints", async () => {
+    // 101 'x' chars — too long. validateQ returns null, route omits q.
+    const tooLong = "x".repeat(101);
+    await request(app).get(`/notices/source/skku-main?q=${tooLong}`);
+    const callArgs = mockFindBySource.mock.calls[0][1];
+    expect(callArgs.q).toBeUndefined();
+  });
+
+  it("silently drops q containing control characters", async () => {
+    // %00 NUL — must not reach the data layer.
+    await request(app).get("/notices/source/skku-main?q=abc%00def");
+    const callArgs = mockFindBySource.mock.calls[0][1];
+    expect(callArgs.q).toBeUndefined();
+  });
+});
+
+describe("GET /notices — multi-source search query", () => {
+  beforeEach(() => {
+    mockFindBySources.mockResolvedValue({
+      items: [],
+      nextCursor: null,
+      hasMore: false,
+    });
+  });
+
+  it("forwards q to findNoticesBySources alongside sourceIds", async () => {
+    await request(app).get(
+      "/notices?sourceIds=skku-main,cse-undergrad&q=%EA%B3%B5%EC%A7%80"
+    );
+    expect(mockFindBySources).toHaveBeenCalledWith(
+      ["skku-main", "cse-undergrad"],
+      expect.objectContaining({ q: "공지" })
+    );
+  });
+
+  it("treats q='' as missing on multi-source endpoint", async () => {
+    await request(app).get(
+      "/notices?sourceIds=skku-main,cse-undergrad&q="
+    );
+    const callArgs = mockFindBySources.mock.calls[0][1];
+    expect(callArgs.q).toBeUndefined();
+  });
+
+  it("forwards q + cursor + type together on multi-source endpoint", async () => {
+    const cursor = encodeCursor({
+      d: "2026-04-01",
+      c: "2026-04-01T00:00:00.000Z",
+      i: "66a1b2c3d4e5f6a7b8c9d0e1",
+    });
+    await request(app).get(
+      `/notices?sourceIds=skku-main,cse-undergrad&q=%EC%9E%A5%ED%95%99%EA%B8%88&type=action_required&cursor=${cursor}`
+    );
+    const callArgs = mockFindBySources.mock.calls[0][1];
+    expect(callArgs.q).toBe("장학금");
+    expect(callArgs.type).toBe("action_required");
+    expect(callArgs.cursor).toEqual({
+      d: "2026-04-01",
+      c: "2026-04-01T00:00:00.000Z",
+      i: "66a1b2c3d4e5f6a7b8c9d0e1",
+    });
   });
 });

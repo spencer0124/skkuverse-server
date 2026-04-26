@@ -16,15 +16,17 @@ const {
   getNoticesCollection,
   ensureNoticeIndexes,
   findNoticesBySource,
+  findNoticesBySources,
   findNoticeByArticleNo,
   LIST_PROJECTION,
   DETAIL_PROJECTION,
 } = require("../features/notices/notices.data");
 
-// Chain helper to stub find().sort().limit().toArray()
+// Chain helper to stub find().sort().hint().limit().toArray()
 function stubFindChain(docs) {
   const chain = {
     sort: jest.fn().mockReturnThis(),
+    hint: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
     toArray: jest.fn().mockResolvedValue(docs),
   };
@@ -191,5 +193,200 @@ describe("findNoticeByArticleNo", () => {
 
   it("LIST_PROJECTION excludes cleanMarkdown (detail-only field)", () => {
     expect(LIST_PROJECTION).not.toHaveProperty("cleanMarkdown");
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// Notice search (q parameter) — data-layer integration tests.
+//
+// These exercise the lower-level concerns that route-level tests can't
+// reach with mocks: the actual filter shape, regex escape application,
+// $and composition order, and the .hint() force on every query.
+//
+// Plan-mandated cases (cross-reference with notices-routes.test.js):
+//   (a) regex metachar in q — verified here via filter shape (escaped)
+//   (b) q="" → missing — verified at routes layer
+//   (c) q + cursor round-trip — verified at routes layer
+//   (d) cursor + regex $and composition — verified here
+//   (e) summaryOneLiner null fallback — verified here as query-shape
+//       (both branches present); MongoDB native $or treats missing /
+//       null fields as false, so we rely on documented behavior
+//   (f) type filter + q both apply — verified here AND at routes layer
+// ──────────────────────────────────────────────────────────────────────
+
+describe("findNoticesBySource — search query (q)", () => {
+  it("does NOT add a search $or when q is missing", async () => {
+    stubFindChain([]);
+    await findNoticesBySource("skku-main", { limit: 20 });
+    const [filter] = mockCollection.find.mock.calls[0];
+    // $and has only the serviceStartDate clause (no search $or yet)
+    const searchOr = (filter.$and || []).find(
+      (clause) =>
+        Array.isArray(clause.$or) &&
+        clause.$or.some((branch) => branch.title)
+    );
+    expect(searchOr).toBeUndefined();
+  });
+
+  it("adds search $or with BOTH title + summaryOneLiner branches when q is present", async () => {
+    stubFindChain([]);
+    await findNoticesBySource("skku-main", { limit: 20, q: "공지" });
+    const [filter] = mockCollection.find.mock.calls[0];
+    const searchOr = filter.$and.find(
+      (clause) =>
+        Array.isArray(clause.$or) &&
+        clause.$or.some((branch) => branch.title)
+    );
+    expect(searchOr).toBeDefined();
+    // Both branches present — MongoDB native $or handles null/missing
+    // summaryOneLiner as the second branch evaluating false, so a doc
+    // with a NULL summaryOneLiner falls back to title-only matching.
+    // Documents this contract via shape rather than by simulating the
+    // fallback (which is MongoDB's responsibility).
+    expect(searchOr.$or).toHaveLength(2);
+    const titleBranch = searchOr.$or.find((b) => b.title);
+    const summaryBranch = searchOr.$or.find((b) => b.summaryOneLiner);
+    expect(titleBranch).toBeDefined();
+    expect(summaryBranch).toBeDefined();
+    expect(titleBranch.title.$options).toBe("i");
+    expect(summaryBranch.summaryOneLiner.$options).toBe("i");
+  });
+
+  it("escapes regex metacharacters in q before composing the $regex pattern", async () => {
+    stubFindChain([]);
+    await findNoticesBySource("skku-main", { limit: 20, q: ".*" });
+    const [filter] = mockCollection.find.mock.calls[0];
+    const searchOr = filter.$and.find(
+      (clause) => Array.isArray(clause.$or) && clause.$or.some((b) => b.title)
+    );
+    const titleBranch = searchOr.$or.find((b) => b.title);
+    // ".*"  →  "\\.\\*"   (each metachar prefixed with backslash)
+    expect(titleBranch.title.$regex).toBe("\\.\\*");
+  });
+
+  it("composes search $or alongside cursor $or inside a single $and (no top-level conflict)", async () => {
+    stubFindChain([]);
+    const cursor = {
+      d: "2026-04-05",
+      c: "2026-04-05T00:00:00.000Z",
+      i: "66a1b2c3d4e5f6a7b8c9d0e1",
+    };
+    await findNoticesBySource("skku-main", {
+      limit: 20,
+      q: "공지",
+      cursor,
+    });
+    const [filter] = mockCollection.find.mock.calls[0];
+    // Top-level $or must NOT exist (would conflict with cursor's keyset $or)
+    expect(filter.$or).toBeUndefined();
+    // Both clauses live inside $and — date + cursor $or + search $or = 3 entries
+    expect(filter.$and).toHaveLength(3);
+    const dateClause = filter.$and.find((c) => c.date);
+    const cursorClause = filter.$and.find(
+      (c) => Array.isArray(c.$or) && c.$or.some((b) => b._id || b.crawledAt)
+    );
+    const searchClause = filter.$and.find(
+      (c) => Array.isArray(c.$or) && c.$or.some((b) => b.title)
+    );
+    expect(dateClause).toBeDefined();
+    expect(cursorClause).toBeDefined();
+    expect(searchClause).toBeDefined();
+  });
+
+  it("composes type filter alongside search $or", async () => {
+    stubFindChain([]);
+    await findNoticesBySource("skku-main", {
+      limit: 20,
+      q: "장학금",
+      type: "action_required",
+    });
+    const [filter] = mockCollection.find.mock.calls[0];
+    // type → top-level summaryType equality (existing behavior, unchanged)
+    expect(filter.summaryType).toBe("action_required");
+    // search → $or inside $and
+    const searchClause = filter.$and.find(
+      (c) => Array.isArray(c.$or) && c.$or.some((b) => b.title)
+    );
+    expect(searchClause).toBeDefined();
+  });
+
+  it("trims and escapes empty-result-prone queries safely", async () => {
+    // Mirror routes-layer trimming: routes pass already-trimmed q, but
+    // data layer must not crash on weird-but-valid input.
+    stubFindChain([]);
+    await findNoticesBySource("skku-main", { limit: 20, q: "[]" });
+    const [filter] = mockCollection.find.mock.calls[0];
+    const searchOr = filter.$and.find(
+      (clause) => Array.isArray(clause.$or) && clause.$or.some((b) => b.title)
+    );
+    const titleBranch = searchOr.$or.find((b) => b.title);
+    expect(titleBranch.title.$regex).toBe("\\[\\]");
+  });
+});
+
+describe("findNoticesBySources — multi-source search query (q)", () => {
+  it("uses sourceId $in AND adds search $or when q is present", async () => {
+    stubFindChain([]);
+    await findNoticesBySources(["skku-main", "cse-undergrad"], {
+      limit: 20,
+      q: "공지",
+    });
+    const [filter] = mockCollection.find.mock.calls[0];
+    expect(filter.sourceId).toEqual({ $in: ["skku-main", "cse-undergrad"] });
+    const searchOr = filter.$and.find(
+      (clause) => Array.isArray(clause.$or) && clause.$or.some((b) => b.title)
+    );
+    expect(searchOr).toBeDefined();
+    expect(searchOr.$or).toHaveLength(2);
+  });
+
+  it("does NOT add search $or when q is missing on multi-source endpoint", async () => {
+    stubFindChain([]);
+    await findNoticesBySources(["skku-main", "cse-undergrad"], { limit: 20 });
+    const [filter] = mockCollection.find.mock.calls[0];
+    const searchOr = (filter.$and || []).find(
+      (clause) =>
+        Array.isArray(clause.$or) &&
+        clause.$or.some((branch) => branch.title)
+    );
+    expect(searchOr).toBeUndefined();
+  });
+});
+
+describe("query plan hint (4-key compound index)", () => {
+  it("calls .hint({sourceId:1, date:-1, crawledAt:-1, _id:-1}) on every single-source query", async () => {
+    const chain = stubFindChain([]);
+    await findNoticesBySource("skku-main", { limit: 20 });
+    expect(chain.hint).toHaveBeenCalledWith({
+      sourceId: 1,
+      date: -1,
+      crawledAt: -1,
+      _id: -1,
+    });
+  });
+
+  it("calls .hint() with the 4-key compound on multi-source queries", async () => {
+    const chain = stubFindChain([]);
+    await findNoticesBySources(["skku-main", "cse-undergrad"], { limit: 20 });
+    // The hint protects $in worst-case from picking the orphan
+    // sourceId_1_date_-1 (2-key) index, which causes in-memory SORT
+    // (verified prod measurement Phase 0a, 2026-04-26).
+    expect(chain.hint).toHaveBeenCalledWith({
+      sourceId: 1,
+      date: -1,
+      crawledAt: -1,
+      _id: -1,
+    });
+  });
+
+  it("hint is called with or without q (search regex doesn't change the index)", async () => {
+    const chainNoQ = stubFindChain([]);
+    await findNoticesBySource("skku-main", { limit: 20 });
+    expect(chainNoQ.hint).toHaveBeenCalledTimes(1);
+
+    mockCollection.find.mockClear();
+    const chainWithQ = stubFindChain([]);
+    await findNoticesBySource("skku-main", { limit: 20, q: "공지" });
+    expect(chainWithQ.hint).toHaveBeenCalledTimes(1);
   });
 });
