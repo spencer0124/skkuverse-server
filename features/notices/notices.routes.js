@@ -169,6 +169,24 @@ router.get(
 // Fixes two upstream quirks:
 // 1. Some servers return application/unknown for .hwp — corrected via ext map
 // 2. Content-Disposition filenames are often mojibake — use client-supplied name
+//
+// Dual-use note (route name is historical; usage extends past attachments):
+//   - Mobile app: this proxy is used ONLY for attachment preview/download
+//     (NoticeDetailScreen.buildAttachmentUrl). In-article images bypass the
+//     proxy — RN's Image.getSizeWithHeaders + <Image source={{uri,headers}}>
+//     can inject Referer per-fetch directly, so SKKU origin requests work
+//     without a server hop.
+//   - Web Pages Function (skkuverse.com /p/notices/<sourceId>/<articleNo>):
+//     this proxy is used for BOTH attachment buttons AND in-article <img>
+//     src. Browsers cannot set arbitrary Referer per-image (spec limits
+//     `referrerpolicy` to enums), so the proxy hop is the only way to
+//     satisfy SKKU's hotlink check on web image embeds.
+//
+//   The CORP cross-origin override below was added when the web extension
+//   shipped — attachment-only consumers (mobile in-app browser, web
+//   <a target="_blank">) are top-level navigations untouched by CORP, so
+//   the override is invisible to them. Web <img> embeds were the only
+//   blocker; allowing cross-origin restores that one path.
 
 const EXT_MIME = {
   ".pdf": "application/pdf",
