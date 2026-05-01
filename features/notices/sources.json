@@ -5,7 +5,8 @@
     "campus": "both",
     "college": null,
     "appCategory": null,
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -15,7 +16,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "general",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -25,7 +27,8 @@
     "campus": "nsc",
     "college": "공과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -35,7 +38,8 @@
     "campus": "hssc",
     "college": "경영대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -45,7 +49,8 @@
     "campus": "hssc",
     "college": "경영대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -55,7 +60,8 @@
     "campus": "hssc",
     "college": "경제대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -65,7 +71,8 @@
     "campus": "hssc",
     "college": "경제대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -75,7 +82,8 @@
     "campus": "nsc",
     "college": null,
     "appCategory": "general",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -85,7 +93,8 @@
     "campus": "nsc",
     "college": "공과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -95,7 +104,8 @@
     "campus": "nsc",
     "college": "공과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -105,7 +115,8 @@
     "campus": "hssc",
     "college": "사범대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -115,7 +126,8 @@
     "campus": "hssc",
     "college": "사범대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -125,7 +137,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -135,7 +148,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -145,7 +159,8 @@
     "campus": "hssc",
     "college": "경영대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -155,7 +170,8 @@
     "campus": "hssc",
     "college": "경제대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -165,7 +181,8 @@
     "campus": "hssc",
     "college": "사회과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -175,7 +192,8 @@
     "campus": "nsc",
     "college": "성균융합원",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -185,7 +203,8 @@
     "campus": "nsc",
     "college": "성균융합원",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -195,7 +214,8 @@
     "campus": "nsc",
     "college": "소프트웨어융합대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -205,7 +225,8 @@
     "campus": "nsc",
     "college": "공과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -215,7 +236,8 @@
     "campus": "nsc",
     "college": "공과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -225,7 +247,8 @@
     "campus": "nsc",
     "college": null,
     "appCategory": "general",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -235,7 +258,8 @@
     "campus": "nsc",
     "college": "융합전공",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -245,7 +269,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -255,7 +280,8 @@
     "campus": "hssc",
     "college": "예술대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -265,7 +291,8 @@
     "campus": "hssc",
     "college": "예술대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -275,7 +302,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -285,7 +313,8 @@
     "campus": "hssc",
     "college": "예술대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -295,7 +324,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -305,7 +335,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -315,7 +346,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -325,7 +357,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -335,7 +368,8 @@
     "campus": "nsc",
     "college": "자연과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -345,7 +379,8 @@
     "campus": "hssc",
     "college": "사회과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -355,7 +390,8 @@
     "campus": "hssc",
     "college": "사회과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -365,7 +401,8 @@
     "campus": "nsc",
     "college": "생명공학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -375,7 +412,8 @@
     "campus": "hssc",
     "college": "법학전문대학원",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -385,7 +423,8 @@
     "campus": "hssc",
     "college": "법학전문대학원",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -395,7 +434,8 @@
     "campus": "hssc",
     "college": "사범대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -405,7 +445,8 @@
     "campus": "hssc",
     "college": "사범대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -415,7 +456,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -425,7 +467,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -435,7 +478,8 @@
     "campus": "hssc",
     "college": "사회과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -445,7 +489,8 @@
     "campus": "hssc",
     "college": "사회과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -455,7 +500,8 @@
     "campus": "hssc",
     "college": "사회과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -465,7 +511,8 @@
     "campus": "hssc",
     "college": "사회과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -475,7 +522,8 @@
     "campus": "nsc",
     "college": "생명공학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -485,7 +533,8 @@
     "campus": "nsc",
     "college": "생명공학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -495,7 +544,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "academic",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -505,7 +555,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "general",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -515,7 +566,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "career",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -525,7 +577,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "recruitment",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -535,7 +588,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "scholarship",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -545,7 +599,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "event",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -555,7 +610,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "general",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -565,7 +621,8 @@
     "campus": "nsc",
     "college": "성균융합원",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -575,7 +632,8 @@
     "campus": "hssc",
     "college": null,
     "appCategory": "general",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -585,7 +643,8 @@
     "campus": "hssc",
     "college": "사회과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -595,7 +654,8 @@
     "campus": "nsc",
     "college": "정보통신대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -605,7 +665,8 @@
     "campus": "nsc",
     "college": "소프트웨어융합대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -615,7 +676,8 @@
     "campus": "nsc",
     "college": "소프트웨어융합대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -625,7 +687,8 @@
     "campus": "nsc",
     "college": "소프트웨어융합대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -635,7 +698,8 @@
     "campus": "nsc",
     "college": "소프트웨어융합대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -645,7 +709,8 @@
     "campus": "nsc",
     "college": "자연과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -655,7 +720,8 @@
     "campus": "nsc",
     "college": "자연과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -665,7 +731,8 @@
     "campus": "hssc",
     "college": "사범대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -675,7 +742,8 @@
     "campus": "nsc",
     "college": "스포츠과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -685,7 +753,8 @@
     "campus": "nsc",
     "college": "스포츠과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -695,7 +764,8 @@
     "campus": "nsc",
     "college": "공과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -705,7 +775,8 @@
     "campus": "nsc",
     "college": "공과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -715,7 +786,8 @@
     "campus": "nsc",
     "college": "생명공학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -725,7 +797,8 @@
     "campus": "nsc",
     "college": "생명공학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -735,7 +808,8 @@
     "campus": "nsc",
     "college": "공과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -745,7 +819,8 @@
     "campus": "nsc",
     "college": "공과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -755,7 +830,8 @@
     "campus": "nsc",
     "college": null,
     "appCategory": "general",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -765,7 +841,8 @@
     "campus": "hssc",
     "college": "사회과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -775,7 +852,8 @@
     "campus": "hssc",
     "college": "사회과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -785,7 +863,8 @@
     "campus": "hssc",
     "college": "사회과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -795,7 +874,8 @@
     "campus": "hssc",
     "college": "사회과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -805,7 +885,8 @@
     "campus": "nsc",
     "college": "공과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -815,7 +896,8 @@
     "campus": "nsc",
     "college": "성균융합원",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -825,7 +907,8 @@
     "campus": "hssc",
     "college": "예술대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -835,7 +918,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -845,7 +929,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -855,7 +940,8 @@
     "campus": "hssc",
     "college": "예술대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -865,7 +951,8 @@
     "campus": "hssc",
     "college": "예술대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -875,7 +962,8 @@
     "campus": "hssc",
     "college": "유학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -885,7 +973,8 @@
     "campus": "hssc",
     "college": "유학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -895,7 +984,8 @@
     "campus": "nsc",
     "college": "생명공학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -905,7 +995,8 @@
     "campus": "nsc",
     "college": "성균융합원",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -915,7 +1006,8 @@
     "campus": "hssc",
     "college": "예술대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -925,7 +1017,8 @@
     "campus": "hssc",
     "college": "예술대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -935,7 +1028,8 @@
     "campus": "nsc",
     "college": "융합전공",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -945,7 +1039,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "general",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -955,7 +1050,8 @@
     "campus": "nsc",
     "college": "융합전공",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -965,7 +1061,8 @@
     "campus": "nsc",
     "college": "자연과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -975,7 +1072,8 @@
     "campus": "nsc",
     "college": "자연과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -985,7 +1083,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "general",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -995,7 +1094,8 @@
     "campus": "nsc",
     "college": "정보통신대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1005,7 +1105,8 @@
     "campus": "nsc",
     "college": "정보통신대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1015,7 +1116,8 @@
     "campus": "nsc",
     "college": "정보통신대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1025,7 +1127,8 @@
     "campus": "nsc",
     "college": "정보통신대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1035,7 +1138,8 @@
     "campus": "hssc",
     "college": "사회과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1045,7 +1149,8 @@
     "campus": "hssc",
     "college": "사회과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1055,7 +1160,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1065,7 +1171,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1075,7 +1182,8 @@
     "campus": "nsc",
     "college": "소프트웨어융합대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1085,7 +1193,8 @@
     "campus": "nsc",
     "college": "연계전공",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1095,7 +1204,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1105,7 +1215,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1115,7 +1226,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "general",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1125,7 +1237,8 @@
     "campus": "hssc",
     "college": "사범대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1135,7 +1248,8 @@
     "campus": "hssc",
     "college": "사범대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1145,7 +1259,8 @@
     "campus": "hssc",
     "college": "대학원",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1155,7 +1270,8 @@
     "campus": "hssc",
     "college": "경제대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1165,7 +1281,8 @@
     "campus": "hssc",
     "college": "경제대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1175,7 +1292,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1185,7 +1303,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1195,7 +1314,8 @@
     "campus": "hssc",
     "college": "학부대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1205,7 +1325,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1215,7 +1336,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1225,7 +1347,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1235,7 +1358,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1245,7 +1369,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1255,7 +1380,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1265,7 +1391,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1275,7 +1402,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1285,7 +1413,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "general",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1295,7 +1424,8 @@
     "campus": "hssc",
     "college": "사범대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1305,7 +1435,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1315,7 +1446,8 @@
     "campus": "hssc",
     "college": "문과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1325,7 +1457,8 @@
     "campus": "hssc",
     "college": "국정전문대학원",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1335,7 +1468,8 @@
     "campus": "nsc",
     "college": "자연과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": true
   },
@@ -1345,7 +1479,8 @@
     "campus": "nsc",
     "college": "공과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": false,
     "hasAuthor": false
   },
@@ -1355,7 +1490,8 @@
     "campus": "nsc",
     "college": "의과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": false,
     "hasAuthor": true
   },
@@ -1365,7 +1501,8 @@
     "campus": "hssc",
     "college": null,
     "appCategory": "dorm",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": false
   },
@@ -1375,7 +1512,8 @@
     "campus": "nsc",
     "college": null,
     "appCategory": "dorm",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": false
   },
@@ -1385,7 +1523,8 @@
     "campus": "nsc",
     "college": "공과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": false
   },
@@ -1395,7 +1534,8 @@
     "campus": "nsc",
     "college": "공과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": false
   },
@@ -1405,7 +1545,8 @@
     "campus": "nsc",
     "college": "자연과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": false,
     "hasAuthor": true
   },
@@ -1415,7 +1556,8 @@
     "campus": "nsc",
     "college": "자연과학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": false,
     "hasAuthor": true
   },
@@ -1425,7 +1567,8 @@
     "campus": "nsc",
     "college": "약학대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": false,
     "hasAuthor": true
   },
@@ -1435,7 +1578,8 @@
     "campus": "nsc",
     "college": "공과대학",
     "appCategory": "dept",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": false,
     "hasAuthor": true
   },
@@ -1445,7 +1589,8 @@
     "campus": "hssc",
     "college": null,
     "appCategory": "library",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": false
   },
@@ -1455,7 +1600,8 @@
     "campus": "nsc",
     "college": null,
     "appCategory": "library",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": false
   },
@@ -1465,7 +1611,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "library",
-    "noticeAvailable": true,
+    "crawlAvailable": true,
+    "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": false
   }

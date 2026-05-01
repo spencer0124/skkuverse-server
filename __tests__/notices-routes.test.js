@@ -127,6 +127,40 @@ describe("GET /notices/tabs", () => {
     expect(first).toHaveProperty("campus");
   });
 
+  // ── New onboarding-driven fields (college / noticeAvailable / excludeReason) ──
+
+  it("picker source entries have college, noticeAvailable, excludeReason", async () => {
+    const res = await request(app).get("/notices/tabs");
+    const deptTab = res.body.data.tabs.find((t) => t.key === "dept");
+    const first = deptTab.picker.sources[0];
+    expect(first).toHaveProperty("college"); // string | null
+    expect(typeof first.noticeAvailable).toBe("boolean");
+    expect(first).toHaveProperty("excludeReason"); // string | null (i18n enum key)
+  });
+
+  it("known dept carries its parent college (cse-undergrad → 소프트웨어융합대학)", async () => {
+    const res = await request(app).get("/notices/tabs");
+    const deptTab = res.body.data.tabs.find((t) => t.key === "dept");
+    const cse = deptTab.picker.sources.find((s) => s.id === "cse-undergrad");
+    expect(cse).toBeDefined();
+    expect(cse.college).toBe("소프트웨어융합대학");
+  });
+
+  it("noticeAvailable and excludeReason are biconditional invariants", async () => {
+    // Codegen rejects contradictions, so for every source either it's
+    // available with no reason, or unavailable with a reason — never both
+    // or neither. Validates the API surface preserves that invariant.
+    const res = await request(app).get("/notices/tabs");
+    const deptTab = res.body.data.tabs.find((t) => t.key === "dept");
+    for (const s of deptTab.picker.sources) {
+      if (s.noticeAvailable) {
+        expect(s.excludeReason).toBe(null);
+      } else {
+        expect(typeof s.excludeReason).toBe("string");
+      }
+    }
+  });
+
   it("sets Cache-Control private, max-age=3600", async () => {
     const res = await request(app).get("/notices/tabs");
     expect(res.headers["cache-control"]).toContain("private");
