@@ -310,19 +310,11 @@ describe("sweepPending", () => {
   });
 
   it("respects sweepBatchCap as the per-tick blast-radius cap", async () => {
-    const original = config.notices.dispatch.sweepBatchCap;
-    config.notices.dispatch.sweepBatchCap = 2;
-    try {
-      withSuccessfulFetch();
-      mockCollection.findOneAndUpdate.mockImplementation(async () =>
-        makeNotice()
-      );
-      const summary = await dispatcher.sweepPending("test");
-      expect(summary.processed).toBe(2);
-      expect(global.fetch).toHaveBeenCalledTimes(2);
-    } finally {
-      config.notices.dispatch.sweepBatchCap = original;
-    }
+    withSuccessfulFetch();
+    mockCollection.findOneAndUpdate.mockImplementation(async () => makeNotice());
+    const summary = await dispatcher.sweepPending("test", { sweepBatchCap: 2 });
+    expect(summary.processed).toBe(2);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
   // Phase 2.2 — sweepInFlight guard
@@ -377,16 +369,10 @@ describe("sweepPending", () => {
 
   // Phase 2.4 — attempts cap behaviour with a custom maxAttempts value
   it("propagates a changed maxAttempts into the filter ($not.$gte)", async () => {
-    const original = config.notices.dispatch.maxAttempts;
-    config.notices.dispatch.maxAttempts = 2;
-    try {
-      mockCollection.findOneAndUpdate.mockResolvedValue(null);
-      await dispatcher.sweepPending("cap-check");
-      const [filter] = mockCollection.findOneAndUpdate.mock.calls[0];
-      expect(filter.pushAttempts).toEqual({ $not: { $gte: 2 } });
-    } finally {
-      config.notices.dispatch.maxAttempts = original;
-    }
+    mockCollection.findOneAndUpdate.mockResolvedValue(null);
+    await dispatcher.sweepPending("cap-check", { maxAttempts: 2 });
+    const [filter] = mockCollection.findOneAndUpdate.mock.calls[0];
+    expect(filter.pushAttempts).toEqual({ $not: { $gte: 2 } });
   });
 
   it("treats an empty claim result as a queue drained and stops looping", async () => {

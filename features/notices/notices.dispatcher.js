@@ -141,8 +141,11 @@ async function dispatchOne(notice) {
   }
 }
 
-async function claimNext(col, now) {
-  const { maxAgeMs, claimLeaseMs, maxAttempts } = config.notices.dispatch;
+async function claimNext(col, now, opts = {}) {
+  const { maxAgeMs, claimLeaseMs, maxAttempts } = {
+    ...config.notices.dispatch,
+    ...opts,
+  };
   // `aiSummaryAt: { $type: "date" }` is the same as "$ne: null" for our schema
   // (the field is only ever null or a Date) and matches the partialFilterExpression
   // on `dispatch_pending_idx` exactly so the planner can use the partial index
@@ -177,7 +180,7 @@ async function claimNext(col, now) {
   );
 }
 
-async function sweepPending(triggerSource) {
+async function sweepPending(triggerSource, opts = {}) {
   if (sweepInFlight) {
     return {
       status: "in-progress",
@@ -197,10 +200,13 @@ async function sweepPending(triggerSource) {
 
   try {
     const col = getNoticesCollection();
-    const { sweepBatchCap } = config.notices.dispatch;
+    // Test-only knob: opts overrides config so tests can shrink the batch cap
+    // or attempts cap without mutating the frozen-by-convention config object.
+    // Prod callers (notices.internal.routes, notices.dispatch.poller) pass no opts.
+    const { sweepBatchCap } = { ...config.notices.dispatch, ...opts };
 
     while (processed < sweepBatchCap) {
-      const claimed = await claimNext(col, new Date());
+      const claimed = await claimNext(col, new Date(), opts);
       // Driver shape: in mongodb v6 `findOneAndUpdate` returns the doc directly
       // (or null). In some older configurations it returns `{ value, ... }`.
       // Support both.
