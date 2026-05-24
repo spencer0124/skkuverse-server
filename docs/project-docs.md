@@ -1207,6 +1207,48 @@ node scripts/seed-eskara.js
 
 ---
 
+## 14. Dependency Policy
+
+TypeScript 전환을 앞두고 (2026-05-24) 모든 의존성을 정확 버전으로 lock. TS 마이그레이션 중 "에러가 TS 문법 때문인지 패키지 버전 변화 때문인지" 분간 불가능한 사태를 방지하기 위함.
+
+### 규칙
+
+- **`package.json`의 모든 deps/devDeps는 정확 버전** (`^`, `~` 금지). `.npmrc`의 `save-exact=true`가 신규 install을 자동으로 정확 버전으로 저장.
+- **`engine-strict=true`** — `engines.node` 위반 시 install 실패. Dockerfile이 `node:22-alpine`이므로 macOS 로컬 + Docker 일관성 유지.
+- **업데이트 절차**:
+  1. 단일 PR에 단일 패키지 bump (`npm install foo@X.Y.Z`).
+  2. `npm test` + `npm run lint` + `npm run knip` + `npm run depcheck` 모두 통과.
+  3. 메이저 bump는 사용처 영향 분석 commit 메시지에 명시.
+- **TS 전환 기간 중에는 패키지 추가/변경 동결.** 신규 의존성이 필요하면 별도 PR로 lock 정책에 맞춰 추가.
+
+### Deferred majors (TS 전환 후 처리)
+
+| 패키지 | 현재 | 최신 | 이유 |
+|---|---|---|---|
+| `express` | 4.22.2 | 5.x | 16개 route + 미들웨어 chain refactor 필요. 단독 PR로 진행. |
+| `dotenv` | 16.6.1 | 17.x | 단순 `require("dotenv").config()` 패턴만 사용하나 보수적으로 16에 머무름. TS 후 평가. |
+| `axios` | 1.13.6 | 1.16.x | 이전 maintainer 패턴 따라 의도적으로 정확 핀. 명시적 업데이트 결정 필요. |
+
+### 도구
+
+- `npm run knip` — 미사용 파일/의존성 audit (exports check off; `knip.json` 참고)
+- `npm run depcheck` — 미사용 의존성 audit (`@logtail/pino`, `pino-pretty`, `node-cron` ignore — 동적/CLI 로드)
+
+### Node runtime
+
+**Node 22 LTS lock.** `package.json`의 `engines.node`가 `>=22.0.0`이고 `.npmrc`의 `engine-strict=true`가 install 시 자동 차단. 프로젝트 루트 `.nvmrc`(내용: `22`)로 `nvm use` 한 번에 자동 정렬.
+
+선택 이유:
+- **Node 20 LTS는 2026-04-30 EOL** — 오늘(2026-05-24) 이미 만료. Dockerfile도 `node:20-alpine` → `node:22-alpine`로 동시 bump.
+- **Node 24는 macOS + OpenSSL 3.4 환경에서 외부 TLS 시나리오 회귀 보고** ([nodejs/node#61448](https://github.com/nodejs/node/issues/61448) — MongoDB SRV connection fails in v24.13). 우리 환경(macOS arm64 + Atlas mongodb+srv)에서도 `SSL alert number 80` 증상을 재현했었음.
+- **Node 22 LTS는 2027-04-30 EOL** — TS 전환 작업 기간 내내 안전 + mongo driver v7 호환 (driver 최소 요구 Node 20.19+).
+
+#### Node 24 회귀 incident 참고 (2026-05-24)
+
+dev 서버 부팅이 stuck처럼 보였던 별개 incident가 있었음. 원인은 **Atlas Network Access List에 현재 공용 IP가 등록되지 않음** (mongosh도 동일 SSL alert 80로 reject되며 명시 진단). Node 22 다운그레이드로는 해결되지 않으며, Atlas dashboard → Network Access → IP Access List에서 IP 추가 필요. Node 24 회귀 위험과 Atlas IP allowlist는 별개 이슈지만 증상이 같은 SSL alert 80이라 혼동 위험이 있음 — 비슷한 증상 재발 시 먼저 IP allowlist를 확인할 것.
+
+---
+
 ## Appendix: Realtime vs Schedule Architecture
 
 ```

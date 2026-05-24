@@ -15,6 +15,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run depcheck` — Audit unused npm dependencies (with curated ignore list for dynamic loaders)
 - `docker compose up --build` — Build and run via Docker (NODE_ENV=production, 3 services: poller + api-1:3001 + api-2:3002)
 
+## Dependency Policy
+
+All deps/devDeps are pinned to exact versions in `package.json` (no `^`/`~`). `.npmrc` enforces `save-exact=true` + `engine-strict=true`. Pre-TS-migration lock to avoid mixing dep upgrades with TS conversion. Update single package per PR (`npm install foo@X.Y.Z`), confirm `npm test`/`lint`/`knip`/`depcheck`. Express 5 migration deferred to post-TS as single dedicated PR (currently locked at 4.22.2). See `docs/project-docs.md §14`.
+
+**Node runtime: 22 LTS (`.nvmrc` 참고).** `engines.node` ≥22 + `engine-strict=true`로 자동 차단. Node 20 LTS는 2026-04-30 EOL이라 사용 금지. Node 24는 macOS+OpenSSL 3.4 영향으로 일부 TLS 시나리오 회귀 보고(예: [nodejs/node#61448](https://github.com/nodejs/node/issues/61448)) — Atlas 등 외부 TLS 의존 환경에서 검증 부족, 사용 금지. nvm 사용 시 프로젝트 디렉토리에서 `nvm use` 한 번으로 자동 정렬.
+
 ## Ecosystem
 
 This server is one node in the skkuverse ecosystem. Sibling repos under `~/project/skkuverse/`:

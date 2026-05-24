@@ -1,8 +1,8 @@
 # skkuverse-server
 
-![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-22+-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-6.x-47A248?logo=mongodb&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-7.x-47A248?logo=mongodb&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Admin-FFCA28?logo=firebase&logoColor=black)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Jest](https://img.shields.io/badge/Tested_with-Jest-C21325?logo=jest&logoColor=white)
@@ -38,9 +38,9 @@ What the app shows users (and what this server provides):
 
 | Layer | Technology |
 |---|---|
-| Runtime | Node.js ≥ 20 |
+| Runtime | Node.js ≥ 22 |
 | Framework | Express 4 |
-| Database | MongoDB 6 (native driver) |
+| Database | MongoDB 7 (native driver) |
 | Auth | Firebase Admin SDK (optional, with 5-min token cache) |
 | Security | Helmet, express-rate-limit, pino-http (request-id) |
 | HTTP client | Axios (external API polling) |
@@ -93,7 +93,7 @@ skkuverse-server/
 
 ### Prerequisites
 
-- Node.js ≥ 20
+- Node.js ≥ 22 (`.nvmrc`에 명시; `nvm use`로 정렬)
 - A running MongoDB instance (Atlas in production, local for dev)
 - A `.env` file (see below). Missing required vars cause `process.exit(1)` at startup.
 
