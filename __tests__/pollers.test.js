@@ -57,16 +57,20 @@ describe("lib/pollers", () => {
       pollers.registerPoller(fn1, 1000, "a");
       pollers.registerPoller(fn2, 2500, "b");
       pollers.startAll();
-      // Flush warm-up's Promise.resolve(...).finally so inFlight is cleared
-      // before we advance the timer; otherwise the first tick is guard-skipped.
+      // Flush warm-up's Promise.resolve(...).catch(...).finally(...) chain
+      // (two microtasks) so inFlight is cleared before the timer advances;
+      // otherwise the first tick is guard-skipped.
+      await Promise.resolve();
       await Promise.resolve();
 
       jest.advanceTimersByTime(1000);
+      await Promise.resolve();
       await Promise.resolve();
       expect(fn1).toHaveBeenCalledTimes(2);
       expect(fn2).toHaveBeenCalledTimes(1);
 
       jest.advanceTimersByTime(1500);
+      await Promise.resolve();
       await Promise.resolve();
       expect(fn1).toHaveBeenCalledTimes(3);
       expect(fn2).toHaveBeenCalledTimes(2);
@@ -99,15 +103,29 @@ describe("lib/pollers", () => {
       expect(fn).toHaveBeenCalledTimes(2);
     });
 
-    // KNOWN BUG (not covered): lib/pollers.js does `Promise.resolve(fn()).finally(...)`
-    // without `.catch`. If a poller fn returns a rejected promise, the rejection
-    // leaks as unhandled, which under Node 24's default `--unhandled-rejections=throw`
-    // crashes the process. Hardening pollers.js to swallow + log via `.catch`
-    // belongs to a separate code-fix plan; for now we document the gap.
-    it.skip(
-      "resets inFlight after fn rejects so the next tick fires (blocked on pollers.js .catch hardening)",
-      () => {},
-    );
+    it("resets inFlight after fn rejects, logs the error, allows next tick", async () => {
+      let calls = 0;
+      const fn = jest.fn(() => {
+        calls += 1;
+        return calls === 1
+          ? Promise.reject(new Error("boom"))
+          : Promise.resolve();
+      });
+      pollers.registerPoller(fn, 1000, "flaky");
+      pollers.startAll();
+      // Flush microtasks so .catch + .finally run after the rejected warm-up.
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        { err: "boom", name: "flaky" },
+        "Poller fn rejected",
+      );
+
+      jest.advanceTimersByTime(1000);
+      await Promise.resolve();
+      expect(fn).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("stopAll", () => {
