@@ -52,10 +52,20 @@ async function main() {
   } else if (DRY_RUN) {
     console.log(`[DRY-RUN] Would rename sourceDeptId → sourceId on ${withLegacy} docs`);
   } else {
-    // ── 2. Field rename via aggregation pipeline ──
+    // ── 2a. Drop legacy indexes FIRST ──
+    // Unique compound index `articleNo_1_sourceDeptId_1` would otherwise
+    // reject the $unset step (multiple docs end up with sourceDeptId:null,
+    // violating uniqueness). Server's ensureNoticeIndexes will recreate the
+    // new compound index on next request.
+    const preIndexes = await col.indexes();
+    const preLegacy = preIndexes.filter((i) => i.name && i.name.includes("sourceDeptId"));
+    for (const idx of preLegacy) {
+      console.log(`Dropping legacy index before update: ${idx.name}`);
+      await col.dropIndex(idx.name);
+    }
+
+    // ── 2b. Field rename via aggregation pipeline ──
     // $set copies value, $unset removes the legacy field. Atomic per doc.
-    // Equivalent to $rename operator but pipeline form is consistent with
-    // future multi-field migrations.
     const result = await col.updateMany(
       { sourceDeptId: { $exists: true } },
       [
