@@ -201,11 +201,13 @@ async function main() {
         const reasons = [];
         if (!s.ixscanOk) reasons.push(`firstIxKey=${s.firstIxKey} (want sourceId)`);
         if (!s.sortOk) reasons.push("in-memory SORT present");
-        if (!s.keysOk) reasons.push(
-          s.nReturned === 0
-            ? `keysExamined=${s.totalKeysExamined} > 5000`
-            : `keys/returned=${(s.totalKeysExamined / s.nReturned).toFixed(1)} > 100`,
-        );
+        if (!s.keysOk) {
+          reasons.push(
+            s.nReturned === 0
+              ? `keysExamined=${s.totalKeysExamined} > 5000`
+              : `keys/returned=${(s.totalKeysExamined / s.nReturned).toFixed(1)} > 100`,
+          );
+        }
         if (!s.timeOk) reasons.push(`time=${s.executionTimeMillis}ms > 150`);
         console.log(`  ${name}: ${reasons.join(", ")}`);
       }

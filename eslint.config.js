@@ -28,7 +28,20 @@ module.exports = [
       },
     },
     rules: {
-      "no-unused-vars": ["warn", { argsIgnorePattern: "^(_|next)", caughtErrorsIgnorePattern: "^_" }],
+      // Promoted to error: incomplete refactor artifacts shouldn't pass CI.
+      "no-unused-vars": ["error", { argsIgnorePattern: "^(_|next)", caughtErrorsIgnorePattern: "^_" }],
+
+      // Pre-TS hardening — catch implicit-coercion and scope bugs JS lets through
+      // but TS strict mode treats as compile errors or hidden footguns.
+      // `{ null: "ignore" }` preserves the `value == null` idiom (null + undefined in one check).
+      "eqeqeq": ["error", "always", { null: "ignore" }],
+      "no-var": "error",
+      "prefer-const": "error",
+      // Only multi-line blocks need braces; `if (x) return;` stays terse.
+      "curly": ["error", "multi-line"],
+      "no-shadow": "error",
+      "no-throw-literal": "error",
+      "no-useless-concat": "error",
     },
   },
   {

@@ -6,8 +6,8 @@ const logger = require("../../lib/logger");
 const busCache = require("../../lib/busCache");
 const { Jongro02stationMapping, Jongro07stationMapping } = require("./jongro.stations");
 
-let filteredBusStations = {};
-let filteredBusLocations = {};
+const filteredBusStations = {};
+const filteredBusLocations = {};
 const busStationTimes = {};
 
 const STALE_MINUTES = 10;
