@@ -1,4 +1,6 @@
-const Jongro02Stations = [
+import type { JongroStation, JongroStationMapping } from "./types";
+
+const Jongro02Stations: JongroStation[] = [
   { sequence: "1", stationName: "성균관대학교", stationNumber: "01881", eta: "도착 정보 없음", isFirstStation: true, isLastStation: false, isRotationStation: false, busType: "BusType.jonro02Bus", transferLines: [] },
   { sequence: "2", stationName: "서울성곽.성대후문", stationNumber: "01515", eta: "도착 정보 없음", isFirstStation: false, isLastStation: false, isRotationStation: false, busType: "BusType.jonro02Bus", transferLines: [] },
   { sequence: "3", stationName: "통일부", stationNumber: "01525", eta: "도착 정보 없음", isFirstStation: false, isLastStation: false, isRotationStation: false, busType: "BusType.jonro02Bus", transferLines: [] },
@@ -27,7 +29,7 @@ const Jongro02Stations = [
   { sequence: "26", stationName: "성대후문.와룡공원", stationNumber: "01860", eta: "도착 정보 없음", isFirstStation: false, isLastStation: true, isRotationStation: false, busType: "BusType.jonro02Bus", transferLines: [] },
 ];
 
-const Jongro07Stations = [
+const Jongro07Stations: JongroStation[] = [
   { sequence: "1", stationName: "명륜새마을금고", stationNumber: "01504", eta: "도착 정보 없음", isFirstStation: true, isLastStation: false, isRotationStation: false, busType: "BusType.jonro07Bus", transferLines: [] },
   { sequence: "2", stationName: "서울국제고등학교", stationNumber: "01512", eta: "도착 정보 없음", isFirstStation: false, isLastStation: false, isRotationStation: false, busType: "BusType.jonro07Bus", transferLines: [] },
   { sequence: "3", stationName: "국민생활관", stationNumber: "01521", eta: "도착 정보 없음", isFirstStation: false, isLastStation: false, isRotationStation: false, busType: "BusType.jonro07Bus", transferLines: [] },
@@ -49,7 +51,9 @@ const Jongro07Stations = [
   { sequence: "19", stationName: "성균관대학교", stationNumber: "01722", eta: "도착 정보 없음", isFirstStation: false, isLastStation: true, isRotationStation: false, busType: "BusType.jonro07Bus", transferLines: [] },
 ];
 
-const Jongro02stationMapping = {
+// TOPIS lastStnId → station sequence + name. Keys are numeric in source but
+// JS coerces to string at access time; fetcher uses string lookups.
+const Jongro02stationMapping: JongroStationMapping = {
   100900204: { sequence: 1, stationName: "성균관대학교" },
   100900202: { sequence: 2, stationName: "서울성곽.성대후문" },
   100900045: { sequence: 3, stationName: "통일부" },
@@ -78,7 +82,7 @@ const Jongro02stationMapping = {
   100900203: { sequence: 26, stationName: "성대후문.와룡공원" },
 };
 
-const Jongro07stationMapping = {
+const Jongro07stationMapping: JongroStationMapping = {
   100900197: { sequence: 1, stationName: "명륜새마을금고" },
   100900031: { sequence: 2, stationName: "서울국제고등학교" },
   100900017: { sequence: 3, stationName: "국민생활관" },
@@ -100,7 +104,7 @@ const Jongro07stationMapping = {
   100900110: { sequence: 19, stationName: "성균관대학교" },
 };
 
-module.exports = {
+export {
   Jongro02Stations,
   Jongro07Stations,
   Jongro02stationMapping,

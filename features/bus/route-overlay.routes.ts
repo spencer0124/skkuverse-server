@@ -1,9 +1,15 @@
-const { Router } = require("express");
-const { jongro07Coords, jongro02Coords } = require("./route-overlay.data");
+import { Router } from "express";
+import { jongro07Coords, jongro02Coords } from "./route-overlay.data";
+import type { RouteCoords } from "./types";
 
 const router = Router();
 
-const ROUTES = {
+interface RouteOverlay {
+  color: string;
+  coords: RouteCoords;
+}
+
+const ROUTES: Record<string, RouteOverlay> = {
   jongro07: { color: "4CAF50", coords: jongro07Coords },
   jongro02: { color: "4CAF50", coords: jongro02Coords },
 };
@@ -20,4 +26,4 @@ router.get("/:routeId", (req, res) => {
   res.success(route);
 });
 
-module.exports = router;
+export = router;

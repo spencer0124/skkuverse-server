@@ -1,5 +1,11 @@
-const { Router } = require("express");
-const { getBusGroups, computeEtag, getGroupById, computeGroupEtag } = require("./bus-config.data");
+import { Router } from "express";
+import {
+  getBusGroups,
+  computeEtag,
+  getGroupById,
+  computeGroupEtag,
+} from "./bus-config.data";
+import type { SupportedLang } from "../../lib/types";
 
 const router = Router();
 
@@ -8,7 +14,7 @@ const router = Router();
  * Returns ordered groups array with ETag caching.
  */
 router.get("/", (req, res) => {
-  const lang = req.lang;
+  const lang = (req.lang ?? "ko") as SupportedLang;
   const etag = computeEtag(lang);
 
   if (req.headers["if-none-match"] === etag) {
@@ -27,7 +33,7 @@ router.get("/", (req, res) => {
  */
 router.get("/:groupId", (req, res) => {
   const { groupId } = req.params;
-  const lang = req.lang;
+  const lang = (req.lang ?? "ko") as SupportedLang;
   const etag = computeGroupEtag(groupId, lang);
 
   if (!etag) {
@@ -44,4 +50,4 @@ router.get("/:groupId", (req, res) => {
   res.success(group);
 });
 
-module.exports = router;
+export = router;

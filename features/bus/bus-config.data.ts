@@ -1,13 +1,28 @@
-const crypto = require("crypto");
-const { t } = require("../../lib/i18n");
-const { HSSCStations } = require("./hssc.stations");
-const { Jongro02Stations, Jongro07Stations } = require("./jongro.stations");
+import crypto from "crypto";
+import { t } from "../../lib/i18n";
+import type { SupportedLang } from "../../lib/types";
+import { HSSCStations } from "./hssc.stations";
+import { Jongro02Stations, Jongro07Stations } from "./jongro.stations";
+import type { HsscStation, JongroStation } from "./types";
 
-function mapStations(stations) {
+type AnyStation = HsscStation | JongroStation;
+
+interface MappedStation {
+  index: number;
+  name: string;
+  subtitle: string | null;
+  stationNumber: string | null;
+  isFirstStation: boolean;
+  isLastStation: boolean;
+  isRotationStation: boolean;
+  transferLines: AnyStation["transferLines"];
+}
+
+function mapStations(stations: AnyStation[]): MappedStation[] {
   return stations.map((s, i) => ({
     index: i,
     name: s.stationName,
-    subtitle: s.subtitle || s.stationNumber || null,
+    subtitle: ("subtitle" in s ? s.subtitle : null) || s.stationNumber || null,
     stationNumber: s.stationNumber || null,
     isFirstStation: s.isFirstStation,
     isLastStation: s.isLastStation,
@@ -16,16 +31,13 @@ function mapStations(stations) {
   }));
 }
 
-const etagCache = new Map();
+const etagCache: Map<string, string> = new Map();
 
 /**
  * Returns ordered array of 5 bus groups for the client SDUI.
  * Order: hssc, campus, fasttrack, jongro02, jongro07
- *
- * @param {string} lang — "ko" | "en" | "zh"
- * @returns {Array}
  */
-function getBusGroups(lang = "ko") {
+function getBusGroups(lang: SupportedLang = "ko") {
   return [
     // 1. HSSC (realtime)
     {
@@ -170,7 +182,7 @@ function getBusGroups(lang = "ko") {
  * Compute a quoted MD5 ETag for the given language's config output.
  * Cached per language.
  */
-function computeEtag(lang = "ko") {
+function computeEtag(lang: SupportedLang = "ko"): string {
   const cached = etagCache.get(lang);
   if (cached) return cached;
 
@@ -181,10 +193,15 @@ function computeEtag(lang = "ko") {
   return etag;
 }
 
+type BusGroup = ReturnType<typeof getBusGroups>[number];
+
 /**
  * Returns a single group by id, or null if not found.
  */
-function getGroupById(id, lang = "ko") {
+function getGroupById(
+  id: string,
+  lang: SupportedLang = "ko",
+): BusGroup | null {
   return getBusGroups(lang).find((g) => g.id === id) || null;
 }
 
@@ -192,7 +209,10 @@ function getGroupById(id, lang = "ko") {
  * Compute a quoted MD5 ETag for a single group.
  * Cached per id:lang.
  */
-function computeGroupEtag(id, lang = "ko") {
+function computeGroupEtag(
+  id: string,
+  lang: SupportedLang = "ko",
+): string | null {
   const cacheKey = `${id}:${lang}`;
   const cached = etagCache.get(cacheKey);
   if (cached) return cached;
@@ -200,10 +220,19 @@ function computeGroupEtag(id, lang = "ko") {
   const group = getGroupById(id, lang);
   if (!group) return null;
 
-  const hash = crypto.createHash("md5").update(JSON.stringify(group)).digest("hex");
+  const hash = crypto
+    .createHash("md5")
+    .update(JSON.stringify(group))
+    .digest("hex");
   const etag = `"${hash}"`;
   etagCache.set(cacheKey, etag);
   return etag;
 }
 
-module.exports = { getBusGroups, computeEtag, getGroupById, computeGroupEtag, mapStations };
+export {
+  getBusGroups,
+  computeEtag,
+  getGroupById,
+  computeGroupEtag,
+  mapStations,
+};

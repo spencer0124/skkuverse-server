@@ -1,8 +1,10 @@
+import type { ServiceConfigMap } from "./types";
+
 /**
  * Static config mapping serviceId → operational defaults.
  * Used by the resolution engine when no schedule pattern or override matches.
  */
-module.exports = {
+const serviceConfig: ServiceConfigMap = {
   "campus-inja": {
     nonOperatingDayDisplay: "hidden",
     notices: [
@@ -25,3 +27,5 @@ module.exports = {
     suspend: null,
   },
 };
+
+export = serviceConfig;

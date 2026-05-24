@@ -1,4 +1,6 @@
-const HSSCStations = [
+import type { HsscStation } from "./types";
+
+const HSSCStations: HsscStation[] = [
   { sequence: 1, stationName: "농구장", subtitle: "Basketball Court (Shuttle Bus Stop)", stationNumber: null, isFirstStation: true, isLastStation: false, isRotationStation: false, busType: "BusType.hsscBus", transferLines: [] },
   { sequence: 2, stationName: "학생회관", subtitle: "Student Center", stationNumber: null, isFirstStation: false, isLastStation: false, isRotationStation: false, busType: "BusType.hsscBus", transferLines: [] },
   { sequence: 3, stationName: "정문", subtitle: "Main Gate of SKKU", stationNumber: null, isFirstStation: false, isLastStation: false, isRotationStation: false, busType: "BusType.hsscBus", transferLines: [] },
@@ -12,4 +14,4 @@ const HSSCStations = [
   { sequence: 11, stationName: "600주년기념관", subtitle: "600th Anniversary Hall", stationNumber: null, isFirstStation: false, isLastStation: true, isRotationStation: false, busType: "BusType.hsscBus", transferLines: [] },
 ];
 
-module.exports = { HSSCStations };
+export { HSSCStations };
