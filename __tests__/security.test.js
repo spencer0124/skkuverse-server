@@ -12,44 +12,19 @@ jest.mock("../features/station/station.fetcher", () => ({
   getStationInfo: jest.fn().mockReturnValue("정보 없음"),
 }));
 
-jest.mock("../features/bus/schedule.data", () => ({
-  resolveWeek: jest.fn().mockResolvedValue(null),
-  clearCache: jest.fn(),
-  clearCacheForService: jest.fn(),
-}));
+jest.mock("../features/bus/schedule.data", () => require("./helpers/mocks/busSchedule").scheduleData());
+jest.mock("../features/bus/schedule-db", () => require("./helpers/mocks/busSchedule").scheduleDb());
+jest.mock("../features/bus/campus-eta.data", () => require("./helpers/mocks/busSchedule").campusEtaData());
 
-jest.mock("../features/bus/schedule-db", () => ({
-  ensureScheduleIndexes: jest.fn().mockResolvedValue(),
-}));
-
-jest.mock("../features/bus/campus-eta.data", () => ({
-  getEtaData: jest.fn().mockResolvedValue({ inja: null, jain: null }),
-  clearCache: jest.fn(),
-}));
-
-jest.mock("../features/ad/ad.data", () => ({
-  getPlacements: jest.fn().mockResolvedValue({
+jest.mock("../features/ad/ad.data", () => require("./helpers/mocks/adData")({
+  placements: {
     splash: { type: "image", imageUrl: "", linkUrl: "", enabled: true, adId: "000000000000000000000001" },
-  }),
-  ensureIndexes: jest.fn().mockResolvedValue(),
-  seedIfEmpty: jest.fn().mockResolvedValue(),
-  clearCache: jest.fn(),
-  weightedRandomSelect: jest.fn(),
-  getAdsCollection: jest.fn(),
-  getEventsCollection: jest.fn(),
-  FALLBACK_PLACEMENTS: {},
+  },
 }));
 
-jest.mock("../features/ad/ad.stats", () => ({
-  recordEvent: jest.fn().mockResolvedValue(),
-}));
+jest.mock("../features/ad/ad.stats", () => require("./helpers/mocks/adStats")());
 
-// Mock Firebase Admin SDK
-jest.mock("../lib/firebase", () => ({
-  auth: jest.fn().mockReturnValue({
-    verifyIdToken: jest.fn().mockResolvedValue({ uid: "test-uid-123" }),
-  }),
-}));
+jest.mock("../lib/firebase", () => require("./helpers/mocks/firebase")({ uid: "test-uid-123" }));
 
 // Mock config to simulate Firebase being configured
 jest.mock("../lib/config", () => ({

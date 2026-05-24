@@ -13,42 +13,18 @@ jest.mock("../features/station/station.fetcher", () => ({
   getStationInfo: jest.fn().mockReturnValue("정보 없음"),
 }));
 
-// Mock schedule data to avoid MongoDB connection
-jest.mock("../features/bus/schedule.data", () => ({
-  resolveWeek: jest.fn().mockResolvedValue(null),
-  clearCache: jest.fn(),
-  clearCacheForService: jest.fn(),
-}));
-
-// Mock schedule-db to avoid MongoDB connection
-jest.mock("../features/bus/schedule-db", () => ({
-  ensureScheduleIndexes: jest.fn().mockResolvedValue(),
-}));
-
-// Mock campus-eta data to avoid real API calls
-jest.mock("../features/bus/campus-eta.data", () => ({
-  getEtaData: jest.fn().mockResolvedValue({ inja: null, jain: null }),
-  clearCache: jest.fn(),
-}));
+jest.mock("../features/bus/schedule.data", () => require("./helpers/mocks/busSchedule").scheduleData());
+jest.mock("../features/bus/schedule-db", () => require("./helpers/mocks/busSchedule").scheduleDb());
+jest.mock("../features/bus/campus-eta.data", () => require("./helpers/mocks/busSchedule").campusEtaData());
 
 // Mock ad modules to avoid MongoDB connection
-jest.mock("../features/ad/ad.data", () => ({
-  getPlacements: jest.fn().mockResolvedValue({
+jest.mock("../features/ad/ad.data", () => require("./helpers/mocks/adData")({
+  placements: {
     splash: { type: "image", imageUrl: "", linkUrl: "", enabled: true, adId: "000000000000000000000001" },
-  }),
-  ensureIndexes: jest.fn().mockResolvedValue(),
-  seedIfEmpty: jest.fn().mockResolvedValue(),
-  clearCache: jest.fn(),
-  weightedRandomSelect: jest.fn(),
-  getAdsCollection: jest.fn(),
-  getEventsCollection: jest.fn(),
-  FALLBACK_PLACEMENTS: {},
+  },
 }));
 
-jest.mock("../features/ad/ad.stats", () => ({
-  recordEvent: jest.fn().mockResolvedValue(),
-  getStats: jest.fn().mockResolvedValue({}),
-}));
+jest.mock("../features/ad/ad.stats", () => require("./helpers/mocks/adStats")());
 
 // Mock db to avoid real MongoDB connection
 jest.mock("../lib/db", () => ({
@@ -59,12 +35,7 @@ jest.mock("../lib/db", () => ({
 
 // Mock busCache to avoid real MongoDB connection
 // cachedRead returns null → routes fall back to in-memory getters (already mocked above)
-jest.mock("../lib/busCache", () => ({
-  ensureIndex: jest.fn().mockResolvedValue(),
-  write: jest.fn().mockResolvedValue(),
-  read: jest.fn().mockResolvedValue(null),
-  cachedRead: jest.fn().mockResolvedValue(null),
-}));
+jest.mock("../lib/busCache", () => require("./helpers/mocks/busCache")());
 
 // Mock pollers so isReady() returns true (startAll never runs in tests)
 jest.mock("../lib/pollers", () => ({
@@ -74,12 +45,7 @@ jest.mock("../lib/pollers", () => ({
   isReady: jest.fn().mockReturnValue(true),
 }));
 
-// Mock Firebase Admin SDK to avoid initialization
-jest.mock("../lib/firebase", () => ({
-  auth: jest.fn().mockReturnValue({
-    verifyIdToken: jest.fn().mockResolvedValue({ uid: "test-uid" }),
-  }),
-}));
+jest.mock("../lib/firebase", () => require("./helpers/mocks/firebase")());
 
 const request = require("supertest");
 const app = require("../index");

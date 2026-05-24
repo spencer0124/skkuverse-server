@@ -8,18 +8,10 @@ jest.mock("../lib/db", () => ({
   ping: jest.fn().mockResolvedValue(),
 }));
 
-jest.mock("../lib/firebase", () => ({
-  auth: jest.fn().mockReturnValue({
-    verifyIdToken: jest.fn().mockResolvedValue({ uid: "test-uid" }),
-  }),
-}));
+jest.mock("../lib/firebase", () => require("./helpers/mocks/firebase")());
 
-// Ad startup hooks are non-fatal but we stub them to keep the log clean
-jest.mock("../features/ad/ad.data", () => ({
-  ...jest.requireActual("../features/ad/ad.data"),
-  ensureIndexes: jest.fn().mockResolvedValue(),
-  seedIfEmpty: jest.fn().mockResolvedValue(),
-}));
+// Ad bootstrap is fully stubbed (notices tests do not exercise /ad routes).
+jest.mock("../features/ad/ad.data", () => require("./helpers/mocks/adData")());
 
 // Mock the notices.data layer
 const mockFindBySource = jest.fn();

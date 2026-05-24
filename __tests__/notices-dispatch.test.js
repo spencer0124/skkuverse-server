@@ -11,8 +11,8 @@
  */
 
 const { ObjectId } = require("mongodb");
-const express = require("express");
 const request = require("supertest");
+const buildMiniApp = require("./helpers/miniApp");
 
 // Freeze Date for all time-comparing assertions (claimNext age gate, lease window,
 // updateOne $set timestamps). Real timers stay live so supertest's HTTP loop and
@@ -67,23 +67,12 @@ function makeNotice(extra = {}) {
 
 function buildInternalApp() {
   // Mirror just enough of the prod middleware to drive the route.
-  const app = express();
-  app.use(express.json());
-  // responseHelper minimal stub — routes use res.success / res.error.
-  app.use((req, res, next) => {
-    res.success = (data) => res.json({ data });
-    res.error = (status, code, message) =>
-      res.status(status).json({ error: { code, message } });
-    next();
+  // `injectLangMeta: false` matches the prod responseHelper for /internal routes,
+  // which return a bare { data } envelope (no lang negotiation).
+  return buildMiniApp({
+    injectLangMeta: false,
+    routes: [{ path: "/internal/notices", router: internalRoutes }],
   });
-  app.use("/internal/notices", internalRoutes);
-  // Surface async errors as 500s in tests. Express requires the arity-4
-  // signature to recognize this as an error handler.
-  app.use((err, req, res, next) => {
-    void next;
-    res.status(500).json({ error: { code: "TEST_ERROR", message: err.message } });
-  });
-  return app;
 }
 
 beforeAll(() => {

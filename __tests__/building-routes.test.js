@@ -29,31 +29,18 @@ jest.mock("../features/building/building.data", () => ({
   }),
 }));
 
-const express = require("express");
 const request = require("supertest");
 
 const data = require("../features/building/building.data");
 const langMiddleware = require("../lib/langMiddleware");
 const buildingRoutes = require("../features/building/building.routes");
+const buildMiniApp = require("./helpers/miniApp");
 
 function buildApp() {
-  const app = express();
-  app.use(langMiddleware);
-  // Minimal responseHelper mirror: meta.lang auto-injected; error envelope.
-  app.use((req, res, next) => {
-    res.success = (payload, meta = {}) =>
-      res.json({ meta: { lang: req.lang, ...meta }, data: payload });
-    res.error = (status, code, message) =>
-      res.status(status).json({ error: { code, message } });
-    next();
+  return buildMiniApp({
+    middlewares: [langMiddleware],
+    routes: [{ path: "/building", router: buildingRoutes }],
   });
-  app.use("/building", buildingRoutes);
-  // arity-4 error handler so async route rejections surface as 500.
-  app.use((err, req, res, next) => {
-    void next;
-    res.status(500).json({ error: { code: "TEST_ERROR", message: err.message } });
-  });
-  return app;
 }
 
 beforeEach(() => {
