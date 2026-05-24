@@ -580,7 +580,7 @@ features/notices/
 └── README.md                      # maintenance guide
 
 __tests__/
-└── notices-*.test.js              # ~150 tests across transform / cursor / departments / data / routes / dispatcher / tabConfig
+└── notices-*.test.js              # ~250 tests across transform / cursor / departments / data / routes / dispatcher / tabConfig
 
 수정:
   lib/config.js       # config.notices + required (strict, no fallback); config.notices.dispatch block
@@ -613,7 +613,7 @@ jest.config.js         # + setupFiles: ["<rootDir>/jest.setup.js"]
 4. `notices.data.js` — Mongo chain mock (`find().sort().limit().toArray()`). 15개 테스트. 100% coverage.
 5. `notices.routes.js` — supertest + `lib/db`·`lib/firebase`·`features/notices/notices.data` 전부 mock. 17개 테스트. Express app 전체 startup 경로까지 커버.
 
-**결과 (launch 시점 기준):** 전체 389개 테스트 green, lint 0 errors, swagger 자동 등록, 실서버 E2E smoke test (dev DB 대상) 전 경로 통과. *(현재 (2026-05) 32 suites / 500 tests로 dispatcher·tabConfig 추가분 포함.)*
+**결과 (launch 시점 기준):** 전체 389개 테스트 green, lint 0 errors, swagger 자동 등록, 실서버 E2E smoke test (dev DB 대상) 전 경로 통과. *(현재 (2026-05) 36 suites / 560 tests. dispatcher race·lease·updateOne 실패 경로 invariant + pollers `.catch` hardening + supertest mock helper 추출 + ESLint strict 룰 7종 추가가 포함됨. coverage threshold 60/70/75/75 — `jest.config.js`.)*
 
 **TDD가 실제로 잡아낸 버그:**
 
