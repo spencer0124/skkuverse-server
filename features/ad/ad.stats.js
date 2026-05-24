@@ -13,25 +13,4 @@ async function recordEvent(placement, event, adId) {
   await col.insertOne(doc);
 }
 
-async function getStats() {
-  const col = getEventsCollection();
-  const pipeline = [
-    {
-      $group: {
-        _id: { placement: "$placement", event: "$event" },
-        count: { $sum: 1 },
-      },
-    },
-  ];
-
-  const results = await col.aggregate(pipeline).toArray();
-
-  const stats = {};
-  for (const r of results) {
-    const key = `${r._id.placement}:${r._id.event}`;
-    stats[key] = r.count;
-  }
-  return stats;
-}
-
-module.exports = { recordEvent, getStats };
+module.exports = { recordEvent };

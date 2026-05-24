@@ -1159,18 +1159,14 @@ jest.mock("../features/bus/campus-eta.data", () => ({
 
 ## 12. Scripts
 
-### `scripts/migrate-schedules.js`
+### `scripts/archive/`
 
-One-time migration from old per-collection format to new unified schema.
+완료된 1회성 마이그레이션 보존 위치. 운영 코드는 새 스키마를 가정하므로 재실행은 보통 불필요(모두 idempotent하게 작성되어 있어 다시 돌려도 no-op). 어떤 변경이 적용됐는지 추적할 때 참고용으로 남겨둔다. 재실행이 필요해진 경우 git history(특히 첨부된 fix 커밋들)도 같이 확인할 것.
 
-- **Reads from**: `bus_campus` (production DB, read-only)
-- **Writes to**: `bus_campus_dev` (dev DB)
-- **Transforms**: `operatingHours` → `time`, `specialNotes` → `notes`, adds default `routeType`/`busCount`
-- **Creates**: 4 schedule patterns (INJA weekday/friday, JAIN weekday/friday) + 4 holiday overrides
-
-```bash
-node scripts/migrate-schedules.js
-```
+- `migrate-building-two-layer.js` — 빌딩 데이터 raw/enriched 2-layer 분리 (feat `d2723a5`)
+- `migrate-inja-schedule.js` — INJA/JAIN 스케줄에 `routeType` 추가 (feat `ae6ec3a`)
+- `migrate-schedules.js` — 구 per-collection 포맷 → 통합 `bus_schedules` 이전 (feat `d5271f0`)
+- `migrate-source-dept-id.js` — `sourceDeptId` → `sourceId` 필드 rename (refactor `70923f6`, 후속 fix `8c62055`)
 
 ### `scripts/seed-eskara.js`
 

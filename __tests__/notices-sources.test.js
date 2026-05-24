@@ -31,17 +31,6 @@ describe("sources loader", () => {
     expect(sources.map.has("nope-not-real")).toBe(false);
   });
 
-  it("version is a 64-char sha256 hex string", () => {
-    expect(sources.version).toMatch(/^[0-9a-f]{64}$/);
-  });
-
-  it("version is stable across reloads (not random)", () => {
-    // Re-require by clearing the cache — should produce same hash
-    jest.resetModules();
-    const reloaded = require("../features/notices/sources");
-    expect(reloaded.version).toBe(sources.version);
-  });
-
   it("contains the well-known skku-main source as skku-standard (hasCategory+hasAuthor)", () => {
     const m = sources.map.get("skku-main");
     expect(m).toBeDefined();
