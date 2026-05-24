@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "scripts/**/*.js",
+    "__tests__/**/*.test.js"
+  ],
+  "project": ["**/*.js"],
+  "ignoreDependencies": ["@logtail/pino", "pino-pretty"],
+  "rules": {
+    "exports": "off",
+    "types": "off",
+    "nsExports": "off",
+    "nsTypes": "off",
+    "duplicates": "off"
+  }
+}

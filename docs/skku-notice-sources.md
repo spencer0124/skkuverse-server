@@ -1,6 +1,8 @@
-# 성균관대학교 공지사항 크롤링 소스 목록 (148개)
+# 성균관대학교 공지사항 크롤링 소스 목록 (snapshot)
 
-> 2026-03-29 기준. URL은 웹 검색 기반으로 수집 — 일부 추정 포함 (비고 참조)
+> ⚠ **이 문서는 2026-03-29 시점 snapshot이다 (148 entries, 수집 시점 기준).** 현재 진실(SSOT)은 `features/notices/sources.json` (147 entries, `skkuverse-crawler`의 `generate_artifacts.py`가 생성). 두 값이 다르면 sources.json이 진실이다.
+>
+> 이 .md는 *수집 단계의 작업 메모* — URL 출처, 비고, 전략 결정의 근거를 남기는 historical reference. 크롤러 구현 상태나 소스 변경은 `skkuverse-crawler` README/CHANGELOG에서 확인한다.
 
 ## 전체 목록 (번호순)
 

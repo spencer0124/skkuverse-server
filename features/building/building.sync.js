@@ -70,7 +70,7 @@ async function fetchBuildList(campusCd) {
 async function phase1(syncTime) {
   const rawCol = getRawBuildingsCollection();
   const enrichedCol = getBuildingsCollection();
-  let allItems = [];
+  const allItems = [];
 
   for (const { cd, name } of CAMPUS_CODES) {
     const items = await fetchBuildList(cd);
@@ -194,7 +194,7 @@ async function phase2(allItems, syncTime) {
 
   const withBuildNo = allItems.filter(({ item }) => item.buildNo);
 
-  let spacesOps = [];
+  const spacesOps = [];
   let processed = 0;
   let errors = 0;
 
@@ -304,7 +304,7 @@ async function fetchSpaceList(campusCd) {
 
 async function phase3(syncTime) {
   const spacesCol = getSpacesCollection();
-  let allSpaces = [];
+  const allSpaces = [];
 
   for (const { cd, name } of CAMPUS_CODES) {
     const items = await fetchSpaceList(cd);

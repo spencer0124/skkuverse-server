@@ -1,14 +1,15 @@
 const express = require("express");
-const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
+const { rateLimit } = require("express-rate-limit");
 const router = express.Router();
 const asyncHandler = require("../../lib/asyncHandler");
+const { byUidOrIp } = require("../../lib/rateLimitKeys");
 const { getPlacements } = require("./ad.data");
 const { recordEvent } = require("./ad.stats");
 
 const eventLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 120,
-  keyGenerator: (req) => req.uid || ipKeyGenerator(req.ip),
+  keyGenerator: byUidOrIp,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: { code: "RATE_LIMIT", message: "Too many requests" } },

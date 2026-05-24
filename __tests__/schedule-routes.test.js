@@ -1,9 +1,6 @@
-jest.mock("../features/bus/schedule.data", () => ({
-  resolveWeek: jest.fn(),
-  resolveSmartSchedule: jest.fn(),
-  clearCache: jest.fn(),
-  clearCacheForService: jest.fn(),
-}));
+jest.mock("../features/bus/schedule.data", () =>
+  require("./helpers/mocks/busSchedule").scheduleData({ resolveWeek: jest.fn() })
+);
 
 // Minimal mocks to prevent real connections
 jest.mock("../lib/db", () => ({
@@ -11,23 +8,14 @@ jest.mock("../lib/db", () => ({
   closeClient: jest.fn().mockResolvedValue(),
   ping: jest.fn().mockResolvedValue(),
 }));
-jest.mock("../lib/busCache", () => ({
-  ensureIndex: jest.fn().mockResolvedValue(),
-  write: jest.fn().mockResolvedValue(),
-  read: jest.fn().mockResolvedValue(null),
-  cachedRead: jest.fn().mockResolvedValue(null),
-}));
+jest.mock("../lib/busCache", () => require("./helpers/mocks/busCache")());
 jest.mock("../lib/pollers", () => ({
   registerPoller: jest.fn(),
   startAll: jest.fn(),
   stopAll: jest.fn(),
   isReady: jest.fn().mockReturnValue(true),
 }));
-jest.mock("../lib/firebase", () => ({
-  auth: jest.fn().mockReturnValue({
-    verifyIdToken: jest.fn().mockResolvedValue({ uid: "test-uid" }),
-  }),
-}));
+jest.mock("../lib/firebase", () => require("./helpers/mocks/firebase")());
 jest.mock("../features/bus/hssc.fetcher", () => ({
   getHSSCBusList: jest.fn().mockReturnValue([]),
 }));
@@ -38,20 +26,8 @@ jest.mock("../features/bus/jongro.fetcher", () => ({
 jest.mock("../features/station/station.fetcher", () => ({
   getStationInfo: jest.fn().mockReturnValue("정보 없음"),
 }));
-jest.mock("../features/ad/ad.data", () => ({
-  getPlacements: jest.fn().mockResolvedValue({}),
-  ensureIndexes: jest.fn().mockResolvedValue(),
-  seedIfEmpty: jest.fn().mockResolvedValue(),
-  clearCache: jest.fn(),
-  weightedRandomSelect: jest.fn(),
-  getAdsCollection: jest.fn(),
-  getEventsCollection: jest.fn(),
-  FALLBACK_PLACEMENTS: {},
-}));
-jest.mock("../features/ad/ad.stats", () => ({
-  recordEvent: jest.fn().mockResolvedValue(),
-  getStats: jest.fn().mockResolvedValue({}),
-}));
+jest.mock("../features/ad/ad.data", () => require("./helpers/mocks/adData")());
+jest.mock("../features/ad/ad.stats", () => require("./helpers/mocks/adStats")());
 
 const request = require("supertest");
 const app = require("../index");

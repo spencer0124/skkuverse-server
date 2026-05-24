@@ -237,4 +237,4 @@ const responseByLang = Object.freeze({
 // can trust shape: { id, tabMode: "fixed"|"picker", sourceId? | sourceIds[] }.
 const categories = Object.freeze(rawCategories.map((c) => Object.freeze(c)));
 
-module.exports = { responseByLang, sourceMap, categories };
+module.exports = { responseByLang, categories };
