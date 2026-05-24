@@ -206,14 +206,7 @@ async function sweepPending(triggerSource, opts = {}) {
     const { sweepBatchCap } = { ...config.notices.dispatch, ...opts };
 
     while (processed < sweepBatchCap) {
-      const claimed = await claimNext(col, new Date(), opts);
-      // Driver shape: in mongodb v6 `findOneAndUpdate` returns the doc directly
-      // (or null). In some older configurations it returns `{ value, ... }`.
-      // Support both.
-      const notice =
-        claimed && typeof claimed === "object" && "value" in claimed
-          ? claimed.value
-          : claimed;
+      const notice = await claimNext(col, new Date(), opts);
       if (!notice) break;
 
       processed += 1;

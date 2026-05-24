@@ -84,7 +84,7 @@ const searchLimiter = rateLimit({
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 120,
-  keyGenerator: ipKeyGenerator,
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: { code: "RATE_LIMIT", message: "Too many requests" } },

@@ -271,17 +271,6 @@ describe("sweepPending", () => {
     expect(summary.failed).toBe(1);
   });
 
-  it("supports the legacy {value} return shape from findOneAndUpdate", async () => {
-    withSuccessfulFetch();
-    const notice = makeNotice();
-    mockCollection.findOneAndUpdate
-      .mockResolvedValueOnce({ value: notice, lastErrorObject: {}, ok: 1 })
-      .mockResolvedValue(null);
-    const summary = await dispatcher.sweepPending("test");
-    expect(summary.processed).toBe(1);
-    expect(summary.sent).toBe(1);
-  });
-
   it("submits the configured filter to findOneAndUpdate (gate fields)", async () => {
     mockCollection.findOneAndUpdate.mockResolvedValue(null);
     await dispatcher.sweepPending("test");
