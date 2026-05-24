@@ -1,11 +1,12 @@
 const express = require("express");
 const { randomUUID } = require("crypto");
 const helmet = require("helmet");
-const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
+const { rateLimit } = require("express-rate-limit");
 const swaggerUi = require("swagger-ui-express");
 const pinoHttp = require("pino-http");
 const logger = require("./lib/logger");
 const pollers = require("./lib/pollers");
+const { byUidOrIp, byIp } = require("./lib/rateLimitKeys");
 const { closeClient, ping: pingDb } = require("./lib/db");
 const verifyToken = require("./lib/authMiddleware");
 const langMiddleware = require("./lib/langMiddleware");
@@ -75,7 +76,7 @@ app.get("/health/ready", async (req, res) => {
 const searchLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
-  keyGenerator: (req) => req.uid || ipKeyGenerator(req.ip),
+  keyGenerator: byUidOrIp,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: { code: "RATE_LIMIT", message: "Too many requests" } },
@@ -84,7 +85,7 @@ const searchLimiter = rateLimit({
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 120,
-  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  keyGenerator: byIp,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: { code: "RATE_LIMIT", message: "Too many requests" } },
@@ -112,7 +113,7 @@ const { ensureNoticeIndexes } = require("./features/notices/notices.data");
 const noticesLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 120,
-  keyGenerator: (req) => req.uid || ipKeyGenerator(req.ip),
+  keyGenerator: byUidOrIp,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: { code: "RATE_LIMIT", message: "Too many requests" } },
