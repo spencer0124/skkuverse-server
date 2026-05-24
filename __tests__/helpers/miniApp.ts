@@ -17,23 +17,40 @@
  *
  * The final arity-4 error handler converts async route rejections to
  * 500 { error: { code: "TEST_ERROR", message } } so failures are visible to the test.
- *
- * TODO(ts): type as `(opts?: BuildMiniAppOptions) => import("express").Express`
- * with a BuildMiniAppOptions interface mirroring the fields above.
  */
-const express = require("express");
+import express, {
+  type Express,
+  type Request,
+  type Response,
+  type NextFunction,
+  type RequestHandler,
+  type Router,
+  type ErrorRequestHandler,
+} from "express";
 
-module.exports = function buildMiniApp({
+interface MiniAppRoute {
+  path: string;
+  router: Router | RequestHandler;
+}
+
+interface BuildMiniAppOptions {
+  useJsonBody?: boolean;
+  middlewares?: RequestHandler[];
+  routes?: MiniAppRoute[];
+  injectLangMeta?: boolean;
+}
+
+function buildMiniApp({
   useJsonBody = true,
   middlewares = [],
   routes = [],
   injectLangMeta = true,
-} = {}) {
+}: BuildMiniAppOptions = {}): Express {
   const app = express();
   if (useJsonBody) app.use(express.json());
   for (const mw of middlewares) app.use(mw);
 
-  app.use((req, res, next) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     if (injectLangMeta) {
       res.success = (payload, meta = {}) =>
         res.json({ meta: { lang: req.lang, ...meta }, data: payload });
@@ -48,10 +65,17 @@ module.exports = function buildMiniApp({
   for (const { path, router } of routes) app.use(path, router);
 
   // arity-4 signature is required for Express to recognize this as an error handler
-  app.use((err, req, res, next) => {
-    void next;
-    res.status(500).json({ error: { code: "TEST_ERROR", message: err.message } });
-  });
+  const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+    res.status(500).json({
+      error: {
+        code: "TEST_ERROR",
+        message: err instanceof Error ? err.message : String(err),
+      },
+    });
+  };
+  app.use(errorHandler);
 
   return app;
-};
+}
+
+export = buildMiniApp;

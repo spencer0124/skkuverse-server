@@ -7,20 +7,20 @@
  * `scheduleData` includes `resolveSmartSchedule` as a bare jest.fn() in the
  * default; only schedule-routes.test.js uses it and overrides via beforeEach.
  * For other consumers the extra key is unused and harmless.
- *
- * Usage:
- *   const bus = require("./helpers/mocks/busSchedule");
- *   jest.mock("../features/bus/schedule.data", () => bus.scheduleData());
- *   jest.mock("../features/bus/schedule-db",   () => bus.scheduleDb());
- *   jest.mock("../features/bus/campus-eta.data", () => bus.campusEtaData());
- *
- * TODO(ts): type each factory against its source module's typeof.
  */
+interface ScheduleDataOptions {
+  resolveWeek?: jest.Mock;
+  resolveSmartSchedule?: jest.Mock;
+}
+
+interface CampusEtaDataOptions {
+  eta?: { inja: unknown; jain: unknown };
+}
 
 function scheduleData({
   resolveWeek = jest.fn().mockResolvedValue(null),
   resolveSmartSchedule = jest.fn(),
-} = {}) {
+}: ScheduleDataOptions = {}) {
   return {
     resolveWeek,
     resolveSmartSchedule,
@@ -35,11 +35,13 @@ function scheduleDb() {
   };
 }
 
-function campusEtaData({ eta = { inja: null, jain: null } } = {}) {
+function campusEtaData({
+  eta = { inja: null, jain: null },
+}: CampusEtaDataOptions = {}) {
   return {
     getEtaData: jest.fn().mockResolvedValue(eta),
     clearCache: jest.fn(),
   };
 }
 
-module.exports = { scheduleData, scheduleDb, campusEtaData };
+export = { scheduleData, scheduleDb, campusEtaData };

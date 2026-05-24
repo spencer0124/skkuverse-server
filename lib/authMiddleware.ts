@@ -1,7 +1,13 @@
-const admin = require("./firebase");
-const config = require("./config");
+import type { Request, Response, NextFunction } from "express";
+import admin from "./firebase";
+import config from "./config";
 
-const tokenCache = new Map();
+interface CachedToken {
+  uid: string;
+  time: number;
+}
+
+const tokenCache: Map<string, CachedToken> = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const MAX_CACHE_SIZE = 10000;
 
@@ -19,25 +25,34 @@ _cleanupInterval.unref(); // don't block process exit
  * Sets req.uid on success. If no token is provided or Firebase
  * is not configured, continues without uid (rate limiter falls back to req.ip).
  */
-async function verifyToken(req, res, next) {
+async function verifyToken(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return next();
+    next();
+    return;
   }
 
   // Firebase not configured — skip verification, pass through
   if (!config.firebase.serviceAccount) {
-    return next();
+    next();
+    return;
   }
 
-  const idToken = authHeader.split("Bearer ")[1];
+  // Preserve original behavior: `"Bearer "` (empty token) still reaches
+  // verifyIdToken which throws → 401. Do NOT short-circuit on empty here.
+  const idToken = authHeader.split("Bearer ")[1] as string;
 
   // Check cache first
   const cached = tokenCache.get(idToken);
   if (cached && Date.now() - cached.time < CACHE_TTL) {
     req.uid = cached.uid;
-    return next();
+    next();
+    return;
   }
 
   try {
@@ -47,8 +62,8 @@ async function verifyToken(req, res, next) {
     tokenCache.set(idToken, { uid: decoded.uid, time: Date.now() });
     next();
   } catch {
-    return res.error(401, "AUTH_INVALID", "Invalid auth token");
+    res.error(401, "AUTH_INVALID", "Invalid auth token");
   }
 }
 
-module.exports = verifyToken;
+export = verifyToken;

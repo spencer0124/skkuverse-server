@@ -1,7 +1,7 @@
-require("dotenv").config();
+import "dotenv/config";
 
 // --- Environment flags ---
-const NODE_ENV = process.env.NODE_ENV || "development";
+const NODE_ENV: string = process.env.NODE_ENV || "development";
 const isProduction = NODE_ENV === "production";
 const isTest = NODE_ENV === "test";
 const isDevelopment = !isProduction && !isTest;
@@ -14,14 +14,14 @@ const USE_PROD_API = isProduction
 // --- Helpers ---
 
 // development → "_dev", test → "_test", production → 원본
-function devDbName(baseName) {
+function devDbName(baseName: string | undefined): string | undefined {
   if (!baseName) return baseName;
   if (isTest) return `${baseName}_test`;
   return isDevelopment ? `${baseName}_dev` : baseName;
 }
 
 // USE_PROD_API에 따라 API URL 선택. _DEV가 없으면 _PROD 폴백
-function apiUrl(prodKey, devKey) {
+function apiUrl(prodKey: string, devKey: string): string | undefined {
   if (USE_PROD_API) return process.env[prodKey];
   return process.env[devKey] || process.env[prodKey];
 }
@@ -63,9 +63,14 @@ const config = {
 
   building: {
     dbName: devDbName(process.env.MONGO_BUILDING_DB_NAME),
-    collections: { buildings: "buildings", buildingsRaw: "buildings_raw", spaces: "spaces", connections: "connections" },
+    collections: {
+      buildings: "buildings",
+      buildingsRaw: "buildings_raw",
+      spaces: "spaces",
+      connections: "connections",
+    },
     syncIntervalMs:
-      parseInt(process.env.BUILDING_SYNC_INTERVAL_MS, 10) ||
+      parseInt(process.env.BUILDING_SYNC_INTERVAL_MS || "", 10) ||
       7 * 24 * 60 * 60 * 1000, // 7 days
   },
 
@@ -94,7 +99,7 @@ const config = {
       claimLeaseMs: 5 * 60 * 1000,
       // Safety-net cron only. Primary trigger is the crawler ping.
       sweepCronIntervalMs:
-        parseInt(process.env.NOTICES_DISPATCH_SWEEP_MS, 10) ||
+        parseInt(process.env.NOTICES_DISPATCH_SWEEP_MS || "", 10) ||
         30 * 60 * 1000,
       maxAttempts: 5,
       fcmTimeoutMs: 30 * 1000,
@@ -132,6 +137,14 @@ const config = {
     jongro02Loc: apiUrl("API_JONGRO02_LOC_PROD", "API_JONGRO02_LOC_DEV"),
     stationHyehwa: process.env.API_STATION_HEWA,
   },
+
+  getModeLabel(): string {
+    if (isProduction) return "PRODUCTION (prod DB + prod API)";
+    if (isDevelopment && USE_PROD_API) return "STAGING CHECK (dev DB + prod API)";
+    if (isDevelopment) return "DEVELOPMENT (dev DB + dev API)";
+    if (isTest) return "TEST";
+    return `UNKNOWN (NODE_ENV=${NODE_ENV})`;
+  },
 };
 
 // Validate required config values at startup.
@@ -140,7 +153,7 @@ const config = {
 // causes a fatal crash on startup. No fallbacks, no silent defaults —
 // missing config MUST surface loudly, either at local boot or via the CI/CD
 // pre-deploy validation step (.github/workflows/deploy.yml).
-const required = [
+const required: ReadonlyArray<readonly [string, unknown, string]> = [
   ["mongo.url", config.mongo.url, "MONGO_URL"],
   ["api.hsscNew", config.api.hsscNew, "API_HSSC_NEW_PROD"],
   ["api.jongro07List", config.api.jongro07List, "API_JONGRO07_LIST_PROD"],
@@ -154,10 +167,22 @@ const required = [
   ["building.dbName", config.building.dbName, "MONGO_BUILDING_DB_NAME"],
   ["ad.dbName", config.ad.dbName, "MONGO_AD_DB_NAME"],
   ["notices.dbName", config.notices.dbName, "MONGO_NOTICES_DB_NAME"],
-  ["notices.serviceStartDate", config.notices.serviceStartDate, "NOTICES_SERVICE_START_DATE"],
-  ["notices.dispatch.functionUrl", config.notices.dispatch.functionUrl, "FCM_FUNCTION_URL"],
+  [
+    "notices.serviceStartDate",
+    config.notices.serviceStartDate,
+    "NOTICES_SERVICE_START_DATE",
+  ],
+  [
+    "notices.dispatch.functionUrl",
+    config.notices.dispatch.functionUrl,
+    "FCM_FUNCTION_URL",
+  ],
   ["notices.dispatch.apiKey", config.notices.dispatch.apiKey, "FCM_API_KEY"],
-  ["notices.dispatch.internalToken", config.notices.dispatch.internalToken, "INTERNAL_DISPATCH_TOKEN"],
+  [
+    "notices.dispatch.internalToken",
+    config.notices.dispatch.internalToken,
+    "INTERNAL_DISPATCH_TOKEN",
+  ],
 ];
 
 const missing = required
@@ -172,12 +197,4 @@ if (missing.length > 0) {
   }
 }
 
-config.getModeLabel = function () {
-  if (isProduction) return "PRODUCTION (prod DB + prod API)";
-  if (isDevelopment && USE_PROD_API) return "STAGING CHECK (dev DB + prod API)";
-  if (isDevelopment) return "DEVELOPMENT (dev DB + dev API)";
-  if (isTest) return "TEST";
-  return `UNKNOWN (NODE_ENV=${NODE_ENV})`;
-};
-
-module.exports = config;
+export = config;

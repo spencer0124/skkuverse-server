@@ -1,9 +1,14 @@
+import type { SupportedLang } from "./types";
+
 /**
  * Minimal i18n module.
  * Provides t(key, lang) for translatable server-generated text.
  * Korean is the source/default language.
  */
-const translations = {
+type Translation = Partial<Record<SupportedLang, string>>;
+type Translations = Record<string, Translation>;
+
+const translations: Translations = {
   // SDUI: buslist titles/subtitles
   "buslist.hssc.title": {
     ko: "인사캠 셔틀버스",
@@ -317,14 +322,11 @@ const translations = {
 /**
  * Translate a key to the given language.
  * Falls back to Korean if the key or language is not found.
- * @param {string} key - Translation key (e.g., "buslist.hssc.title")
- * @param {string} lang - Language code ("ko", "en", "zh")
- * @returns {string}
  */
-function t(key, lang) {
+function t(key: string, lang: SupportedLang): string {
   const entry = translations[key];
   if (!entry) return key;
   return entry[lang] || entry.ko || key;
 }
 
-module.exports = { t };
+export { t };
