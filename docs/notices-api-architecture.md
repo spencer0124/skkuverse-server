@@ -1,12 +1,13 @@
 # Notices API — 아키텍처 & 설계 결정 기록
 
 - **도입일:** 2026-04-10
-- **Feature:** `/notices/*` 읽기 전용 API (5 endpoints)
-- **범위:** `skku_notices` MongoDB 컬렉션을 읽어 앱(SKKUverse / skkumap)에 144개 학과 공지 리스트 + 상세를 서빙
+- **Feature:** `/notices/*` 읽기 전용 API (5 client endpoints) + `/internal/notices` (crawler ping → FCM dispatch)
+- **범위:** `skkubus_notices.notices` MongoDB 컬렉션을 읽어 앱(`skkuverse-app`)에 147개 소스 공지 리스트 + 상세를 서빙, FCM dispatch는 Cloud Function 호출로 fan-out
 - **관련 repo:**
-  - 이 서버 (`skkuverse-server`) — 읽기만, 이 문서의 주제
-  - `skkuverse-crawler` (Python) — 공지 크롤링, 쓰기 소유
-  - `skkuverse-ai` — 공지 AI 요약, `summary*` 필드 쓰기 소유
+  - 이 서버 (`skkuverse-server`) — 읽기 + FCM dispatch trigger, 이 문서의 주제
+  - `skkuverse-crawler` (Python) — 공지 크롤링, 쓰기 소유, cycle 끝에 `/internal/notices` ping
+  - `skkuverse-ai` (FastAPI) — 공지 AI 요약, `summary*` 필드 쓰기 소유 (crawler가 호출)
+  - FCM Cloud Function — 이 서버가 trigger, Firestore device token을 읽어 FCM v1 발송
 
 ---
 
@@ -16,7 +17,7 @@
 
 사용자가 구독한 학과 목록에서 하나를 선택 → 해당 학과의 최신 공지 리스트 → 상세. 단순해 보이지만 캠퍼스 환경 특유의 제약이 있다.
 
-- **144개 학과**, 전략(crawler strategy) 7종, 학과마다 파싱된 필드가 다름(`category`/`author`/`views`가 있거나 없음).
+- **147개 소스**, 전략(crawler strategy) 7종, 소스마다 파싱된 필드가 다름(`category`/`author`/`views`가 있거나 없음).
 - **공지 본문은 시점에 따라 바뀐다** (크롤러가 tier1/tier2 변경 감지). 앱은 "수정됨"을 표시해야 한다.
 - **요약은 비동기로 붙는다.** 크롤링 직후엔 `summaryAt: null`, 나중에 GPT 요약이 달림. 앱은 "요약 준비 중" 상태를 허용해야 한다.
 - **본문이 없는 공지도 있다.** 상세 fetch 실패, 5MB 초과, 또는 영 404 — `content: null`일 수 있다. 앱은 이때 원본 링크로 fallback해야 한다.
@@ -75,10 +76,10 @@
                                                    │
                                           GET /notices/*
                                                    │
-                                          ┌────────┴──────┐
-                                          │  skkumap app  │
-                                          │ (Flutter/RN)  │
-                                          └───────────────┘
+                                          ┌────────┴──────────┐
+                                          │  skkuverse-app    │
+                                          │  (RN + Expo + TS) │
+                                          └───────────────────┘
 ```
 
 **핵심 원칙: 쓰기는 세 저장소가 각자 소유, 읽기는 서버가 전담.**
@@ -128,7 +129,7 @@
 
 ```js
 {
-  sourceId: deptId,
+  sourceId,
   isDeleted: { $ne: true },
   summaryType: type,  // optional
   $and: [
@@ -361,6 +362,58 @@ After:  pre-deploy dry-load 2초 → non-zero exit → git revert → exit 1
 
 **의존 관계 주의:** `jest.setup.js`의 defaults, `.env.example`의 REQUIRED 섹션, `lib/config.js`의 `required` 배열 — 이 **세 파일이 동기화**되어야 한다. 새 required 변수를 추가할 때 한 곳만 건드리면 또 같은 종류의 drift가 생긴다.
 
+### 3.18 FCM dispatch via deployed Cloud Function (2026-05)
+
+**문제:** 새 공지 발생 시 구독자에게 push를 보내야 한다. 옵션 두 가지:
+
+1. 서버가 직접 FCM Admin SDK로 발송 — device token 관리, batch 분할, error 분류, retry 모두 서버 안에서.
+2. 서버는 trigger만 보내고 발송 자체는 다른 서비스가 처리 — 책임 분리.
+
+**결정 (옵션 2):** Firebase Cloud Function이 device token 보유자(Firestore `devices` 컬렉션, `active=true + subscribedTopics` 조건)를 조회하여 FCM v1을 실제 발송한다. 서버는 *어떤 공지를 push 할지* 만 결정하고 HTTPS로 Cloud Function을 호출 (`FCM_FUNCTION_URL` + `FCM_API_KEY`).
+
+**근거:**
+- 사용자 device token / 구독 / 알림 설정은 이미 Firestore에 있고, 앱이 직접 쓴다. 이걸 서버 MongoDB로 복제해 오는 건 두 진실 동기화 부담.
+- FCM Admin SDK의 batch 분할·error 핸들링은 비-trivial. Cloud Function이 Firebase 생태계 안에 있어 인증·재시도·로깅이 native.
+- 서버는 stateless하게 유지 — push 실패가 서버 process를 흔들지 않음.
+
+**Trigger 경로 (2단):**
+
+1. **Primary**: `skkuverse-crawler`가 cycle 끝(30분마다)에 `POST /internal/notices` (X-Internal-Token 인증) → `notices.internal.routes.js` → `notices.dispatcher.sweepPending`.
+2. **Safety net**: `notices.dispatch.poller.js`가 `NOTICES_DISPATCH_SWEEP_MS` (기본 30분) 주기 cron으로도 같은 sweep 실행 — crawler ping 누락 대비.
+
+**Claim lease로 중복 발송 차단:**
+
+api-1, api-2, poller 세 컨테이너가 동시에 같은 후보를 push할 수 있어서 (특히 crawler ping이 두 API replica 모두에 도달 가능), Mongo `claimedAt` 필드로 5분 lease(`claimLeaseMs`)를 둔다. dispatcher가 후보를 가져올 때 `claimedAt` 미설정 또는 5분 이상 경과한 것만 선택, 곧장 자기 ID로 stamp. 다른 컨테이너가 같은 후보를 보면 lease 유효해 skip.
+
+**Retry & 폐기:**
+
+- `pushAttempts $not: $gte: maxAttempts(=5)` 필터로 5회 실패한 후보는 자동 제외.
+- `maxAgeMs = 24h`: 24시간 넘은 공지는 lease 없이 통째로 abandon (long outage 후 stale push 폭주 방지).
+- `sweepBatchCap = 200`: 한 sweep 틱당 최대 200건. blast radius cap.
+
+**Config (lib/config.js notices.dispatch):**
+
+```js
+{
+  functionUrl: process.env.FCM_FUNCTION_URL,           // required
+  apiKey: process.env.FCM_API_KEY,                     // required
+  internalToken: process.env.INTERNAL_DISPATCH_TOKEN,  // required (crawler 공유)
+  maxAgeMs: 24 * 60 * 60 * 1000,
+  claimLeaseMs: 5 * 60 * 1000,
+  sweepCronIntervalMs: parseInt(process.env.NOTICES_DISPATCH_SWEEP_MS, 10) || 30 * 60 * 1000,
+  maxAttempts: 5,
+  fcmTimeoutMs: 30 * 1000,
+  sweepBatchCap: 200,
+}
+```
+
+**Why `crawledAt` (not `createdAt`):** dispatcher가 "최근 N분 안에 크롤된 것" 같은 시간 필터를 쓸 때 Mongo doc에는 `createdAt`이 *없고* `crawledAt`만 있다. 초기 구현에서 `createdAt`을 쿼리해 0건이 나오는 incident가 있었음 (commit `7c6944e`). prod doc shape을 가정하지 말고 실제 sample을 보고 필드명을 검증해야 한다는 교훈.
+
+**Files added:**
+- `features/notices/notices.dispatcher.js` — sweep, claim, FCM call, retry book-keeping
+- `features/notices/notices.dispatch.poller.js` — env-gated safety-net cron
+- `features/notices/notices.internal.routes.js` — `/internal/notices` 수신, dispatcher 호출
+
 ---
 
 ## 4. 엔드포인트 스펙
@@ -372,7 +425,7 @@ After:  pre-deploy dry-load 2초 → non-zero exit → git revert → exit 1
 - `Cache-Control: private, max-age=3600`
 - `Accept-Language`에 따라 `label` 로컬라이즈 (ko/en, zh → en fallback)
 - 배열 순서 = 탭 표시 순서
-- Tagged payload: `tabMode: "fixed"` → `fixed: { deptId, name, campus }`, `tabMode: "picker"` → `picker: { departments, maxSelection, defaultDeptIds }`
+- Tagged payload: `tabMode: "fixed"` → `fixed: { sourceId, name, campus }`, `tabMode: "picker"` → `picker: { sources, maxSelection, defaultIds, campusDefaultIds }`
 - 앱이 모르는 `tabMode` → 해당 탭 skip (forward compat)
 
 응답 예:
@@ -385,19 +438,21 @@ After:  pre-deploy dry-load 2초 → non-zero exit → git revert → exit 1
       {
         "key": "dept", "label": "학과", "tabMode": "picker",
         "picker": {
-          "departments": [
-            { "id": "arch", "name": "건축학과", "campus": "nsc" }
-            // ... 125개
+          "sources": [
+            { "id": "arch", "name": "건축학과", "campus": "nsc", "college": "공과대학",
+              "noticeAvailable": true, "excludeReason": null }
+            // ... ~125개
           ],
           "maxSelection": 5,
-          "defaultDeptIds": []
+          "defaultIds": [],
+          "campusDefaultIds": {}
         }
       },
       {
         "key": "academic", "label": "학사", "tabMode": "fixed",
-        "fixed": { "deptId": "skku-notice02", "name": "성균관대_통합(학사)", "campus": "both" }
+        "fixed": { "sourceId": "skku-notice02", "name": "성균관대_통합(학사)", "campus": "both" }
       }
-      // ... 9개 탭
+      // ... 9개 탭 (categories.json: dept, academic, scholarship, career, recruitment, event, library, dorm, general)
     ]
   }
 }
@@ -417,7 +472,7 @@ After:  pre-deploy dry-load 2초 → non-zero exit → git revert → exit 1
     "notices": [
       {
         "id": "69d2024f8e7a44b79c89f936",
-        "deptId": "skku-main",
+        "sourceId": "skku-main",
         "articleNo": 136023,
         "title": "[모집] 2026 학생 창업유망팀 ...",
         "category": "행사/세미나",
@@ -442,7 +497,7 @@ After:  pre-deploy dry-load 2초 → non-zero exit → git revert → exit 1
 }
 ```
 
-### 4.3 `GET /notices/:deptId/:articleNo`
+### 4.3 `GET /notices/:sourceId/:articleNo`
 
 응답 예:
 ```jsonc
@@ -450,7 +505,7 @@ After:  pre-deploy dry-load 2초 → non-zero exit → git revert → exit 1
   "meta": { "lang": "ko" },
   "data": {
     "id": "...",
-    "deptId": "skku-main",
+    "sourceId": "skku-main",
     "articleNo": 136023,
     "title": "...",
     "contentMarkdown": "**[모집] 2026 학생 창업유망팀 300+ ...**\n\n성균인 여러분 ...",
@@ -475,11 +530,28 @@ After:  pre-deploy dry-load 2초 → non-zero exit → git revert → exit 1
 }
 ```
 
-### 4.4 에러 코드
+### 4.4 `POST /internal/notices`
+
+크롤러가 cycle 끝에 호출하는 내부 엔드포인트. Firebase auth 없이 `X-Internal-Token` 공유 비밀로 인증 (route 내부에서 직접 검증).
+
+요청:
+```jsonc
+POST /internal/notices
+X-Internal-Token: <INTERNAL_DISPATCH_TOKEN>
+Content-Type: application/json
+
+{ "source": "skku-main", "cycleId": "...", "crawledAt": "2026-05-24T01:00:00Z" }
+```
+
+응답: `{ meta, data: { swept, dispatched, skipped } }` — sweep 결과 카운트. dispatch 자체는 비동기로 진행되므로 응답이 빠르다.
+
+`noticesLimiter` (uid 기반)를 거치지 않고, 별도 rate limit도 없다 (단일 cycle당 한 번만 호출됨). 호출 빈도가 비정상이면 운영 모니터링 (logger)에서 잡힌다.
+
+### 4.5 에러 코드
 
 | HTTP | code | 상황 |
 |---|---|---|
-| 400 | `INVALID_SOURCE_ID` | `sources.json`에 없는 deptId |
+| 400 | `INVALID_SOURCE_ID` | `sources.json`에 없는 sourceId |
 | 400 | `INVALID_PARAMS` | articleNo 숫자 아님, limit 범위 초과, 알 수 없는 type |
 | 400 | `INVALID_CURSOR` | base64url 디코딩·JSON 파싱·shape 검증 실패 |
 | 401 | `AUTH_INVALID` | 토큰 검증 실패 (optional auth — 토큰 없으면 401 아님) |
@@ -492,27 +564,28 @@ After:  pre-deploy dry-load 2초 → non-zero exit → git revert → exit 1
 
 ```
 features/notices/
-├── notices.routes.js      # Express router, 5 endpoints (tabs, dept, multi, detail, proxy)
-├── notices.data.js        # DB access, ensureNoticeIndexes, projections
-├── notices.transform.js   # pure toListItem/toDetailItem, summary brief/full
-├── notices.cursor.js      # encode/decode/buildCursorFilter + InvalidCursorError
-├── sources.json       # 147 entries, SSOT from skkuverse-crawler
-├── sources.js         # loader + sha256 version + Map
-├── categories.json        # 9 tab definitions, SSOT from skkuverse-crawler
-├── tabConfig.js           # tab config loader + startup validation + pre-computed responses
-└── README.md              # maintenance guide
+├── notices.routes.js              # Client router: tabs, source, multi, detail, attachment proxy
+├── notices.internal.routes.js     # /internal/notices — crawler ping, X-Internal-Token auth
+├── notices.dispatcher.js          # sweepPending, claim-lease, FCM Cloud Function call
+├── notices.dispatch.poller.js     # env-gated safety-net cron
+├── notices.data.js                # DB reads, ensureNoticeIndexes, projections, FORCE_INDEX hint
+├── notices.transform.js           # pure toListItem/toDetailItem, summary brief/full
+├── notices.cursor.js              # encode/decode/buildCursorFilter + InvalidCursorError
+├── notices.search.js              # validateQ for `q=...` search param
+├── notices.topics.js              # FCM topic derivation helpers
+├── sources.json                   # 147 entries, SSOT from skkuverse-crawler
+├── sources.js                     # loader + sha256 version + Map
+├── categories.json                # 9 tab definitions, SSOT from skkuverse-crawler
+├── tabConfig.js                   # tab config loader + startup validation + frozen per-lang responses
+└── README.md                      # maintenance guide
 
 __tests__/
-├── notices-transform.test.js    # 28 tests — pure
-├── notices-cursor.test.js       # 13 tests — pure
-├── notices-departments.test.js  # 10 tests — loader
-├── notices-data.test.js         # 15 tests — Mongo mocked
-└── notices-routes.test.js       # 28 tests — supertest + all mocks (incl. 11 tabs tests)
+└── notices-*.test.js              # ~150 tests across transform / cursor / departments / data / routes / dispatcher / tabConfig
 
 수정:
-  lib/config.js       # config.notices + required (2026-04-10: strict, no fallback)
-  index.js            # mount, noticesLimiter, startup retry ensure
-  .env                # MONGO_NOTICES_DB_NAME, NOTICES_SERVICE_START_DATE
+  lib/config.js       # config.notices + required (strict, no fallback); config.notices.dispatch block
+  index.js            # mount /notices, /internal/notices; noticesLimiter; startup retry ensure
+  .env                # MONGO_NOTICES_DB_NAME, NOTICES_SERVICE_START_DATE, FCM_*, INTERNAL_DISPATCH_TOKEN
   swagger/swagger-output.json  # auto-regenerated
 ```
 
@@ -540,7 +613,7 @@ jest.config.js         # + setupFiles: ["<rootDir>/jest.setup.js"]
 4. `notices.data.js` — Mongo chain mock (`find().sort().limit().toArray()`). 15개 테스트. 100% coverage.
 5. `notices.routes.js` — supertest + `lib/db`·`lib/firebase`·`features/notices/notices.data` 전부 mock. 17개 테스트. Express app 전체 startup 경로까지 커버.
 
-**결과:** 전체 389개 테스트 green, lint 0 errors, swagger 자동 등록, 실서버 E2E smoke test (dev DB 대상) 전 경로 통과.
+**결과 (launch 시점 기준):** 전체 389개 테스트 green, lint 0 errors, swagger 자동 등록, 실서버 E2E smoke test (dev DB 대상) 전 경로 통과. *(현재 (2026-05) 32 suites / 500 tests로 dispatcher·tabConfig 추가분 포함.)*
 
 **TDD가 실제로 잡아낸 버그:**
 
@@ -556,8 +629,8 @@ jest.config.js         # + setupFiles: ["<rootDir>/jest.setup.js"]
 
 1. **전체 최신순 피드** (`/notices/feed`) — 학과 무관 최신순. 별도 `{date:-1, crawledAt:-1, _id:-1}` 인덱스 필요 (sourceId 제외).
 2. **검색** (`/notices/search?q=...`) — `title`, `contentText`에 text 인덱스 필요. 한국어 tokenization 고려.
-3. **구독 알림** — 사용자별 구독 학과 정보를 서버에서 관리하고 새 공지 발행 시 FCM push. 크롤러와 이벤트 버스로 연결해야 함.
-4. **`campus`/`category` 채우기** — 현재 144개 모두 null. 2박3일 정도 들여 학사 규정 확인하며 채워야 할 수 동 작업.
+3. ~~**구독 알림**~~ — **구현 완료 (2026-05)**: FCM dispatch via Cloud Function (§3.18 참조). 사용자별 device 토큰/구독은 Firestore가 관리하고, 서버는 crawler ping (`/internal/notices`)을 받아 pending 공지를 lease-claim하여 Cloud Function trigger로 fan-out한다.
+4. **`campus`/`category` 채우기** — 147개 sources 중 일부는 여전히 null. 학사 규정 확인하며 점진적으로 채우는 수동 작업.
 5. **크롤러 `isDeleted` tombstone UX** — 현재는 404로 숨김. 사용자가 "최근 봤던 공지가 사라졌어요" 같은 피드백을 주면 tombstone 전환 고려.
 6. **상세 API prefetch 정책** — 현재는 클라이언트 결정. 서버는 무관. 앱에서 viewport 기반 prefetch를 켜면 DAU 800 기준으로도 상세 QPS가 수배 증가.
 7. **전체 리스트 응답 압축** — `compression` 미들웨어 미설치. 본문을 내려주는 상세 응답이 커지면 검토.
@@ -570,11 +643,11 @@ jest.config.js         # + setupFiles: ["<rootDir>/jest.setup.js"]
 - [x] `npm run lint` — 0 errors
 - [x] `npm test` — 전체 389/389 green
 - [x] `npm run swagger` — 3개 라우트 자동 등록
-- [x] 실서버 기동 → `GET /notices/sources` 144개 + version
+- [x] 실서버 기동 → `GET /notices/tabs` 9개 탭 + 147개 sources 반환 (2026-04-15 이후 `/notices/sources` 대체)
 - [x] `GET /notices/source/skku-main?limit=2` + `cursor` round-trip 페이지네이션 동작
-- [x] `GET /notices/:deptId/:articleNo` 실제 문서 상세 반환, `contentMarkdown` 존재 (legacy HTML/text 필드 미노출)
+- [x] `GET /notices/:sourceId/:articleNo` 실제 문서 상세 반환, `contentMarkdown` 존재 (legacy HTML/text 필드 미노출)
 - [x] 존재하지 않는 `articleNo` → 404
-- [x] 알 수 없는 `deptId` → 400 (DB 호출 없이 즉시)
+- [x] 알 수 없는 `sourceId` → 400 (DB 호출 없이 즉시)
 - [x] 알 수 없는 `type` → 400
 - [x] 깨진 `cursor` → 400
 - [x] ETag `If-None-Match` → 304

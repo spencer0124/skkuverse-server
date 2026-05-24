@@ -30,14 +30,26 @@ main push
   ├→ test job (npm ci → test → lint)
   └→ deploy job (test 통과 후, SSH → OCI)
        ├→ PREV_COMMIT 저장
-       ├→ git pull origin main
-       ├→ Nginx 설정 업데이트
+       ├→ git pull origin main          ← VM 워킹트리 dirty 시 abort
+       ├→ Nginx 설정 업데이트            ← (api.skkuverse.com 활성, api.skkuuniverse.com legacy copy)
        ├→ docker compose build
+       ├→ Pre-deploy config validation  ← lib/config.js dry-load on the new image (2초)
+       │    └→ 실패 시 git revert → exit 1 (running containers 안 건드림, 0 downtime)
        ├→ Rolling update (api-1 → api-2 → poller)
        │    └→ 각 서비스 health check retry (5초 × 6회)
        ├→ 성공 → 완료
        └→ 실패 → rollback() → 전체 복원 (자동 rollback)
 ```
+
+3단 방어층 — 각각 다른 실패 모드 커버:
+
+| 실패 모드 | 잡는 층 | 비용 |
+|---|---|---|
+| env var 누락 | pre-deploy config validation | ~2초, 0 downtime |
+| transient DB 실패 등 rolling update 중 죽음 | health-check retry + auto-rollback | ~60초 |
+| `git pull`이 거부 (VM 워킹트리 dirty) | 그 자리에서 abort (rollback 호출 안 됨) | — |
+
+설계 근거는 `docs/notices-api-architecture.md` §3.17·§10 참조.
 
 ### Rolling Update 순서
 
@@ -51,11 +63,12 @@ api-1, api-2가 순차 배포되므로 다운타임 없음. 어느 단계에서�
 
 | 항목 | 값 |
 |---|---|
-| 서버 | OCI ARM VM (168.107.62.58) |
+| 서버 | OCI ARM VM |
 | 유저 | ubuntu |
-| 경로 | `/home/ubuntu/skkumap-server-express` |
-| 도메인 | api.skkuverse.com (Cloudflare → Nginx → Docker) |
-| Docker 네트워크 | `skkuverse` (external) |
+| 경로 | `/home/ubuntu/skkumap-server-express` *(legacy folder name retained; matches `DEPLOY_PATH` secret. 변경 시 secret + 모든 컨테이너 재빌드 필요해 의도적으로 유지.)* |
+| 활성 도메인 | `api.skkuverse.com` (Cloudflare → Nginx → Docker) |
+| Legacy 도메인 | `api.skkuuniverse.com` (nginx config 파일은 여전히 copy되지만 symlink 안 됨, 비활성) |
+| Docker 네트워크 | `skkuverse` (external, AI 서비스 공유) |
 
 ### 서비스 구성
 

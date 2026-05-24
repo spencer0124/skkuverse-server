@@ -1,6 +1,8 @@
-# 성균관대학교 전체 단과대학 & 학과 홈페이지 목록
+# 성균관대학교 단과대학 & 학과 홈페이지 디렉토리
 
-> 출처: https://www.skku.edu/skku/edu/education.do (2026-03-28 기준)
+> 출처: https://www.skku.edu/skku/edu/education.do (2026-03-28 수집 기준).
+>
+> ⚠ **이 문서는 학과 홈페이지 인덱스이지 크롤러 소스 목록이 아니다.** 크롤러가 실제로 읽는 147개 소스의 SSOT는 `features/notices/sources.json` (skkuverse-crawler가 `generate_artifacts.py`로 생성). 그 파일이 변경되면 자동으로 서버 응답이 갱신된다. 이 .md는 *editorial reference* — 새 소스를 sources.json에 추가하기 전 학과 URL을 찾을 때 활용.
 
 ## 인문사회과학캠퍼스 (서울 종로구)
 
