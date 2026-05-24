@@ -14,6 +14,22 @@ const { ObjectId } = require("mongodb");
 const express = require("express");
 const request = require("supertest");
 
+// Freeze Date for all time-comparing assertions (claimNext age gate, lease window,
+// updateOne $set timestamps). Real timers stay live so supertest's HTTP loop and
+// the dispatcher's AbortController setTimeout work normally.
+const FIXED_NOW = new Date("2026-05-24T12:00:00Z");
+const DO_NOT_FAKE = [
+  "setTimeout",
+  "clearTimeout",
+  "setInterval",
+  "clearInterval",
+  "setImmediate",
+  "clearImmediate",
+  "queueMicrotask",
+  "nextTick",
+  "performance",
+];
+
 const mockCollection = {
   findOneAndUpdate: jest.fn(),
   updateOne: jest.fn().mockResolvedValue({ acknowledged: true }),
@@ -43,7 +59,7 @@ function makeNotice(extra = {}) {
     pushAttempts: 0,
     pushError: null,
     dispatchClaimedAt: null,
-    crawledAt: new Date(),
+    crawledAt: new Date(FIXED_NOW),
     isDeleted: false,
     ...extra,
   };
@@ -70,8 +86,18 @@ function buildInternalApp() {
   return app;
 }
 
+beforeAll(() => {
+  jest.useFakeTimers({ now: FIXED_NOW, doNotFake: DO_NOT_FAKE });
+});
+
+afterAll(() => {
+  jest.useRealTimers();
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
+  // Re-pin the clock in case a previous test advanced it.
+  jest.setSystemTime(FIXED_NOW);
   // Reset fetch between tests; each test stubs its own behavior.
   global.fetch = jest.fn();
 });
@@ -308,6 +334,159 @@ describe("sweepPending", () => {
     } finally {
       config.notices.dispatch.sweepBatchCap = original;
     }
+  });
+
+  // Phase 2.2 — sweepInFlight guard
+  it("returns status='in-progress' when a concurrent sweep is still running", async () => {
+    let resolveClaim;
+    const deferred = new Promise((r) => { resolveClaim = r; });
+    mockCollection.findOneAndUpdate.mockReturnValueOnce(deferred);
+
+    // Kick off the first sweep — it will park on the deferred claim.
+    const firstPromise = dispatcher.sweepPending("first");
+    // Yield one microtask so sweepInFlight=true is set before the second call.
+    await Promise.resolve();
+
+    const secondSummary = await dispatcher.sweepPending("second");
+    expect(secondSummary).toEqual({
+      status: "in-progress",
+      source: "second",
+      processed: 0,
+      sent: 0,
+      failed: 0,
+      skippedNoTopics: 0,
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    // Release the first sweep and verify it completes normally + state resets.
+    resolveClaim(null);
+    const firstSummary = await firstPromise;
+    expect(firstSummary.status).toBe("ok");
+
+    // Third sweep after the first finishes should proceed (not 'in-progress').
+    mockCollection.findOneAndUpdate.mockResolvedValueOnce(null);
+    const thirdSummary = await dispatcher.sweepPending("third");
+    expect(thirdSummary.status).toBe("ok");
+  });
+
+  // Phase 2.3 — claim-lease expiry boundary, validated against frozen FIXED_NOW
+  it("uses FIXED_NOW - claimLeaseMs as the lease expiry cutoff in $or", async () => {
+    mockCollection.findOneAndUpdate.mockResolvedValue(null);
+    await dispatcher.sweepPending("lease-check");
+    const [filter] = mockCollection.findOneAndUpdate.mock.calls[0];
+    const leaseClause = filter.$or.find(
+      (c) => c.dispatchClaimedAt && c.dispatchClaimedAt.$lt instanceof Date,
+    );
+    expect(leaseClause).toBeDefined();
+    const { claimLeaseMs, maxAgeMs } = config.notices.dispatch;
+    expect(leaseClause.dispatchClaimedAt.$lt.getTime()).toBe(
+      FIXED_NOW.getTime() - claimLeaseMs,
+    );
+    // Age gate cutoff uses the same frozen now.
+    expect(filter.crawledAt.$gt.getTime()).toBe(FIXED_NOW.getTime() - maxAgeMs);
+  });
+
+  // Phase 2.4 — attempts cap behaviour with a custom maxAttempts value
+  it("propagates a changed maxAttempts into the filter ($not.$gte)", async () => {
+    const original = config.notices.dispatch.maxAttempts;
+    config.notices.dispatch.maxAttempts = 2;
+    try {
+      mockCollection.findOneAndUpdate.mockResolvedValue(null);
+      await dispatcher.sweepPending("cap-check");
+      const [filter] = mockCollection.findOneAndUpdate.mock.calls[0];
+      expect(filter.pushAttempts).toEqual({ $not: { $gte: 2 } });
+    } finally {
+      config.notices.dispatch.maxAttempts = original;
+    }
+  });
+
+  it("treats an empty claim result as a queue drained and stops looping", async () => {
+    // claim returns null on the very first call — sweep must not call fetch,
+    // must not retry, and must report processed=0.
+    mockCollection.findOneAndUpdate.mockResolvedValueOnce(null);
+    const summary = await dispatcher.sweepPending("empty");
+    expect(summary).toMatchObject({ processed: 0, sent: 0, failed: 0, skippedNoTopics: 0 });
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(mockCollection.findOneAndUpdate).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ──────────────────────────────────────────────────────────
+// Phase 2.5 — dispatchOne / updateOne failure path (current behavior pinned)
+//
+// dispatchOne has TWO updateOne sites: one inside `try` (mark-as-sent or
+// skippedNoTopics) and one inside `catch` (always-release lease on failure).
+// The catch acts as a graceful fallback: a single updateOne failure on the
+// happy path bounces into catch, the second updateOne succeeds, and the
+// caller gets `{ result: "failed" }` rather than a thrown error.
+//
+// dispatchOne only rejects when:
+//   (a) the skippedNoTopics path's single updateOne fails (no surrounding try), OR
+//   (b) both updateOnes fail (success-path: try-side fails, then catch-side fails), OR
+//   (c) the catch-path's lease-release updateOne fails (5xx or network error).
+//
+// sweepPending does not catch dispatchOne rejections, so they propagate up.
+// The `finally { sweepInFlight = false }` releases the in-process lock either way.
+// ──────────────────────────────────────────────────────────
+describe("dispatchOne — updateOne failure path", () => {
+  it("rejects when the single updateOne on the skippedNoTopics path fails", async () => {
+    mockCollection.updateOne.mockRejectedValueOnce(new Error("write conflict"));
+    const notice = makeNotice({ sourceId: "does-not-exist" });
+    await expect(dispatcher.dispatchOne(notice)).rejects.toThrow("write conflict");
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("returns result='failed' (does NOT reject) when only the success-path updateOne fails — catch fallback recovers", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true, status: 200,
+      text: async () => JSON.stringify({ sent: 1, failed: 0, cleanedUp: 0 }),
+    });
+    mockCollection.updateOne.mockRejectedValueOnce(new Error("disk full"));
+    const out = await dispatcher.dispatchOne(makeNotice());
+    expect(out.result).toBe("failed");
+    expect(out.error.message).toBe("disk full");
+    // The catch handler's lease-release updateOne ran (using the default mockResolvedValue).
+    expect(mockCollection.updateOne).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects when BOTH updateOnes fail on the success path", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true, status: 200,
+      text: async () => JSON.stringify({ sent: 1, failed: 0, cleanedUp: 0 }),
+    });
+    mockCollection.updateOne
+      .mockRejectedValueOnce(new Error("first fail"))
+      .mockRejectedValueOnce(new Error("lease release fail"));
+    // The rejection that propagates is the lease-release one — the original
+    // (first fail) error is shadowed because catch awaits the second updateOne.
+    await expect(dispatcher.dispatchOne(makeNotice())).rejects.toThrow("lease release fail");
+  });
+
+  it("rejects when the lease-release updateOne fails on a 5xx", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: false, status: 502, text: async () => "bad gateway",
+    });
+    mockCollection.updateOne.mockRejectedValueOnce(new Error("net partition"));
+    await expect(dispatcher.dispatchOne(makeNotice())).rejects.toThrow("net partition");
+  });
+
+  it("rejects when the lease-release updateOne fails on a network error", async () => {
+    global.fetch.mockRejectedValueOnce(new Error("ECONNRESET"));
+    mockCollection.updateOne.mockRejectedValueOnce(new Error("mongo down"));
+    await expect(dispatcher.dispatchOne(makeNotice())).rejects.toThrow("mongo down");
+  });
+
+  it("sweepPending propagates the rejection but releases sweepInFlight via finally — next sweep proceeds", async () => {
+    mockCollection.findOneAndUpdate.mockResolvedValueOnce(makeNotice({ sourceId: "does-not-exist" }));
+    // skippedNoTopics path has a single updateOne — one rejection is enough to reject dispatchOne.
+    mockCollection.updateOne.mockRejectedValueOnce(new Error("write fail"));
+
+    await expect(dispatcher.sweepPending("propagate")).rejects.toThrow("write fail");
+
+    // Next sweep must proceed (lock released by finally), not return 'in-progress'.
+    mockCollection.findOneAndUpdate.mockResolvedValueOnce(null);
+    const followUp = await dispatcher.sweepPending("recovery");
+    expect(followUp.status).toBe("ok");
   });
 });
 
