@@ -11,21 +11,27 @@
  * constant time. No Firebase auth here — the caller is the crawler
  * service, not an end user.
  */
+import express from "express";
+import crypto from "crypto";
+import asyncHandler from "../../lib/asyncHandler";
+import config from "../../lib/config";
+import logger from "../../lib/logger";
+import { sweepPending } from "./notices.dispatcher";
 
-const express = require("express");
-const crypto = require("crypto");
 const router = express.Router();
-const asyncHandler = require("../../lib/asyncHandler");
-const config = require("../../lib/config");
-const logger = require("../../lib/logger");
-const { sweepPending } = require("./notices.dispatcher");
 
-function tokensMatch(provided, expected) {
+function tokensMatch(provided: unknown, expected: unknown): boolean {
   if (typeof provided !== "string" || typeof expected !== "string") return false;
   const a = Buffer.from(provided);
   const b = Buffer.from(expected);
   if (a.length !== b.length) return false;
   return crypto.timingSafeEqual(a, b);
+}
+
+interface PingBody {
+  source?: string;
+  cycleId?: string;
+  crawledAt?: string;
 }
 
 router.post(
@@ -34,20 +40,28 @@ router.post(
     const expected = config.notices.dispatch.internalToken;
     const provided = req.get("x-internal-token");
     if (!tokensMatch(provided, expected)) {
-      return res.error(401, "UNAUTHORIZED", "invalid or missing X-Internal-Token");
+      return res.error(
+        401,
+        "UNAUTHORIZED",
+        "invalid or missing X-Internal-Token",
+      );
     }
 
-    const body = req.body || {};
+    const body = (req.body || {}) as PingBody;
     const triggerSource =
       typeof body.source === "string" && body.source ? body.source : "internal";
     logger.debug(
-      { source: triggerSource, cycleId: body.cycleId, crawledAt: body.crawledAt },
-      "[dispatch] ping received"
+      {
+        source: triggerSource,
+        cycleId: body.cycleId,
+        crawledAt: body.crawledAt,
+      },
+      "[dispatch] ping received",
     );
 
     const summary = await sweepPending(triggerSource);
     return res.success(summary);
-  })
+  }),
 );
 
-module.exports = router;
+export = router;

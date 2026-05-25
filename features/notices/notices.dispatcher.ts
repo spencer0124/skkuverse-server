@@ -12,18 +12,61 @@
  *                    sweep on the same instance returns immediately, leaving
  *                    the in-flight sweep to drain.
  */
-
-const config = require("../../lib/config");
-const logger = require("../../lib/logger");
-const { getNoticesCollection } = require("./notices.data");
-const { buildTopics } = require("./notices.topics");
+import config from "../../lib/config";
+import logger from "../../lib/logger";
+import { getNoticesCollection } from "./notices.data";
+import { buildTopics } from "./notices.topics";
+import type { NoticeDoc } from "./types";
 
 let sweepInFlight = false;
 
-function buildPayload(notice, topics) {
+interface DispatchOpts {
+  maxAgeMs?: number;
+  claimLeaseMs?: number;
+  maxAttempts?: number;
+  sweepBatchCap?: number;
+}
+
+interface FcmPayload {
+  type: "notice";
+  noticeId: string;
+  topics: string[];
+  title_ko: string;
+  body_ko: string;
+  title_en: string | null;
+  body_en: string | null;
+  sourceId?: string;
+  articleNo?: string;
+  category?: string;
+}
+
+interface FcmResponse {
+  sent?: number;
+  failed?: number;
+  cleanedUp?: number;
+  [k: string]: unknown;
+}
+
+interface DispatchOutcome {
+  result: "sent" | "failed" | "skippedNoTopics";
+  fnResponse?: FcmResponse;
+  error?: unknown;
+}
+
+interface SweepSummary {
+  status: "ok" | "in-progress";
+  source: string;
+  processed: number;
+  sent: number;
+  failed: number;
+  skippedNoTopics: number;
+  durationMs?: number;
+}
+
+function buildPayload(notice: NoticeDoc, topics: string[]): FcmPayload {
   const titleKo = notice.title || "";
   const bodyKo = notice.summaryOneLiner || "";
-  const payload = {
+  const payload: FcmPayload = {
     type: "notice",
     noticeId: String(notice._id),
     topics,
@@ -38,41 +81,41 @@ function buildPayload(notice, topics) {
   return payload;
 }
 
-async function postToFunction(payload) {
+async function postToFunction(payload: FcmPayload): Promise<FcmResponse> {
   const { functionUrl, apiKey, fcmTimeoutMs } = config.notices.dispatch;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), fcmTimeoutMs);
   try {
-    const res = await fetch(functionUrl, {
+    const res = await fetch(functionUrl!, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-API-Key": apiKey,
+        "X-API-Key": apiKey!,
       },
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
     const text = await res.text();
-    let body = null;
+    let body: FcmResponse | { raw: string } | null = null;
     try {
-      body = text ? JSON.parse(text) : null;
+      body = text ? (JSON.parse(text) as FcmResponse) : null;
     } catch {
       body = { raw: text };
     }
     if (!res.ok) {
       const err = new Error(
-        `sendNotification ${res.status}: ${typeof body === "object" ? JSON.stringify(body) : text}`
-      );
+        `sendNotification ${res.status}: ${typeof body === "object" ? JSON.stringify(body) : text}`,
+      ) as Error & { status?: number };
       err.status = res.status;
       throw err;
     }
-    return body || {};
+    return (body as FcmResponse) || {};
   } finally {
     clearTimeout(timer);
   }
 }
 
-async function dispatchOne(notice) {
+async function dispatchOne(notice: NoticeDoc): Promise<DispatchOutcome> {
   const col = getNoticesCollection();
   const topics = buildTopics(notice);
 
@@ -87,11 +130,11 @@ async function dispatchOne(notice) {
           pushError: null,
         },
         $inc: { pushAttempts: 1 },
-      }
+      },
     );
     logger.info(
       { noticeId: String(notice._id), sourceId: notice.sourceId },
-      "[dispatch] skipped: no topics"
+      "[dispatch] skipped: no topics",
     );
     return { result: "skippedNoTopics" };
   }
@@ -108,7 +151,7 @@ async function dispatchOne(notice) {
           pushError: null,
         },
         $inc: { pushAttempts: 1 },
-      }
+      },
     );
     logger.info(
       {
@@ -118,30 +161,38 @@ async function dispatchOne(notice) {
         failed: fnResponse.failed,
         cleanedUp: fnResponse.cleanedUp,
       },
-      "[dispatch] sent"
+      "[dispatch] sent",
     );
     return { result: "sent", fnResponse };
-  } catch (err) {
+  } catch (err: unknown) {
     // Always release the lease so the next sweep can retry within attempts cap.
+    // catch-handler-as-fallback invariant (pinned by tests): if this updateOne
+    // also fails, it propagates — but try-side error path is the common case.
+    const errMessage =
+      err instanceof Error ? err.message : String(err);
     await col.updateOne(
       { _id: notice._id },
       {
         $set: {
           dispatchClaimedAt: null,
-          pushError: String(err && err.message ? err.message : err).slice(0, 500),
+          pushError: errMessage.slice(0, 500),
         },
         $inc: { pushAttempts: 1 },
-      }
+      },
     );
     logger.warn(
-      { noticeId: payload.noticeId, topics: topics.length, err: err && err.message },
-      "[dispatch] failed"
+      { noticeId: payload.noticeId, topics: topics.length, err: errMessage },
+      "[dispatch] failed",
     );
     return { result: "failed", error: err };
   }
 }
 
-async function claimNext(col, now, opts = {}) {
+async function claimNext(
+  col: ReturnType<typeof getNoticesCollection>,
+  now: Date,
+  opts: DispatchOpts = {},
+) {
   const { maxAgeMs, claimLeaseMs, maxAttempts } = {
     ...config.notices.dispatch,
     ...opts,
@@ -174,13 +225,16 @@ async function claimNext(col, now, opts = {}) {
         { dispatchClaimedAt: { $exists: false } },
         { dispatchClaimedAt: { $lt: new Date(now.getTime() - claimLeaseMs) } },
       ],
-    },
+    } as never,
     { $set: { dispatchClaimedAt: new Date() } },
-    { returnDocument: "after" }
+    { returnDocument: "after" },
   );
 }
 
-async function sweepPending(triggerSource, opts = {}) {
+async function sweepPending(
+  triggerSource: string,
+  opts: DispatchOpts = {},
+): Promise<SweepSummary> {
   if (sweepInFlight) {
     return {
       status: "in-progress",
@@ -206,7 +260,7 @@ async function sweepPending(triggerSource, opts = {}) {
     const { sweepBatchCap } = { ...config.notices.dispatch, ...opts };
 
     while (processed < sweepBatchCap) {
-      const notice = await claimNext(col, new Date(), opts);
+      const notice = (await claimNext(col, new Date(), opts)) as NoticeDoc | null;
       if (!notice) break;
 
       processed += 1;
@@ -216,7 +270,7 @@ async function sweepPending(triggerSource, opts = {}) {
       else failed += 1;
     }
 
-    const summary = {
+    const summary: SweepSummary = {
       status: "ok",
       source: triggerSource,
       processed,
@@ -236,9 +290,7 @@ async function sweepPending(triggerSource, opts = {}) {
   }
 }
 
-module.exports = {
-  sweepPending,
-  dispatchOne,
-  // Exported for tests only.
-  __testInternals: { buildPayload, claimNext },
-};
+// Exported for tests only.
+const __testInternals = { buildPayload, claimNext };
+
+export { sweepPending, dispatchOne, __testInternals };

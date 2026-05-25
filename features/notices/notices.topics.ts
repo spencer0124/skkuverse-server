@@ -9,17 +9,26 @@
  *
  * Pure / no I/O. Reads the validated, frozen categories from tabConfig.
  */
-
-const { categories } = require("./tabConfig");
+import { categories } from "./tabConfig";
+import type { CategoryConfig } from "./types";
 
 const TOPIC_CAP = 10; // sendNotification function rejects > 10.
 
-function buildTopics(noticeDoc) {
+// Minimal shape — buildTopics only reads sourceId. Compatible with the
+// fully-typed NoticeDoc (PR3-3) as well as test fixtures that pass
+// arbitrary partial docs (notices-dispatch.test.js).
+interface NoticeForTopic {
+  sourceId?: string;
+}
+
+function buildTopics(noticeDoc: NoticeForTopic | null | undefined): string[] {
   const sourceId = noticeDoc && noticeDoc.sourceId;
   if (!sourceId || typeof sourceId !== "string") return [];
 
-  const out = new Set();
-  for (const cat of categories) {
+  const out = new Set<string>();
+  // tabConfig.js (still .js until PR3-2) exports `categories` as untyped any;
+  // cast at the boundary. After PR3-2 the cast becomes redundant.
+  for (const cat of categories as ReadonlyArray<CategoryConfig>) {
     if (cat.tabMode === "fixed") {
       if (cat.sourceId === sourceId) {
         out.add(`category:${cat.id}`);
@@ -34,4 +43,4 @@ function buildTopics(noticeDoc) {
   return Array.from(out);
 }
 
-module.exports = { buildTopics, TOPIC_CAP };
+export { buildTopics, TOPIC_CAP };

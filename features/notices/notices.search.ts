@@ -17,16 +17,15 @@
  * (each is two code units) and rejects 100 ASCII chars at the same
  * threshold — confusing for users in CJK / emoji-heavy queries.
  */
-
 const MAX_QUERY_CODEPOINTS = 100;
 
 const REGEX_METACHARS = /[.*+?^${}()|[\]\\]/g;
 
-function escapeRegex(s) {
+function escapeRegex(s: string): string {
   return s.replace(REGEX_METACHARS, "\\$&");
 }
 
-function hasControlChar(s) {
+function hasControlChar(s: string): boolean {
   for (let i = 0; i < s.length; i++) {
     const cp = s.charCodeAt(i);
     if (cp < 32 || cp === 127) return true;
@@ -34,7 +33,7 @@ function hasControlChar(s) {
   return false;
 }
 
-function validateQ(raw) {
+function validateQ(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   const trimmed = raw.trim();
   if (trimmed.length === 0) return null;
@@ -44,8 +43,4 @@ function validateQ(raw) {
   return trimmed;
 }
 
-module.exports = {
-  escapeRegex,
-  validateQ,
-  MAX_QUERY_CODEPOINTS,
-};
+export { escapeRegex, validateQ, MAX_QUERY_CODEPOINTS };

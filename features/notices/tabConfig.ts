@@ -11,32 +11,39 @@
  * Exits with code 1 on any validation failure — bad config must never
  * result in a silently broken /notices/tabs response.
  */
-
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
+import type {
+  SourceConfig,
+  CategoryConfig,
+  Tab,
+  TabsResponse,
+} from "./types";
 
 const isTest = process.env.NODE_ENV === "test";
 
 // ── Helpers ──
 
-function fatal(message) {
+function fatal(message: string): void {
   console.error(`FATAL [tabConfig]: ${message}`);
   if (!isTest) process.exit(1);
 }
 
-function loadJSON(filename) {
+function loadJSON(filename: string): unknown {
   const filePath = path.join(__dirname, filename);
-  let raw;
+  let raw: string;
   try {
     raw = fs.readFileSync(filePath, "utf8");
-  } catch (err) {
-    fatal(`Cannot read ${filename}: ${err.message}`);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    fatal(`Cannot read ${filename}: ${message}`);
     return undefined;
   }
   try {
     return JSON.parse(raw);
-  } catch (err) {
-    fatal(`Invalid JSON in ${filename}: ${err.message}`);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    fatal(`Invalid JSON in ${filename}: ${message}`);
     return undefined;
   }
 }
@@ -53,12 +60,22 @@ if (!Array.isArray(rawSources)) {
   fatal("sources.json must be a JSON array");
 }
 
-const sourceMap = new Map(rawSources.map((s) => [s.id, s]));
+// `fatal` in test mode returns without exit; in that case the rest of the
+// module loads against undefined arrays which crashes below. That's the
+// intended dev/test-time signal — let it crash loudly.
+const categoriesArr = rawCategories as CategoryConfig[];
+const sourcesArr = rawSources as SourceConfig[];
 
-const errors = [];
+const sourceMap: Map<string, SourceConfig> = new Map(
+  sourcesArr.map((s) => [s.id, s]),
+);
 
-for (let i = 0; i < rawCategories.length; i++) {
-  const cat = rawCategories[i];
+const errors: string[] = [];
+
+for (let i = 0; i < categoriesArr.length; i++) {
+  // Validate against unknown-shaped input (categories.json may be edited
+  // independently). Cast `cat` to a permissive shape, then narrow per branch.
+  const cat = categoriesArr[i] as unknown as Record<string, unknown>;
   const prefix = `categories[${i}]`;
 
   if (!cat.id || typeof cat.id !== "string") {
@@ -66,9 +83,10 @@ for (let i = 0; i < rawCategories.length; i++) {
     continue;
   }
 
-  if (!cat.label || typeof cat.label !== "object") {
+  const label = cat.label as { ko?: unknown; en?: unknown } | undefined;
+  if (!label || typeof label !== "object") {
     errors.push(`${prefix} (${cat.id}): missing "label" object`);
-  } else if (!cat.label.ko || !cat.label.en) {
+  } else if (!label.ko || !label.en) {
     errors.push(`${prefix} (${cat.id}): label must have "ko" and "en" keys`);
   }
 
@@ -77,23 +95,28 @@ for (let i = 0; i < rawCategories.length; i++) {
       errors.push(`${prefix} (${cat.id}): fixed tab missing "sourceId"`);
     } else if (!sourceMap.has(cat.sourceId)) {
       errors.push(
-        `${prefix} (${cat.id}): sourceId "${cat.sourceId}" not found in sources.json`
+        `${prefix} (${cat.id}): sourceId "${cat.sourceId}" not found in sources.json`,
       );
     }
   } else if (cat.tabMode === "picker") {
-    if (!Array.isArray(cat.sourceIds) || cat.sourceIds.length === 0) {
-      errors.push(`${prefix} (${cat.id}): picker tab must have non-empty "sourceIds" array`);
+    const sourceIds = cat.sourceIds as unknown;
+    if (!Array.isArray(sourceIds) || sourceIds.length === 0) {
+      errors.push(
+        `${prefix} (${cat.id}): picker tab must have non-empty "sourceIds" array`,
+      );
     } else {
-      for (const id of cat.sourceIds) {
-        if (!sourceMap.has(id)) {
+      for (const id of sourceIds) {
+        if (!sourceMap.has(id as string)) {
           errors.push(
-            `${prefix} (${cat.id}): sourceId "${id}" in sourceIds not found in sources.json`
+            `${prefix} (${cat.id}): sourceId "${id}" in sourceIds not found in sources.json`,
           );
         }
       }
     }
     if (typeof cat.maxSelection !== "number" || cat.maxSelection < 1) {
-      errors.push(`${prefix} (${cat.id}): picker tab must have "maxSelection" >= 1`);
+      errors.push(
+        `${prefix} (${cat.id}): picker tab must have "maxSelection" >= 1`,
+      );
     }
 
     if (cat.defaultIds != null) {
@@ -101,9 +124,9 @@ for (let i = 0; i < rawCategories.length; i++) {
         errors.push(`${prefix} (${cat.id}): "defaultIds" must be an array`);
       } else {
         for (const id of cat.defaultIds) {
-          if (!cat.sourceIds.includes(id)) {
+          if (!(sourceIds as unknown[] | undefined)?.includes(id)) {
             errors.push(
-              `${prefix} (${cat.id}): defaultIds "${id}" is not in sourceIds`
+              `${prefix} (${cat.id}): defaultIds "${id}" is not in sourceIds`,
             );
           }
         }
@@ -111,40 +134,48 @@ for (let i = 0; i < rawCategories.length; i++) {
     }
 
     if (cat.campusDefaultIds != null) {
-      if (typeof cat.campusDefaultIds !== "object" || Array.isArray(cat.campusDefaultIds)) {
+      if (
+        typeof cat.campusDefaultIds !== "object" ||
+        Array.isArray(cat.campusDefaultIds)
+      ) {
         errors.push(
-          `${prefix} (${cat.id}): "campusDefaultIds" must be an object`
+          `${prefix} (${cat.id}): "campusDefaultIds" must be an object`,
         );
       } else {
         const validKeys = new Set(["hssc", "nsc"]);
-        for (const [campusKey, ids] of Object.entries(cat.campusDefaultIds)) {
+        for (const [campusKey, ids] of Object.entries(
+          cat.campusDefaultIds as Record<string, unknown>,
+        )) {
           if (!validKeys.has(campusKey)) {
             errors.push(
-              `${prefix} (${cat.id}): campusDefaultIds key "${campusKey}" must be "hssc" or "nsc"`
+              `${prefix} (${cat.id}): campusDefaultIds key "${campusKey}" must be "hssc" or "nsc"`,
             );
             continue;
           }
           if (!Array.isArray(ids)) {
             errors.push(
-              `${prefix} (${cat.id}): campusDefaultIds.${campusKey} must be an array`
+              `${prefix} (${cat.id}): campusDefaultIds.${campusKey} must be an array`,
             );
             continue;
           }
           for (const id of ids) {
-            if (!cat.sourceIds.includes(id)) {
+            if (!(sourceIds as unknown[] | undefined)?.includes(id)) {
               errors.push(
-                `${prefix} (${cat.id}): campusDefaultIds.${campusKey} "${id}" is not in sourceIds`
+                `${prefix} (${cat.id}): campusDefaultIds.${campusKey} "${id}" is not in sourceIds`,
               );
             }
           }
           // Per-campus seed cap: union of common defaults + this campus must
           // not exceed maxSelection so the picker UI's cap stays valid for
           // every campus selection.
-          if (Array.isArray(cat.defaultIds) && typeof cat.maxSelection === "number") {
-            const seed = new Set([...cat.defaultIds, ...ids]);
+          if (
+            Array.isArray(cat.defaultIds) &&
+            typeof cat.maxSelection === "number"
+          ) {
+            const seed = new Set([...(cat.defaultIds as string[]), ...(ids as string[])]);
             if (seed.size > cat.maxSelection) {
               errors.push(
-                `${prefix} (${cat.id}): seed for campus "${campusKey}" has ${seed.size} ids > maxSelection ${cat.maxSelection}`
+                `${prefix} (${cat.id}): seed for campus "${campusKey}" has ${seed.size} ids > maxSelection ${cat.maxSelection}`,
               );
             }
           }
@@ -152,13 +183,13 @@ for (let i = 0; i < rawCategories.length; i++) {
       }
     }
   } else {
-    errors.push(`${prefix} (${cat.id}): unknown tabMode "${cat.tabMode}"`);
+    errors.push(`${prefix} (${cat.id}): unknown tabMode "${String(cat.tabMode)}"`);
   }
 }
 
 if (errors.length > 0) {
   fatal(
-    `categories.json validation failed (${errors.length} error(s)):\n${errors.map((e) => `  • ${e}`).join("\n")}`
+    `categories.json validation failed (${errors.length} error(s)):\n${errors.map((e) => `  • ${e}`).join("\n")}`,
   );
 }
 
@@ -166,17 +197,17 @@ if (errors.length > 0) {
 
 /**
  * Build the tabs response for a given language.
- * @param {"ko"|"en"} lang
- * @returns {{ schemaVersion: number, tabs: object[] }}
  */
-function buildTabsResponse(lang) {
-  const tabs = [];
+function buildTabsResponse(lang: "ko" | "en"): TabsResponse {
+  const tabs: Tab[] = [];
 
-  for (const cat of rawCategories) {
-    const label = cat.label[lang] || cat.label.en || cat.label.ko;
+  for (const cat of categoriesArr) {
+    const labelMap = cat.label as { ko: string; en?: string };
+    const label = labelMap[lang] || labelMap.en || labelMap.ko;
 
     if (cat.tabMode === "fixed") {
       const source = sourceMap.get(cat.sourceId);
+      if (!source) continue;
       tabs.push({
         key: cat.id,
         label,
@@ -226,15 +257,18 @@ function buildTabsResponse(lang) {
 }
 
 // Pre-compute for each supported language and freeze for immutability.
-const responseByLang = Object.freeze({
-  ko: Object.freeze(buildTabsResponse("ko")),
-  en: Object.freeze(buildTabsResponse("en")),
-});
+const responseByLang: Readonly<Record<"ko" | "en", Readonly<TabsResponse>>> =
+  Object.freeze({
+    ko: Object.freeze(buildTabsResponse("ko")),
+    en: Object.freeze(buildTabsResponse("en")),
+  });
 
 // Frozen view of the validated category definitions, exposed for callers that
 // need to reverse-map a sourceId onto its tab(s) — e.g. the FCM dispatcher
 // computing topics for a notice. Validation already ran above, so consumers
 // can trust shape: { id, tabMode: "fixed"|"picker", sourceId? | sourceIds[] }.
-const categories = Object.freeze(rawCategories.map((c) => Object.freeze(c)));
+const categories: ReadonlyArray<Readonly<CategoryConfig>> = Object.freeze(
+  categoriesArr.map((c) => Object.freeze(c)),
+);
 
-module.exports = { responseByLang, categories };
+export { responseByLang, categories };

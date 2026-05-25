@@ -5,11 +5,11 @@
  * `articleNo_1_sourceId_1`. This module adds the read-path compound
  * index that covers list queries with the {date, crawledAt, _id} cursor.
  */
-
-const { getClient } = require("../../lib/db");
-const config = require("../../lib/config");
-const { buildCursorFilter, encodeCursor } = require("./notices.cursor");
-const { escapeRegex } = require("./notices.search");
+import { getClient } from "../../lib/db";
+import config from "../../lib/config";
+import { buildCursorFilter, encodeCursor } from "./notices.cursor";
+import { escapeRegex } from "./notices.search";
+import type { CursorPayload, NoticeDoc } from "./types";
 
 // 4-key compound index — declared in ensureNoticeIndexes(). We .hint()
 // every query to this index to defend against the planner picking the
@@ -77,18 +77,31 @@ const DETAIL_PROJECTION = Object.freeze({
   summaryAt: 1,
 });
 
+interface FindOpts {
+  cursor?: CursorPayload | null;
+  limit: number;
+  type?: string;
+  q?: string | null;
+}
+
+interface FindResult {
+  items: NoticeDoc[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
 function getNoticesCollection() {
   const client = getClient();
   return client
-    .db(config.notices.dbName)
-    .collection(config.notices.collections.notices);
+    .db(config.notices.dbName!)
+    .collection<NoticeDoc>(config.notices.collections.notices);
 }
 
 /**
  * Create the read-optimization compound index. Idempotent on the driver side.
  * Does NOT recreate the crawler-owned unique index.
  */
-async function ensureNoticeIndexes() {
+async function ensureNoticeIndexes(): Promise<void> {
   const col = getNoticesCollection();
   await col.createIndex({ sourceId: 1, date: -1, crawledAt: -1, _id: -1 });
 }
@@ -99,23 +112,21 @@ async function ensureNoticeIndexes() {
  *
  * Optional `q` adds a case-insensitive regex $or over (title,
  * summaryOneLiner). The regex pattern is escaped to keep user
- * metacharacters literal. The $or is composed inside the same $and
- * that holds the cursor keyset so no top-level $or conflict arises;
- * MongoDB native $or treats null/missing summaryOneLiner as the second
- * branch evaluating false, giving an automatic title-only fallback for
- * notes whose AI summary cron hasn't filled the field yet.
+ * metacharacters literal.
  */
 async function _findNotices(
-  sourceFilter,
-  { cursor = null, limit, type, q } = {}
-) {
-  const filter = {
+  sourceFilter: Record<string, unknown>,
+  { cursor = null, limit, type, q }: FindOpts,
+): Promise<FindResult> {
+  const filter: Record<string, unknown> = {
     ...sourceFilter,
     isDeleted: { $ne: true },
   };
   if (type) filter.summaryType = type;
 
-  const andClauses = [{ date: { $gte: config.notices.serviceStartDate } }];
+  const andClauses: Array<Record<string, unknown>> = [
+    { date: { $gte: config.notices.serviceStartDate } },
+  ];
   if (cursor) andClauses.push(buildCursorFilter(cursor));
   if (q) {
     const escaped = escapeRegex(q);
@@ -129,12 +140,14 @@ async function _findNotices(
   filter.$and = andClauses;
 
   const col = getNoticesCollection();
-  const docs = await col
-    .find(filter, { projection: LIST_PROJECTION })
+  const docs = (await col
+    // mongodb v7's Filter<NoticeDoc> is strict; the dynamic $and shape above
+    // is type-checked at the boundary via the Record<string, unknown> cast.
+    .find(filter as never, { projection: LIST_PROJECTION })
     .sort({ date: -1, crawledAt: -1, _id: -1 })
     .hint(FORCE_INDEX)
     .limit(limit + 1)
-    .toArray();
+    .toArray()) as NoticeDoc[];
 
   const hasMore = docs.length > limit;
   const items = hasMore ? docs.slice(0, limit) : docs;
@@ -145,7 +158,7 @@ async function _findNotices(
           d: last.date,
           c: (last.crawledAt instanceof Date
             ? last.crawledAt
-            : new Date(last.crawledAt)
+            : new Date(last.crawledAt as string | number | Date)
           ).toISOString(),
           i: last._id.toHexString(),
         })
@@ -156,23 +169,23 @@ async function _findNotices(
 
 /**
  * Paginated list of notices for a single source.
- * @param {string} sourceId
- * @param {{cursor?: {d,c,i}|null, limit: number, type?: string}} opts
- * @returns {Promise<{items: object[], nextCursor: string|null, hasMore: boolean}>}
  */
-function findNoticesBySource(sourceId, opts) {
-  return _findNotices({ sourceId: sourceId }, opts);
+function findNoticesBySource(
+  sourceId: string,
+  opts: FindOpts,
+): Promise<FindResult> {
+  return _findNotices({ sourceId }, opts);
 }
 
 /**
  * Paginated list of notices across multiple sources.
  * Uses the existing (sourceId, date, crawledAt, _id) compound index
  * via $in — MongoDB merge-sorts the per-source index scans internally.
- * @param {string[]} sourceIds
- * @param {{cursor?: {d,c,i}|null, limit: number, type?: string}} opts
- * @returns {Promise<{items: object[], nextCursor: string|null, hasMore: boolean}>}
  */
-function findNoticesBySources(sourceIds, opts) {
+function findNoticesBySources(
+  sourceIds: string[],
+  opts: FindOpts,
+): Promise<FindResult> {
   return _findNotices({ sourceId: { $in: sourceIds } }, opts);
 }
 
@@ -180,19 +193,22 @@ function findNoticesBySources(sourceIds, opts) {
  * Detail lookup by composite key.
  * Returns null for missing or soft-deleted notices.
  */
-async function findNoticeByArticleNo(sourceId, articleNo) {
+async function findNoticeByArticleNo(
+  sourceId: string,
+  articleNo: unknown,
+): Promise<NoticeDoc | null> {
   const col = getNoticesCollection();
-  return col.findOne(
+  return (await col.findOne(
     {
-      sourceId: sourceId,
+      sourceId,
       articleNo: Number(articleNo),
       isDeleted: { $ne: true },
-    },
-    { projection: DETAIL_PROJECTION }
-  );
+    } as never,
+    { projection: DETAIL_PROJECTION },
+  )) as NoticeDoc | null;
 }
 
-module.exports = {
+export {
   LIST_PROJECTION,
   DETAIL_PROJECTION,
   getNoticesCollection,

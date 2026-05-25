@@ -1,21 +1,24 @@
-const express = require("express");
-const router = express.Router();
-const axios = require("axios");
-const asyncHandler = require("../../lib/asyncHandler");
-const {
+import express, { type Response } from "express";
+import { Readable } from "stream";
+import axios from "axios";
+import asyncHandler from "../../lib/asyncHandler";
+import {
   findNoticesBySource,
   findNoticesBySources,
   findNoticeByArticleNo,
-} = require("./notices.data");
-const {
+} from "./notices.data";
+import {
   toListItem,
   toDetailItem,
   VALID_SUMMARY_TYPES,
-} = require("./notices.transform");
-const { decodeCursor, InvalidCursorError } = require("./notices.cursor");
-const { validateQ } = require("./notices.search");
-const sources = require("./sources");
-const tabConfig = require("./tabConfig");
+} from "./notices.transform";
+import { decodeCursor, InvalidCursorError } from "./notices.cursor";
+import { validateQ } from "./notices.search";
+import * as sources from "./sources";
+import * as tabConfig from "./tabConfig";
+import type { CursorPayload } from "./types";
+
+const router = express.Router();
 
 // Route order matters: `/tabs` and `/source/:sourceId` must appear BEFORE
 // the catch-all `/:sourceId/:articleNo`, otherwise the dynamic pattern shadows
@@ -25,45 +28,47 @@ const tabConfig = require("./tabConfig");
 router.get(
   "/tabs",
   asyncHandler(async (req, res) => {
-    const lang = req.lang === "ko" ? "ko" : "en"; // zh → en fallback
+    const lang: "ko" | "en" = req.lang === "ko" ? "ko" : "en"; // zh → en fallback
     res.setHeader("Cache-Control", "private, max-age=3600");
     res.success(tabConfig.responseByLang[lang]);
-  })
+  }),
 );
 
 // GET /notices/source/:sourceId
 router.get(
   "/source/:sourceId",
   asyncHandler(async (req, res) => {
-    const { sourceId } = req.params;
+    const { sourceId } = req.params as { sourceId: string };
     if (!sources.map.has(sourceId)) {
       return res.error(
         400,
         "INVALID_SOURCE_ID",
-        `unknown sourceId: ${sourceId}`
+        `unknown sourceId: ${sourceId}`,
       );
     }
 
-    const rawLimit = parseInt(req.query.limit, 10);
+    // req.query.limit may be string | string[] | ParsedQs | undefined; cast at
+    // boundary and let parseInt's natural NaN handling do the fallback.
+    const rawLimit = parseInt(req.query.limit as string, 10);
     const limit = Math.min(
       Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1),
-      50
+      50,
     );
 
-    const type = req.query.type;
+    const type = req.query.type as string | undefined;
     if (type && !VALID_SUMMARY_TYPES.has(type)) {
       return res.error(
         400,
         "INVALID_PARAMS",
-        "type must be one of: action_required, event, informational"
+        "type must be one of: action_required, event, informational",
       );
     }
 
-    let cursor = null;
+    let cursor: CursorPayload | null = null;
     if (req.query.cursor) {
       try {
         cursor = decodeCursor(req.query.cursor);
-      } catch (err) {
+      } catch (err: unknown) {
         if (err instanceof InvalidCursorError) {
           return res.error(400, "INVALID_CURSOR", "cursor is malformed");
         }
@@ -76,22 +81,23 @@ router.get(
     // "no search clause", so we conditionally include q in opts.
     const q = validateQ(req.query.q);
 
-    const opts = { cursor, limit, type };
+    const opts: { cursor: CursorPayload | null; limit: number; type?: string; q?: string } = {
+      cursor,
+      limit,
+    };
+    if (type) opts.type = type;
     if (q) opts.q = q;
     const { items, nextCursor, hasMore } = await findNoticesBySource(
       sourceId,
-      opts
+      opts,
     );
     // Explicit arrow wrapper: `Array.prototype.map` passes (element, index,
     // array) — passing `toListItem` bare would leak the numeric index into
     // `toListItem`'s second `now` param and crash action_required best-pick
     // at `now.getTime()`. See regression test in notices-routes.test.js.
     const notices = items.map((doc) => toListItem(doc));
-    res.success(
-      { notices, nextCursor, hasMore },
-      { count: notices.length }
-    );
-  })
+    res.success({ notices, nextCursor, hasMore }, { count: notices.length });
+  }),
 );
 
 // GET /notices?sourceIds=cs,sw&limit=20&type=…&cursor=…&q=…
@@ -99,15 +105,18 @@ router.get(
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const rawIds = (req.query.sourceIds || "")
+    // Cast preserves original .js semantics: array input → TypeError on .split
+    // → 500 (asyncHandler catches). Do NOT defensively narrow here.
+    const sourceIdsRaw = (req.query.sourceIds || "") as string;
+    const rawIds = sourceIdsRaw
       .split(",")
-      .map((s) => s.trim())
+      .map((s: string) => s.trim())
       .filter(Boolean);
     if (rawIds.length === 0 || rawIds.length > 5) {
       return res.error(
         400,
         "INVALID_PARAMS",
-        "sourceIds: 1-5 comma-separated source IDs required"
+        "sourceIds: 1-5 comma-separated source IDs required",
       );
     }
     for (const id of rawIds) {
@@ -116,26 +125,26 @@ router.get(
       }
     }
 
-    const rawLimit = parseInt(req.query.limit, 10);
+    const rawLimit = parseInt(req.query.limit as string, 10);
     const limit = Math.min(
       Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1),
-      50
+      50,
     );
 
-    const type = req.query.type;
+    const type = req.query.type as string | undefined;
     if (type && !VALID_SUMMARY_TYPES.has(type)) {
       return res.error(
         400,
         "INVALID_PARAMS",
-        "type must be one of: action_required, event, informational"
+        "type must be one of: action_required, event, informational",
       );
     }
 
-    let cursor = null;
+    let cursor: CursorPayload | null = null;
     if (req.query.cursor) {
       try {
         cursor = decodeCursor(req.query.cursor);
-      } catch (err) {
+      } catch (err: unknown) {
         if (err instanceof InvalidCursorError) {
           return res.error(400, "INVALID_CURSOR", "cursor is malformed");
         }
@@ -143,61 +152,40 @@ router.get(
       }
     }
 
-    // Same validateQ contract as the single-source endpoint — null on
-    // any rejection, route omits the key so the data layer skips $or.
     const q = validateQ(req.query.q);
 
-    const opts = { cursor, limit, type };
+    const opts: { cursor: CursorPayload | null; limit: number; type?: string; q?: string } = {
+      cursor,
+      limit,
+    };
+    if (type) opts.type = type;
     if (q) opts.q = q;
     const { items, nextCursor, hasMore } = await findNoticesBySources(
       rawIds,
-      opts
+      opts,
     );
     const notices = items.map((doc) => toListItem(doc));
-    res.success(
-      { notices, nextCursor, hasMore },
-      { count: notices.length }
-    );
-  })
+    res.success({ notices, nextCursor, hasMore }, { count: notices.length });
+  }),
 );
 
 // GET /notices/proxy/attachment?url=...&referer=...&mode=inline|download&name=...
 // Proxies attachment downloads with a Referer header to bypass hotlink
-// protection on some SKKU department servers (e.g. cal.skku.edu).
-// Only *.skku.edu hosts are allowed to prevent open-proxy abuse.
-//
-// Fixes two upstream quirks:
-// 1. Some servers return application/unknown for .hwp — corrected via ext map
-// 2. Content-Disposition filenames are often mojibake — use client-supplied name
-//
-// Dual-use note (route name is historical; usage extends past attachments):
-//   - Mobile app: this proxy is used ONLY for attachment preview/download
-//     (NoticeDetailScreen.buildAttachmentUrl). In-article images bypass the
-//     proxy — RN's Image.getSizeWithHeaders + <Image source={{uri,headers}}>
-//     can inject Referer per-fetch directly, so SKKU origin requests work
-//     without a server hop.
-//   - Web Pages Function (skkuverse.com /p/notices/<sourceId>/<articleNo>):
-//     this proxy is used for BOTH attachment buttons AND in-article <img>
-//     src. Browsers cannot set arbitrary Referer per-image (spec limits
-//     `referrerpolicy` to enums), so the proxy hop is the only way to
-//     satisfy SKKU's hotlink check on web image embeds.
-//
-//   The CORP cross-origin override below was added when the web extension
-//   shipped — attachment-only consumers (mobile in-app browser, web
-//   <a target="_blank">) are top-level navigations untouched by CORP, so
-//   the override is invisible to them. Web <img> embeds were the only
-//   blocker; allowing cross-origin restores that one path.
+// protection on some SKKU department servers. Only *.skku.edu hosts allowed.
 
-const EXT_MIME = {
+const EXT_MIME: Record<string, string> = {
   ".pdf": "application/pdf",
   ".hwp": "application/x-hwp",
   ".hwpx": "application/x-hwpx",
   ".doc": "application/msword",
-  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".docx":
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   ".xls": "application/vnd.ms-excel",
-  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".xlsx":
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   ".ppt": "application/vnd.ms-powerpoint",
-  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ".pptx":
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   ".zip": "application/zip",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
@@ -205,7 +193,7 @@ const EXT_MIME = {
   ".gif": "image/gif",
 };
 
-const VALID_MIME_TYPES = [
+const VALID_MIME_TYPES: ReadonlySet<string> = new Set([
   "application",
   "text",
   "image",
@@ -214,29 +202,30 @@ const VALID_MIME_TYPES = [
   "font",
   "multipart",
   "message",
-];
+]);
 
-function resolveContentType(upstreamCt, filename) {
-  // Trust upstream only if it uses a standard top-level MIME type
-  // (rejects non-standard types like "file/unknown" from gnuboard)
-  const type = (upstreamCt || "").split("/")[0];
+function resolveContentType(
+  upstreamCt: string | undefined,
+  filename: string,
+): string {
+  const type = (upstreamCt || "").split("/")[0] ?? "";
   const isSpecific =
-    upstreamCt &&
-    VALID_MIME_TYPES.includes(type) &&
+    !!upstreamCt &&
+    VALID_MIME_TYPES.has(type) &&
     upstreamCt !== "application/unknown" &&
     upstreamCt !== "application/octet-stream";
 
   if (isSpecific) {
     return upstreamCt;
   }
-  // Fall back to extension-based lookup
-  const ext = (filename.match(/\.[^.]+$/) || [""])[0].toLowerCase();
+  const ext = (filename.match(/\.[^.]+$/) || [""])[0]!.toLowerCase();
   return EXT_MIME[ext] || upstreamCt || "application/octet-stream";
 }
 
 // --- Gnuboard session cache (PHPSESSID per domain, 5min TTL) ---
 const SESSION_CACHE_TTL = 5 * 60 * 1000;
-const sessionCache = new Map();
+const sessionCache: Map<string, { sessionId: string; time: number }> =
+  new Map();
 
 const _sessionCleanup = setInterval(() => {
   const now = Date.now();
@@ -246,7 +235,7 @@ const _sessionCleanup = setInterval(() => {
 }, SESSION_CACHE_TTL);
 _sessionCleanup.unref();
 
-async function getSessionId(refererUrl) {
+async function getSessionId(refererUrl: string): Promise<string | null> {
   const domain = new URL(refererUrl).hostname;
   const cached = sessionCache.get(domain);
   if (cached && Date.now() - cached.time < SESSION_CACHE_TTL) {
@@ -259,14 +248,14 @@ async function getSessionId(refererUrl) {
     timeout: 10000,
     responseType: "stream",
   });
-  resp.data.destroy();
+  (resp.data as Readable).destroy();
 
-  const setCookie = resp.headers["set-cookie"] || [];
-  let sessionId = null;
+  const setCookie = (resp.headers["set-cookie"] || []) as string[];
+  let sessionId: string | null = null;
   for (const c of setCookie) {
     const match = c.match(/PHPSESSID=([^;]+)/);
     if (match) {
-      sessionId = match[1];
+      sessionId = match[1] ?? null;
       break;
     }
   }
@@ -277,16 +266,27 @@ async function getSessionId(refererUrl) {
   return sessionId;
 }
 
-function pipeDownload(upstream, res, url, name, mode) {
+interface UpstreamLike {
+  headers: Record<string, unknown>;
+  data: Readable;
+}
+
+function pipeDownload(
+  upstream: UpstreamLike,
+  res: Response,
+  url: string,
+  name: string | undefined,
+  mode: string | undefined,
+): void {
   const filename =
     name || new URL(url).pathname.split("/").pop() || "attachment";
-  const upstreamCt = upstream.headers["content-type"];
+  const upstreamCt = upstream.headers["content-type"] as string | undefined;
 
   if (mode === "download") {
     res.setHeader("Content-Type", "application/octet-stream");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+      `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
     );
   } else {
     res.setHeader("Content-Type", resolveContentType(upstreamCt, filename));
@@ -299,25 +299,18 @@ function pipeDownload(upstream, res, url, name, mode) {
 router.get(
   "/proxy/attachment",
   asyncHandler(async (req, res) => {
-    // Override helmet's default Cross-Origin-Resource-Policy: same-origin for
-    // this route only. The proxy is intentionally consumed cross-origin by
-    // skkuverse.com's Pages Function (notice-detail web fallback) which embeds
-    // proxied images via <img>. Without this override, browsers receive the
-    // 200 response but refuse to render the image (CORP block, broken-image X).
-    // Mobile is unaffected — RN's Image fetcher does not enforce CORP. Other
-    // API routes remain at the helmet default since they're consumed
-    // server-to-server (mobile fetch + web Pages Function fetch), where CORP
-    // does not gate. `<a target="_blank">` and `<a href>` to this proxy are
-    // top-level navigation, also not gated by CORP, so attachment preview /
-    // download paths are unaffected by either CORP value.
+    // Override helmet's CORP for cross-origin embed by skkuverse.com Pages.
     res.set("Cross-Origin-Resource-Policy", "cross-origin");
 
-    const { url, referer, mode, name } = req.query;
+    const url = req.query.url as string | undefined;
+    const referer = req.query.referer as string | undefined;
+    const mode = req.query.mode as string | undefined;
+    const name = req.query.name as string | undefined;
     if (!url) {
       return res.error(400, "INVALID_PARAMS", "url is required");
     }
 
-    let parsed;
+    let parsed: URL;
     try {
       parsed = new URL(url);
     } catch {
@@ -330,18 +323,16 @@ router.get(
       return res.error(403, "FORBIDDEN", "host not allowed");
     }
 
-    const headers = { "User-Agent": "Mozilla/5.0" };
+    const headers: Record<string, string> = { "User-Agent": "Mozilla/5.0" };
 
     if (referer) {
       headers.Referer = referer;
       try {
         const sessionId = await getSessionId(referer);
         if (sessionId) headers.Cookie = `PHPSESSID=${sessionId}`;
-      } catch (err) {
-        req.log.warn(
-          { err: err.message, referer },
-          "gnuboard session fetch failed"
-        );
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        req.log?.warn({ err: message, referer }, "gnuboard session fetch failed");
       }
     }
 
@@ -352,19 +343,20 @@ router.get(
     });
 
     // Session expired: expected file download but got HTML (login page / error)
-    // → invalidate cache and retry once with fresh session
-    const ct = upstream.headers["content-type"] || "";
+    // → invalidate cache and retry once with fresh session.
+    const ct = ((upstream.headers["content-type"] as string | undefined) || "");
     if (referer && ct.includes("text/html")) {
-      upstream.data.destroy();
+      (upstream.data as Readable).destroy();
       const domain = new URL(referer).hostname;
       sessionCache.delete(domain);
       try {
         const newSessionId = await getSessionId(referer);
         if (newSessionId) headers.Cookie = `PHPSESSID=${newSessionId}`;
-      } catch (err) {
-        req.log.warn(
-          { err: err.message, referer },
-          "gnuboard session retry fetch failed"
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        req.log?.warn(
+          { err: message, referer },
+          "gnuboard session retry fetch failed",
         );
       }
       const retry = await axios.get(url, {
@@ -372,23 +364,38 @@ router.get(
         responseType: "stream",
         timeout: 15000,
       });
-      return pipeDownload(retry, res, url, name, mode);
+      return pipeDownload(
+        retry as unknown as UpstreamLike,
+        res,
+        url,
+        name,
+        mode,
+      );
     }
 
-    pipeDownload(upstream, res, url, name, mode);
-  })
+    pipeDownload(
+      upstream as unknown as UpstreamLike,
+      res,
+      url,
+      name,
+      mode,
+    );
+  }),
 );
 
 // GET /notices/:sourceId/:articleNo
 router.get(
   "/:sourceId/:articleNo",
   asyncHandler(async (req, res) => {
-    const { sourceId, articleNo } = req.params;
+    const { sourceId, articleNo } = req.params as {
+      sourceId: string;
+      articleNo: string;
+    };
     if (!sources.map.has(sourceId)) {
       return res.error(
         400,
         "INVALID_SOURCE_ID",
-        `unknown sourceId: ${sourceId}`
+        `unknown sourceId: ${sourceId}`,
       );
     }
     if (!/^\d+$/.test(articleNo)) {
@@ -399,7 +406,7 @@ router.get(
       return res.error(404, "NOT_FOUND", "notice not found");
     }
     res.success(toDetailItem(doc));
-  })
+  }),
 );
 
-module.exports = router;
+export = router;

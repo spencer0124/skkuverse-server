@@ -14,29 +14,28 @@
  * accidentally enabled would not double-dispatch — but they would double
  * the read load on `notices`, which is wasteful.
  */
-
-const config = require("../../lib/config");
-const logger = require("../../lib/logger");
-const pollers = require("../../lib/pollers");
-const { sweepPending } = require("./notices.dispatcher");
+import config from "../../lib/config";
+import logger from "../../lib/logger";
+import { registerPoller } from "../../lib/pollers";
+import { sweepPending } from "./notices.dispatcher";
 
 if (process.env.DISPATCH_SWEEP_ENABLED === "true") {
-  pollers.registerPoller(
+  registerPoller(
     async () => {
       try {
         await sweepPending("cron");
-      } catch (err) {
-        logger.error(
-          { err: err && err.message ? err.message : String(err) },
-          "[dispatch] cron sweep failed"
-        );
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        logger.error({ err: message }, "[dispatch] cron sweep failed");
       }
     },
     config.notices.dispatch.sweepCronIntervalMs,
-    "notices-dispatch-sweep"
+    "notices-dispatch-sweep",
   );
 } else {
   logger.debug(
-    "[dispatch] DISPATCH_SWEEP_ENABLED not set; safety-net cron disabled (ping-only mode)"
+    "[dispatch] DISPATCH_SWEEP_ENABLED not set; safety-net cron disabled (ping-only mode)",
   );
 }
+
+export {};

@@ -11,11 +11,11 @@
  * `_id` is included as a tiebreaker to survive crawler batches that write
  * many docs with identical crawledAt timestamps.
  */
-
-const { ObjectId } = require("mongodb");
+import { ObjectId } from "mongodb";
+import type { CursorPayload } from "./types";
 
 class InvalidCursorError extends Error {
-  constructor(message) {
+  constructor(message: string) {
     super(message);
     this.name = "InvalidCursorError";
   }
@@ -24,21 +24,21 @@ class InvalidCursorError extends Error {
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const OID_RE = /^[0-9a-fA-F]{24}$/;
 
-function encodeCursor({ d, c, i }) {
+function encodeCursor({ d, c, i }: CursorPayload): string {
   return Buffer.from(JSON.stringify({ d, c, i }), "utf8").toString("base64url");
 }
 
-function decodeCursor(str) {
+function decodeCursor(str: unknown): CursorPayload {
   if (typeof str !== "string" || str.length === 0) {
     throw new InvalidCursorError("cursor must be a non-empty string");
   }
-  let json;
+  let json: string;
   try {
     json = Buffer.from(str, "base64url").toString("utf8");
   } catch {
     throw new InvalidCursorError("cursor is not valid base64url");
   }
-  let parsed;
+  let parsed: unknown;
   try {
     parsed = JSON.parse(json);
   } catch {
@@ -47,7 +47,7 @@ function decodeCursor(str) {
   if (!parsed || typeof parsed !== "object") {
     throw new InvalidCursorError("cursor is not an object");
   }
-  const { d, c, i } = parsed;
+  const { d, c, i } = parsed as Partial<CursorPayload>;
   if (typeof d !== "string" || !DATE_RE.test(d)) {
     throw new InvalidCursorError("cursor.d must be YYYY-MM-DD");
   }
@@ -60,7 +60,10 @@ function decodeCursor(str) {
   return { d, c, i };
 }
 
-function buildCursorFilter(cursor) {
+// Return type left inferred to avoid `import type { Filter } from "mongodb"`
+// which triggers TS2497 against mongodb v7's namespace-style type exports
+// (same workaround used in PR2 features/bus/busCache.ts).
+function buildCursorFilter(cursor: CursorPayload) {
   const crawledAt = new Date(cursor.c);
   const oid = new ObjectId(cursor.i);
   return {
@@ -72,9 +75,4 @@ function buildCursorFilter(cursor) {
   };
 }
 
-module.exports = {
-  InvalidCursorError,
-  encodeCursor,
-  decodeCursor,
-  buildCursorFilter,
-};
+export { InvalidCursorError, encodeCursor, decodeCursor, buildCursorFilter };

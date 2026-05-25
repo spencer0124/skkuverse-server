@@ -20,43 +20,52 @@
  *   selected period's start, and is meaningful primarily for informational
  *   range-state UI; action_required clients should ignore startAt.
  */
+import moment from "moment-timezone";
+import type { NoticeDoc, SummaryPeriod } from "./types";
 
-const moment = require("moment-timezone");
-
-const VALID_SUMMARY_TYPES = new Set(["action_required", "event", "informational"]);
+const VALID_SUMMARY_TYPES: ReadonlySet<string> = new Set([
+  "action_required",
+  "event",
+  "informational",
+]);
 const TIMEZONE = "Asia/Seoul";
 
-function normalizeSummaryType(t) {
-  return VALID_SUMMARY_TYPES.has(t) ? t : "informational";
+type SummaryType = "action_required" | "event" | "informational";
+
+function normalizeSummaryType(t: unknown): SummaryType {
+  return VALID_SUMMARY_TYPES.has(t as string)
+    ? (t as SummaryType)
+    : "informational";
 }
 
 /**
  * Compute the KST wall-clock epoch ms for a period's effective deadline.
  * endDate is required (caller must filter). endTime falls back to 23:59:59.
  */
-function periodEndEpochMs(period) {
+function periodEndEpochMs(period: SummaryPeriod): number {
   const time = period.endTime || "23:59:59";
   return moment.tz(`${period.endDate}T${time}`, TIMEZONE).valueOf();
 }
 
 /**
  * Select the "effective" period for list-cell badge rendering.
- *
- * @param {Array} periods - summaryPeriods from the doc (raw shape)
- * @param {string} type   - normalized summaryType
- * @param {Date}   now    - current time (injectable for tests)
- * @returns {object|null} selected period, or null if no meaningful choice
  */
-function selectEffectivePeriod(periods, type, now) {
+function selectEffectivePeriod(
+  periods: unknown,
+  type: SummaryType,
+  now: Date,
+): SummaryPeriod | null {
   if (!Array.isArray(periods) || periods.length === 0) return null;
+  const periodsArr = periods as SummaryPeriod[];
 
   if (type !== "action_required") {
     // event / informational: trust AI's periods[0] ordering.
-    return periods[0];
+    // periods.length >= 1 guaranteed by above guard, so [0]! is safe.
+    return periodsArr[0]!;
   }
 
   // action_required: best-pick with rule (a) exclusion.
-  const candidates = periods.filter((p) => {
+  const candidates = periodsArr.filter((p) => {
     if (!p || !p.endDate) return false;
     // Rule (a): same-day time-boxed event (설명회 12:00~13:00, 인터뷰 슬롯)
     if (p.startDate && p.startDate === p.endDate && p.endTime) return false;
@@ -68,15 +77,31 @@ function selectEffectivePeriod(periods, type, now) {
   const nowMs = now.getTime();
   const withEpoch = candidates.map((p) => ({ p, t: periodEndEpochMs(p) }));
 
-  const future = withEpoch.filter((x) => x.t >= nowMs).sort((a, b) => a.t - b.t);
-  if (future.length > 0) return future[0].p;
+  const future = withEpoch
+    .filter((x) => x.t >= nowMs)
+    .sort((a, b) => a.t - b.t);
+  if (future.length > 0) return future[0]!.p;
 
   // All past: return most recently passed (for "closed" badge).
   withEpoch.sort((a, b) => b.t - a.t);
-  return withEpoch[0].p;
+  return withEpoch[0]!.p;
 }
 
-function buildSummaryBrief(doc, now = new Date()) {
+interface SummaryBrief {
+  oneLiner: string | null;
+  type: SummaryType;
+  startAt: { date: string | null; time: string | null } | null;
+  endAt: {
+    date: string | null;
+    time: string | null;
+    label: string | null;
+  } | null;
+}
+
+function buildSummaryBrief(
+  doc: NoticeDoc,
+  now: Date = new Date(),
+): SummaryBrief | null {
   if (!doc.summaryAt) return null;
   const periods = Array.isArray(doc.summaryPeriods) ? doc.summaryPeriods : [];
   const type = normalizeSummaryType(doc.summaryType);
@@ -104,7 +129,18 @@ function buildSummaryBrief(doc, now = new Date()) {
   };
 }
 
-function buildSummaryFull(doc) {
+interface SummaryFull {
+  text: string | null;
+  oneLiner: string | null;
+  type: SummaryType;
+  periods: SummaryPeriod[];
+  locations: unknown[];
+  details: unknown;
+  model: string | null;
+  generatedAt: NoticeDoc["summaryAt"];
+}
+
+function buildSummaryFull(doc: NoticeDoc): SummaryFull | null {
   if (!doc.summaryAt) return null;
   return {
     text: doc.summary || null,
@@ -118,7 +154,7 @@ function buildSummaryFull(doc) {
   };
 }
 
-function toListItem(doc, now = new Date()) {
+function toListItem(doc: NoticeDoc, now: Date = new Date()) {
   return {
     id: doc._id.toHexString(),
     sourceId: doc.sourceId,
@@ -131,13 +167,14 @@ function toListItem(doc, now = new Date()) {
     views: doc.views ?? 0,
     sourceUrl: doc.sourceUrl,
     hasContent: doc.contentHash != null,
-    hasAttachments: Array.isArray(doc.attachments) && doc.attachments.length > 0,
+    hasAttachments:
+      Array.isArray(doc.attachments) && doc.attachments.length > 0,
     isEdited: (doc.editCount || 0) > 0,
     summary: buildSummaryBrief(doc, now),
   };
 }
 
-function toDetailItem(doc) {
+function toDetailItem(doc: NoticeDoc) {
   return {
     id: doc._id.toHexString(),
     sourceId: doc.sourceId,
@@ -150,7 +187,10 @@ function toDetailItem(doc) {
     views: doc.views ?? 0,
     contentMarkdown: doc.cleanMarkdown ?? null,
     attachments: (doc.attachments || []).map((a) => {
-      const att = { name: a.name, url: a.url };
+      const att: { name: string; url: string; referer?: string } = {
+        name: a.name,
+        url: a.url,
+      };
       if (a.referer) att.referer = a.referer;
       return att;
     }),
@@ -165,7 +205,7 @@ function toDetailItem(doc) {
   };
 }
 
-module.exports = {
+export {
   VALID_SUMMARY_TYPES,
   normalizeSummaryType,
   selectEffectivePeriod,
