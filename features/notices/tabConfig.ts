@@ -206,8 +206,11 @@ function buildTabsResponse(lang: "ko" | "en"): TabsResponse {
     const label = labelMap[lang] || labelMap.en || labelMap.ko;
 
     if (cat.tabMode === "fixed") {
-      const source = sourceMap.get(cat.sourceId);
-      if (!source) continue;
+      // Validation above (lines ~93-100) proves sourceMap.has(cat.sourceId).
+      // Non-null assertion preserves original .js fail-loud semantics: a
+      // missing source would TypeError on `source.name` → 500 → ops alert,
+      // rather than silently dropping the tab. ([[feedback_no_silent_defensive_narrowing]])
+      const source = sourceMap.get(cat.sourceId)!;
       tabs.push({
         key: cat.id,
         label,

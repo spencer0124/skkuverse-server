@@ -24,8 +24,10 @@ router.get(
     // boundary but matches runtime behavior exactly.
     const from = req.query.from as string | undefined;
 
-    // pino-http attaches `log` to req; guarded with optional chaining.
-    req.log?.warn(
+    // pino-http attaches `log` to req. Original .js used direct access;
+    // preserve fail-loud — req.log undefined would throw → 500 → ops alert
+    // (matches pre-TS behavior). Augmented in lib/types.ts.
+    req.log.warn(
       { serviceId },
       "deprecated: /week endpoint called, use /smart",
     );

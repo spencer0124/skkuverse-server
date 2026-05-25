@@ -332,7 +332,7 @@ router.get(
         if (sessionId) headers.Cookie = `PHPSESSID=${sessionId}`;
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
-        req.log?.warn({ err: message, referer }, "gnuboard session fetch failed");
+        req.log.warn({ err: message, referer }, "gnuboard session fetch failed");
       }
     }
 
@@ -354,7 +354,7 @@ router.get(
         if (newSessionId) headers.Cookie = `PHPSESSID=${newSessionId}`;
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
-        req.log?.warn(
+        req.log.warn(
           { err: message, referer },
           "gnuboard session retry fetch failed",
         );
