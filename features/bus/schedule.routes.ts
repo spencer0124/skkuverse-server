@@ -18,8 +18,11 @@ router.get(
   "/data/:serviceId/week",
   asyncHandler(async (req, res) => {
     const { serviceId } = req.params as { serviceId: string };
-    const fromRaw = req.query.from;
-    const from = typeof fromRaw === "string" ? fromRaw : undefined;
+    // Preserve original .js coercion semantics: if client sends `?from=A&from=B`
+    // (Express parses as string[]), the array is passed to DATE_RE.test() which
+    // coerces to "A,B" and fails the regex → 400. Cast is a lie at the type
+    // boundary but matches runtime behavior exactly.
+    const from = req.query.from as string | undefined;
 
     // pino-http attaches `log` to req; guarded with optional chaining.
     req.log?.warn(

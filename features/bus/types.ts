@@ -11,8 +11,10 @@
 // Response is a bare JSON array. No envelope.
 export interface HsscBusItem {
   line_no: string;
-  // Direction marker — currently observed: "LEFT" | "ENTERED". Not narrowed
-  // because the server could introduce others (we only branch on station name).
+  // Direction/status marker — observed values across one month of fixtures:
+  // "LEFT", "ENTERED", "EMERGENCY", "LEFT_LAST". Not narrowed to a union
+  // because the server could introduce others; fetcher does not branch on
+  // this field (it only uses stop_name for filtering decisions).
   inout: string;
   stop_no: string;
   // Circular index "0".."10". Fetcher converts to linear sequence via parseInt.
@@ -21,7 +23,6 @@ export interface HsscBusItem {
   // Korean locale datetime like "2026-03-16 오전 11:58:06". Parsed by moment-timezone.
   get_date: string;
 }
-export type HsscResponse = HsscBusItem[];
 
 // --- Seoul TOPIS bus API (Jongro 02 / 07) ---
 // Envelope shared by both list and location endpoints. Observed behaviors
@@ -146,13 +147,18 @@ export interface NaverDirectionsResponse {
 }
 
 // --- MongoDB documents (bus_overrides, bus_schedules) ---
+// `entries` and `notices` are typed as required even though they're only
+// strictly needed on `type: "replace"`. This matches the original .js's
+// assumption that admin tooling produces well-formed docs — a malformed
+// override doc throws at runtime (fail-loud), which is intentional: the
+// alert reaches ops via logger.error instead of silently degrading.
 export interface BusOverrideDoc {
   serviceId: string;
   date: string; // YYYY-MM-DD
   type: "replace" | "noService";
-  entries?: unknown[];
+  entries: unknown[];
   label?: string | null;
-  notices?: ServiceNotice[];
+  notices: ServiceNotice[];
 }
 
 export interface BusScheduleDoc {

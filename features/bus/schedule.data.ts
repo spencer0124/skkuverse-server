@@ -104,14 +104,18 @@ async function resolveWeek(
     let label: string | null | undefined;
 
     if (override) {
-      // Step 1: Override found
+      // Step 1: Override found.
+      // Intentionally NOT defensive (`?? []`) — admin tooling guarantees
+      // `entries` and `notices`; a malformed doc should throw and surface
+      // via logger.error rather than silently serve degraded data. See
+      // BusOverrideDoc type docstring.
       if (override.type === "replace") {
         display = "schedule";
-        schedule = override.entries ?? [];
+        schedule = override.entries;
         label = override.label;
         notices = [
           ...serviceNotices,
-          ...(override.notices ?? []).map((n) => ({ ...n, source: "override" })),
+          ...override.notices.map((n) => ({ ...n, source: "override" })),
         ];
       } else {
         // noService
