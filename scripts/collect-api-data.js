@@ -5,6 +5,12 @@ const moment = require("moment-timezone");
 const fs = require("fs");
 const path = require("path");
 
+// SKKU campusMap.do는 단일 endpoint에 mode/campusCd/buildNo/id로 분기하므로 params로 표현.
+// 다른 bus API는 URL 그대로 GET. building_info는 buildList 응답에서 id를 알아야 호출 가능
+// → 별도 헬퍼로 처리 (PR4b에서 buildList + spaceList만 정적 캡처, buildInfo는 동적).
+const SKKU_CAMPUS_MAP =
+  "https://www.skku.edu/skku/about/campusInfo/campusMap.do";
+
 const APIs = [
   { name: "hssc", url: process.env.API_HSSC_NEW_PROD },
   { name: "jongro07_list", url: process.env.API_JONGRO07_LIST_PROD },
@@ -12,6 +18,27 @@ const APIs = [
   { name: "jongro07_loc", url: process.env.API_JONGRO07_LOC_PROD },
   { name: "jongro02_loc", url: process.env.API_JONGRO02_LOC_PROD },
   { name: "station_hyehwa", url: process.env.API_STATION_HEWA },
+  // --- SKKU building APIs (PR4b types.ts 검증용; 30-min cron으로 captured) ---
+  {
+    name: "building_list_hssc",
+    url: SKKU_CAMPUS_MAP,
+    params: { mode: "buildList", srSearchValue: "", campusCd: "1" },
+  },
+  {
+    name: "building_list_nsc",
+    url: SKKU_CAMPUS_MAP,
+    params: { mode: "buildList", srSearchValue: "", campusCd: "2" },
+  },
+  {
+    name: "building_space_list_hssc",
+    url: SKKU_CAMPUS_MAP,
+    params: { mode: "spaceList", srSearchValue: "", campusCd: "1" },
+  },
+  {
+    name: "building_space_list_nsc",
+    url: SKKU_CAMPUS_MAP,
+    params: { mode: "spaceList", srSearchValue: "", campusCd: "2" },
+  },
 ];
 
 const FIXTURES_DIR = path.join(__dirname, "..", "__fixtures__");
@@ -24,7 +51,9 @@ async function collectAll() {
 
   const results = await Promise.allSettled(
     APIs.map((api) =>
-      axios.get(api.url, { timeout: 15000 }).then((r) => ({ api, data: r.data }))
+      axios
+        .get(api.url, { timeout: 15000, params: api.params })
+        .then((r) => ({ api, data: r.data }))
     )
   );
 

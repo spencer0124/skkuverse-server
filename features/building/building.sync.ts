@@ -1,17 +1,29 @@
-const axios = require("axios");
-const pollers = require("../../lib/pollers");
-const config = require("../../lib/config");
-const logger = require("../../lib/logger");
-const {
+import axios from "axios";
+import type { AnyBulkWriteOperation } from "mongodb";
+import * as pollers from "../../lib/pollers";
+import config from "../../lib/config";
+import logger from "../../lib/logger";
+import {
+  clearCache,
   getBuildingsCollection,
   getRawBuildingsCollection,
   getSpacesCollection,
-  clearCache,
-} = require("./building.data");
-const { ENRICH_VERSION, enrichBuilding } = require("./building.enrich");
+} from "./building.data";
+import { ENRICH_VERSION, enrichBuilding } from "./building.enrich";
+import type {
+  BuildingAttachment,
+  BuildingDoc,
+  BuildingRawDoc,
+  Campus,
+  SkkuBuildInfoResponse,
+  SkkuBuildListItem,
+  SkkuBuildListResponse,
+  SkkuSpaceListResponse,
+  SpaceDoc,
+} from "./types";
 
 const SKKU_API = "https://www.skku.edu/skku/about/campusInfo/campusMap.do";
-const CAMPUS_CODES = [
+const CAMPUS_CODES: Array<{ cd: string; name: Campus }> = [
   { cd: "1", name: "hssc" },
   { cd: "2", name: "nsc" },
 ];
@@ -22,7 +34,10 @@ const CONCURRENCY = 5;
 
 // --- Helpers ---
 
-function buildImageUrl(filePath, encodeNm) {
+function buildImageUrl(
+  filePath: string | undefined,
+  encodeNm: string | undefined,
+): string | null {
   if (!filePath || !encodeNm) return null;
   return `https://www.skku.edu${filePath}${encodeNm}`;
 }
@@ -31,9 +46,16 @@ function buildImageUrl(filePath, encodeNm) {
  * Build a raw building document from SKKU API item.
  * No derived fields (displayNo, type) — those belong to the enriched layer.
  */
-function toRawDoc(item, campus) {
-  const lat = parseFloat(item.latitude);
-  const lng = parseFloat(item.longtitude); // SKKU typo
+function toRawDoc(
+  item: SkkuBuildListItem,
+  campus: Campus,
+): Omit<BuildingRawDoc, "_id"> {
+  // 원본 .js는 `parseFloat(item.latitude)` 그대로 호출 — undefined일 경우 NaN.
+  // `as string` 단언은 type-system 보정으로 같은 런타임 의미(undefined → NaN) 유지.
+  // (`?? ""`로 default를 넣으면 새로운 narrowing이 되어 defensive narrowing 금지 규칙
+  // 위반 — parseFloat("")도 NaN이라 결과는 같지만 코드 의도가 달라짐.)
+  const lat = parseFloat(item.latitude as string);
+  const lng = parseFloat(item.longtitude as string); // SKKU typo
 
   return {
     buildNo: item.buildNo || null,
@@ -59,22 +81,30 @@ function toRawDoc(item, campus) {
 
 // --- Phase 1: buildList → raw upsert → change detection → enrich ---
 
-async function fetchBuildList(campusCd) {
-  const { data } = await axios.get(SKKU_API, {
+async function fetchBuildList(campusCd: string): Promise<SkkuBuildListItem[]> {
+  const { data } = await axios.get<SkkuBuildListResponse>(SKKU_API, {
     params: { mode: "buildList", srSearchValue: "", campusCd },
     timeout: 30000,
   });
   return data.buildItems || [];
 }
 
-async function phase1(syncTime) {
+interface CampusItem {
+  item: SkkuBuildListItem;
+  campus: Campus;
+}
+
+async function phase1(syncTime: Date): Promise<CampusItem[] | null> {
   const rawCol = getRawBuildingsCollection();
   const enrichedCol = getBuildingsCollection();
-  const allItems = [];
+  const allItems: CampusItem[] = [];
 
   for (const { cd, name } of CAMPUS_CODES) {
     const items = await fetchBuildList(cd);
-    logger.info({ campus: name, count: items.length }, "[building-sync] Phase 1: fetched buildList");
+    logger.info(
+      { campus: name, count: items.length },
+      "[building-sync] Phase 1: fetched buildList",
+    );
     for (const item of items) {
       allItems.push({ item, campus: name });
     }
@@ -90,20 +120,25 @@ async function phase1(syncTime) {
   }
 
   // Load existing raw docs for change detection (single query, 78 docs)
-  const existingRawDocs = await rawCol.find({}, { projection: { skkuUpdatedAt: 1 } }).toArray();
-  const rawMap = new Map(existingRawDocs.map((d) => [d._id, d.skkuUpdatedAt]));
+  const existingRawDocs = await rawCol
+    .find({}, { projection: { skkuUpdatedAt: 1 } })
+    .toArray();
+  const rawMap = new Map<number, string | null>(
+    existingRawDocs.map((d) => [d._id, d.skkuUpdatedAt]),
+  );
 
   // Load IDs needing re-enrichment due to version mismatch
-  const staleEnrichedIds = new Set(
-    (await enrichedCol
-      .find({ enrichVersion: { $ne: ENRICH_VERSION } }, { projection: { _id: 1 } })
-      .toArray()
+  const staleEnrichedIds = new Set<number>(
+    (
+      await enrichedCol
+        .find({ enrichVersion: { $ne: ENRICH_VERSION } }, { projection: { _id: 1 } })
+        .toArray()
     ).map((d) => d._id),
   );
 
   // Build raw upsert ops + detect changed IDs
-  const rawOps = [];
-  const changedIds = new Set();
+  const rawOps: AnyBulkWriteOperation<BuildingRawDoc>[] = [];
+  const changedIds = new Set<number>();
 
   for (const { item, campus } of allItems) {
     const skkuId = parseInt(item.id, 10);
@@ -120,9 +155,9 @@ async function phase1(syncTime) {
     // Change detection: new, data updated, or enrichment version mismatch
     const existingUpdatedAt = rawMap.get(skkuId);
     if (
-      existingUpdatedAt === undefined ||                    // new building
-      existingUpdatedAt !== rawDoc.skkuUpdatedAt ||         // SKKU data changed
-      staleEnrichedIds.has(skkuId)                          // enrichment version bump
+      existingUpdatedAt === undefined || // new building
+      existingUpdatedAt !== rawDoc.skkuUpdatedAt || // SKKU data changed
+      staleEnrichedIds.has(skkuId) // enrichment version bump
     ) {
       changedIds.add(skkuId);
     }
@@ -146,21 +181,25 @@ async function phase1(syncTime) {
       .find({ _id: { $in: [...changedIds] } })
       .toArray();
 
-    const enrichedOps = changedRawDocs.map((rawDoc) => {
-      const fields = enrichBuilding(rawDoc);
-      return {
-        updateOne: {
-          filter: { _id: rawDoc._id },
-          update: {
-            $set: { ...fields, "sync.listAt": syncTime, updatedAt: syncTime },
-            $setOnInsert: { extensions: {} },
+    const enrichedOps: AnyBulkWriteOperation<BuildingDoc>[] = changedRawDocs.map(
+      (rawDoc) => {
+        const fields = enrichBuilding(rawDoc);
+        return {
+          updateOne: {
+            filter: { _id: rawDoc._id },
+            update: {
+              $set: { ...fields, "sync.listAt": syncTime, updatedAt: syncTime },
+              $setOnInsert: { extensions: {} },
+            },
+            upsert: true,
           },
-          upsert: true,
-        },
-      };
-    });
+        };
+      },
+    );
 
-    const enrichResult = await enrichedCol.bulkWrite(enrichedOps, { ordered: false });
+    const enrichResult = await enrichedCol.bulkWrite(enrichedOps, {
+      ordered: false,
+    });
     logger.info(
       {
         changed: changedIds.size,
@@ -171,7 +210,9 @@ async function phase1(syncTime) {
       "[building-sync] Phase 1: enriched buildings updated",
     );
   } else {
-    logger.info("[building-sync] Phase 1: no changes detected, skipping enrichment");
+    logger.info(
+      "[building-sync] Phase 1: no changes detected, skipping enrichment",
+    );
   }
 
   return allItems;
@@ -179,22 +220,32 @@ async function phase1(syncTime) {
 
 // --- Phase 2: buildInfo (attachments + floorItem → spaces) ---
 
-async function fetchBuildInfo(buildNo, skkuId) {
-  const { data } = await axios.get(SKKU_API, {
+async function fetchBuildInfo(
+  buildNo: string,
+  skkuId: string,
+): Promise<SkkuBuildInfoResponse> {
+  const { data } = await axios.get<SkkuBuildInfoResponse>(SKKU_API, {
     params: { mode: "buildInfo", buildNo, id: skkuId },
     timeout: 30000,
   });
   return data;
 }
 
-async function phase2(allItems, syncTime) {
+async function phase2(
+  allItems: CampusItem[],
+  syncTime: Date,
+): Promise<{ processed: number; errors: number; spacesCount: number }> {
   const rawCol = getRawBuildingsCollection();
   const enrichedCol = getBuildingsCollection();
   const spacesCol = getSpacesCollection();
 
-  const withBuildNo = allItems.filter(({ item }) => item.buildNo);
+  // facility(buildNo=null)는 buildInfo 호출 대상 아님.
+  const withBuildNo = allItems.filter(
+    (ci): ci is CampusItem & { item: SkkuBuildListItem & { buildNo: string } } =>
+      !!ci.item.buildNo,
+  );
 
-  const spacesOps = [];
+  const spacesOps: AnyBulkWriteOperation<SpaceDoc>[] = [];
   let processed = 0;
   let errors = 0;
 
@@ -205,12 +256,14 @@ async function phase2(allItems, syncTime) {
         const info = await fetchBuildInfo(item.buildNo, item.id);
         const skkuId = parseInt(item.id, 10);
 
-        const attachments = (info.attachItem || []).map((a) => ({
-          id: a.id,
-          url: buildImageUrl(a.file_path, a.encode_nm),
-          filename: a.file_nm || null,
-          alt: a.image_alt || "",
-        }));
+        const attachments: BuildingAttachment[] = (info.attachItem || []).map(
+          (a) => ({
+            id: a.id,
+            url: buildImageUrl(a.file_path, a.encode_nm),
+            filename: a.file_nm || null,
+            alt: a.image_alt || "",
+          }),
+        );
 
         // Write attachments to BOTH raw and enriched layers
         const attachUpdate = {
@@ -226,7 +279,10 @@ async function phase2(allItems, syncTime) {
         ]);
 
         // floorItem → spaces upsert ops
-        const buildingName = { ko: item.buildNm || "", en: item.buildNmEng || "" };
+        const buildingName = {
+          ko: item.buildNm || "",
+          en: item.buildNmEng || "",
+        };
         for (const fi of info.floorItem || []) {
           spacesOps.push({
             updateOne: {
@@ -237,10 +293,16 @@ async function phase2(allItems, syncTime) {
               },
               update: {
                 $set: {
-                  floor: { ko: fi.floor_nm || "", en: fi.floor_nm_eng || "" },
+                  floor: {
+                    ko: fi.floor_nm || "",
+                    en: fi.floor_nm_eng || "",
+                  },
                   name: {
                     ko: fi.spcae_nm || "", // SKKU typo
-                    en: fi.spcae_nm_eng === "undefined" ? "" : (fi.spcae_nm_eng || ""),
+                    en:
+                      fi.spcae_nm_eng === "undefined"
+                        ? ""
+                        : fi.spcae_nm_eng || "",
                   },
                   buildingName,
                   syncedAt: syncTime,
@@ -261,13 +323,22 @@ async function phase2(allItems, syncTime) {
     for (const r of results) {
       if (r.status === "rejected") {
         errors++;
-        const failedItem = batch[results.indexOf(r)];
+        const failedItem = batch[results.indexOf(r)]!;
         const skkuId = parseInt(failedItem.item.id, 10);
+        // r.reason 타입은 unknown (Promise rejection은 무엇이든 가능). 원본 .js의
+        // `r.reason?.message` optional chaining을 그대로 유지 — 새 narrowing 아님.
+        const reason = r.reason as { message?: string } | null | undefined;
         logger.warn(
-          { skkuId, buildNo: failedItem.item.buildNo, err: r.reason?.message },
+          {
+            skkuId,
+            buildNo: failedItem.item.buildNo,
+            err: reason?.message,
+          },
           "[building-sync] Phase 2: buildInfo failed",
         );
-        const errUpdate = { $set: { "sync.detailError": r.reason?.message || "unknown" } };
+        const errUpdate = {
+          $set: { "sync.detailError": reason?.message || "unknown" },
+        };
         await Promise.all([
           rawCol.updateOne({ _id: skkuId }, errUpdate).catch(() => {}),
           enrichedCol.updateOne({ _id: skkuId }, errUpdate).catch(() => {}),
@@ -294,49 +365,63 @@ async function phase2(allItems, syncTime) {
 
 // --- Phase 3: spaceList (unchanged — no two-layer needed) ---
 
-async function fetchSpaceList(campusCd) {
-  const { data } = await axios.get(SKKU_API, {
+async function fetchSpaceList(campusCd: string): Promise<SkkuSpaceListResponse["items"]> {
+  const { data } = await axios.get<SkkuSpaceListResponse>(SKKU_API, {
     params: { mode: "spaceList", srSearchValue: "", campusCd },
     timeout: 30000,
   });
   return data.items || [];
 }
 
-async function phase3(syncTime) {
+async function phase3(syncTime: Date): Promise<number> {
   const spacesCol = getSpacesCollection();
-  const allSpaces = [];
+  const allSpaces: Array<{
+    item: NonNullable<SkkuSpaceListResponse["items"]>[number];
+    campus: Campus;
+  }> = [];
 
   for (const { cd, name } of CAMPUS_CODES) {
-    const items = await fetchSpaceList(cd);
-    logger.info({ campus: name, count: items.length }, "[building-sync] Phase 3: fetched spaceList");
+    const items = (await fetchSpaceList(cd)) || [];
+    logger.info(
+      { campus: name, count: items.length },
+      "[building-sync] Phase 3: fetched spaceList",
+    );
     for (const item of items) {
       allSpaces.push({ item, campus: name });
     }
   }
 
-  const ops = allSpaces.map(({ item, campus }) => ({
-    updateOne: {
-      filter: {
-        spaceCd: item.spaceCd,
-        buildNo: item.buildNo,
-        campus,
-      },
-      update: {
-        $set: {
-          floor: { ko: item.floorNm || "", en: item.floorNmEng || "" },
-          name: {
-            ko: item.spcaeNm || "", // SKKU typo
-            en: item.spcaeNmEng === "undefined" ? "" : (item.spcaeNmEng || ""),
-          },
-          buildingName: { ko: item.buildNm || "", en: item.buildNmEng || "" },
-          conspaceCd: item.conspaceCd || null,
-          syncedAt: syncTime,
+  const ops: AnyBulkWriteOperation<SpaceDoc>[] = allSpaces.map(
+    ({ item, campus }) => ({
+      updateOne: {
+        filter: {
+          spaceCd: item.spaceCd,
+          buildNo: item.buildNo,
+          campus,
         },
-        $addToSet: { sources: "spaceList" },
+        update: {
+          $set: {
+            floor: { ko: item.floorNm || "", en: item.floorNmEng || "" },
+            name: {
+              ko: item.spcaeNm || "", // SKKU typo
+              en:
+                item.spcaeNmEng === "undefined"
+                  ? ""
+                  : item.spcaeNmEng || "",
+            },
+            buildingName: {
+              ko: item.buildNm || "",
+              en: item.buildNmEng || "",
+            },
+            conspaceCd: item.conspaceCd || null,
+            syncedAt: syncTime,
+          },
+          $addToSet: { sources: "spaceList" },
+        },
+        upsert: true,
       },
-      upsert: true,
-    },
-  }));
+    }),
+  );
 
   if (ops.length > 0) {
     const result = await spacesCol.bulkWrite(ops, { ordered: false });
@@ -369,7 +454,7 @@ async function phase3(syncTime) {
 
 // --- Main sync ---
 
-async function syncBuildings() {
+async function syncBuildings(): Promise<void> {
   const syncTime = new Date();
   const start = Date.now();
 
@@ -382,7 +467,10 @@ async function syncBuildings() {
     try {
       await phase2(allItems, syncTime);
     } catch (err) {
-      logger.error({ err: err.message }, "[building-sync] Phase 2 failed");
+      logger.error(
+        { err: (err as { message?: string }).message },
+        "[building-sync] Phase 2 failed",
+      );
     }
 
     // Phase 3: spaceList → spaces upsert + stale delete
@@ -390,7 +478,10 @@ async function syncBuildings() {
     try {
       spacesCount = await phase3(syncTime);
     } catch (err) {
-      logger.error({ err: err.message }, "[building-sync] Phase 3 failed, skipping stale delete");
+      logger.error(
+        { err: (err as { message?: string }).message },
+        "[building-sync] Phase 3 failed, skipping stale delete",
+      );
     }
 
     clearCache();
@@ -401,17 +492,24 @@ async function syncBuildings() {
       "[building-sync] Complete",
     );
   } catch (err) {
-    logger.error({ err: err.message }, "[building-sync] Sync failed");
+    logger.error(
+      { err: (err as { message?: string }).message },
+      "[building-sync] Sync failed",
+    );
   }
 }
 
 // Register with poller system (side-effect on require)
 pollers.registerPoller(
-  () => syncBuildings().catch((err) =>
-    logger.error({ err: err.message }, "[building-sync] Poller error"),
-  ),
+  () =>
+    syncBuildings().catch((err: unknown) =>
+      logger.error(
+        { err: (err as { message?: string }).message },
+        "[building-sync] Poller error",
+      ),
+    ),
   config.building.syncIntervalMs,
   "building-sync",
 );
 
-module.exports = { syncBuildings };
+export { syncBuildings };
