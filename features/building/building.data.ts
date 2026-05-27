@@ -125,11 +125,11 @@ async function getAllBuildings(campus?: Campus | null): Promise<BuildingDoc[]> {
 }
 
 async function getBuildingBySkkuId(
-  skkuId: number | string,
+  skkuId: number,
 ): Promise<BuildingDoc | null> {
   const col = getBuildingsCollection();
   return col.findOne(
-    { _id: parseInt(skkuId as string, 10) },
+    { _id: skkuId },
     { projection: { sync: 0, enrichVersion: 0 } },
   );
 }

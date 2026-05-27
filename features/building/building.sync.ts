@@ -18,6 +18,7 @@ import type {
   SkkuBuildInfoResponse,
   SkkuBuildListItem,
   SkkuBuildListResponse,
+  SkkuSpaceListItem,
   SkkuSpaceListResponse,
   SpaceDoc,
 } from "./types";
@@ -365,7 +366,7 @@ async function phase2(
 
 // --- Phase 3: spaceList (unchanged — no two-layer needed) ---
 
-async function fetchSpaceList(campusCd: string): Promise<SkkuSpaceListResponse["items"]> {
+async function fetchSpaceList(campusCd: string): Promise<SkkuSpaceListItem[]> {
   const { data } = await axios.get<SkkuSpaceListResponse>(SKKU_API, {
     params: { mode: "spaceList", srSearchValue: "", campusCd },
     timeout: 30000,
@@ -376,12 +377,12 @@ async function fetchSpaceList(campusCd: string): Promise<SkkuSpaceListResponse["
 async function phase3(syncTime: Date): Promise<number> {
   const spacesCol = getSpacesCollection();
   const allSpaces: Array<{
-    item: NonNullable<SkkuSpaceListResponse["items"]>[number];
+    item: SkkuSpaceListItem;
     campus: Campus;
   }> = [];
 
   for (const { cd, name } of CAMPUS_CODES) {
-    const items = (await fetchSpaceList(cd)) || [];
+    const items = await fetchSpaceList(cd);
     logger.info(
       { campus: name, count: items.length },
       "[building-sync] Phase 3: fetched spaceList",

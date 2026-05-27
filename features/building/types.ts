@@ -119,7 +119,7 @@ export type ElevatorStatus =
 
 export interface BarrierFreeSection {
   label: string | null;
-  ramp: { available: boolean; note?: string | null } | null;
+  ramp: { available: boolean; note: string | null } | null;
   toilet: { raw: string; count: number | null } | null;
   elevator: {
     raw: string;
