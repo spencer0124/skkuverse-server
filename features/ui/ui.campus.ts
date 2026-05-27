@@ -1,6 +1,7 @@
-const { t } = require("../../lib/i18n");
+import { t } from "../../lib/i18n";
+import type { SupportedLang } from "../../lib/types";
 
-function getCampusServiceItems(lang = "ko") {
+function getCampusServiceItems(lang: SupportedLang = "ko") {
   return [
     {
       id: "building_map",
@@ -35,7 +36,7 @@ function getCampusServiceItems(lang = "ko") {
   ];
 }
 
-function getCampusSections(lang = "ko") {
+function getCampusSections(lang: SupportedLang = "ko") {
   return {
     minAppVersion: "2.0.0",
     sections: [
@@ -49,4 +50,4 @@ function getCampusSections(lang = "ko") {
   };
 }
 
-module.exports = { getCampusSections };
+export { getCampusSections };

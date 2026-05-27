@@ -1,6 +1,7 @@
-const { t } = require("../../lib/i18n");
+import { t } from "../../lib/i18n";
+import type { SupportedLang } from "../../lib/types";
 
-function getScrollComponent(lang = "ko") {
+function getScrollComponent(lang: SupportedLang = "ko") {
   return [
     {
       title: t("scroll.hsscMap.title", lang),
@@ -30,4 +31,4 @@ function getScrollComponent(lang = "ko") {
   ];
 }
 
-module.exports = { getScrollComponent };
+export { getScrollComponent };
