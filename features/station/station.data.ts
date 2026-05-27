@@ -1,4 +1,31 @@
-const StationHSSCStations = [
+// 혜화역(승차장) 정류장에서 HSSC 셔틀 ETA 계산 — `computeEta`는 pure function이고
+// __tests__/station-eta.test.js에서 직접 unit-test됨. 테스트가 `computeEta(station,
+// null)`과 `computeEta(station, undefined)` 모두 호출하므로 busData 시그너처가
+// nullable union을 받아야 한다 (원본 .js의 `if (!Array.isArray(busData))` invariant).
+
+interface StationEntry {
+  sequence: number;
+  stationName: string;
+  stationNumber: string | null;
+  eta: string;
+  isFirstStation: boolean;
+  isLastStation: boolean;
+  isRotationStation: boolean;
+  busType: string;
+}
+
+// 외부 (HSSC fetcher) 결과의 일부분만 필요 — sequence (string) + estimatedTime (sec).
+interface BusEntry {
+  sequence: string;
+  estimatedTime: number;
+  [k: string]: unknown;
+}
+
+interface StationWithEta extends StationEntry {
+  eta: string;
+}
+
+const StationHSSCStations: StationEntry[] = [
   { sequence: 1, stationName: "정차소(인문.농구장)", stationNumber: null, eta: "도착 정보 없음", isFirstStation: true, isLastStation: false, isRotationStation: false, busType: "BusType.hsscBus" },
   { sequence: 2, stationName: "학생회관(인문)", stationNumber: null, eta: "도착 정보 없음", isFirstStation: false, isLastStation: false, isRotationStation: false, busType: "BusType.hsscBus" },
   { sequence: 3, stationName: "정문(인문-하교)", stationNumber: null, eta: "도착 정보 없음", isFirstStation: false, isLastStation: false, isRotationStation: false, busType: "BusType.hsscBus" },
@@ -23,13 +50,11 @@ const NO_INFO = "도착 정보 없음";
 
 /**
  * Compute the ETA string for a single station given current bus positions.
- *
- * @param {Object} station - Station with `sequence` (number)
- * @param {Array}  busData - Bus objects from HSSC fetcher, each with
- *                           `sequence` (string) and `estimatedTime` (number, seconds)
- * @returns {string} ETA display string
  */
-function computeEta(station, busData) {
+function computeEta(
+  station: StationEntry,
+  busData: BusEntry[] | null | undefined,
+): string {
   if (!Array.isArray(busData)) return NO_INFO;
   const busesApproaching = busData
     .filter((bus) => parseInt(bus.sequence) <= station.sequence)
@@ -59,7 +84,11 @@ function computeEta(station, busData) {
  * Search further back in the sorted bus list for an actionable bus.
  * Skips buses sitting at the terminal station (LAST_STATION_SEQUENCE).
  */
-function findNextApproachingBusEta(station, busesApproaching, startIndex) {
+function findNextApproachingBusEta(
+  station: StationEntry,
+  busesApproaching: BusEntry[],
+  startIndex: number,
+): string {
   const candidate = busesApproaching[startIndex];
   if (!candidate) {
     return NO_INFO;
@@ -79,15 +108,14 @@ function findNextApproachingBusEta(station, busesApproaching, startIndex) {
 /**
  * Compute ETAs for all stations. Returns a NEW array (no mutation of input).
  */
-function computeAllStationEtas(stations, busData) {
+function computeAllStationEtas(
+  stations: StationEntry[],
+  busData: BusEntry[] | null | undefined,
+): StationWithEta[] {
   return stations.map((station) => ({
     ...station,
     eta: computeEta(station, busData),
   }));
 }
 
-module.exports = {
-  StationHSSCStations,
-  computeEta,
-  computeAllStationEtas,
-};
+export { StationHSSCStations, computeEta, computeAllStationEtas };
