@@ -1,8 +1,8 @@
 const sources = require("../features/notices/sources");
 
 describe("sources loader", () => {
-  it("loads 147 entries", () => {
-    expect(sources.list).toHaveLength(147);
+  it("loads 148 entries", () => {
+    expect(sources.list).toHaveLength(148);
   });
 
   it("every entry has the required shape", () => {
