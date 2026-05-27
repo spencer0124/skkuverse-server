@@ -1,12 +1,37 @@
-const crypto = require("crypto");
-const { t } = require("../../lib/i18n");
+import crypto from "crypto";
+import { t } from "../../lib/i18n";
+import type { SupportedLang } from "../../lib/types";
+
+interface BuildingOverlayDef {
+  id: string;
+  key: string;
+  subLabel: string | null;
+  lat: number;
+  lng: number;
+}
+
+interface OverlayItem {
+  type: "marker";
+  id: string;
+  position: { lat: number; lng: number };
+  marker: {
+    icon: string | null;
+    label: string;
+    subLabel: string | null;
+  };
+}
+
+interface OverlayResponse {
+  category: string;
+  overlays: OverlayItem[];
+}
 
 /**
  * Building overlay definitions.
  * Coordinates sourced from Flutter's building_labels.dart.
  * Each entry maps to an i18n key for localized labels.
  */
-const BUILDINGS = {
+const BUILDINGS: Record<"hssc" | "nsc", BuildingOverlayDef[]> = {
   hssc: [
     { id: "bldg_hssc_law", key: "map.building.hssc.law", subLabel: "2", lat: 37.58748501659492, lng: 126.99053101116544 },
     { id: "bldg_hssc_suseon", key: "map.building.hssc.suseon", subLabel: "61", lat: 37.58788072085495, lng: 126.99092247338302 },
@@ -28,12 +53,17 @@ const BUILDINGS = {
 
 /**
  * Build the overlay response for a category.
- * @param {string} category - "hssc" or "nsc"
- * @param {string} lang - "ko" | "en" | "zh"
- * @returns {{ category: string, overlays: object[] } | null}
+ * @param category - "hssc" or "nsc" (any other string returns null)
  */
-function getOverlaysByCategory(category, lang = "ko") {
-  const buildings = BUILDINGS[category];
+function getOverlaysByCategory(
+  category: string,
+  lang: SupportedLang = "ko",
+): OverlayResponse | null {
+  // Type-narrow at the lookup boundary. category가 hssc/nsc 외이면 lookup 결과
+  // undefined → null 반환 (원본 .js와 동일).
+  const buildings = (BUILDINGS as Record<string, BuildingOverlayDef[] | undefined>)[
+    category
+  ];
   if (!buildings) return null;
 
   return {
@@ -52,18 +82,19 @@ function getOverlaysByCategory(category, lang = "ko") {
 }
 
 /** ETag cache keyed by "category:lang" */
-const etagCache = new Map();
+const etagCache = new Map<string, string>();
 
 /**
  * Compute a stable ETag for the given category + language.
  * Result is cached in-memory (static data, only changes on redeploy).
- * @param {string} category
- * @param {string} lang
- * @returns {string | null}
  */
-function computeEtag(category, lang = "ko") {
+function computeEtag(
+  category: string,
+  lang: SupportedLang = "ko",
+): string | null {
   const cacheKey = `${category}:${lang}`;
-  if (etagCache.has(cacheKey)) return etagCache.get(cacheKey);
+  const cached = etagCache.get(cacheKey);
+  if (cached) return cached;
 
   const data = getOverlaysByCategory(category, lang);
   if (!data) return null;
@@ -77,4 +108,4 @@ function computeEtag(category, lang = "ko") {
   return etag;
 }
 
-module.exports = { getOverlaysByCategory, computeEtag };
+export { getOverlaysByCategory, computeEtag };

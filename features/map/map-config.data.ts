@@ -1,13 +1,36 @@
-const { t } = require("../../lib/i18n");
-const config = require("../../lib/config");
+import { t } from "../../lib/i18n";
+import config from "../../lib/config";
+import type { SupportedLang } from "../../lib/types";
+
+interface CampusEntry {
+  id: "hssc" | "nsc";
+  label: string;
+  centerLat: number;
+  centerLng: number;
+  defaultZoom: number;
+}
+
+interface LayerEntry {
+  id: string;
+  type: "marker" | "polyline";
+  markerStyle?: string;
+  label: string;
+  defaultVisible: boolean;
+  endpoint: string;
+  style?: { color: string };
+}
+
+interface MapConfigResponse {
+  naver: { styleId: string | undefined };
+  campuses: CampusEntry[];
+  layers: LayerEntry[];
+}
 
 /**
  * Returns map layer configuration with campus definitions.
  * Text fields are resolved to the requested language via i18n.
- *
- * @param {string} lang — "ko" | "en" | "zh"
  */
-function getMapConfig(lang = "ko") {
+function getMapConfig(lang: SupportedLang = "ko"): MapConfigResponse {
   return {
     naver: { styleId: config.naver.styleId },
     campuses: [
@@ -63,4 +86,4 @@ function getMapConfig(lang = "ko") {
   };
 }
 
-module.exports = { getMapConfig };
+export { getMapConfig };

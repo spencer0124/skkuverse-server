@@ -1,7 +1,42 @@
-const { getAllBuildings } = require("../building/building.data");
+import { getAllBuildings } from "../building/building.data";
+import type { Campus } from "../building/types";
+
+// Marker shape는 overlay 모드에 따라 분기됨 (number는 displayNo, label은 text).
+// 두 모드 모두 BuildingDoc의 _id를 skkuId로 함께 노출 (DB 경로) 또는 FALLBACK의
+// 정적 id를 그대로 노출 (fallback 경로).
+interface NumberMarker {
+  skkuId?: number;
+  id?: string;
+  displayNo: string | null;
+  campus: Campus;
+  lat: number;
+  lng: number;
+}
+
+interface LabelMarker {
+  skkuId?: number;
+  id?: string;
+  text: { ko: string; en: string } | string;
+  campus: Campus;
+  lat: number;
+  lng: number;
+}
+
+type MarkerResponse =
+  | { markers: NumberMarker[] }
+  | { markers: LabelMarker[] };
 
 // Fallback when DB is empty (original hardcoded markers)
-const FALLBACK_MARKERS = [
+interface FallbackMarker {
+  id: string;
+  code: string;
+  name: string;
+  campus: Campus;
+  lat: number;
+  lng: number;
+}
+
+const FALLBACK_MARKERS: FallbackMarker[] = [
   // ── HSSC (인사캠) ──
   { id: "hssc_1",  code: "1",  name: "수선관",       campus: "hssc", lat: 37.587361, lng: 126.994479 },
   { id: "hssc_2",  code: "2",  name: "양현재",       campus: "hssc", lat: 37.587441, lng: 126.990506 },
@@ -18,7 +53,7 @@ const FALLBACK_MARKERS = [
   { id: "nsc_1",   code: "1",  name: "자연과학캠퍼스", campus: "nsc",  lat: 37.29358,  lng: 126.974942 },
 ];
 
-function formatFallback(overlay) {
+function formatFallback(overlay: "number" | "label"): MarkerResponse {
   if (overlay === "number") {
     return {
       markers: FALLBACK_MARKERS.map((m) => ({
@@ -42,8 +77,12 @@ function formatFallback(overlay) {
   };
 }
 
-async function getCampusMarkers(overlay) {
+async function getCampusMarkers(
+  overlay: "number" | "label",
+): Promise<MarkerResponse> {
   const buildings = await getAllBuildings();
+  // 원본 .js: `if (!buildings?.length)` — getAllBuildings는 항상 array 반환하지만
+  // optional chaining이 원본에 있으므로 그대로 보존 (새 narrowing 아님).
   if (!buildings?.length) return formatFallback(overlay);
 
   if (overlay === "number") {
@@ -72,4 +111,4 @@ async function getCampusMarkers(overlay) {
   };
 }
 
-module.exports = { getCampusMarkers, FALLBACK_MARKERS };
+export { getCampusMarkers, FALLBACK_MARKERS };
