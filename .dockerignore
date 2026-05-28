@@ -13,5 +13,11 @@ eslint.config.js
 .claude/
 swagger/swagger.js
 docs/
-scripts/
 yarn.lock
+# 호스트(개발자 머신 / CI)에서 빌드된 dist/가 builder stage로 새들어가면
+# (a) 레이어 캐시 무효화, (b) stale dist/가 fresh tsc 출력을 덮어쓰는 우회 —
+# 두 위험 모두 제거. builder가 자체 tsc 실행으로 dist/ 생성.
+dist/
+# scripts/는 builder가 `node scripts/copy-build-assets.js` 실행에 필요하므로
+# 더 이상 ignore하지 않음. runtime stage는 dist/만 가져가므로 scripts/는
+# runtime image에 ship되지 않음.

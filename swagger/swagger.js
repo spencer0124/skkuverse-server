@@ -14,6 +14,8 @@ const options = {
 };
 
 const outputFile = "./swagger/swagger-output.json";
-const endpointsFiles = ["./index.js"];
+// dist/ output of tsc — index.js (and feature routes that .ts-import lib/)
+// are emitted there. Run `npm run build` before `npm run swagger`.
+const endpointsFiles = ["./dist/index.js"];
 
 swaggerAutogen(outputFile, endpointsFiles, options);

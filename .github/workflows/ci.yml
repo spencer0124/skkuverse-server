@@ -14,7 +14,11 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
       - run: npm test
         env:
           NAVER_MAP_STYLE_ID: ${{ secrets.NAVER_MAP_STYLE_ID }}
       - run: npm run lint
+      - run: npm run knip
+      - run: npm run depcheck

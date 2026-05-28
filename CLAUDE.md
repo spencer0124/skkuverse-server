@@ -15,9 +15,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run depcheck` — Audit unused npm dependencies (with curated ignore list for dynamic loaders)
 - `docker compose up --build` — Build and run via Docker (NODE_ENV=production, 3 services: poller + api-1:3001 + api-2:3002)
 
+## TypeScript Migration: COMPLETE (PR1–7, 2026-05-28)
+
+전체 소스 코드 100% TypeScript: `lib/`, `features/`, `index.ts`, `__tests__/` 모두 `.ts`. 잔여 `.js`는 tool config 3개 (`jest.config.js`, `jest.setup.ts`로 변환됨 — 이제 0개 / `eslint.config.js`, `jest.config.js`만 남음 — flat-config 관례) + `scripts/` (의도적 exclude per `tsconfig.exclude`) + `swagger/swagger.js` (build 도구). `tsconfig.json` `allowJs: false`, `strict: true`, `noUncheckedIndexedAccess: true`. 테스트는 `tsconfig.test.json`로 lax narrow (`noUncheckedIndexedAccess: false`, `noUnusedLocals: false`, `noImplicitAny: false`, `moduleDetection: force`). `npm run typecheck`은 양 tsconfig 모두 검사.
+
+후속 작업 후보 (모두 별도 PR): Express 4→5, 경로 alias (`@lib/*`, `@features/*`), `scripts/` 일부 TS화, `@typescript-eslint/recommended` 추가 룰 (`no-floating-promises` 등), ts-jest v30 업그레이드.
+
 ## Dependency Policy
 
-All deps/devDeps are pinned to exact versions in `package.json` (no `^`/`~`). `.npmrc` enforces `save-exact=true` + `engine-strict=true`. Pre-TS-migration lock to avoid mixing dep upgrades with TS conversion. Update single package per PR (`npm install foo@X.Y.Z`), confirm `npm test`/`lint`/`knip`/`depcheck`. Express 5 migration deferred to post-TS as single dedicated PR (currently locked at 4.22.2). See `docs/project-docs.md §14`.
+All deps/devDeps are pinned to exact versions in `package.json` (no `^`/`~`). `.npmrc` enforces `save-exact=true` + `engine-strict=true`. Update single package per PR (`npm install foo@X.Y.Z`), confirm `npm test`/`lint`/`knip`/`depcheck`. Express 5 migration kept as single dedicated PR (currently locked at 4.22.2). See `docs/project-docs.md §14`.
 
 **Node runtime: 22 LTS (`.nvmrc` 참고).** `engines.node` ≥22 + `engine-strict=true`로 자동 차단. Node 20 LTS는 2026-04-30 EOL이라 사용 금지. Node 24는 macOS+OpenSSL 3.4 영향으로 일부 TLS 시나리오 회귀 보고(예: [nodejs/node#61448](https://github.com/nodejs/node/issues/61448)) — Atlas 등 외부 TLS 의존 환경에서 검증 부족, 사용 금지. nvm 사용 시 프로젝트 디렉토리에서 `nvm use` 한 번으로 자동 정렬.
 
@@ -135,7 +141,7 @@ Tests mock external dependencies (axios, MongoDB, pollers) so no real API calls 
 - `helpers/mocks/firebase.js`, `adData.js`, `adStats.js`, `busCache.js`, `busSchedule.js` — factory functions returning fresh mock objects per `jest.mock` invocation; callers pass optional overrides (e.g., `placements`, `uid`) for per-file variations.
 - `helpers/miniApp.js` — minimal Express app builder for supertest files that don't want to mount the full `../index` (which would force 6+ jest.mock blocks). Used by `notices-dispatch.test.js` (`injectLangMeta: false`) and `building-routes.test.js` (langMiddleware + meta envelope).
 
-Pattern: `jest.mock("../lib/firebase", () => require("./helpers/mocks/firebase")())`. TS migration will type each helper once via `jest.Mocked<typeof X>` — single point of truth replaces N copies.
+Pattern: `jest.mock("../lib/firebase", () => require("./helpers/mocks/firebase")())`. Helpers are typed `.ts` since PR1; mock factory return types are inferred from the factory body (effectively SPOT — adding `jest.Mocked<typeof X>` on top would be cosmetic since the actual structural type is already locked in by the factory's return literal).
 
 **Coverage thresholds** (`jest.config.js`): branches 60 / functions 70 / lines 75 / statements 75. CI and Stop hook both run `npm test`; threshold violations block merge.
 
