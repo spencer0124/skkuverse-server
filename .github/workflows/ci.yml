@@ -20,3 +20,5 @@ jobs:
         env:
           NAVER_MAP_STYLE_ID: ${{ secrets.NAVER_MAP_STYLE_ID }}
       - run: npm run lint
+      - run: npm run knip
+      - run: npm run depcheck

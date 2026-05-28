@@ -19,8 +19,8 @@ const logger = require("../lib/logger");
 const { getClient } = require("../lib/db");
 
 // Mock collections
-let mockSchedules: any[] = [];
-let mockOverrides: any[] = [];
+let mockSchedules: unknown[] = [];
+let mockOverrides: unknown[] = [];
 
 const mockFind = jest.fn();
 const mockCollection = jest.fn();

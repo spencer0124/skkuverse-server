@@ -18,7 +18,17 @@ const buildMiniApp = require("./helpers/miniApp");
 // updateOne $set timestamps). Real timers stay live so supertest's HTTP loop and
 // the dispatcher's AbortController setTimeout work normally.
 const FIXED_NOW = new Date("2026-05-24T12:00:00Z");
-const DO_NOT_FAKE = [
+const DO_NOT_FAKE: Array<
+  | "setTimeout"
+  | "clearTimeout"
+  | "setInterval"
+  | "clearInterval"
+  | "setImmediate"
+  | "clearImmediate"
+  | "queueMicrotask"
+  | "nextTick"
+  | "performance"
+> = [
   "setTimeout",
   "clearTimeout",
   "setInterval",
@@ -76,7 +86,7 @@ function buildInternalApp() {
 }
 
 beforeAll(() => {
-  jest.useFakeTimers({ now: FIXED_NOW, doNotFake: DO_NOT_FAKE as any });
+  jest.useFakeTimers({ now: FIXED_NOW, doNotFake: DO_NOT_FAKE });
 });
 
 afterAll(() => {
@@ -92,7 +102,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  delete (global as any).fetch;
+  delete (global as { fetch?: typeof fetch }).fetch;
 });
 
 // ──────────────────────────────────────────────────────────

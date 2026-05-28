@@ -11,7 +11,7 @@
 const mockClose = jest.fn().mockResolvedValue(undefined);
 const mockCommand = jest.fn().mockResolvedValue({ ok: 1 });
 const mockDb = jest.fn().mockReturnValue({ command: mockCommand });
-const ctorCalls: any[] = [];
+const ctorCalls: Array<{ url: string; opts: unknown; inst: unknown }> = [];
 
 jest.mock("mongodb", () => ({
   MongoClient: jest.fn().mockImplementation((url, opts) => {
