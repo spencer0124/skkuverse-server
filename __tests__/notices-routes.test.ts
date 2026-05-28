@@ -4,8 +4,8 @@
 
 jest.mock("../lib/db", () => ({
   getClient: jest.fn(),
-  closeClient: jest.fn().mockResolvedValue(),
-  ping: jest.fn().mockResolvedValue(),
+  closeClient: jest.fn().mockResolvedValue(undefined),
+  ping: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock("../lib/firebase", () => require("./helpers/mocks/firebase")());
@@ -18,7 +18,7 @@ const mockFindBySource = jest.fn();
 const mockFindBySources = jest.fn();
 const mockFindByArticleNo = jest.fn();
 jest.mock("../features/notices/notices.data", () => ({
-  ensureNoticeIndexes: jest.fn().mockResolvedValue(),
+  ensureNoticeIndexes: jest.fn().mockResolvedValue(undefined),
   findNoticesBySource: (...args) => mockFindBySource(...args),
   findNoticesBySources: (...args) => mockFindBySources(...args),
   findNoticeByArticleNo: (...args) => mockFindByArticleNo(...args),

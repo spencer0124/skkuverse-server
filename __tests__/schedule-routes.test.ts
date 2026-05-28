@@ -5,8 +5,8 @@ jest.mock("../features/bus/schedule.data", () =>
 // Minimal mocks to prevent real connections
 jest.mock("../lib/db", () => ({
   getClient: jest.fn(),
-  closeClient: jest.fn().mockResolvedValue(),
-  ping: jest.fn().mockResolvedValue(),
+  closeClient: jest.fn().mockResolvedValue(undefined),
+  ping: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock("../lib/busCache", () => require("./helpers/mocks/busCache")());
 jest.mock("../lib/pollers", () => ({

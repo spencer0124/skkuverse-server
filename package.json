@@ -13,7 +13,7 @@
     "dev:prod-api": "npm run build && NODE_ENV=development USE_PROD_API=true npm run dev:watch",
     "dev:watch": "concurrently -k \"tsc --watch --preserveWatchOutput\" \"nodemon --watch dist dist/index.js\"",
     "build": "tsc && node scripts/copy-build-assets.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
     "test": "jest",
     "swagger": "npm run build && node swagger/swagger.js",
     "lint": "eslint .",

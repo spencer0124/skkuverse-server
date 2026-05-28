@@ -6,7 +6,7 @@ function makeBus(sequence, estimatedTime = 300) {
   return { sequence: String(sequence), estimatedTime };
 }
 
-function makeStation(sequence, stationName) {
+function makeStation(sequence, stationName?) {
   return {
     sequence,
     stationName: stationName || `Station ${sequence}`,

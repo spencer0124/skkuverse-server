@@ -45,7 +45,7 @@ beforeEach(() => {
   jest.resetModules();
   process.env = { ...ORIGINAL_ENV };
   // Safety net: prevent process.exit from killing test runner
-  jest.spyOn(process, "exit").mockImplementation(() => {});
+  jest.spyOn(process, "exit").mockImplementation((() => {}) as never);
 });
 
 afterEach(() => {
@@ -276,7 +276,7 @@ describe("strict config validation (no silent fallbacks)", () => {
     process.env.MONGO_NOTICES_DB_NAME = "";
     process.env.NOTICES_SERVICE_START_DATE = "";
     const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-    jest.spyOn(process, "exit").mockImplementation(() => {});
+    jest.spyOn(process, "exit").mockImplementation((() => {}) as never);
     loadConfig();
     const msg = errSpy.mock.calls[0][0];
     expect(msg).toContain("MONGO_AD_DB_NAME");

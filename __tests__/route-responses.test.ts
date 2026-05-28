@@ -29,8 +29,8 @@ jest.mock("../features/ad/ad.stats", () => require("./helpers/mocks/adStats")())
 // Mock db to avoid real MongoDB connection
 jest.mock("../lib/db", () => ({
   getClient: jest.fn(),
-  closeClient: jest.fn().mockResolvedValue(),
-  ping: jest.fn().mockResolvedValue(),
+  closeClient: jest.fn().mockResolvedValue(undefined),
+  ping: jest.fn().mockResolvedValue(undefined),
 }));
 
 // Mock busCache to avoid real MongoDB connection
@@ -78,7 +78,7 @@ describe("Health check", () => {
 describe("Readiness probe", () => {
   it("GET /health/ready returns ready when DB reachable and pollers started", async () => {
     const { ping } = require("../lib/db");
-    ping.mockResolvedValue();
+    ping.mockResolvedValue(undefined);
 
     const res = await request(app).get("/health/ready");
     expect(res.status).toBe(200);

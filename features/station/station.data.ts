@@ -53,7 +53,7 @@ const NO_INFO = "도착 정보 없음";
  */
 function computeEta(
   station: StationEntry,
-  busData: BusEntry[] | null | undefined,
+  busData?: BusEntry[] | null,
 ): string {
   if (!Array.isArray(busData)) return NO_INFO;
   const busesApproaching = busData
@@ -110,7 +110,7 @@ function findNextApproachingBusEta(
  */
 function computeAllStationEtas(
   stations: StationEntry[],
-  busData: BusEntry[] | null | undefined,
+  busData?: BusEntry[] | null,
 ): StationWithEta[] {
   return stations.map((station) => ({
     ...station,

@@ -7,7 +7,7 @@ afterEach(() => {
 
 const emptyListResponse = { data: { msgBody: { itemList: [] } } };
 
-function setupModule(mockImpl) {
+function setupModule(mockImpl?) {
   jest.useFakeTimers();
   jest.resetModules();
 
@@ -28,9 +28,9 @@ function setupModule(mockImpl) {
   }));
 
   jest.doMock("../lib/busCache", () => ({
-    write: jest.fn().mockResolvedValue(),
+    write: jest.fn().mockResolvedValue(undefined),
     read: jest.fn().mockResolvedValue(null),
-    ensureIndex: jest.fn().mockResolvedValue(),
+    ensureIndex: jest.fn().mockResolvedValue(undefined),
   }));
 
   const fetchModule = require("../features/bus/jongro.fetcher");

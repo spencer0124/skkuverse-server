@@ -44,9 +44,9 @@ describe("HSSC edge cases", () => {
       stopAll: jest.fn(),
     }));
     jest.doMock("../lib/busCache", () => ({
-      write: jest.fn().mockResolvedValue(),
+      write: jest.fn().mockResolvedValue(undefined),
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
 
     const { getHSSCBusList } = require("../features/bus/hssc.fetcher");
@@ -88,9 +88,9 @@ describe("HSSC edge cases", () => {
       stopAll: jest.fn(),
     }));
     jest.doMock("../lib/busCache", () => ({
-      write: jest.fn().mockResolvedValue(),
+      write: jest.fn().mockResolvedValue(undefined),
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
 
     const { getHSSCBusList } = require("../features/bus/hssc.fetcher");
@@ -142,9 +142,9 @@ describe("HSSC edge cases — non-array response guard", () => {
       stopAll: jest.fn(),
     }));
     jest.doMock("../lib/busCache", () => ({
-      write: jest.fn().mockResolvedValue(),
+      write: jest.fn().mockResolvedValue(undefined),
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
 
     const { getHSSCBusList } = require("../features/bus/hssc.fetcher");
@@ -173,9 +173,9 @@ describe("HSSC edge cases — non-array response guard", () => {
       stopAll: jest.fn(),
     }));
     jest.doMock("../lib/busCache", () => ({
-      write: jest.fn().mockResolvedValue(),
+      write: jest.fn().mockResolvedValue(undefined),
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
 
     const { getHSSCBusList } = require("../features/bus/hssc.fetcher");
@@ -203,9 +203,9 @@ describe("Jongro edge cases", () => {
       stopAll: jest.fn(),
     }));
     jest.doMock("../lib/busCache", () => ({
-      write: jest.fn().mockResolvedValue(),
+      write: jest.fn().mockResolvedValue(undefined),
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
 
     const { getJongroBusList } = require("../features/bus/jongro.fetcher");
@@ -229,9 +229,9 @@ describe("Jongro edge cases", () => {
       stopAll: jest.fn(),
     }));
     jest.doMock("../lib/busCache", () => ({
-      write: jest.fn().mockResolvedValue(),
+      write: jest.fn().mockResolvedValue(undefined),
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
     const consoleSpy = jest.spyOn(console, "error").mockImplementation();
 
@@ -271,9 +271,9 @@ describe("Jongro edge cases — plainNo (location API) whitespace handling", () 
       stopAll: jest.fn(),
     }));
     jest.doMock("../lib/busCache", () => ({
-      write: jest.fn().mockResolvedValue(),
+      write: jest.fn().mockResolvedValue(undefined),
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
 
     const { getJongroBusLocation } = require("../features/bus/jongro.fetcher");
@@ -315,9 +315,9 @@ describe("Jongro edge cases — plainNo1 (list API) whitespace handling", () => 
       stopAll: jest.fn(),
     }));
     jest.doMock("../lib/busCache", () => ({
-      write: jest.fn().mockResolvedValue(),
+      write: jest.fn().mockResolvedValue(undefined),
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
 
     const { getJongroBusList } = require("../features/bus/jongro.fetcher");
@@ -357,9 +357,9 @@ describe("Jongro edge cases — plainNo1 (list API) whitespace handling", () => 
       stopAll: jest.fn(),
     }));
     jest.doMock("../lib/busCache", () => ({
-      write: jest.fn().mockResolvedValue(),
+      write: jest.fn().mockResolvedValue(undefined),
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
 
     const { getJongroBusList } = require("../features/bus/jongro.fetcher");
@@ -390,9 +390,9 @@ describe("Station edge cases — malformed response handling", () => {
       stopAll: jest.fn(),
     }));
     jest.doMock("../lib/busCache", () => ({
-      write: jest.fn().mockResolvedValue(),
+      write: jest.fn().mockResolvedValue(undefined),
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
 
     const { getStationInfo } = require("../features/station/station.fetcher");
@@ -419,9 +419,9 @@ describe("Station edge cases — malformed response handling", () => {
       stopAll: jest.fn(),
     }));
     jest.doMock("../lib/busCache", () => ({
-      write: jest.fn().mockResolvedValue(),
+      write: jest.fn().mockResolvedValue(undefined),
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
 
     const { getStationInfo } = require("../features/station/station.fetcher");
@@ -447,9 +447,9 @@ describe("Station edge cases", () => {
       stopAll: jest.fn(),
     }));
     jest.doMock("../lib/busCache", () => ({
-      write: jest.fn().mockResolvedValue(),
+      write: jest.fn().mockResolvedValue(undefined),
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
     const consoleSpy = jest.spyOn(console, "error").mockImplementation();
 
@@ -480,9 +480,9 @@ describe("Station edge cases", () => {
       stopAll: jest.fn(),
     }));
     jest.doMock("../lib/busCache", () => ({
-      write: jest.fn().mockResolvedValue(),
+      write: jest.fn().mockResolvedValue(undefined),
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
 
     const { getStationInfo } = require("../features/station/station.fetcher");
@@ -499,7 +499,7 @@ describe("Station edge cases", () => {
     jest.useFakeTimers();
     jest.resetModules();
 
-    const mockWrite = jest.fn().mockResolvedValue();
+    const mockWrite = jest.fn().mockResolvedValue(undefined);
     const mockGet = jest.fn()
       // First poll: real data
       .mockResolvedValueOnce({ data: { msgBody: { itemList: [{ arrmsg1: "2분후 도착" }] } } })
@@ -515,7 +515,7 @@ describe("Station edge cases", () => {
     jest.doMock("../lib/busCache", () => ({
       write: mockWrite,
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
 
     const { getStationInfo } = require("../features/station/station.fetcher");
@@ -545,9 +545,9 @@ describe("Station edge cases", () => {
       stopAll: jest.fn(),
     }));
     jest.doMock("../lib/busCache", () => ({
-      write: jest.fn().mockResolvedValue(),
+      write: jest.fn().mockResolvedValue(undefined),
       read: jest.fn().mockResolvedValue(null),
-      ensureIndex: jest.fn().mockResolvedValue(),
+      ensureIndex: jest.fn().mockResolvedValue(undefined),
     }));
     const consoleSpy = jest.spyOn(console, "error").mockImplementation();
 

@@ -311,7 +311,7 @@ describe("seedIfEmpty", () => {
 
   it("swallows duplicate-key errors (concurrent seed race)", async () => {
     mockAdsCollection.countDocuments.mockResolvedValueOnce(0);
-    const err = new Error("dup");
+    const err: Error & { code?: number } = new Error("dup");
     err.code = 11000;
     mockAdsCollection.insertMany.mockRejectedValueOnce(err);
     await expect(seedIfEmpty()).resolves.toBeUndefined();
@@ -319,7 +319,7 @@ describe("seedIfEmpty", () => {
 
   it("swallows mixed-write duplicate errors (writeErrors array)", async () => {
     mockAdsCollection.countDocuments.mockResolvedValueOnce(0);
-    const err = new Error("bulk dup");
+    const err: Error & { writeErrors?: Array<{ code: number }> } = new Error("bulk dup");
     err.writeErrors = [{ code: 11000 }, { code: 11000 }];
     mockAdsCollection.insertMany.mockRejectedValueOnce(err);
     await expect(seedIfEmpty()).resolves.toBeUndefined();

@@ -76,7 +76,7 @@ function buildInternalApp() {
 }
 
 beforeAll(() => {
-  jest.useFakeTimers({ now: FIXED_NOW, doNotFake: DO_NOT_FAKE });
+  jest.useFakeTimers({ now: FIXED_NOW, doNotFake: DO_NOT_FAKE as any });
 });
 
 afterAll(() => {
@@ -92,7 +92,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  delete global.fetch;
+  delete (global as any).fetch;
 });
 
 // ──────────────────────────────────────────────────────────
@@ -148,7 +148,7 @@ describe("dispatchOne", () => {
   });
 
   it("marks pushedAt and releases lease on 2xx", async () => {
-    global.fetch.mockResolvedValueOnce({
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       status: 200,
       text: async () => JSON.stringify({ sent: 5, failed: 0, cleanedUp: 0 }),
@@ -158,7 +158,7 @@ describe("dispatchOne", () => {
     const out = await dispatcher.dispatchOne(notice);
     expect(out.result).toBe("sent");
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    const [url, opts] = global.fetch.mock.calls[0];
+    const [url, opts] = (global.fetch as jest.Mock).mock.calls[0];
     expect(url).toBe(config.notices.dispatch.functionUrl);
     expect(opts.headers["X-API-Key"]).toBe(config.notices.dispatch.apiKey);
     const sent = JSON.parse(opts.body);
@@ -182,7 +182,7 @@ describe("dispatchOne", () => {
   });
 
   it("records pushError, releases lease, leaves pushedAt null on 5xx", async () => {
-    global.fetch.mockResolvedValueOnce({
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 502,
       text: async () => JSON.stringify({ error: "bad gateway" }),
@@ -200,7 +200,7 @@ describe("dispatchOne", () => {
   });
 
   it("treats network errors as failure and releases the lease", async () => {
-    global.fetch.mockRejectedValueOnce(new Error("ECONNRESET"));
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error("ECONNRESET"));
 
     const notice = makeNotice();
     const out = await dispatcher.dispatchOne(notice);
@@ -217,7 +217,7 @@ describe("dispatchOne", () => {
 // ──────────────────────────────────────────────────────────
 describe("sweepPending", () => {
   function withSuccessfulFetch() {
-    global.fetch.mockResolvedValue({
+    (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       status: 200,
       text: async () => JSON.stringify({ sent: 1, failed: 0, cleanedUp: 0 }),
@@ -257,7 +257,7 @@ describe("sweepPending", () => {
       .mockResolvedValueOnce(b)
       .mockResolvedValue(null);
 
-    global.fetch
+    (global.fetch as jest.Mock)
       .mockRejectedValueOnce(new Error("timeout"))
       .mockResolvedValueOnce({
         ok: true,
@@ -401,7 +401,7 @@ describe("dispatchOne — updateOne failure path", () => {
   });
 
   it("returns result='failed' (does NOT reject) when only the success-path updateOne fails — catch fallback recovers", async () => {
-    global.fetch.mockResolvedValueOnce({
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true, status: 200,
       text: async () => JSON.stringify({ sent: 1, failed: 0, cleanedUp: 0 }),
     });
@@ -414,7 +414,7 @@ describe("dispatchOne — updateOne failure path", () => {
   });
 
   it("rejects when BOTH updateOnes fail on the success path", async () => {
-    global.fetch.mockResolvedValueOnce({
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true, status: 200,
       text: async () => JSON.stringify({ sent: 1, failed: 0, cleanedUp: 0 }),
     });
@@ -427,7 +427,7 @@ describe("dispatchOne — updateOne failure path", () => {
   });
 
   it("rejects when the lease-release updateOne fails on a 5xx", async () => {
-    global.fetch.mockResolvedValueOnce({
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false, status: 502, text: async () => "bad gateway",
     });
     mockCollection.updateOne.mockRejectedValueOnce(new Error("net partition"));
@@ -435,7 +435,7 @@ describe("dispatchOne — updateOne failure path", () => {
   });
 
   it("rejects when the lease-release updateOne fails on a network error", async () => {
-    global.fetch.mockRejectedValueOnce(new Error("ECONNRESET"));
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error("ECONNRESET"));
     mockCollection.updateOne.mockRejectedValueOnce(new Error("mongo down"));
     await expect(dispatcher.dispatchOne(makeNotice())).rejects.toThrow("mongo down");
   });

@@ -36,9 +36,9 @@ function setupModule(mockData) {
   }));
 
   jest.doMock("../lib/busCache", () => ({
-    write: jest.fn().mockResolvedValue(),
+    write: jest.fn().mockResolvedValue(undefined),
     read: jest.fn().mockResolvedValue(null),
-    ensureIndex: jest.fn().mockResolvedValue(),
+    ensureIndex: jest.fn().mockResolvedValue(undefined),
   }));
 
   const fetchModule = require("../features/bus/hssc.fetcher");

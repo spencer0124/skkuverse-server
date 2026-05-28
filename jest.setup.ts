@@ -1,16 +1,16 @@
 // jest setup — runs once before each test file loads.
 //
-// Provides baseline values for every env var listed in lib/config.js's
+// Provides baseline values for every env var listed in lib/config.ts's
 // `required` array, so tests that transitively import lib/config don't fail
 // with "FATAL: Missing required config" when CI has no .env file.
 //
 // Individual tests may still override via `process.env.X = ""` in beforeEach
 // or inside an `it()` to exercise the strict crash behavior — setBaseEnv()
-// in config-env.test.js mirrors these values for that reason.
+// in config-env.test.ts mirrors these values for that reason.
 //
 // Only sets vars that are unset, so any real environment config (dev .env,
 // CI secrets) takes precedence.
-const defaults = {
+const defaults: Record<string, string> = {
   MONGO_URL: "mongodb://localhost:27017",
   MONGO_DB_NAME_BUS_CAMPUS: "bus_campus",
   MONGO_AD_DB_NAME: "skkubus_ads",

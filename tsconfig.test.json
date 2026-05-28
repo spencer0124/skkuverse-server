@@ -1,0 +1,34 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+
+    // tsconfig.test.json은 테스트 본체만 typecheck. .ts로 변환된 38개 .test.ts와
+    // jest.setup.ts가 대상. helpers/**/*.ts는 root tsconfig.json에서 이미 typecheck.
+
+    // 테스트는 narrow 부담 ↓ — `mock.calls[0][0]` 같은 indexed access에서 매번
+    // `!` 안 붙이도록. 테스트의 mock.calls 패턴이 noUncheckedIndexedAccess와 충돌.
+    "noUncheckedIndexedAccess": false,
+
+    // mock factory 안에 unused param 자주 — 완화.
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+
+    // 테스트의 expect callback이나 mock 함수에 type annotation 강제하면 가독성 ↓.
+    // 실제 type mismatch는 mockResolvedValue 등의 generic으로 잡힘.
+    "noImplicitAny": false,
+
+    // 각 .test.ts를 모듈로 강제 — require()만 쓰는 테스트 파일이 script로 인식되어
+    // 같은 이름 (e.g. byUidOrIp, request, app)이 여러 파일에 global로 선언돼 redeclare
+    // 에러나는 것 방지. (TS 4.7+)
+    "moduleDetection": "force"
+  },
+  "include": [
+    "__tests__/**/*.test.ts",
+    "jest.setup.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

@@ -9,18 +9,18 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "allowJs": true,
+    "allowJs": false,
     "checkJs": false,
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
+    "isolatedModules": true,
     "sourceMap": true,
     "declaration": false,
     "skipLibCheck": true
   },
   "include": [
     "index.ts",
-    "index.js",
     "lib/**/*",
     "features/**/*",
     "__tests__/helpers/**/*"
@@ -30,6 +30,7 @@
     "dist",
     "coverage",
     "scripts/**/*",
-    "swagger/**/*"
+    "swagger/**/*",
+    "__tests__/**/*.test.ts"
   ]
 }
