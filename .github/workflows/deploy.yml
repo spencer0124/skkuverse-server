@@ -58,7 +58,7 @@ jobs:
             # no rolling update, no rollback function needed.
             echo "=== Pre-deploy config validation ==="
             if ! docker compose run --rm --no-deps -T api-1 \
-                 node -e "require('./lib/config'); console.log('config ok')"; then
+                 node -e "require('./dist/lib/config'); console.log('config ok')"; then
               echo "ERROR: production config validation failed — aborting deploy."
               echo "       See the FATAL error above for the missing env var(s)."
               git checkout "$PREV_COMMIT"
