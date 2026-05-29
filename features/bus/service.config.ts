@@ -11,6 +11,7 @@ const serviceConfig: ServiceConfigMap = {
       { style: "info", text: "주말, 공휴일, 학교 휴일 운행 없음" },
     ],
     suspend: null,
+    respectsKoreanHolidays: true,
   },
   "campus-jain": {
     nonOperatingDayDisplay: "hidden",
@@ -18,6 +19,7 @@ const serviceConfig: ServiceConfigMap = {
       { style: "info", text: "주말, 공휴일, 학교 휴일 운행 없음" },
     ],
     suspend: null,
+    respectsKoreanHolidays: true,
   },
   "fasttrack-inja": {
     nonOperatingDayDisplay: "hidden",
