@@ -1,10 +1,11 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
+    "index.{js,ts}",
     "scripts/**/*.js",
-    "__tests__/**/*.test.js"
+    "__tests__/**/*.test.{js,ts}"
   ],
-  "project": ["**/*.js"],
+  "project": ["**/*.{js,ts}"],
   "ignoreDependencies": ["@logtail/pino", "pino-pretty"],
   "rules": {
     "exports": "off",

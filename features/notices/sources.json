@@ -913,6 +913,17 @@
     "hasAuthor": true
   },
   {
+    "id": "ftm-undergrad",
+    "name": "영상학과",
+    "campus": "hssc",
+    "college": "예술대학",
+    "appCategory": "dept",
+    "crawlAvailable": true,
+    "excludeReason": null,
+    "hasCategory": true,
+    "hasAuthor": true
+  },
+  {
     "id": "english-undergrad",
     "name": "영어영문학과(학부생)",
     "campus": "hssc",
