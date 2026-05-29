@@ -10,6 +10,8 @@ const assets = [
   ["features/notices/sources.json", "dist/features/notices/sources.json"],
   // dist/index.js requires swagger-output.json with relative path
   ["swagger/swagger-output.json", "dist/swagger/swagger-output.json"],
+  // holiday-calendar reads this with fs.readFileSync(__dirname/<name>)
+  ["features/bus/skku-rest-days.json", "dist/features/bus/skku-rest-days.json"],
 ];
 
 for (const [src, dest] of assets) {

@@ -27,6 +27,7 @@
   "dependencies": {
     "@logtail/pino": "0.5.8",
     "axios": "1.13.6",
+    "date-holidays": "3.30.2",
     "dotenv": "16.6.1",
     "express": "4.22.2",
     "express-rate-limit": "8.5.2",

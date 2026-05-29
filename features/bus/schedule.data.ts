@@ -3,6 +3,7 @@ import { getClient } from "../../lib/db";
 import config from "../../lib/config";
 import logger from "../../lib/logger";
 import serviceConfig from "./service.config";
+import { getNonOperatingDayLabel } from "./holiday-calendar";
 import type { BusOverrideDoc, BusScheduleDoc, ServiceNotice } from "./types";
 
 const TZ = "Asia/Seoul";
@@ -34,10 +35,11 @@ const cache: Map<string, CacheEntry> = new Map();
 /**
  * Resolve a full week of schedule data for a service.
  *
- * 3-step resolution per day:
+ * 4-step resolution per day:
  *   1. bus_overrides match → replace or noService
- *   2. bus_schedules pattern match (days array contains dayOfWeek) → schedule
- *   3. serviceConfig.nonOperatingDayDisplay fallback → noService or hidden
+ *   2. respectsKoreanHolidays + KR holiday / SKKU rest day → noService + label
+ *   3. bus_schedules pattern match (days array contains dayOfWeek) → schedule
+ *   4. serviceConfig.nonOperatingDayDisplay fallback → noService or hidden
  */
 async function resolveWeek(
   serviceId: string,
@@ -125,22 +127,37 @@ async function resolveWeek(
         label = override.label;
       }
     } else {
-      // Step 2: Check patterns
-      const matchedPattern = patterns.find((p) =>
-        p.days.includes(dayOfWeek),
-      );
+      // Step 2: Korean public holiday / SKKU rest day (opt-in per service).
+      // Checked BEFORE pattern so a weekday pattern never overrides a holiday.
+      // An admin bus_overrides doc still wins (handled above) as an escape
+      // hatch for special holiday operation.
+      const restDayLabel = svcCfg.respectsKoreanHolidays
+        ? getNonOperatingDayLabel(dateStr)
+        : null;
 
-      if (matchedPattern) {
-        display = "schedule";
-        schedule = matchedPattern.entries;
-        notices = [...serviceNotices];
-        label = null;
-      } else {
-        // Step 3: Fallback
-        display = svcCfg.nonOperatingDayDisplay;
+      if (restDayLabel) {
+        display = "noService";
         schedule = [];
         notices = [];
-        label = null;
+        label = restDayLabel;
+      } else {
+        // Step 3: Check patterns
+        const matchedPattern = patterns.find((p) =>
+          p.days.includes(dayOfWeek),
+        );
+
+        if (matchedPattern) {
+          display = "schedule";
+          schedule = matchedPattern.entries;
+          notices = [...serviceNotices];
+          label = null;
+        } else {
+          // Step 4: Fallback
+          display = svcCfg.nonOperatingDayDisplay;
+          schedule = [];
+          notices = [];
+          label = null;
+        }
       }
     }
 
