@@ -18,7 +18,9 @@
     "swagger": "npm run build && node swagger/swagger.js",
     "lint": "eslint .",
     "knip": "knip",
-    "depcheck": "depcheck --ignores='@logtail/pino,pino-pretty,node-cron,nodemon,@types/node,@types/jest,@types/express,@types/supertest,@types/swagger-ui-express,@typescript-eslint/eslint-plugin,@typescript-eslint/parser'"
+    "depcheck": "depcheck --ignores='@logtail/pino,pino-pretty,node-cron,nodemon,@types/node,@types/jest,@types/express,@types/supertest,@types/swagger-ui-express,@typescript-eslint/eslint-plugin,@typescript-eslint/parser'",
+    "verify:serve": "docker compose -f docker-compose.yml -f docker-compose.local-verify.yml up -d --build",
+    "verify:serve:down": "docker compose -f docker-compose.yml -f docker-compose.local-verify.yml down"
   },
   "author": "",
   "license": "ISC",

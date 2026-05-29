@@ -14,6 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run knip` — Audit unused files + dependencies (exports check off; see `knip.json`)
 - `npm run depcheck` — Audit unused npm dependencies (with curated ignore list for dynamic loaders)
 - `docker compose up --build` — Build and run via Docker (NODE_ENV=production, 3 services: poller + api-1:3001 + api-2:3002)
+- `npm run verify:serve` / `npm run verify:serve:down` — Run the **production container topology** (poller + api-1:3001 + api-2:3002) locally for serving verification, but **safely**. `docker-compose.local-verify.yml` keeps `NODE_ENV=production` (faithful prod runtime — JSON logging, swagger off, `USE_PROD_API` forced; note the slim image lacks `pino-pretty` so `NODE_ENV=development` would crash per `lib/logger.ts:8-10`) and isolates data by overriding the four writable DB *names* to their `_dev` variants (`bus_campus_dev`/`skkubus_ads_dev`/`skkumap_dev`/`skku_notices_dev`) plus `DISPATCH_SWEEP_ENABLED=false` (no real FCM dispatch). Use this to confirm runtime/serving behavior before a `dev → main` deploy without touching prod resources. Requires the external `skkuverse` docker network.
 
 ## TypeScript Migration: COMPLETE (PR1–7, 2026-05-28)
 

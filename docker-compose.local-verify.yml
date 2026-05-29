@@ -1,0 +1,63 @@
+# docker-compose.local-verify.yml
+#
+# 로컬에서 production 컨테이너 토폴로지(poller + api-1:3001 + api-2:3002)를 그대로
+# 띄워서 "서버에 배포됐을 때 서비스 서빙이 제대로 되는가"를 검증하기 위한 override.
+# base docker-compose.yml 과 함께 -f 로 결합해 사용한다:
+#
+#   npm run verify:serve        # 기동 (detached + build)
+#   npm run verify:serve:down   # 정리
+#
+# ──────────────────────────────────────────────────────────────────────────
+# 설계 핵심: NODE_ENV 는 production 을 유지하고, DB "이름"만 _dev 로 바꾼다.
+# ──────────────────────────────────────────────────────────────────────────
+# 왜 NODE_ENV=development 가 아니라 production 인가:
+#   prod 이미지는 Dockerfile 에서 `npm ci --omit=dev` 로 빌드돼 devDependency 인
+#   pino-pretty 가 없다. 그런데 lib/logger.ts 는 non-production 모드에서 pino-pretty
+#   transport 를 요구한다(logger.ts:8-10) → NODE_ENV=development 로 prod 이미지를
+#   띄우면 "unable to determine transport target for pino-pretty" 로 부팅 자체가
+#   실패한다. 따라서 NODE_ENV=production 을 유지해야 진짜 prod 와 동일한 거동
+#   (JSON 로깅 / swagger off / USE_PROD_API 강제)으로 검증된다.
+#
+# 그러면 DB 격리는 어떻게? production 모드에선 config.devDbName() 가 no-op 이므로,
+# DB "이름" 환경변수를 직접 _dev 값으로 덮어쓴다. 아래 4개가 우리가 write 하는 DB:
+#   bus_campus / skkubus_ads / skkumap / skku_notices → 각각 *_dev.
+#   prod DB 는 절대 건드리지 않는다.
+#   (INJA/JAIN 셔틀 스케줄·map DB 는 read-only 라 override 불필요 — 읽기뿐.)
+#
+# 그리고 DISPATCH_SWEEP_ENABLED=false 로 FCM dispatch sweep poller 등록을 막아
+# (notices.dispatch.poller.ts:22) 로컬 poller 가 실제 유저에게 푸시를 보내는 경로를
+# 원천 차단한다. base 의 poller 는 이 값이 true 이므로 반드시 덮어써야 한다.
+#
+# 결과: 진짜 prod 와 동일한 런타임 거동 + 데이터 평면만 _dev + FCM 0건.
+
+services:
+  poller:
+    environment:
+      - NODE_ENV=production
+      - ROLE=poller
+      - TZ=Asia/Seoul
+      - DISPATCH_SWEEP_ENABLED=false
+      - MONGO_DB_NAME_BUS_CAMPUS=bus_campus_dev
+      - MONGO_AD_DB_NAME=skkubus_ads_dev
+      - MONGO_BUILDING_DB_NAME=skkumap_dev
+      - MONGO_NOTICES_DB_NAME=skku_notices_dev
+
+  api-1:
+    environment:
+      - NODE_ENV=production
+      - ROLE=api
+      - TZ=Asia/Seoul
+      - MONGO_DB_NAME_BUS_CAMPUS=bus_campus_dev
+      - MONGO_AD_DB_NAME=skkubus_ads_dev
+      - MONGO_BUILDING_DB_NAME=skkumap_dev
+      - MONGO_NOTICES_DB_NAME=skku_notices_dev
+
+  api-2:
+    environment:
+      - NODE_ENV=production
+      - ROLE=api
+      - TZ=Asia/Seoul
+      - MONGO_DB_NAME_BUS_CAMPUS=bus_campus_dev
+      - MONGO_AD_DB_NAME=skkubus_ads_dev
+      - MONGO_BUILDING_DB_NAME=skkumap_dev
+      - MONGO_NOTICES_DB_NAME=skku_notices_dev
