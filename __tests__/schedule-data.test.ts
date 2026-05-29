@@ -14,7 +14,16 @@ jest.mock("../lib/logger", () => ({
   child: jest.fn().mockReturnThis(),
 }));
 
+// Mock the holiday calendar so schedule resolution is deterministic and
+// independent of real calendar dates / the date-holidays library. Defaults to
+// "no rest day"; individual tests override per-date. The helper's own logic
+// (KR lookup + SKKU priority) is covered by __tests__/holiday-calendar.test.ts.
+jest.mock("../features/bus/holiday-calendar", () => ({
+  getNonOperatingDayLabel: jest.fn(() => null),
+}));
+
 const logger = require("../lib/logger");
+const { getNonOperatingDayLabel } = require("../features/bus/holiday-calendar");
 
 const { getClient } = require("../lib/db");
 
@@ -28,6 +37,9 @@ const mockCollection = jest.fn();
 beforeEach(() => {
   mockSchedules = [];
   mockOverrides = [];
+  // Default: no rest day. clearAllMocks() doesn't restore implementations,
+  // so reset here to keep holiday tests from leaking into others.
+  getNonOperatingDayLabel.mockImplementation(() => null);
 
   mockFind.mockImplementation(() => ({
     toArray: jest.fn().mockImplementation(() => {
@@ -204,6 +216,73 @@ describe("resolveWeek", () => {
     expect(monday.display).toBe("schedule");
     expect(monday.schedule[0].time).toBe("11:00");
     expect(monday.label).toBe("특별");
+  });
+
+  // Holiday: respectsKoreanHolidays service, rest day on a weekday → noService
+  it("holiday on a weekday → noService + label, beating the weekday pattern", async () => {
+    mockSchedules = [
+      {
+        serviceId: "campus-inja",
+        patternId: "weekday",
+        days: [1, 2, 3, 4, 5],
+        entries: [{ index: 1, time: "08:00", routeType: "regular", busCount: 1, notes: null }],
+      },
+    ];
+    // Tuesday 2026-03-10 is a "holiday" per the mocked calendar.
+    getNonOperatingDayLabel.mockImplementation((d: string) =>
+      d === "2026-03-10" ? "삼일절 대체공휴일" : null,
+    );
+
+    const result = await resolveWeek("campus-inja", "2026-03-09");
+    const tuesday = result.days[1]; // 2026-03-10, dayOfWeek 2 (has weekday pattern)
+    expect(tuesday.display).toBe("noService");
+    expect(tuesday.label).toBe("삼일절 대체공휴일");
+    expect(tuesday.schedule).toEqual([]);
+    expect(tuesday.notices).toEqual([]);
+    // Monday (not a holiday) still resolves to the pattern.
+    expect(result.days[0].display).toBe("schedule");
+  });
+
+  // Holiday: opt-out service ignores the calendar entirely
+  it("service without respectsKoreanHolidays ignores holidays (pattern/fallback unchanged)", async () => {
+    // fasttrack-inja has no respectsKoreanHolidays flag → helper must not gate it.
+    mockSchedules = [
+      {
+        serviceId: "fasttrack-inja",
+        patternId: "weekday",
+        days: [1, 2, 3, 4, 5],
+        entries: [{ index: 1, time: "10:00", routeType: "fasttrack", busCount: 1, notes: null }],
+      },
+    ];
+    getNonOperatingDayLabel.mockImplementation(() => "공휴일"); // would gate if consulted
+
+    const result = await resolveWeek("fasttrack-inja", "2026-03-09");
+    // Monday keeps its pattern — holiday calendar not applied for opt-out service.
+    expect(result.days[0].display).toBe("schedule");
+    expect(result.days[0].schedule[0].time).toBe("10:00");
+    expect(getNonOperatingDayLabel).not.toHaveBeenCalled();
+  });
+
+  // Holiday: admin override beats holiday (escape hatch for special operation)
+  it("override on a holiday wins over the holiday (escape hatch)", async () => {
+    getNonOperatingDayLabel.mockImplementation(() => "신정"); // every day "holiday"
+    mockOverrides = [
+      {
+        serviceId: "campus-inja",
+        date: "2026-03-09",
+        type: "replace",
+        label: "신정 특별운행",
+        notices: [],
+        entries: [{ index: 1, time: "10:00", routeType: "regular", busCount: 1, notes: null }],
+      },
+    ];
+
+    const result = await resolveWeek("campus-inja", "2026-03-09");
+    const monday = result.days[0];
+    // Override resolved first → holiday calendar never consulted for this day.
+    expect(monday.display).toBe("schedule");
+    expect(monday.label).toBe("신정 특별운행");
+    expect(monday.schedule[0].time).toBe("10:00");
   });
 
   // Test 7: Hidden fallback for fasttrack

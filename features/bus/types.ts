@@ -122,6 +122,10 @@ export interface ServiceConfigEntry {
   notices: ServiceNotice[];
   // Always null in observed data; shape TBD if we ever populate.
   suspend: null | unknown;
+  // Opt-in: when true, Korean public holidays + SKKU rest days resolve to
+  // display:"noService" (see holiday-calendar.ts). Default off so adding a
+  // new shuttle never silently suppresses its schedule.
+  respectsKoreanHolidays?: boolean;
 }
 export type ServiceConfigMap = Record<string, ServiceConfigEntry>;
 
