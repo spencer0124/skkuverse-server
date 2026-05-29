@@ -132,7 +132,8 @@
       "bio-undergrad",
       "bio-grad",
       "pharm",
-      "nano"
+      "nano",
+      "gsc"
     ],
     "maxSelection": 5
   },

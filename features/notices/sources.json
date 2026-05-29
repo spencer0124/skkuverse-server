@@ -1626,5 +1626,16 @@
     "excludeReason": null,
     "hasCategory": true,
     "hasAuthor": false
+  },
+  {
+    "id": "gsc",
+    "name": "중국대학원",
+    "campus": "hssc",
+    "college": "중국대학원",
+    "appCategory": "dept",
+    "crawlAvailable": true,
+    "excludeReason": null,
+    "hasCategory": true,
+    "hasAuthor": true
   }
 ]
