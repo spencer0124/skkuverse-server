@@ -1,7 +1,5 @@
 import axios from "axios";
 import type { AnyBulkWriteOperation } from "mongodb";
-import * as pollers from "../infra/pollers";
-import config from "../infra/config";
 import logger from "../infra/logger";
 import {
   clearCache,
@@ -500,17 +498,8 @@ async function syncBuildings(): Promise<void> {
   }
 }
 
-// Register with poller system (side-effect on require)
-pollers.registerPoller(
-  () =>
-    syncBuildings().catch((err: unknown) =>
-      logger.error(
-        { err: (err as { message?: string }).message },
-        "[building-sync] Poller error",
-      ),
-    ),
-  config.building.syncIntervalMs,
-  "building-sync",
-);
-
+// Scheduling is owned by BuildingSyncService, which registers syncBuildings with
+// the Nest PollerRegistry (ROLE-gated). No module-load side-effect registration
+// here — the legacy lib/pollers-style registry (src/infra/pollers.ts) was removed
+// as dead code (it was registered-into but never started).
 export { syncBuildings };
