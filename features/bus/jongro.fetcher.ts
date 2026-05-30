@@ -1,20 +1,14 @@
 import axios from "axios";
 import moment from "moment-timezone";
 import { registerPoller } from "../../lib/pollers";
-import config from "../../lib/config";
 import logger from "../../lib/logger";
 import { write as cacheWrite } from "../../lib/busCache";
-import {
-  Jongro02stationMapping,
-  Jongro07stationMapping,
-} from "./jongro.stations";
+import { jongroRoutes } from "./jongro.registry";
 import type {
   JongroListResponse,
   JongroLocResponse,
   JongroStationMapping,
 } from "./types";
-
-type BusNumber = "02" | "07";
 
 interface JongroListEntry {
   stationId: string;
@@ -38,20 +32,21 @@ interface JongroLocEntry {
   recordTime: string;
 }
 
-// Lazily initialized — `getJongroBusList(bus)` returns `undefined` until the
-// first successful fetch for that busnumber, matching the original .js.
-const filteredBusStations: Partial<Record<BusNumber, JongroListEntry[]>> = {};
-const filteredBusLocations: Partial<Record<BusNumber, JongroLocEntry[]>> = {};
-const busStationTimes: Partial<Record<BusNumber, Record<string, string>>> = {};
+// Lazily initialized per route code — `getJongroBusList("07")` returns
+// `undefined` until the first successful fetch for that route, matching
+// the pre-registry behavior.
+const filteredBusStations: Record<string, JongroListEntry[]> = {};
+const filteredBusLocations: Record<string, JongroLocEntry[]> = {};
+const busStationTimes: Record<string, Record<string, string>> = {};
 
 const STALE_MINUTES = 10;
 
-const busStationMapping: Record<BusNumber, JongroStationMapping> = {
-  "02": Jongro02stationMapping,
-  "07": Jongro07stationMapping,
-};
+// Derived from the registry once at module load. `code` ("02", "07", …)
+// stays the cache-key suffix to preserve byte-identical bus_cache document
+// IDs (`jongro_locations_<code>` / `jongro_stations_<code>`).
+const mappingByCode: Record<string, Readonly<JongroStationMapping>> =
+  Object.fromEntries(jongroRoutes.map((r) => [r.code, r.mapping]));
 
-// Returns true if envelope's headerCd indicates a usable response.
 // "0" = success, "4" = no-result (overnight). Other codes are upstream errors.
 function isUsableHeaderCd(cd: string | undefined): boolean {
   return cd === "0" || cd === "4";
@@ -59,7 +54,7 @@ function isUsableHeaderCd(cd: string | undefined): boolean {
 
 async function updateJongroBusLocation(
   url: string,
-  busnumber: BusNumber,
+  code: string,
 ): Promise<void> {
   try {
     const response = await axios.get<JongroLocResponse>(url, { timeout: 10000 });
@@ -67,7 +62,7 @@ async function updateJongroBusLocation(
     const cd = env?.msgHeader?.headerCd;
     if (cd && !isUsableHeaderCd(cd)) {
       logger.warn(
-        { headerCd: cd, headerMsg: env.msgHeader?.headerMsg, busnumber },
+        { headerCd: cd, headerMsg: env.msgHeader?.headerMsg, code },
         "[jongro] Upstream error code (location)",
       );
       return;
@@ -76,18 +71,28 @@ async function updateJongroBusLocation(
     if (!apiData) return; // null at overnight "4" / missing envelope
 
     const currentTime = moment().tz("Asia/Seoul").toDate();
-    let currentBusStationTimes = busStationTimes[busnumber];
+    let currentBusStationTimes = busStationTimes[code];
     if (!currentBusStationTimes) {
       currentBusStationTimes = {};
-      busStationTimes[busnumber] = currentBusStationTimes;
+      busStationTimes[code] = currentBusStationTimes;
     }
 
-    filteredBusLocations[busnumber] = apiData
+    const mapping = mappingByCode[code];
+    if (!mapping) {
+      // Today this is unreachable — the poller iterates the registry directly
+      // so every `code` exists in `mappingByCode`. But if a future caller
+      // (admin endpoint, hot-reload, mistyped JSON id) passes a code that
+      // isn't registered, surface that explicitly instead of letting `!` turn
+      // into `undefined.<lastStnId>` swallowed by the outer try/catch.
+      logger.warn({ code }, "[jongro] Unknown route code — not in registry");
+      return;
+    }
+    filteredBusLocations[code] = apiData
       .map((item): JongroLocEntry | null => {
         const { lastStnId, tmX, tmY, plainNo } = item;
-        const mapping = busStationMapping[busnumber][lastStnId];
-        if (!mapping) {
-          logger.debug({ lastStnId, busnumber }, "[jongro] Unmapped station ID");
+        const stationInfo = mapping[lastStnId];
+        if (!stationInfo) {
+          logger.debug({ lastStnId, code }, "[jongro] Unmapped station ID");
           return null;
         }
 
@@ -117,8 +122,8 @@ async function updateJongroBusLocation(
         const recordTime = currentBusStationTimes[lastStnId]!;
 
         return {
-          sequence: mapping.sequence.toString(),
-          stationName: mapping.stationName,
+          sequence: stationInfo.sequence.toString(),
+          stationName: stationInfo.stationName,
           carNumber: (plainNo || "").trim().slice(-4) || "----",
           eventDate: recordTime,
           estimatedTime,
@@ -132,8 +137,8 @@ async function updateJongroBusLocation(
       .filter((x): x is JongroLocEntry => x !== null);
 
     cacheWrite(
-      `jongro_locations_${busnumber}`,
-      filteredBusLocations[busnumber],
+      `jongro_locations_${code}`,
+      filteredBusLocations[code],
     ).catch((err: unknown) =>
       logger.warn(
         { err: err instanceof Error ? err.message : String(err) },
@@ -150,7 +155,7 @@ async function updateJongroBusLocation(
 
 async function updateJongroBusList(
   url: string,
-  busnumber: BusNumber,
+  code: string,
 ): Promise<void> {
   try {
     const response = await axios.get<JongroListResponse>(url, { timeout: 10000 });
@@ -158,7 +163,7 @@ async function updateJongroBusList(
     const cd = env?.msgHeader?.headerCd;
     if (cd && !isUsableHeaderCd(cd)) {
       logger.warn(
-        { headerCd: cd, headerMsg: env.msgHeader?.headerMsg, busnumber },
+        { headerCd: cd, headerMsg: env.msgHeader?.headerMsg, code },
         "[jongro] Upstream error code (list)",
       );
       return;
@@ -166,7 +171,7 @@ async function updateJongroBusList(
     const apiData = env?.msgBody?.itemList;
     if (!apiData) return;
 
-    filteredBusStations[busnumber] = apiData.map((item): JongroListEntry => {
+    filteredBusStations[code] = apiData.map((item): JongroListEntry => {
       const { stId, staOrd, stNm, plainNo1, mkTm, arsId, arrmsg1 } = item;
       return {
         stationId: stId,
@@ -179,8 +184,8 @@ async function updateJongroBusList(
       };
     });
     cacheWrite(
-      `jongro_stations_${busnumber}`,
-      filteredBusStations[busnumber],
+      `jongro_stations_${code}`,
+      filteredBusStations[code],
     ).catch((err: unknown) =>
       logger.warn(
         { err: err instanceof Error ? err.message : String(err) },
@@ -195,42 +200,32 @@ async function updateJongroBusList(
   }
 }
 
-function getJongroBusList(busnumber: BusNumber): JongroListEntry[] | undefined {
-  return filteredBusStations[busnumber];
+function getJongroBusList(code: string): JongroListEntry[] | undefined {
+  return filteredBusStations[code];
 }
 
-function getJongroBusLocation(
-  busnumber: BusNumber,
-): JongroLocEntry[] | undefined {
-  return filteredBusLocations[busnumber];
+function getJongroBusLocation(code: string): JongroLocEntry[] | undefined {
+  return filteredBusLocations[code];
 }
 
+// Single poller tick polls list + loc for every registered route.
+// Adding a route = one JSON entry; no fetcher changes needed.
 registerPoller(
   () => {
-    updateJongroBusList(config.api.jongro07List!, "07").catch((err: unknown) =>
-      logger.error(
-        { err: err instanceof Error ? err.message : String(err) },
-        "[jongro] Poller error",
-      ),
-    );
-    updateJongroBusList(config.api.jongro02List!, "02").catch((err: unknown) =>
-      logger.error(
-        { err: err instanceof Error ? err.message : String(err) },
-        "[jongro] Poller error",
-      ),
-    );
-    updateJongroBusLocation(config.api.jongro07Loc!, "07").catch((err: unknown) =>
-      logger.error(
-        { err: err instanceof Error ? err.message : String(err) },
-        "[jongro] Poller error",
-      ),
-    );
-    updateJongroBusLocation(config.api.jongro02Loc!, "02").catch((err: unknown) =>
-      logger.error(
-        { err: err instanceof Error ? err.message : String(err) },
-        "[jongro] Poller error",
-      ),
-    );
+    for (const route of jongroRoutes) {
+      updateJongroBusList(route.listUrl, route.code).catch((err: unknown) =>
+        logger.error(
+          { err: err instanceof Error ? err.message : String(err), code: route.code },
+          "[jongro] Poller error (list)",
+        ),
+      );
+      updateJongroBusLocation(route.locUrl, route.code).catch((err: unknown) =>
+        logger.error(
+          { err: err instanceof Error ? err.message : String(err), code: route.code },
+          "[jongro] Poller error (location)",
+        ),
+      );
+    }
   },
   40000,
   "jongro",

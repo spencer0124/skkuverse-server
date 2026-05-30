@@ -12,6 +12,8 @@ const assets = [
   ["swagger/swagger-output.json", "dist/swagger/swagger-output.json"],
   // holiday-calendar reads this with fs.readFileSync(__dirname/<name>)
   ["features/bus/skku-rest-days.json", "dist/features/bus/skku-rest-days.json"],
+  // jongro.registry reads this with fs.readFileSync(__dirname/<name>)
+  ["features/bus/jongro-routes.json", "dist/features/bus/jongro-routes.json"],
 ];
 
 for (const [src, dest] of assets) {

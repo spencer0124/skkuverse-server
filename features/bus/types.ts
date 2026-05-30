@@ -98,10 +98,36 @@ export interface HsscStation extends BusStationBase {
   subtitle: string;
 }
 
-// Jongro: string sequence, includes default ETA placeholder text.
-export interface JongroStation extends BusStationBase {
+// Jongro: string sequence. Display shape derived from JongroRouteStation
+// (registry). Vestigial fields (`eta` placeholder, `busType`) intentionally
+// dropped — neither was read by served output (`mapStations`, realtime route)
+// per grep audit during the registry refactor.
+export interface JongroStation
+  extends Omit<BusStationBase, "busType"> {
   sequence: string;
-  eta: string;
+}
+
+// Raw shape in `jongro-routes.json`. The registry derives the display
+// (`JongroStation` with sequence = idx+1, stationNumber = arsId) and the
+// TOPIS mapping (topisId → { sequence, stationName }) from this single
+// source of truth.
+export interface JongroRouteStation {
+  stationName: string;
+  arsId: string;
+  topisId: string;
+  isFirstStation: boolean;
+  isLastStation: boolean;
+  isRotationStation: boolean;
+  transferLines: TransferLine[];
+}
+
+export interface JongroRouteConfig {
+  id: string;
+  busRouteId: string;
+  themeColor: string;
+  iconType: string;
+  refreshInterval: number;
+  stations: JongroRouteStation[];
 }
 
 // Mapping from TOPIS lastStnId → { sequence, stationName } used by fetcher.

@@ -131,10 +131,10 @@ const config = {
 
   api: {
     hsscNew: apiUrl("API_HSSC_NEW_PROD", "API_HSSC_NEW_DEV"),
-    jongro07List: apiUrl("API_JONGRO07_LIST_PROD", "API_JONGRO07_LIST_DEV"),
-    jongro02List: apiUrl("API_JONGRO02_LIST_PROD", "API_JONGRO02_LIST_DEV"),
-    jongro07Loc: apiUrl("API_JONGRO07_LOC_PROD", "API_JONGRO07_LOC_DEV"),
-    jongro02Loc: apiUrl("API_JONGRO02_LOC_PROD", "API_JONGRO02_LOC_DEV"),
+    // Shared Seoul TOPIS service key (URL-encoded). Per-route facts
+    // (busRouteId, station count) live in `features/bus/jongro-routes.json`
+    // and the fetcher composes the list/loc URLs at module load.
+    seoulBusServiceKey: process.env.SEOUL_BUS_SERVICE_KEY,
     stationHyehwa: process.env.API_STATION_HEWA,
   },
 
@@ -156,10 +156,7 @@ const config = {
 const required: ReadonlyArray<readonly [string, unknown, string]> = [
   ["mongo.url", config.mongo.url, "MONGO_URL"],
   ["api.hsscNew", config.api.hsscNew, "API_HSSC_NEW_PROD"],
-  ["api.jongro07List", config.api.jongro07List, "API_JONGRO07_LIST_PROD"],
-  ["api.jongro02List", config.api.jongro02List, "API_JONGRO02_LIST_PROD"],
-  ["api.jongro07Loc", config.api.jongro07Loc, "API_JONGRO07_LOC_PROD"],
-  ["api.jongro02Loc", config.api.jongro02Loc, "API_JONGRO02_LOC_PROD"],
+  ["api.seoulBusServiceKey", config.api.seoulBusServiceKey, "SEOUL_BUS_SERVICE_KEY"],
   ["api.stationHyehwa", config.api.stationHyehwa, "API_STATION_HEWA"],
   ["naver.styleId", config.naver.styleId, "NAVER_MAP_STYLE_ID"],
   ["naver.apiKeyId", config.naver.apiKeyId, "NAVER_API_KEY_ID"],

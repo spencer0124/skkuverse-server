@@ -25,13 +25,9 @@ function setBaseEnv() {
   process.env.NAVER_MAP_STYLE_ID = "naver-style";
   process.env.API_HSSC_NEW_PROD = "http://prod-hssc";
   process.env.API_HSSC_NEW_DEV = "http://dev-hssc";
-  process.env.API_JONGRO07_LIST_PROD = "http://prod-jongro07-list";
-  process.env.API_JONGRO07_LIST_DEV = "http://dev-jongro07-list";
-  process.env.API_JONGRO02_LIST_PROD = "http://prod-jongro02-list";
-  // No _DEV for jongro02 — tests fallback behavior
-  process.env.API_JONGRO07_LOC_PROD = "http://prod-jongro07-loc";
-  process.env.API_JONGRO07_LOC_DEV = "http://dev-jongro07-loc";
-  process.env.API_JONGRO02_LOC_PROD = "http://prod-jongro02-loc";
+  // Shared Seoul TOPIS service key — per-route URLs are composed by the
+  // jongro registry from features/bus/jongro-routes.json.
+  process.env.SEOUL_BUS_SERVICE_KEY = "test-seoul-bus-key";
   process.env.API_STATION_HEWA = "http://station";
   process.env.MONGO_DB_NAME_INJA_WEEKDAY = "INJA_weekday";
   process.env.MONGO_DB_NAME_INJA_FRIDAY = "INJA_friday";
@@ -78,14 +74,13 @@ describe("development mode (default)", () => {
   it("uses _DEV API endpoints when available", () => {
     const config = loadConfig();
     expect(config.api.hsscNew).toBe("http://dev-hssc");
-    expect(config.api.jongro07List).toBe("http://dev-jongro07-list");
-    expect(config.api.jongro07Loc).toBe("http://dev-jongro07-loc");
   });
 
   it("falls back to _PROD API when _DEV is missing", () => {
+    // Clear hssc _DEV to drive the apiUrl() fallback path; _PROD must remain.
+    process.env.API_HSSC_NEW_DEV = "";
     const config = loadConfig();
-    expect(config.api.jongro02List).toBe("http://prod-jongro02-list");
-    expect(config.api.jongro02Loc).toBe("http://prod-jongro02-loc");
+    expect(config.api.hsscNew).toBe("http://prod-hssc");
   });
 
   it("exposes correct flags", () => {
@@ -114,7 +109,6 @@ describe("staging check mode (dev + prod API)", () => {
   it("uses _PROD API endpoints", () => {
     const config = loadConfig();
     expect(config.api.hsscNew).toBe("http://prod-hssc");
-    expect(config.api.jongro07List).toBe("http://prod-jongro07-list");
     expect(config.useProdApi).toBe(true);
   });
 });
@@ -134,7 +128,6 @@ describe("production mode", () => {
   it("uses _PROD API endpoints", () => {
     const config = loadConfig();
     expect(config.api.hsscNew).toBe("http://prod-hssc");
-    expect(config.api.jongro07List).toBe("http://prod-jongro07-list");
   });
 
   it("forces USE_PROD_API=true even if explicitly set to false", () => {
@@ -257,6 +250,18 @@ describe("strict config validation (no silent fallbacks)", () => {
     expect(exitSpy).toHaveBeenCalledWith(1);
     expect(errSpy.mock.calls[0][0]).toMatch(/notices\.dbName/);
     expect(errSpy.mock.calls[0][0]).toMatch(/MONGO_NOTICES_DB_NAME/);
+  });
+
+  it("crashes when SEOUL_BUS_SERVICE_KEY is missing", () => {
+    setBaseEnv();
+    process.env.NODE_ENV = "production";
+    process.env.SEOUL_BUS_SERVICE_KEY = "";
+    const exitSpy = jest.spyOn(process, "exit");
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    loadConfig();
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(errSpy.mock.calls[0][0]).toMatch(/seoulBusServiceKey/);
+    expect(errSpy.mock.calls[0][0]).toMatch(/SEOUL_BUS_SERVICE_KEY/);
   });
 
   it("crashes when NOTICES_SERVICE_START_DATE is missing", () => {

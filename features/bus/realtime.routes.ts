@@ -2,11 +2,9 @@ import { Router } from "express";
 import asyncHandler from "../../lib/asyncHandler";
 import { getHSSCBusList } from "./hssc.fetcher";
 import { getJongroBusList, getJongroBusLocation } from "./jongro.fetcher";
-import { Jongro02Stations, Jongro07Stations } from "./jongro.stations";
+import { jongroRoutes } from "./jongro.registry";
 import { cachedRead } from "../../lib/busCache";
 import type { HsscStation, JongroStation } from "./types";
-
-type GroupId = "hssc" | "jongro02" | "jongro07";
 
 interface GroupConfigEntry {
   getBuses: () => Promise<unknown>;
@@ -15,29 +13,29 @@ interface GroupConfigEntry {
 
 const router = Router();
 
-const GROUP_CONFIG: Record<GroupId, GroupConfigEntry> = {
+const jongroEntries: Record<string, GroupConfigEntry> = Object.fromEntries(
+  jongroRoutes.map((route) => [
+    route.id,
+    {
+      getBuses: async () =>
+        (await cachedRead(`jongro_locations_${route.code}`)) ??
+        getJongroBusLocation(route.code),
+      getStationEtas: async () => {
+        const busList =
+          (await cachedRead(`jongro_stations_${route.code}`)) ??
+          getJongroBusList(route.code);
+        return buildStationEtas(route.stations, busList);
+      },
+    } satisfies GroupConfigEntry,
+  ]),
+);
+
+const GROUP_CONFIG: Record<string, GroupConfigEntry> = {
   hssc: {
     getBuses: async () => (await cachedRead("hssc")) ?? getHSSCBusList(),
     getStationEtas: null,
   },
-  jongro02: {
-    getBuses: async () =>
-      (await cachedRead("jongro_locations_02")) ?? getJongroBusLocation("02"),
-    getStationEtas: async () => {
-      const busList =
-        (await cachedRead("jongro_stations_02")) ?? getJongroBusList("02");
-      return buildStationEtas(Jongro02Stations, busList);
-    },
-  },
-  jongro07: {
-    getBuses: async () =>
-      (await cachedRead("jongro_locations_07")) ?? getJongroBusLocation("07"),
-    getStationEtas: async () => {
-      const busList =
-        (await cachedRead("jongro_stations_07")) ?? getJongroBusList("07");
-      return buildStationEtas(Jongro07Stations, busList);
-    },
-  },
+  ...jongroEntries,
 };
 
 interface RawBus {
@@ -82,7 +80,7 @@ interface StationEta {
 // Builds stationEtas from Jongro busList API data
 // Matches by stationName (API's staOrd may not match our ordering)
 function buildStationEtas(
-  stations: Array<HsscStation | JongroStation>,
+  stations: ReadonlyArray<HsscStation | JongroStation>,
   busList: unknown,
 ): StationEta[] {
   if (!Array.isArray(busList)) return [];
@@ -108,8 +106,10 @@ router.get(
   "/data/:groupId",
   asyncHandler(async (req, res) => {
     const { groupId } = req.params;
-    const cfg = GROUP_CONFIG[groupId as GroupId];
-
+    if (!groupId) {
+      return res.error(404, "GROUP_NOT_FOUND", "Missing groupId");
+    }
+    const cfg = GROUP_CONFIG[groupId];
     if (!cfg) {
       return res.error(404, "GROUP_NOT_FOUND", `Unknown groupId: ${groupId}`);
     }

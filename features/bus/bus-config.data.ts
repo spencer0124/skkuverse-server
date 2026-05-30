@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { t } from "../../lib/i18n";
 import type { SupportedLang } from "../../lib/types";
 import { HSSCStations } from "./hssc.stations";
-import { Jongro02Stations, Jongro07Stations } from "./jongro.stations";
+import { jongroRoutes, type JongroRoute } from "./jongro.registry";
 import type { HsscStation, JongroStation } from "./types";
 
 type AnyStation = HsscStation | JongroStation;
@@ -18,7 +18,7 @@ interface MappedStation {
   transferLines: AnyStation["transferLines"];
 }
 
-function mapStations(stations: AnyStation[]): MappedStation[] {
+function mapStations(stations: ReadonlyArray<AnyStation>): MappedStation[] {
   return stations.map((s, i) => ({
     index: i,
     name: s.stationName,
@@ -29,6 +29,33 @@ function mapStations(stations: AnyStation[]): MappedStation[] {
     isRotationStation: s.isRotationStation,
     transferLines: s.transferLines,
   }));
+}
+
+// Builds the SDUI group object for a single Jongro route from the registry.
+// Field order MUST match the prior hardcoded entries byte-for-byte so the
+// ETag (md5 of JSON.stringify(getBusGroups())) stays stable across this
+// refactor.
+function buildJongroGroup(route: JongroRoute, lang: SupportedLang) {
+  return {
+    id: route.id,
+    screenType: "realtime" as const,
+    label: t(`busconfig.label.${route.id}`, lang),
+    visibility: { type: "always" as const },
+    card: {
+      themeColor: route.themeColor,
+      iconType: route.iconType,
+      busTypeText: t("buslist.village.busTypeText", lang),
+      subtitle: t(`buslist.${route.id}.subtitle`, lang),
+    },
+    screen: {
+      dataEndpoint: `/bus/realtime/data/${route.id}`,
+      refreshInterval: route.refreshInterval,
+      lastStationIndex: route.stations.length - 1,
+      stations: mapStations(route.stations),
+      routeOverlay: null,
+      features: [] as unknown[],
+    },
+  };
 }
 
 const etagCache: Map<string, string> = new Map();
@@ -132,49 +159,8 @@ function getBusGroups(lang: SupportedLang = "ko") {
       },
     },
 
-    // 4. Jongro 02 (realtime)
-    {
-      id: "jongro02",
-      screenType: "realtime",
-      label: t("busconfig.label.jongro02", lang),
-      visibility: { type: "always" },
-      card: {
-        themeColor: "4CAF50",
-        iconType: "village",
-        busTypeText: t("buslist.village.busTypeText", lang),
-        subtitle: t("buslist.jongro02.subtitle", lang),
-      },
-      screen: {
-        dataEndpoint: "/bus/realtime/data/jongro02",
-        refreshInterval: 40,
-        lastStationIndex: 25,
-        stations: mapStations(Jongro02Stations),
-        routeOverlay: null,
-        features: [],
-      },
-    },
-
-    // 5. Jongro 07 (realtime)
-    {
-      id: "jongro07",
-      screenType: "realtime",
-      label: t("busconfig.label.jongro07", lang),
-      visibility: { type: "always" },
-      card: {
-        themeColor: "4CAF50",
-        iconType: "village",
-        busTypeText: t("buslist.village.busTypeText", lang),
-        subtitle: t("buslist.jongro07.subtitle", lang),
-      },
-      screen: {
-        dataEndpoint: "/bus/realtime/data/jongro07",
-        refreshInterval: 40,
-        lastStationIndex: 18,
-        stations: mapStations(Jongro07Stations),
-        routeOverlay: null,
-        features: [],
-      },
-    },
+    // 4..N. Jongro routes (realtime) — generated from `jongro-routes.json`.
+    ...jongroRoutes.map((r) => buildJongroGroup(r, lang)),
   ];
 }
 

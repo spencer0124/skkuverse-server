@@ -11,12 +11,30 @@ const path = require("path");
 const SKKU_CAMPUS_MAP =
   "https://www.skku.edu/skku/about/campusInfo/campusMap.do";
 
+// Mirrors `features/bus/jongro.registry.ts` URL composition: single shared
+// service key + per-route busRouteId from `jongro-routes.json`. Keep the
+// fixture names as `${route.id}_list` / `_loc` so legacy paths
+// `__fixtures__/<date>/jongro07_list/<time>.json` stay stable.
+const SEOUL_BUS_BASE = "http://ws.bus.go.kr/api/rest";
+const SEOUL_BUS_KEY = process.env.SEOUL_BUS_SERVICE_KEY;
+const jongroRoutes = JSON.parse(
+  fs.readFileSync(
+    path.join(__dirname, "..", "features", "bus", "jongro-routes.json"),
+    "utf8",
+  ),
+);
+const buildListUrl = (busRouteId) =>
+  `${SEOUL_BUS_BASE}/arrive/getArrInfoByRouteAll?serviceKey=${SEOUL_BUS_KEY}&busRouteId=${busRouteId}&resultType=json`;
+const buildLocUrl = (busRouteId, stationCount) =>
+  `${SEOUL_BUS_BASE}/buspos/getBusPosByRouteSt?serviceKey=${SEOUL_BUS_KEY}&busRouteId=${busRouteId}&startOrd=1&endOrd=${stationCount}&resultType=json`;
+const jongroApis = jongroRoutes.flatMap((r) => [
+  { name: `${r.id}_list`, url: buildListUrl(r.busRouteId) },
+  { name: `${r.id}_loc`, url: buildLocUrl(r.busRouteId, r.stations.length) },
+]);
+
 const APIs = [
   { name: "hssc", url: process.env.API_HSSC_NEW_PROD },
-  { name: "jongro07_list", url: process.env.API_JONGRO07_LIST_PROD },
-  { name: "jongro02_list", url: process.env.API_JONGRO02_LIST_PROD },
-  { name: "jongro07_loc", url: process.env.API_JONGRO07_LOC_PROD },
-  { name: "jongro02_loc", url: process.env.API_JONGRO02_LOC_PROD },
+  ...jongroApis,
   { name: "station_hyehwa", url: process.env.API_STATION_HEWA },
   // --- SKKU building APIs (PR4b types.ts 검증용; 30-min cron으로 captured) ---
   {
@@ -102,6 +120,12 @@ async function collectAll() {
 }
 
 // Validate env vars before starting
+if (!SEOUL_BUS_KEY) {
+  console.error(
+    "Missing env variable: SEOUL_BUS_SERVICE_KEY (required for every jongro_* fixture). Check your .env file.",
+  );
+  process.exit(1);
+}
 const missing = APIs.filter((api) => !api.url).map((api) => api.name);
 if (missing.length > 0) {
   console.error(
