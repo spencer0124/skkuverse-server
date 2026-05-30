@@ -14,7 +14,7 @@ import { FirebaseAuthMiddleware } from "../common/firebase-auth.middleware";
 /**
  * AdModule — the /ad feature surface (GET /ad/placements + POST /ad/events).
  *
- * Additive-only; reuses the validated features/ad/* logic (raw mongodb driver
+ * Additive-only; reuses the validated ad/* logic (raw mongodb driver
  * via lib/db) through AdDataService + AdStatsService for byte-parity.
  *
  * Auth + rate limit ordering (parity-critical): Express mounts

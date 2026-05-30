@@ -7,14 +7,14 @@
  * replaces the module-scoped clearCache().
  */
 
-jest.mock("../../../lib/config", () => ({
+jest.mock("../../../src/infra/config", () => ({
   naver: {
     apiKeyId: "test-key-id",
     apiKey: "test-key-secret",
   },
 }));
 
-jest.mock("../../../lib/logger", () => ({
+jest.mock("../../../src/infra/logger", () => ({
   warn: jest.fn(),
   error: jest.fn(),
   info: jest.fn(),

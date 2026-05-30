@@ -9,17 +9,15 @@
   "scripts": {
     "start": "node dist/src/main.js",
     "prestart": "npm run build",
-    "start:legacy-express": "node dist/index.js",
     "dev": "npm run build && NODE_ENV=development npm run dev:watch",
     "dev:prod-api": "npm run build && NODE_ENV=development USE_PROD_API=true npm run dev:watch",
     "dev:watch": "concurrently -k \"tsc --watch --preserveWatchOutput\" \"nodemon --watch dist dist/src/main.js\"",
     "build": "tsc && node scripts/copy-build-assets.js",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
     "test": "jest",
-    "swagger": "npm run build && node swagger/swagger.js",
     "lint": "eslint .",
     "knip": "knip",
-    "depcheck": "depcheck --ignores='@logtail/pino,pino-pretty,node-cron,nodemon,@types/node,@types/jest,@types/express,@types/supertest,@types/swagger-ui-express,@typescript-eslint/eslint-plugin,@typescript-eslint/parser'",
+    "depcheck": "depcheck --ignores='@logtail/pino,pino-pretty,node-cron,nodemon,@types/node,@types/jest,@types/express,@types/supertest,@typescript-eslint/eslint-plugin,@typescript-eslint/parser'",
     "verify:serve": "docker compose -f docker-compose.yml -f docker-compose.local-verify.yml up -d --build",
     "verify:serve:down": "docker compose -f docker-compose.yml -f docker-compose.local-verify.yml down"
   },
@@ -47,8 +45,7 @@
     "pino": "10.3.1",
     "pino-http": "11.0.0",
     "reflect-metadata": "0.2.2",
-    "rxjs": "7.8.2",
-    "swagger-ui-express": "5.0.1"
+    "rxjs": "7.8.2"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -57,7 +54,6 @@
     "@types/jest": "30.0.0",
     "@types/node": "22.19.19",
     "@types/supertest": "7.2.0",
-    "@types/swagger-ui-express": "4.1.8",
     "@typescript-eslint/eslint-plugin": "8.59.4",
     "@typescript-eslint/parser": "8.59.4",
     "concurrently": "9.2.1",
@@ -69,7 +65,6 @@
     "nodemon": "3.1.14",
     "pino-pretty": "13.1.3",
     "supertest": "7.2.2",
-    "swagger-autogen": "2.23.7",
     "ts-jest": "29.4.11",
     "typescript": "5.9.3"
   }

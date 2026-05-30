@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
-import type { SupportedLang } from "../../../lib/types";
+import type { SupportedLang } from "../../infra/types";
 import { BusConfigService } from "../bus-config/bus-config.service";
 import { AppError } from "../../common/app-error";
 import { sendSuccess } from "../../common/send-success";

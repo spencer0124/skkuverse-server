@@ -6,12 +6,12 @@
  * mocked so neither lib/db nor the SKKU API is touched.
  */
 
-jest.mock("../../../features/building/building.sync", () => ({
+jest.mock("../../../src/building/building.sync", () => ({
   syncBuildings: jest.fn(),
 }));
 
-import config from "../../../lib/config";
-import { syncBuildings } from "../../../features/building/building.sync";
+import config from "../../../src/infra/config";
+import { syncBuildings } from "../../../src/building/building.sync";
 import { BuildingSyncService } from "../../../src/building/building-sync.service";
 import { PollerRegistryService } from "../../../src/scheduling/poller-registry.service";
 

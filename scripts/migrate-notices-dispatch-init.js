@@ -25,7 +25,7 @@
  */
 require("dotenv").config();
 const { MongoClient } = require("mongodb");
-const config = require("../lib/config");
+const config = require("../src/infra/config");
 
 const DRY_RUN = process.argv.includes("--dry-run");
 

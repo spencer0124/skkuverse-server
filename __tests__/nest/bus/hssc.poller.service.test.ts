@@ -10,7 +10,7 @@
  */
 
 jest.mock("axios", () => ({ get: jest.fn() }));
-jest.mock("../../../lib/logger", () => ({
+jest.mock("../../../src/infra/logger", () => ({
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),

@@ -1,12 +1,12 @@
 import { Inject, Injectable, type OnModuleInit } from "@nestjs/common";
 import axios from "axios";
 import moment from "moment-timezone";
-import logger from "../../../lib/logger";
+import logger from "../../infra/logger";
 import type {
   JongroListResponse,
   JongroLocResponse,
   JongroStationMapping,
-} from "../../../features/bus/types";
+} from "../types";
 import { PollerRegistryService } from "../../scheduling/poller-registry.service";
 import { BusCacheService } from "../cache/bus-cache.service";
 import { JONGRO_ROUTES } from "../registry/jongro-registry.provider";

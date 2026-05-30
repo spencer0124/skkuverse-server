@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import axios from "axios";
-import config from "../../../lib/config";
-import logger from "../../../lib/logger";
-import type { NaverDirectionsResponse } from "../../../features/bus/types";
+import config from "../../infra/config";
+import logger from "../../infra/logger";
+import type { NaverDirectionsResponse } from "../types";
 
 // --- Campus coordinates (lng,lat — Naver Directions API order) ---
 const SEOUL_CAMPUS = "126.993688,37.587308";

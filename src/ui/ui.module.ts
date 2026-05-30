@@ -6,11 +6,11 @@ import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middlewa
 
 /**
  * UiModule — the SDUI home surface (3 GET endpoints under /ui). Additive-only;
- * reuses the validated features/ui/* pure functions via UiService for parity.
+ * reuses the validated ui/* pure functions via UiService for parity.
  *
  * No auth (index.ts:136 mounts /ui with generalLimiter only). No BusModule
- * import is needed: UiService delegates to features/ui/ui.buslist, which imports
- * getBusGroups from features/bus/bus-config.data at the module level — the same
+ * import is needed: UiService delegates to ui.buslist, which imports
+ * getBusGroups from bus/bus-config.data at the module level — the same
  * shared singleton, so bus-group bytes are identical without DI coupling.
  *
  * configure() applies the generalLimiter (BusRateLimitMiddleware: byIp, 120/60s —

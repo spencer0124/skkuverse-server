@@ -16,10 +16,10 @@ import type {
   AdEventType,
   AdItem,
   Placement,
-} from "../../../features/ad/types";
+} from "../types";
 
 /**
- * Port of features/ad/ad.routes.ts (mounted at /ad behind verifyToken in
+ * Port of the /ad routes (mounted at /ad behind verifyToken in
  * index.ts:137). Auth runs as FirebaseAuthMiddleware on all /ad routes via
  * AdModule.configure() (NOT @UseGuards), so req.uid is set BEFORE the
  * eventLimiter's byUidOrIp key on POST /events — Nest lifecycle puts middleware

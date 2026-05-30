@@ -7,7 +7,7 @@ import type { Logger } from "pino";
 declare global {
   namespace Express {
     interface Request {
-      lang?: import("../lib/types").SupportedLang;
+      lang?: import("./infra/types").SupportedLang;
       uid?: string;
       log: Logger;
       // Stashed by LangMiddleware at the front of the chain so sendSuccess()

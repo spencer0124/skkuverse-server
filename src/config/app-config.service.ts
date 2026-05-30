@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import config from "../../lib/config";
+import config from "../infra/config";
 
 /**
  * Typed, read-only accessor over the existing lib/config.ts singleton.

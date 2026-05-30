@@ -24,7 +24,7 @@
 
 const mockVerifyIdToken = jest.fn();
 
-jest.mock("../../../lib/firebase", () => ({
+jest.mock("../../../src/infra/firebase", () => ({
   auth: jest.fn().mockReturnValue({
     verifyIdToken: (...args: unknown[]) => mockVerifyIdToken(...args),
   }),
@@ -33,7 +33,7 @@ jest.mock("../../../lib/firebase", () => ({
 const mockConfig = {
   firebase: { serviceAccount: { project_id: "x" } as unknown },
 };
-jest.mock("../../../lib/config", () => mockConfig);
+jest.mock("../../../src/infra/config", () => mockConfig);
 
 import { FirebaseAuthMiddleware } from "../../../src/common/firebase-auth.middleware";
 

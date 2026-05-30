@@ -1,11 +1,11 @@
 import { Controller, Get, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
-import type { SupportedLang } from "../../../lib/types";
+import type { SupportedLang } from "../../infra/types";
 import { UiService } from "../ui/ui.service";
 import { sendSuccess } from "../../common/send-success";
 
 /**
- * Port of features/ui/ui.routes.ts (mounted at /ui, generalLimiter, no auth —
+ * Port of the /ui routes (mounted at /ui, generalLimiter, no auth —
  * index.ts:136). Three SDUI home endpoints. Each uses @Res() + sendSuccess so
  * the dynamic extra-meta (busListCount / itemCount) lands in meta exactly like
  * the Express res.success(data, { busListCount }) / res.success(data, { itemCount })

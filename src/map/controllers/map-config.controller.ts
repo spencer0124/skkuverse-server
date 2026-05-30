@@ -1,10 +1,10 @@
 import { Controller, Get, Req } from "@nestjs/common";
 import type { Request } from "express";
-import type { SupportedLang } from "../../../lib/types";
+import type { SupportedLang } from "../../infra/types";
 import { MapService } from "../map.service";
 
 /**
- * Port of features/map/map-config.routes.ts (mounted at /map/config, no auth,
+ * Port of the /map/config route (mounted at /map/config, no auth,
  * generalLimiter). Sync handler — returns the config object; the global
  * ResponseInterceptor wraps it in the {meta:{lang},data} envelope, matching the
  * Express route's res.success(config). Vary header is set by LangMiddleware,

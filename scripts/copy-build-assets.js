@@ -5,15 +5,13 @@ const fs = require("fs");
 const path = require("path");
 
 const assets = [
-  // notices/tabConfig reads these with fs.readFileSync(__dirname/<name>)
-  ["features/notices/categories.json", "dist/features/notices/categories.json"],
-  ["features/notices/sources.json", "dist/features/notices/sources.json"],
-  // dist/index.js requires swagger-output.json with relative path
-  ["swagger/swagger-output.json", "dist/swagger/swagger-output.json"],
+  // notices/tabConfig + notices/sources read these with fs.readFileSync(__dirname/<name>)
+  ["src/notices/categories.json", "dist/src/notices/categories.json"],
+  ["src/notices/sources.json", "dist/src/notices/sources.json"],
   // holiday-calendar reads this with fs.readFileSync(__dirname/<name>)
-  ["features/bus/skku-rest-days.json", "dist/features/bus/skku-rest-days.json"],
+  ["src/bus/schedule/skku-rest-days.json", "dist/src/bus/schedule/skku-rest-days.json"],
   // jongro.registry reads this with fs.readFileSync(__dirname/<name>)
-  ["features/bus/jongro-routes.json", "dist/features/bus/jongro-routes.json"],
+  ["src/bus/registry/jongro-routes.json", "dist/src/bus/registry/jongro-routes.json"],
 ];
 
 for (const [src, dest] of assets) {

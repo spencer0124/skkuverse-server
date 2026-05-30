@@ -7,7 +7,7 @@ import { FirebaseAuthMiddleware } from "../common/firebase-auth.middleware";
 
 /**
  * SearchModule — the /search feature surface (3 HTTP endpoints, NO DB, NO
- * pollers). Reuses the validated features/search/* pure functions via
+ * pollers). Reuses the validated search/* pure functions via
  * SearchService for byte-parity. SKKU campusMap.do is hit over raw axios inside
  * those functions.
  *

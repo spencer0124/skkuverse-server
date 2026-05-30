@@ -1,20 +1,20 @@
 import { Injectable } from "@nestjs/common";
-import { option1 } from "../../features/search/search.building";
-import { option3 } from "../../features/search/search.space";
-import { option1_detail } from "../../features/search/search.building-detail";
+import { option1 } from "./search.building";
+import { option3 } from "./search.space";
+import { option1_detail } from "./search.building-detail";
 import type {
   SearchBuildingResult,
   SearchSpaceResult,
   SearchBuildingDetail,
-} from "../../features/search/types";
+} from "./types";
 
 /**
  * SearchService — thin @Injectable delegate over the validated
- * features/search/* pure functions. NO DB; these hit the SKKU campusMap.do
+ * search/* pure functions. NO DB; these hit the SKKU campusMap.do
  * public API over raw axios (timeouts + per-failure []-fallback live in the
- * features/* functions, kept byte-identical). The dual-campus passthrough
+ * search/* functions, kept byte-identical). The dual-campus passthrough
  * (campus 1 = HSSC, 2 = NSC) and meta-count arithmetic live in the controller
- * to mirror features/search/search.routes.ts exactly.
+ * to mirror the original search routes exactly.
  */
 @Injectable()
 export class SearchService {

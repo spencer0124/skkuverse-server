@@ -151,7 +151,7 @@ describe("jongro.registry — deep freeze (mutations fail at runtime)", () => {
 
 describe("jongro.registry — validation (fail-loud surfaces)", () => {
   it("accepts the real shipped data with zero errors", () => {
-    const raw = require("../../../features/bus/jongro-routes.json");
+    const raw = require("../../../src/bus/registry/jongro-routes.json");
     expect(validateRoutes(raw).errors).toEqual([]);
   });
 

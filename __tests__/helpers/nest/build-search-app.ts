@@ -20,7 +20,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { Test } from "@nestjs/testing";
 import express from "express";
 import pinoHttp from "pino-http";
-import logger from "../../../lib/logger";
+import logger from "../../../src/infra/logger";
 import { SearchModule } from "../../../src/search/search.module";
 import { LangMiddleware } from "../../../src/common/lang.middleware";
 import { ResponseInterceptor } from "../../../src/common/response.interceptor";

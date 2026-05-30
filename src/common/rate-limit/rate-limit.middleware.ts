@@ -1,7 +1,7 @@
 import { Injectable, type NestMiddleware } from "@nestjs/common";
 import { rateLimit, type RateLimitRequestHandler } from "express-rate-limit";
 import type { Request, Response, NextFunction } from "express";
-import { byIp } from "../../../lib/rateLimitKeys";
+import { byIp } from "../../infra/rateLimitKeys";
 
 /**
  * Wraps express-rate-limit as a Nest middleware, identical to the

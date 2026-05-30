@@ -1,11 +1,11 @@
 import { Injectable, type NestMiddleware } from "@nestjs/common";
 import { rateLimit, type RateLimitRequestHandler } from "express-rate-limit";
 import type { Request, Response, NextFunction } from "express";
-import { byUidOrIp } from "../../../lib/rateLimitKeys";
+import { byUidOrIp } from "../../infra/rateLimitKeys";
 
 /**
  * Wraps the ad.routes.ts `eventLimiter` as a Nest middleware, identical to
- * features/ad/ad.routes.ts:11-18:
+ * the original ad.routes eventLimiter (windowMs/max/key):
  *   windowMs 60s, max 120, keyGenerator byUidOrIp, standardHeaders,
  *   no legacyHeaders, message { error: { code: "RATE_LIMIT", message: "Too many requests" } }.
  *

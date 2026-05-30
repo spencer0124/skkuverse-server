@@ -1,12 +1,12 @@
 import { Controller, Get, Param, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
-import type { SupportedLang } from "../../../lib/types";
+import type { SupportedLang } from "../../infra/types";
 import { AppError } from "../../common/app-error";
 import { sendSuccess } from "../../common/send-success";
 import { MapService } from "../map.service";
 
 /**
- * Port of features/map/map-overlays.routes.ts (mounted at /map/overlays, no auth,
+ * Port of the /map/overlays routes (mounted at /map/overlays, no auth,
  * generalLimiter). Both endpoints live on one controller; the root @Get() won't
  * be captured by @Get(":overlayId") (Nest, like the Express router, matches the
  * empty path first). The root endpoint uses @Res() for ETag/304 — reproducing

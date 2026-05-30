@@ -3,7 +3,7 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from "@nestjs/common";
-import logger from "../../lib/logger";
+import logger from "../infra/logger";
 
 type PollerFn = () => Promise<unknown> | unknown;
 

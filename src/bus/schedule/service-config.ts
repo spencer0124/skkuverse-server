@@ -1,10 +1,33 @@
+import type { ServiceConfigMap } from "../types";
+
 /**
- * Re-export of features/bus/service.config (static, read-only shared import).
- * Keeps the serviceId → operational defaults map a single source of truth.
- *
- * Note: the original uses `export =`; we re-import and re-export as a named
- * binding so it's consumable from ESM-style imports in the Nest tree.
+ * Static config mapping serviceId → operational defaults.
+ * Used by the resolution engine when no schedule pattern or override matches.
  */
-import serviceConfig from "../../../features/bus/service.config";
+const serviceConfig: ServiceConfigMap = {
+  "campus-inja": {
+    nonOperatingDayDisplay: "hidden",
+    notices: [
+      { style: "info", text: "주말, 공휴일, 학교 휴일 운행 없음" },
+    ],
+    suspend: null,
+    respectsKoreanHolidays: true,
+  },
+  "campus-jain": {
+    nonOperatingDayDisplay: "hidden",
+    notices: [
+      { style: "info", text: "주말, 공휴일, 학교 휴일 운행 없음" },
+    ],
+    suspend: null,
+    respectsKoreanHolidays: true,
+  },
+  "fasttrack-inja": {
+    nonOperatingDayDisplay: "hidden",
+    notices: [
+      { style: "warning", text: "ESKARA 기간 한정 운행" },
+    ],
+    suspend: null,
+  },
+};
 
 export default serviceConfig;

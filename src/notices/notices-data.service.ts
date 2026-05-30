@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
-import logger from "../../lib/logger";
+import logger from "../infra/logger";
 import {
   DETAIL_PROJECTION,
   LIST_PROJECTION,
@@ -8,8 +8,8 @@ import {
   findNoticesBySource,
   findNoticesBySources,
   getNoticesCollection,
-} from "../../features/notices/notices.data";
-import type { CursorPayload, NoticeDoc } from "../../features/notices/types";
+} from "./notices.data";
+import type { CursorPayload, NoticeDoc } from "./types";
 
 interface FindOpts {
   cursor?: CursorPayload | null;
@@ -26,7 +26,7 @@ interface FindResult {
 
 /**
  * NoticesDataService — thin @Injectable wrapper over the validated, read-only
- * features/notices/notices.data module (raw mongodb driver via lib/db, NOT
+ * notices.data module (raw mongodb driver via lib/db, NOT
  * Mongoose). Every method delegates 1:1 — no reimplementation, no defensive
  * narrowing — so the LIST/DETAIL projections, the {sourceId,date,crawledAt,_id}
  * FORCE_INDEX .hint(), the serviceStartDate floor, the cursor encoding, and the

@@ -16,7 +16,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
 import { ObjectId } from "mongodb";
 import { NoticesDataService } from "../../../src/notices/notices-data.service";
-import { encodeCursor } from "../../../features/notices/notices.cursor";
+import { encodeCursor } from "../../../src/notices/notices.cursor";
 import { buildNoticesApp } from "../../helpers/nest/build-notices-app";
 
 let app: NestExpressApplication;

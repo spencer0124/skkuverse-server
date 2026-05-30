@@ -11,7 +11,7 @@ import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middlewa
 /**
  * MapModule — port of the /map feature (4 HTTP endpoints across 3 mount prefixes;
  * NO poller — the feature is purely HTTP per index.ts:139-141). Additive-only;
- * delegates to the validated, read-only features/map/* data modules via
+ * delegates to the validated, read-only map/* data modules via
  * MapService for byte-parity.
  *
  * Endpoints (all no auth, generalLimiter — matches index.ts:139-141):
@@ -21,8 +21,8 @@ import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middlewa
  *                           GET /map/overlays/:overlayId (404 NOT_FOUND)
  *
  * imports BuildingModule because the /map/markers/campus data path resolves
- * building markers through features/building/building.data.getAllBuildings (via
- * features/map/map-markers.data). Importing BuildingModule keeps a single
+ * building markers through building/building.data.getAllBuildings (via
+ * map/map-markers.data). Importing BuildingModule keeps a single
  * dependency graph (BuildingService.onModuleInit ensureIndexes runs once) and
  * mirrors Express, where /map/markers reuses the same building data module.
  *

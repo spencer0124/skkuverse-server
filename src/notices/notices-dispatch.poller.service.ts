@@ -1,11 +1,11 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
-import config from "../../lib/config";
-import logger from "../../lib/logger";
+import config from "../infra/config";
+import logger from "../infra/logger";
 import { PollerRegistryService } from "../scheduling/poller-registry.service";
 import { NoticesDispatcherService } from "./notices-dispatcher.service";
 
 /**
- * NoticesDispatchPollerService — port of features/notices/notices.dispatch.poller.ts.
+ * NoticesDispatchPollerService — port of notices.dispatch.poller.ts.
  *
  * Safety-net cron sweep for FCM dispatch. Primary trigger is the crawler's
  * cycle-end ping to the internal route; this cron only recovers when that ping
@@ -26,7 +26,7 @@ import { NoticesDispatcherService } from "./notices-dispatcher.service";
  * prevent double-dispatch.
  *
  * NOTE — no double-run: the Nest app NEVER imports
- * features/notices/notices.dispatch.poller (that module's top-level
+ * notices.dispatch.poller (that module's top-level
  * registerPoller side-effect lands in the LEGACY lib/pollers registry, which
  * bootstrap never starts). This service is the single driver, and it registers
  * with THIS Nest PollerRegistry only.

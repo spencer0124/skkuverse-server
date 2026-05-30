@@ -1,7 +1,7 @@
 import { Injectable, type NestMiddleware } from "@nestjs/common";
 import { rateLimit, type RateLimitRequestHandler } from "express-rate-limit";
 import type { Request, Response, NextFunction } from "express";
-import { byUidOrIp } from "../../../lib/rateLimitKeys";
+import { byUidOrIp } from "../../infra/rateLimitKeys";
 
 /**
  * Wraps the index.ts:120-127 noticesLimiter as a Nest middleware, identical:

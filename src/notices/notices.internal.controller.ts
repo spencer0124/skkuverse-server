@@ -1,8 +1,8 @@
 import { Controller, Post, Body, Req, HttpCode } from "@nestjs/common";
 import crypto from "crypto";
 import type { Request } from "express";
-import config from "../../lib/config";
-import logger from "../../lib/logger";
+import config from "../infra/config";
+import logger from "../infra/logger";
 import { AppError } from "../common/app-error";
 import {
   NoticesDispatcherService,
@@ -11,7 +11,7 @@ import {
 
 /**
  * Internal-only controller for the notices feature — port of
- * features/notices/notices.internal.routes.ts (mounted at /internal/notices).
+ * notices.internal.routes.ts (mounted at /internal/notices).
  *
  * The crawler pings POST /internal/notices/dispatch-pending at the end of each
  * crawl cycle. The handler scans for push-ready, un-dispatched notices and fans

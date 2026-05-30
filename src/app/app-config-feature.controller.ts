@@ -2,7 +2,7 @@ import { Controller, Get } from "@nestjs/common";
 import { AppFeatureService } from "./app-feature.service";
 
 /**
- * GET /app/config — port of features/app/app.routes.ts.
+ * GET /app/config — port of the /app/config route.
  *
  * Mounted with generalLimiter and NO auth (index.ts:138). Returns the data
  * object; the global ResponseInterceptor wraps it in the { meta, data }

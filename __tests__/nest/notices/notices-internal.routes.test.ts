@@ -15,7 +15,7 @@
 
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
-import config from "../../../lib/config";
+import config from "../../../src/infra/config";
 import { NoticesDispatcherService } from "../../../src/notices/notices-dispatcher.service";
 import { NoticesDataService } from "../../../src/notices/notices-data.service";
 import { buildNoticesApp } from "../../helpers/nest/build-notices-app";

@@ -5,7 +5,7 @@
  * failure, never throws).
  */
 
-jest.mock("../../../features/building/building.data", () => ({
+jest.mock("../../../src/building/building.data", () => ({
   ensureIndexes: jest.fn(),
   getAllBuildings: jest.fn(),
   getBuildingBySkkuId: jest.fn(),
@@ -17,7 +17,7 @@ jest.mock("../../../features/building/building.data", () => ({
   countSearchSpaces: jest.fn(),
 }));
 
-import * as data from "../../../features/building/building.data";
+import * as data from "../../../src/building/building.data";
 import { BuildingService } from "../../../src/building/building.service";
 
 const mocked = data as jest.Mocked<typeof data>;

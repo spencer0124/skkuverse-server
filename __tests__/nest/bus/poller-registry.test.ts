@@ -13,7 +13,7 @@
  * ROLE-gating (ROLE=api → no startAll) and onApplicationShutdown → stopAll.
  */
 
-jest.mock("../../../lib/logger", () => ({
+jest.mock("../../../src/infra/logger", () => ({
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),
@@ -22,7 +22,7 @@ jest.mock("../../../lib/logger", () => ({
 
 import { PollerRegistryService } from "../../../src/scheduling/poller-registry.service";
 
-const logger = require("../../../lib/logger");
+const logger = require("../../../src/infra/logger");
 
 describe("PollerRegistryService", () => {
   let registry: PollerRegistryService;

@@ -1,13 +1,13 @@
 import { Controller, Get, Param, Query, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
-import { t } from "../../lib/i18n";
-import type { SupportedLang } from "../../lib/types";
-import { toDisplayNo } from "../../features/building/building.data";
+import { t } from "../infra/i18n";
+import type { SupportedLang } from "../infra/types";
+import { toDisplayNo } from "./building.data";
 import type {
   BuildingDoc,
   Campus,
   SpaceDoc,
-} from "../../features/building/types";
+} from "./types";
 import { AppError } from "../common/app-error";
 import { sendSuccess } from "../common/send-success";
 import { BuildingService } from "./building.service";
@@ -41,7 +41,7 @@ function reqLang(req: Request): SupportedLang {
 }
 
 /**
- * Port of features/building/building.routes.ts (mounted at /building, no auth,
+ * Port of the /building routes (mounted at /building, no auth,
  * generalLimiter). All three endpoints use @Res() + sendSuccess so the success
  * envelope — including /search's extra meta (keyword/buildingCount/spaceCount/
  * counts) — is byte-identical to res.success(data, meta). Validation throws

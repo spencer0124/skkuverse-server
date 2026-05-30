@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   StationHSSCStations,
   computeAllStationEtas,
-} from "../../../features/station/station.data";
+} from "./station-eta";
 import { BusCacheService } from "../cache/bus-cache.service";
 import { HsscPollerService } from "../fetchers/hssc.poller.service";
 import { StationPollerService } from "../fetchers/station.poller.service";

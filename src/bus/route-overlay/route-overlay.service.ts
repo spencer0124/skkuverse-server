@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { RouteCoords } from "../../../features/bus/types";
+import type { RouteCoords } from "../types";
 import { jongro07Coords, jongro02Coords } from "./route-overlay.data";
 
 interface RouteOverlay {

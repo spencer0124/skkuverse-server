@@ -1,7 +1,7 @@
 import { Global, Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { AppConfigService } from "../config/app-config.service";
-import { closeClient, getClient, ping } from "../../lib/db";
+import { closeClient, getClient, ping } from "../infra/db";
 
 /**
  * DB tokens for injecting the EXISTING lib/db singleton (raw mongodb driver).

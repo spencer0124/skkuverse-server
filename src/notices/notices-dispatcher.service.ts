@@ -1,12 +1,12 @@
 import { Injectable } from "@nestjs/common";
-import config from "../../lib/config";
-import logger from "../../lib/logger";
-import { getNoticesCollection } from "../../features/notices/notices.data";
+import config from "../infra/config";
+import logger from "../infra/logger";
+import { getNoticesCollection } from "./notices.data";
 import { buildTopics } from "./topics.bridge";
-import type { NoticeDoc } from "../../features/notices/types";
+import type { NoticeDoc } from "./types";
 
 /**
- * NoticesDispatcherService — exact port of features/notices/notices.dispatcher.ts
+ * NoticesDispatcherService — exact port of notices.dispatcher.ts
  * as an @Injectable SINGLETON. The module-scoped `sweepInFlight` flag of the
  * Express version becomes private instance state here (Nest providers are
  * singletons by default, so this is the same one-flag-per-process semantics).

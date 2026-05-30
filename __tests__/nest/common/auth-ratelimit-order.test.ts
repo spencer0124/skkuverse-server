@@ -19,7 +19,7 @@
 
 // Firebase configured + verifyIdToken resolves a deterministic uid.
 const mockVerifyIdToken = jest.fn().mockResolvedValue({ uid: "uid-from-token" });
-jest.mock("../../../lib/firebase", () => ({
+jest.mock("../../../src/infra/firebase", () => ({
   __esModule: true,
   default: {
     auth: jest.fn().mockReturnValue({
@@ -31,8 +31,8 @@ jest.mock("../../../lib/firebase", () => ({
 // Capture every req byUidOrIp sees, then delegate to the real implementation so
 // the limiter behaves exactly as in prod.
 const seenKeys: Array<{ uid?: string; key: string }> = [];
-jest.mock("../../../lib/rateLimitKeys", () => {
-  const actual = jest.requireActual("../../../lib/rateLimitKeys");
+jest.mock("../../../src/infra/rateLimitKeys", () => {
+  const actual = jest.requireActual("../../../src/infra/rateLimitKeys");
   return {
     __esModule: true,
     byIp: actual.byIp,
@@ -53,7 +53,7 @@ jest.mock("axios", () => ({
 
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
-import config from "../../../lib/config";
+import config from "../../../src/infra/config";
 import { buildSearchApp } from "../../helpers/nest/build-search-app";
 
 let app: NestExpressApplication;

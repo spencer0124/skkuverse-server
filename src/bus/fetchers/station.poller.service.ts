@@ -1,7 +1,7 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
 import axios from "axios";
-import config from "../../../lib/config";
-import logger from "../../../lib/logger";
+import config from "../../infra/config";
+import logger from "../../infra/logger";
 import { PollerRegistryService } from "../../scheduling/poller-registry.service";
 import { BusCacheService } from "../cache/bus-cache.service";
 

@@ -32,11 +32,11 @@ const mockDb = jest.fn((name?: string) =>
       },
 );
 
-jest.mock("../../../lib/db", () => ({
+jest.mock("../../../src/infra/db", () => ({
   getClient: jest.fn(() => ({ db: mockDb })),
 }));
 
-jest.mock("../../../lib/logger", () => ({
+jest.mock("../../../src/infra/logger", () => ({
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),
@@ -48,7 +48,7 @@ import { AdDataService } from "../../../src/ad/ad-data.service";
 import {
   clearCache,
   FALLBACK_PLACEMENTS,
-} from "../../../features/ad/ad.data";
+} from "../../../src/ad/ad.data";
 
 function findChain(docs: unknown[]) {
   return { toArray: jest.fn().mockResolvedValue(docs) };

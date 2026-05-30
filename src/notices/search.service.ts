@@ -3,11 +3,11 @@ import {
   escapeRegex,
   validateQ,
   MAX_QUERY_CODEPOINTS,
-} from "../../features/notices/notices.search";
+} from "./notices.search";
 
 /**
  * NoticesSearchService — thin @Injectable delegate over the validated
- * features/notices/notices.search pure functions. NO DB, NEVER throws.
+ * notices.search pure functions. NO DB, NEVER throws.
  *
  * Preserves the codepoint-based limit (≤100 Unicode codepoints, not UTF-16
  * units), control-char rejection, and literal-regex escaping exactly so the

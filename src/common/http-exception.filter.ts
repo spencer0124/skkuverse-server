@@ -5,7 +5,7 @@ import {
   type ExceptionFilter,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
-import logger from "../../lib/logger";
+import logger from "../infra/logger";
 import { AppError } from "./app-error";
 
 /**

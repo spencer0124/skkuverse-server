@@ -53,15 +53,15 @@ const mockCollection = {
 const mockDb = { collection: jest.fn().mockReturnValue(mockCollection) };
 const mockClient = { db: jest.fn().mockReturnValue(mockDb) };
 
-jest.mock("../../../lib/db", () => ({
+jest.mock("../../../src/infra/db", () => ({
   getClient: jest.fn(() => mockClient),
 }));
 
 // Imported AFTER the jest.mock so getNoticesCollection (used inside the service)
 // resolves the stubbed lib/db.
 import { NoticesDispatcherService } from "../../../src/notices/notices-dispatcher.service";
-import config from "../../../lib/config";
-import type { NoticeDoc } from "../../../features/notices/types";
+import config from "../../../src/infra/config";
+import type { NoticeDoc } from "../../../src/notices/types";
 
 let service: NoticesDispatcherService;
 

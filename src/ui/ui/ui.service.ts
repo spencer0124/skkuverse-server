@@ -1,15 +1,15 @@
 import { Injectable } from "@nestjs/common";
-import type { SupportedLang } from "../../../lib/types";
-import { getBusList } from "../../../features/ui/ui.buslist";
-import { getScrollComponent } from "../../../features/ui/ui.scroll";
-import { getCampusSections } from "../../../features/ui/ui.campus";
+import type { SupportedLang } from "../../infra/types";
+import { getBusList } from "./ui.buslist";
+import { getScrollComponent } from "./ui.scroll";
+import { getCampusSections } from "./ui.campus";
 
 /**
- * SDUI home payloads — DELEGATES to the validated features/ui/* pure functions
+ * SDUI home payloads — DELEGATES to the validated ui/* pure functions
  * (read-only shared import) for byte-parity. No reimplementation.
  *
- * getBusList → features/ui/ui.buslist, which itself imports getBusGroups from
- * features/bus/bus-config.data at module level (the SAME singleton + etagCache
+ * getBusList → ui.buslist, which itself imports getBusGroups from
+ * bus/bus-config.data at module level (the SAME singleton + etagCache
  * that BusModule's BusConfigService delegates to). Because that dependency is a
  * direct module import rather than DI, UiModule needs NO BusModule import to get
  * identical bus-group bytes — the date-range visibility filter (moment

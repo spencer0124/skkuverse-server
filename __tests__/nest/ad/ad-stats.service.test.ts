@@ -9,13 +9,13 @@
  * original test so no real DB is touched.
  */
 
-jest.mock("../../../features/ad/ad.data", () => ({
+jest.mock("../../../src/ad/ad.data", () => ({
   getEventsCollection: jest.fn(),
 }));
 
 import { ObjectId } from "mongodb";
 import { AdStatsService } from "../../../src/ad/ad-stats.service";
-import { getEventsCollection } from "../../../features/ad/ad.data";
+import { getEventsCollection } from "../../../src/ad/ad.data";
 
 describe("AdStatsService.recordEvent (parity with features/ad/ad.stats)", () => {
   let service: AdStatsService;

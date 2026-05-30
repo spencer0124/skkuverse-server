@@ -7,7 +7,7 @@
 
 // Mock building.data so getCampusMarkers falls back (no DB) — same as the
 // untouched __tests__/map-config.test.ts.
-jest.mock("../../../features/building/building.data", () => ({
+jest.mock("../../../src/building/building.data", () => ({
   getAllBuildings: jest.fn().mockResolvedValue([]),
 }));
 

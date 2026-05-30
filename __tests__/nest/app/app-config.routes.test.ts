@@ -21,7 +21,7 @@ import { Test } from "@nestjs/testing";
 import express from "express";
 import pinoHttp from "pino-http";
 import request from "supertest";
-import logger from "../../../lib/logger";
+import logger from "../../../src/infra/logger";
 import { ConfigModule } from "../../../src/config/config.module";
 import { AppFeatureModule } from "../../../src/app/app-feature.module";
 import { LangMiddleware } from "../../../src/common/lang.middleware";

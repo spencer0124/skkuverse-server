@@ -1,4 +1,4 @@
-import type { HsscStation, JongroStation } from "../../../features/bus/types";
+import type { HsscStation, JongroStation } from "../types";
 
 /**
  * Realtime transform helpers — verbatim port of the private helpers in

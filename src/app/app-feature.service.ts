@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { AppConfigService } from "../config/app-config.service";
 
 /**
- * AppFeatureService — port of features/app/app.routes.ts's single handler.
+ * AppFeatureService — port of the /app/config route's single handler.
  *
  * Trivial static passthrough: returns { ios, android } straight from the
  * resolved lib/config (via AppConfigService.app), no DB, no caching, no auth.

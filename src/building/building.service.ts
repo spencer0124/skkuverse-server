@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
-import logger from "../../lib/logger";
+import logger from "../infra/logger";
 import {
   countSearchBuildings,
   countSearchSpaces,
@@ -10,14 +10,14 @@ import {
   getFloorsByBuildNo,
   searchBuildings,
   searchSpaces,
-} from "../../features/building/building.data";
+} from "./building.data";
 import type {
   BuildingDoc,
   Campus,
   ConnectionResponseItem,
   FloorGroup,
   SpaceDoc,
-} from "../../features/building/types";
+} from "./types";
 
 interface SearchCounts {
   hssc: number;
@@ -27,7 +27,7 @@ interface SearchCounts {
 
 /**
  * BuildingService — thin @Injectable wrapper over the validated, read-only
- * features/building/building.data module (raw mongodb driver via lib/db, NOT
+ * building.data module (raw mongodb driver via lib/db, NOT
  * Mongoose). Every method delegates 1:1 — no reimplementation, no defensive
  * narrowing — so query shapes, the 5-min getAllBuildings in-memory cache, the
  * forced projections, and the displayNo/floor-sort helpers stay byte-identical

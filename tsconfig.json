@@ -22,9 +22,6 @@
     "skipLibCheck": true
   },
   "include": [
-    "index.ts",
-    "lib/**/*",
-    "features/**/*",
     "src/**/*",
     "__tests__/helpers/**/*"
   ],
@@ -33,7 +30,6 @@
     "dist",
     "coverage",
     "scripts/**/*",
-    "swagger/**/*",
     "__tests__/**/*.test.ts"
   ]
 }

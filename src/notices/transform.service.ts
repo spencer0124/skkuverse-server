@@ -7,12 +7,12 @@ import {
   buildSummaryFull,
   toListItem,
   toDetailItem,
-} from "../../features/notices/notices.transform";
-import type { NoticeDoc } from "../../features/notices/types";
+} from "./notices.transform";
+import type { NoticeDoc } from "./types";
 
 /**
  * TransformService — thin @Injectable delegate over the validated
- * features/notices/notices.transform pure functions. NO DB.
+ * notices.transform pure functions. NO DB.
  *
  * Preserves the transform shapes (toListItem 4-field brief summary;
  * toDetailItem full summary incl. `text`), the empty-string→null /

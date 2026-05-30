@@ -1,6 +1,6 @@
 import { Controller, Get, Res } from "@nestjs/common";
 import type { Response } from "express";
-import { ping as pingDb } from "../../lib/db";
+import { ping as pingDb } from "../infra/db";
 import { PollerRegistryService } from "../scheduling/poller-registry.service";
 
 /**

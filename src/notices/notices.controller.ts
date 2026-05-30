@@ -10,10 +10,10 @@ import { CursorService, InvalidCursorError } from "./cursor.service";
 import { NoticesSearchService } from "./search.service";
 import { SourcesService } from "./sources.service";
 import { TabConfigService } from "./tabconfig.service";
-import type { CursorPayload } from "../../features/notices/types";
+import type { CursorPayload } from "./types";
 
 /**
- * Port of features/notices/notices.routes.ts (mounted at /notices behind
+ * Port of notices.routes.ts (mounted at /notices behind
  * Firebase auth MIDDLEWARE + noticesLimiter in NoticesModule.configure()).
  *
  * Route ordering parity (Nest preserves declaration order within a controller):

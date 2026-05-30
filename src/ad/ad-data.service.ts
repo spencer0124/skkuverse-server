@@ -1,15 +1,15 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
-import logger from "../../lib/logger";
+import logger from "../infra/logger";
 import {
   getPlacements,
   ensureIndexes,
   seedIfEmpty,
-} from "../../features/ad/ad.data";
-import type { AdItem, Placement, PlacementMap } from "../../features/ad/types";
+} from "./ad.data";
+import type { AdItem, Placement, PlacementMap } from "./types";
 
 /**
  * AdDataService — thin @Injectable wrapper over the validated
- * features/ad/ad.data module (raw mongodb driver via lib/db, NOT Mongoose).
+ * ad.data module (raw mongodb driver via lib/db, NOT Mongoose).
  *
  * Delegates getPlacements (60s in-memory cache + DB read + FALLBACK_PLACEMENTS
  * fail-soft) verbatim so the placement payload, cache TTL, weighted-select, and

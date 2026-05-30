@@ -9,7 +9,7 @@ import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middlewa
 /**
  * BuildingModule — port of the /building feature (3 HTTP endpoints + 1 weekly
  * sync poller). Additive-only; delegates to the validated, read-only
- * features/building/building.data via BuildingService (raw mongodb driver) for
+ * building.data via BuildingService (raw mongodb driver) for
  * byte-parity.
  *
  * - BuildingController: GET /building/list | /search | /:skkuId (no auth,

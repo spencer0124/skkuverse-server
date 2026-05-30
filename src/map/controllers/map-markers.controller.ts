@@ -6,7 +6,7 @@ const VALID_OVERLAYS = ["number", "label"] as const;
 type Overlay = (typeof VALID_OVERLAYS)[number];
 
 /**
- * Port of features/map/map-markers.routes.ts (mounted at /map/markers, no auth,
+ * Port of the /map/markers route (mounted at /map/markers, no auth,
  * generalLimiter). The overlay query param is validated against VALID_OVERLAYS;
  * an absent/invalid value throws AppError("INVALID_OVERLAY", ..., 400) — byte-
  * identical to the route file's res.error(400, "INVALID_OVERLAY", ...). On

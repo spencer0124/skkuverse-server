@@ -1,14 +1,14 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
 import moment from "moment-timezone";
-import { getClient } from "../../../lib/db";
-import config from "../../../lib/config";
-import logger from "../../../lib/logger";
-import { ensureScheduleIndexes } from "../../../features/bus/schedule-db";
+import { getClient } from "../../infra/db";
+import config from "../../infra/config";
+import logger from "../../infra/logger";
+import { ensureScheduleIndexes } from "./schedule-db";
 import type {
   BusOverrideDoc,
   BusScheduleDoc,
   ServiceNotice,
-} from "../../../features/bus/types";
+} from "../types";
 import serviceConfig from "./service-config";
 import { HolidayCalendarService } from "./holiday-calendar.service";
 

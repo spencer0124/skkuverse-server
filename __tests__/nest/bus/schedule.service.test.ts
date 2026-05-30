@@ -12,15 +12,15 @@
  * suspend-window tests mutate it identically.
  */
 
-jest.mock("../../../lib/db", () => ({
+jest.mock("../../../src/infra/db", () => ({
   getClient: jest.fn(),
 }));
 
-jest.mock("../../../lib/config", () => ({
+jest.mock("../../../src/infra/config", () => ({
   mongo: { dbName: "test_db" },
 }));
 
-jest.mock("../../../lib/logger", () => ({
+jest.mock("../../../src/infra/logger", () => ({
   warn: jest.fn(),
   info: jest.fn(),
   error: jest.fn(),
@@ -28,21 +28,21 @@ jest.mock("../../../lib/logger", () => ({
   child: jest.fn().mockReturnThis(),
 }));
 
-jest.mock("../../../features/bus/holiday-calendar", () => ({
+jest.mock("../../../src/bus/schedule/holiday-calendar", () => ({
   getNonOperatingDayLabel: jest.fn(() => null),
 }));
 
-jest.mock("../../../features/bus/schedule-db", () => ({
+jest.mock("../../../src/bus/schedule/schedule-db", () => ({
   ensureScheduleIndexes: jest.fn().mockResolvedValue(undefined),
 }));
 
 import { ScheduleService } from "../../../src/bus/schedule/schedule.service";
 import { HolidayCalendarService } from "../../../src/bus/schedule/holiday-calendar.service";
 
-const logger = require("../../../lib/logger");
-const { getNonOperatingDayLabel } = require("../../../features/bus/holiday-calendar");
-const { getClient } = require("../../../lib/db");
-const serviceConfig = require("../../../features/bus/service.config");
+const logger = require("../../../src/infra/logger");
+const { getNonOperatingDayLabel } = require("../../../src/bus/schedule/holiday-calendar");
+const { getClient } = require("../../../src/infra/db");
+const serviceConfig = require("../../../src/bus/schedule/service-config").default;
 
 let mockSchedules: unknown[] = [];
 let mockOverrides: unknown[] = [];
@@ -582,7 +582,7 @@ describe("resolveSmartSchedule", () => {
   });
 
   it("onModuleInit warns (non-fatal) when ensureScheduleIndexes rejects", async () => {
-    const { ensureScheduleIndexes } = require("../../../features/bus/schedule-db");
+    const { ensureScheduleIndexes } = require("../../../src/bus/schedule/schedule-db");
     ensureScheduleIndexes.mockRejectedValueOnce(new Error("idx boom"));
     await expect(service.onModuleInit()).resolves.toBeUndefined();
     expect(logger.warn).toHaveBeenCalledWith(

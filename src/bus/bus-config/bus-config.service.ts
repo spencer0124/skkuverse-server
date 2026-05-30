@@ -1,11 +1,11 @@
 import { Injectable } from "@nestjs/common";
-import type { SupportedLang } from "../../../lib/types";
+import type { SupportedLang } from "../../infra/types";
 import {
   getBusGroups,
   computeEtag,
   getGroupById,
   computeGroupEtag,
-} from "../../../features/bus/bus-config.data";
+} from "./bus-config.data";
 
 export type BusGroup = ReturnType<typeof getBusGroups>[number];
 

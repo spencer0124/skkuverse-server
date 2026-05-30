@@ -1,8 +1,8 @@
 import { Controller, Get, Param, Query, Req, Res } from "@nestjs/common";
 import crypto from "crypto";
 import type { Request, Response } from "express";
-import { t } from "../../../lib/i18n";
-import type { SupportedLang } from "../../../lib/types";
+import { t } from "../../infra/i18n";
+import type { SupportedLang } from "../../infra/types";
 import { ScheduleService } from "../schedule/schedule.service";
 import serviceConfig from "../schedule/service-config";
 import { AppError } from "../../common/app-error";

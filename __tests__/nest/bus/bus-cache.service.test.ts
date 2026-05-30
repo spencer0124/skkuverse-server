@@ -11,7 +11,7 @@ const mockCreateIndex = jest.fn().mockResolvedValue("ttl_updatedAt");
 const mockUpdateOne = jest.fn().mockResolvedValue({ upsertedCount: 1 });
 const mockFindOne = jest.fn();
 
-jest.mock("../../../lib/db", () => ({
+jest.mock("../../../src/infra/db", () => ({
   getClient: jest.fn().mockReturnValue({
     db: jest.fn().mockReturnValue({
       collection: jest.fn().mockReturnValue({
@@ -23,7 +23,7 @@ jest.mock("../../../lib/db", () => ({
   }),
 }));
 
-jest.mock("../../../lib/config", () => ({
+jest.mock("../../../src/infra/config", () => ({
   mongo: {
     dbName: "skkubus_test",
     collections: { busCache: "bus_cache" },

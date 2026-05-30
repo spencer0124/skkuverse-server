@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { getClient } from "../../../lib/db";
-import config from "../../../lib/config";
+import { getClient } from "../../infra/db";
+import config from "../../infra/config";
 
 interface CacheEntry {
   data: unknown;

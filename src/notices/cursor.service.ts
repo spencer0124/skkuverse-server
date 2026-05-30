@@ -4,8 +4,8 @@ import {
   encodeCursor,
   decodeCursor,
   buildCursorFilter,
-} from "../../features/notices/notices.cursor";
-import type { CursorPayload } from "../../features/notices/types";
+} from "./notices.cursor";
+import type { CursorPayload } from "./types";
 
 // Re-export so controllers can `instanceof`-check the SAME class the
 // delegated decodeCursor throws (a re-declared copy would never match).
@@ -13,7 +13,7 @@ export { InvalidCursorError };
 
 /**
  * CursorService — thin @Injectable delegate over the validated
- * features/notices/notices.cursor pure functions. NO DB.
+ * notices.cursor pure functions. NO DB.
  *
  * Preserves the base64url cursor shape ({ d, c, i }) and the
  * {date desc, crawledAt desc, _id desc} $or filter byte-identically. decode

@@ -5,7 +5,7 @@ import { AppError } from "../common/app-error";
 import { sendSuccess } from "../common/send-success";
 
 /**
- * Port of features/search/search.routes.ts (mounted at /search behind
+ * Port of the /search routes (mounted at /search behind
  * verifyToken + searchLimiter). Auth + rate limit are BOTH bound as middleware
  * in SearchModule.configure() in the order FirebaseAuthMiddleware (verifyToken
  * port, sets req.uid) → SearchRateLimitMiddleware (byUidOrIp, 60/60s), which

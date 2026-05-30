@@ -7,7 +7,7 @@ import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middlewa
 /**
  * AppFeatureModule — the /app feature surface (GET /app/config).
  *
- * Port of features/app/app.routes.ts mounted at index.ts:138 with generalLimiter
+ * Port of the /app/config route mounted at index.ts:138 with generalLimiter
  * and NO Firebase auth. Trivial static passthrough (no DB, no poller).
  *
  * AppConfigService comes from the @Global ConfigModule, so no import is needed.

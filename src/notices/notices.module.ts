@@ -19,7 +19,7 @@ import { NoticesRateLimitMiddleware } from "./rate-limit/notices-rate-limit.midd
 /**
  * NoticesModule — port of the /notices + /internal/notices feature surface.
  *
- * Additive-only; delegates to the validated, read-only features/notices/* logic
+ * Additive-only; delegates to the validated, read-only notices/* logic
  * (raw mongodb driver via lib/db, NOT Mongoose) through the service wrappers for
  * byte-parity (tabs response, cursor encoding, transform shapes, FORCE_INDEX
  * hint, FCM payload, claim-lease semantics).
@@ -42,7 +42,7 @@ import { NoticesRateLimitMiddleware } from "./rate-limit/notices-rate-limit.midd
  *  - NoticesDispatchPollerService registers the safety-net cron sweep with the
  *    @Global SchedulingModule's PollerRegistry, env-gated on
  *    DISPATCH_SWEEP_ENABLED. The legacy lib/pollers registration from importing
- *    features/notices/notices.dispatch.poller is NOT imported here (would be
+ *    notices.dispatch.poller is NOT imported here (would be
  *    inert anyway), so this service is the single driver.
  *
  * Auth + rate-limit ordering (parity-critical): Express mounts

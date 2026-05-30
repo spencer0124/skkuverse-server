@@ -1,7 +1,7 @@
 import { Injectable, type NestMiddleware } from "@nestjs/common";
 import type { Request, Response, NextFunction } from "express";
-import admin from "../../lib/firebase";
-import config from "../../lib/config";
+import admin from "../infra/firebase";
+import config from "../infra/config";
 
 interface CachedToken {
   uid: string;

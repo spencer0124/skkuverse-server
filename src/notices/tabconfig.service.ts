@@ -6,10 +6,10 @@ import type {
   CategoryConfig,
   Tab,
   TabsResponse,
-} from "../../features/notices/types";
+} from "./types";
 
 /**
- * TabConfigService — NestJS port of features/notices/tabConfig.ts.
+ * TabConfigService — NestJS port of the notices tabConfig loader.
  *
  * Loads + validates categories.json and sources.json and pre-computes the
  * Object.freeze'd per-language tabs response served by GET /notices/tabs.
@@ -24,16 +24,16 @@ import type {
  * response. No `?? []` / typeof guard converts a throw into a silent skip
  * (per feedback_no_silent_defensive_narrowing).
  *
- * The JSON files are read from features/notices/ at runtime (dist staging is
- * handled by scripts/copy-build-assets.js next to the compiled features/*).
+ * The JSON files are read from src/notices/ at runtime (dist staging is
+ * handled by scripts/copy-build-assets.js next to the compiled src/*).
  */
 
-const CONFIG_DIR = path.join(__dirname, "..", "..", "features", "notices");
+const CONFIG_DIR = __dirname;
 
 // Element type of the picker tab's `sources` array. Byte-identical to the
 // shape built by the original tabConfig.ts (and structurally to the
 // `TabPickerSource` member of the shared `Tab` union in
-// features/notices/types.ts). Declared standalone — NOT derived via a
+// ./types.ts). Declared standalone — NOT derived via a
 // conditional/indexed access on `Tab` — to avoid perturbing TS's deferred
 // resolution of the `Tab` union across the program. Annotating the local
 // accumulator with it prevents an evolving `never[]` for `const sources = []`.
@@ -230,7 +230,7 @@ export class TabConfigService {
     this.loaded = true;
   }
 
-  // ── Helpers (ported from features/notices/tabConfig.ts) ──
+  // ── Helpers (ported from the notices tabConfig loader) ──
 
   /**
    * FAIL-LOUD: the original `fatal` does `console.error` + `process.exit(1)`.
