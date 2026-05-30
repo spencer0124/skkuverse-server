@@ -25,7 +25,9 @@
   },
   "include": [
     "__tests__/**/*.test.ts",
-    "jest.setup.ts"
+    "jest.setup.ts",
+    "__tests__/helpers/nest/build-bus-app.ts",
+    "src/types.d.ts"
   ],
   "exclude": [
     "node_modules",

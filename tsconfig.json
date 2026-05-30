@@ -15,6 +15,8 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "isolatedModules": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "sourceMap": true,
     "declaration": false,
     "skipLibCheck": true
@@ -23,6 +25,7 @@
     "index.ts",
     "lib/**/*",
     "features/**/*",
+    "src/**/*",
     "__tests__/helpers/**/*"
   ],
   "exclude": [
