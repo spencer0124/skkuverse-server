@@ -38,6 +38,9 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health/ready || exit 1
 
-# npm start의 prestart hook은 `npm run build`를 trigger하지만 runtime stage에
-# tsc 없음 → 실패. 직접 node로 호출해 hook 우회.
-CMD ["node", "dist/index.js"]
+# NestJS entrypoint (cutover 2026-05-30). dist/src/main.js handles the ROLE
+# branch (poller/api/combined) itself, same as the legacy dist/index.js did.
+# 직접 node로 호출 — npm start의 prestart(`npm run build`) hook은 runtime stage에
+# tsc가 없어 실패하므로 우회. (legacy Express entry dist/index.js는 아직 빌드되어
+# 남아 있으나 더 이상 실행되지 않음 — 완전 제거는 후속 inline/cleanup 라운드.)
+CMD ["node", "dist/src/main.js"]

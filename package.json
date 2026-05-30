@@ -2,17 +2,17 @@
   "name": "skkuverse-server",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
+  "main": "dist/src/main.js",
   "engines": {
     "node": ">=22.13.0"
   },
   "scripts": {
-    "start": "node dist/index.js",
+    "start": "node dist/src/main.js",
     "prestart": "npm run build",
-    "start:nest": "node dist/src/main.js",
+    "start:legacy-express": "node dist/index.js",
     "dev": "npm run build && NODE_ENV=development npm run dev:watch",
     "dev:prod-api": "npm run build && NODE_ENV=development USE_PROD_API=true npm run dev:watch",
-    "dev:watch": "concurrently -k \"tsc --watch --preserveWatchOutput\" \"nodemon --watch dist dist/index.js\"",
+    "dev:watch": "concurrently -k \"tsc --watch --preserveWatchOutput\" \"nodemon --watch dist dist/src/main.js\"",
     "build": "tsc && node scripts/copy-build-assets.js",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
     "test": "jest",
