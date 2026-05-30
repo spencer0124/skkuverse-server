@@ -76,6 +76,22 @@ export class AppConfigService {
     return { serviceAccount: config.firebase.serviceAccount };
   }
 
+  get app(): typeof config.app {
+    return config.app;
+  }
+
+  get building(): {
+    dbName: string | undefined;
+    collections: typeof config.building.collections;
+    syncIntervalMs: number;
+  } {
+    return {
+      dbName: config.building.dbName,
+      collections: config.building.collections,
+      syncIntervalMs: config.building.syncIntervalMs,
+    };
+  }
+
   getModeLabel(): string {
     return config.getModeLabel();
   }

@@ -4,6 +4,12 @@ import { DatabaseModule } from "./database/database.module";
 import { SchedulingModule } from "./scheduling/scheduling.module";
 import { HealthModule } from "./health/health.module";
 import { BusModule } from "./bus/bus.module";
+import { AppFeatureModule } from "./app/app-feature.module";
+import { UiModule } from "./ui/ui.module";
+import { SearchModule } from "./search/search.module";
+import { AdModule } from "./ad/ad.module";
+import { BuildingModule } from "./building/building.module";
+import { MapModule } from "./map/map.module";
 
 /**
  * Root module.
@@ -29,6 +35,12 @@ import { BusModule } from "./bus/bus.module";
     SchedulingModule,
     HealthModule,
     BusModule,
+    AppFeatureModule,
+    UiModule,
+    SearchModule,
+    AdModule,
+    BuildingModule,
+    MapModule,
   ],
 })
 export class AppModule {}
