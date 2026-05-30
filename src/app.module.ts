@@ -10,6 +10,7 @@ import { SearchModule } from "./search/search.module";
 import { AdModule } from "./ad/ad.module";
 import { BuildingModule } from "./building/building.module";
 import { MapModule } from "./map/map.module";
+import { NoticesModule } from "./notices/notices.module";
 
 /**
  * Root module.
@@ -41,6 +42,7 @@ import { MapModule } from "./map/map.module";
     AdModule,
     BuildingModule,
     MapModule,
+    NoticesModule,
   ],
 })
 export class AppModule {}
