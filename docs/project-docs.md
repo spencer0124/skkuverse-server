@@ -1342,8 +1342,8 @@ dev 서버 부팅이 stuck처럼 보였던 별개 incident가 있었음. 원인�
 
 # Jongro (종로02, 종로07) API
 
-> External API → `config.api.jongro07List`, `jongro07Loc`, `jongro02List`, `jongro02Loc`
-> Polling: 40초 간격 (`jongro.fetcher.js`)
+> External API → URLs composed at runtime from `config.api.seoulBusServiceKey` + per-route `busRouteId` in `features/bus/jongro-routes.json` via `features/bus/jongro.registry.ts` (`buildJongroListUrl` / `buildJongroLocUrl`)
+> Polling: 40초 간격 (`jongro.fetcher.ts`)
 
 ## API 종류
 
@@ -1507,13 +1507,16 @@ dev 서버 부팅이 stuck처럼 보였던 별개 incident가 있었음. 원인�
 
 ### Endpoints We Use
 
+Single shared TOPIS service key drives every Jongro route. Per-route URLs
+are composed at runtime from `SEOUL_BUS_SERVICE_KEY` + `busRouteId` in
+`features/bus/jongro-routes.json` (`buildJongroListUrl` / `buildJongroLocUrl`
+in `features/bus/jongro.registry.ts`). Adding a route = one JSON entry.
+
 | # | Env Var | Purpose | Old Server (ec2-snapshot) | New Server (main) |
 |---|---------|---------|--------------------------|-------------------|
-| 1 | `API_JONGRO07_LIST_PROD` | Jongro 07 arrival info (all stops) | 15s | 40s |
-| 2 | `API_JONGRO02_LIST_PROD` | Jongro 02 arrival info (all stops) | 15s | 40s |
-| 3 | `API_JONGRO07_LOC_PROD` | Jongro 07 bus GPS positions | 15s | 40s |
-| 4 | `API_JONGRO02_LOC_PROD` | Jongro 02 bus GPS positions | 15s | 40s |
-| 5 | `API_STATION_HEWA` | Hyehwa station bus arrival | 15s | 40s |
+| 1 | `SEOUL_BUS_SERVICE_KEY` (composes /arrive/getArrInfoByRouteAll per route) | Per-route arrival info (all stops) — currently jongro02, jongro07 | 15s | 40s |
+| 2 | `SEOUL_BUS_SERVICE_KEY` (composes /buspos/getBusPosByRouteSt per route) | Per-route bus GPS positions — currently jongro02, jongro07 | 15s | 40s |
+| 3 | `API_STATION_HEWA` | Hyehwa station bus arrival | 15s | 40s |
 
 ### Daily Usage Calculation
 

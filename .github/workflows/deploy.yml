@@ -50,15 +50,15 @@ jobs:
             docker compose build
 
             # --- Pre-deploy config validation ---
-            # Dry-load lib/config.js inside the freshly-built image with the
+            # Dry-load src/infra/config.js inside the freshly-built image with the
             # VM's .env (inherited via env_file in docker-compose.yml). If
-            # any required env var is missing, lib/config calls process.exit(1),
+            # any required env var is missing, src/infra/config calls process.exit(1),
             # this command returns non-zero, and we abort the deploy BEFORE
             # touching running containers. Clean git revert — no crash loop,
             # no rolling update, no rollback function needed.
             echo "=== Pre-deploy config validation ==="
             if ! docker compose run --rm --no-deps -T api-1 \
-                 node -e "require('./dist/lib/config'); console.log('config ok')"; then
+                 node -e "require('./dist/src/infra/config'); console.log('config ok')"; then
               echo "ERROR: production config validation failed — aborting deploy."
               echo "       See the FATAL error above for the missing env var(s)."
               git checkout "$PREV_COMMIT"

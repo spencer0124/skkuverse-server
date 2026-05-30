@@ -3,7 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
 
-    // tsconfig.test.json은 테스트 본체만 typecheck. .ts로 변환된 38개 .test.ts와
+    // tsconfig.test.json은 테스트 본체만 typecheck. __tests__/nest/**의 .test.ts와
     // jest.setup.ts가 대상. helpers/**/*.ts는 root tsconfig.json에서 이미 typecheck.
 
     // 테스트는 narrow 부담 ↓ — `mock.calls[0][0]` 같은 indexed access에서 매번
@@ -25,7 +25,9 @@
   },
   "include": [
     "__tests__/**/*.test.ts",
-    "jest.setup.ts"
+    "jest.setup.ts",
+    "__tests__/helpers/nest/build-bus-app.ts",
+    "src/types.d.ts"
   ],
   "exclude": [
     "node_modules",

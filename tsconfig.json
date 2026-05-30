@@ -15,14 +15,14 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "isolatedModules": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "sourceMap": true,
     "declaration": false,
     "skipLibCheck": true
   },
   "include": [
-    "index.ts",
-    "lib/**/*",
-    "features/**/*",
+    "src/**/*",
     "__tests__/helpers/**/*"
   ],
   "exclude": [
@@ -30,7 +30,6 @@
     "dist",
     "coverage",
     "scripts/**/*",
-    "swagger/**/*",
     "__tests__/**/*.test.ts"
   ]
 }

@@ -21,10 +21,9 @@ const defaults: Record<string, string> = {
   NAVER_API_KEY: "test-naver-key",
   NAVER_MAP_STYLE_ID: "test-naver-style",
   API_HSSC_NEW_PROD: "http://test-hssc",
-  API_JONGRO07_LIST_PROD: "http://test-jongro07-list",
-  API_JONGRO02_LIST_PROD: "http://test-jongro02-list",
-  API_JONGRO07_LOC_PROD: "http://test-jongro07-loc",
-  API_JONGRO02_LOC_PROD: "http://test-jongro02-loc",
+  // Shape-validated by jongro.registry.validateServiceKey: matches
+  // /^[A-Za-z0-9_%-]+$/ (the URL-encoded-form check). Hyphen is OK.
+  SEOUL_BUS_SERVICE_KEY: "test-seoul-bus-key",
   API_STATION_HEWA: "http://test-station",
   MONGO_DB_NAME_INJA_WEEKDAY: "INJA_weekday",
   MONGO_DB_NAME_INJA_FRIDAY: "INJA_friday",

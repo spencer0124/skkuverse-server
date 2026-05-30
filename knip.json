@@ -1,7 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "index.{js,ts}",
     "scripts/**/*.js",
     "__tests__/**/*.test.{js,ts}"
   ],

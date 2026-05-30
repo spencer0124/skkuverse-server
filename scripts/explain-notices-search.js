@@ -21,8 +21,8 @@
  * Exits 0 on PASS, 1 on FAIL, 2 on connection / data error.
  */
 
-const config = require("../lib/config");
-const { getClient, closeClient } = require("../lib/db");
+const config = require("../src/infra/config");
+const { getClient, closeClient } = require("../src/infra/db");
 
 const SEARCH_TERM = "공지"; // 매치 보장 한국어 (no zero-result false-fail)
 const TYPE_FILTER = "action_required"; // typically <10% selectivity
