@@ -22,7 +22,7 @@
     "verify:serve:down": "docker compose -f docker-compose.yml -f docker-compose.local-verify.yml down"
   },
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "@logtail/pino": "0.5.8",
     "@nestjs/common": "11.1.24",

@@ -1,14 +1,14 @@
 # skkuverse-server
 
-![Node.js](https://img.shields.io/badge/Node.js-22+-339933?logo=node.js&logoColor=white)
-![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-7.x-47A248?logo=mongodb&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase-Admin-FFCA28?logo=firebase&logoColor=black)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![Jest](https://img.shields.io/badge/Tested_with-Jest-C21325?logo=jest&logoColor=white)
-![ESLint](https://img.shields.io/badge/ESLint-0_errors-4B32C3?logo=eslint&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-22_LTS-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Jest](https://img.shields.io/badge/Jest-368_tests-C21325?style=for-the-badge&logo=jest&logoColor=white)
+![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)
 
-> Backend API server for **skkuverse** — a campus companion for Sungkyunkwan University (성균관대학교). Serves real-time shuttle ETAs, building search, map config, server-driven UI, ads, and notice aggregation/dispatch.
+> Production API server powering **[skkuverse](https://skkuverse.com)** — real-time campus shuttle tracking, AI-summarized department notices across 147 sources, and building search for Sungkyunkwan University students.
 
 ---
 
@@ -25,7 +25,7 @@ What the app shows users (and what this server provides):
 
 - **Real-time shuttle bus positions** — HSSC campus shuttle (10s polling)
 - **City bus arrivals** — 종로02 / 종로07 (15s polling)
-- **Campus shuttle schedules** — Inja–Jain intercampus (weekday / Friday / weekend)
+- **Campus shuttle schedules** — Inja–Jain intercampus (weekday / Friday / weekend), no-service on Korean public holidays and SKKU rest days
 - **Bus stop arrival ETA** — 혜화역 (15s polling)
 - **Building & space search** — SKKU campus map
 - **Server-driven UI** — home screen lists / sections / map config
@@ -38,16 +38,16 @@ What the app shows users (and what this server provides):
 
 | Layer | Technology |
 |---|---|
-| Runtime | Node.js ≥ 22 |
-| Framework | Express 4 |
+| Runtime | Node.js ≥ 22 (LTS) |
+| Language | TypeScript (`strict`, `noUncheckedIndexedAccess`) |
+| Framework | NestJS 11 |
 | Database | MongoDB 7 (native driver) |
 | Auth | Firebase Admin SDK (optional, with 5-min token cache) |
 | Security | Helmet, express-rate-limit, pino-http (request-id) |
 | HTTP client | Axios (external API polling) |
 | Date/time | moment-timezone (`Asia/Seoul`) |
-| API docs | Swagger (swagger-autogen + swagger-ui-express, non-prod only) |
-| Testing | Jest + Supertest (500 tests, 32 suites) |
-| Linting | ESLint |
+| Testing | Jest + Supertest (368 tests, 34 suites) |
+| Linting | ESLint (0 errors + 0 warnings enforced) |
 | Container | Docker + Docker Compose (3 services) |
 
 ---
@@ -56,35 +56,29 @@ What the app shows users (and what this server provides):
 
 ```
 skkuverse-server/
-├── index.js              # Entry point: routes, startup, graceful shutdown
-├── lib/
-│   ├── config.js         # Env loading & startup validation (process.exit on missing)
-│   ├── db.js             # MongoDB singleton client
-│   ├── pollers.js        # Background polling registry with in-flight guard
-│   ├── asyncHandler.js   # Wraps async route handlers
-│   ├── authMiddleware.js # Firebase token verification (optional, cached)
-│   ├── langMiddleware.js # Accept-Language parser → req.lang
-│   ├── responseHelper.js # res.success / res.error envelope helpers
-│   ├── i18n.js           # Server-generated translation map
-│   ├── logger.js         # pino logger setup
-│   ├── firebase.js       # Firebase Admin initialization
-│   └── busCache.js       # MongoDB-backed shared cache (poller ↔ api)
-├── features/
-│   ├── ad/               # Ad placements + impression/click events
-│   ├── app/              # App version gate (iOS/Android min/update URL)
-│   ├── building/         # Building search + sync poller
-│   ├── bus/              # HSSC shuttle, 종로02/07, schedules, route overlays, config
-│   ├── map/              # Map config, markers, overlays
-│   ├── notices/          # 147-source feed, tab config, dispatch (FCM trigger)
-│   ├── search/           # Building & space free-text search
-│   ├── station/          # 혜화역 arrival info
-│   └── ui/               # SDUI fragments (bus list, campus list, scroll config)
-├── __tests__/            # Jest tests with mocked externals
-├── docs/                 # Architecture decisions, runbooks
-├── scripts/              # One-off migration + data-collection utilities
-├── infra/nginx/          # Nginx site configs deployed by CI/CD
-├── swagger/              # Swagger autogen config & output
-└── docker-compose.yml    # poller + api-1 (3001) + api-2 (3002)
+├── src/
+│   ├── main.ts               # Entry point: bootstrap NestJS app
+│   ├── app.module.ts         # Root module
+│   ├── config/               # Env validation + ConfigModule wiring
+│   ├── infra/                # Shared infra (db, firebase, i18n, logger)
+│   ├── common/               # Auth middleware, rate-limit, response interceptor
+│   ├── health/               # /health + /health/ready
+│   ├── scheduling/           # Poller registry service (in-flight guard)
+│   ├── bus/                  # HSSC shuttle, jongro, campus ETA, schedules, station
+│   ├── notices/              # 147-source feed, tabs, FCM dispatch, internal endpoint
+│   ├── search/               # Building & space free-text search
+│   ├── ad/                   # Ad placements + impression/click events
+│   ├── building/             # Building detail + sync poller
+│   ├── map/                  # Map config, markers, overlays
+│   ├── app/                  # App version gate (iOS/Android min/update URL)
+│   └── ui/                   # SDUI fragments (bus list, campus list, scroll config)
+├── __tests__/
+│   ├── nest/                 # Jest integration tests (34 suites, 368 tests)
+│   └── helpers/              # Shared mock factories + mini-app builders
+├── docs/                     # Architecture decisions, runbooks
+├── scripts/                  # One-off migration + data-collection utilities
+├── infra/nginx/              # Nginx site configs deployed by CI/CD
+└── docker-compose.yml        # poller + api-1 (3001) + api-2 (3002)
 ```
 
 ---
@@ -93,7 +87,7 @@ skkuverse-server/
 
 ### Prerequisites
 
-- Node.js ≥ 22 (`.nvmrc`에 명시; `nvm use`로 정렬)
+- Node.js ≥ 22 (`.nvmrc`; run `nvm use` to align)
 - A running MongoDB instance (Atlas in production, local for dev)
 - A `.env` file (see below). Missing required vars cause `process.exit(1)` at startup.
 
@@ -103,7 +97,7 @@ skkuverse-server/
 # Install dependencies
 npm install
 
-# Development mode (dev DB + dev API, live reload)
+# Development mode (TypeScript build + live reload; dev DB + dev API)
 npm run dev
 
 # Staging check (dev DB + production API)
@@ -125,7 +119,7 @@ Runs 3 services on the same image: `poller` (no HTTP), `api-1` (127.0.0.1:3001),
 
 ## Environment Variables
 
-Required at startup (missing any one → `process.exit(1)`). Optional ones marked `(opt)`. See `lib/config.js` for the canonical list.
+Required at startup (missing any one → `process.exit(1)`). Optional ones marked `(opt)`. See `src/config/env.validation.ts` for the canonical list.
 
 ```env
 # --- MongoDB ---
@@ -146,7 +140,7 @@ API_HSSC_NEW_PROD=https://...
 API_HSSC_NEW_DEV=https://...           # (opt — falls back to PROD if missing)
 # Shared Seoul TOPIS service key (URL-encoded form). Jongro per-route URLs
 # are composed at runtime from this key + busRouteId in
-# features/bus/jongro-routes.json. Adding a Jongro route = JSON entry, no
+# src/bus/registry/jongro-routes.json. Adding a Jongro route = JSON entry, no
 # new env vars.
 SEOUL_BUS_SERVICE_KEY=...               # URL-encoded — see .env.example
 API_STATION_HEWA=https://...
@@ -189,7 +183,6 @@ Every successful response uses the envelope `{ meta: { lang, ... }, data: ... }`
 |---|---|---|---|
 | GET | `/health` | — | Liveness |
 | GET | `/health/ready` | — | Readiness (DB ping + poller running, unless `ROLE=api`) |
-| GET | `/api-docs` | — | Swagger UI (non-production only) |
 
 ### Search
 | Method | Path | Auth | Description |
@@ -262,9 +255,10 @@ Behind Nginx with TLS via Cloudflare. Deployed to Oracle Cloud Free Tier VM by `
 ## Running Tests
 
 ```bash
-npm test          # all tests with coverage (500 tests, 32 suites)
-npx jest __tests__/hssc-transform.test.js  # single file
-npm run lint      # ESLint (0 errors expected)
+npm test              # all tests with coverage (368 tests, 34 suites)
+npx jest __tests__/nest/bus/schedule.routes.test.ts  # single file
+npm run lint          # ESLint (0 errors + 0 warnings expected)
+npm run typecheck     # tsc --noEmit for both src and test tsconfigs
 ```
 
 ---
@@ -275,10 +269,9 @@ npm run lint      # ESLint (0 errors expected)
 - **`docs/notices-api-architecture.md`** — notices feature design, dispatch flow, incident retrospective
 - **`docs/cicd-and-branch-protection.md`** — deploy pipeline, branch rules, nginx config
 - **`docs/project-docs.md`** — endpoint index + design notes
-- **`features/notices/README.md`** — notices module README
 
 ---
 
 ## License
 
-ISC
+[Apache License 2.0](LICENSE) — Copyright 2024-2026 spencer0124
