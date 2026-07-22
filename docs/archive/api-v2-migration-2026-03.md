@@ -1,3 +1,12 @@
+---
+title: API Migration v2 — Client Update Guide (Historical)
+type: explanation
+status: superseded
+owner: zoyoong124@gmail.com
+last-updated: 2026-03-31
+audience: internal
+---
+
 # API Migration v2 — Client Update Guide *(Historical — 2026-03)*
 
 > ⚠ **2026-03 시점의 API 마이그레이션 기록.** 응답 envelope을 `{metaData, dataItems}` → `{meta, data}`로 통일하고 라우트를 v2 모양으로 정리한 작업의 historical record. 현재 API 모양은 이미 v2이며, 본 문서의 "Flutter" 언급은 *당시의 legacy client*를 가리킨다 — 현재 클라이언트는 `skkuverse-app` (React Native + Expo + TypeScript).

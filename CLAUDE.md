@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> [!WARNING]
+> **일부 섹션(특히 `## Architecture` Directory Layout)이 Express 레이아웃을 서술한다 — stale.** 2026-05-31 NestJS 이관으로 `index.js`·`lib/`·`features/*.js`는 삭제됐고 현행은 `src/` (NestJS 모듈/컨트롤러/서비스). 코드 구조의 현행 진실은 `README.md`와 `src/`다. 이 파일의 NestJS 전면 재작성은 backlog — 문서 인덱스·규칙은 [docs/README.md](docs/README.md) 참조.
+
 ## Commands
 
 - `npm run dev` — Development mode (dev DB + dev API, with nodemon)

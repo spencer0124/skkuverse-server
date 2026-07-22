@@ -1,4 +1,16 @@
+---
+title: 프로젝트 문서 (통합 인덱스 · 미이관)
+type: reference
+status: deprecated
+owner: zoyoong124@gmail.com
+last-updated: 2026-07-22
+audience: internal
+---
+
 # skkuverse-server 프로젝트 문서
+
+> [!WARNING]
+> **미이관 레거시 문서 — Express 레이아웃 drift 있음.** 이 문서의 파일 맵·코드 샘플은 2026-05-31 NestJS 이관 이전(`features/*.js`·`lib/*.js`·`index.js`)을 서술한다. 현행 코드는 `src/`. 설계 *의도*는 참고용으로 유효하나 경로는 신뢰하지 말 것. 분해 계획은 [docs/README.md](README.md) "이관 backlog" 참조. bus/building/외부 API의 유일한 문서라 아직 남아 있다.
 
 > 운영 중인 deployment / external API / building data 가이드의 통합 인덱스. 원본은 15개 개별 문서를 2026-03-28에 한 파일로 통합한 것.
 >

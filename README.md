@@ -265,10 +265,10 @@ npm run typecheck     # tsc --noEmit for both src and test tsconfigs
 
 ## Further Reading
 
-- **`CLAUDE.md`** — guidance for Claude Code (file structure, patterns, env vars, ecosystem boundaries)
-- **`docs/notices-api-architecture.md`** — notices feature design, dispatch flow, incident retrospective
-- **`docs/cicd-and-branch-protection.md`** — deploy pipeline, branch rules, nginx config
-- **`docs/project-docs.md`** — endpoint index + design notes
+- **`docs/README.md`** — documentation index & conventions (Diátaxis structure, frontmatter schema, writing rules). Start here.
+- **`docs/reference/notices-api.md`**, **`docs/explanation/notices-architecture.md`**, **`docs/decisions/`** — the notices feature, fully documented (contract, design rationale, ADRs, incident postmortem)
+- **`CLAUDE.md`** — guidance for Claude Code (some Architecture sections are pre-NestJS, see the banner there)
+- **`docs/cicd-and-branch-protection.md`**, **`docs/project-docs.md`** — legacy docs pending migration (see backlog in `docs/README.md`)
 
 ---
 
