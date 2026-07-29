@@ -8,6 +8,7 @@ const assets = [
   // notices/tabConfig + notices/sources read these with fs.readFileSync(__dirname/<name>)
   ["src/notices/categories.json", "dist/src/notices/categories.json"],
   ["src/notices/sources.json", "dist/src/notices/sources.json"],
+  ["src/notices/exclude-reasons.json", "dist/src/notices/exclude-reasons.json"],
   // holiday-calendar reads this with fs.readFileSync(__dirname/<name>)
   ["src/bus/schedule/skku-rest-days.json", "dist/src/bus/schedule/skku-rest-days.json"],
   // jongro.registry reads this with fs.readFileSync(__dirname/<name>)

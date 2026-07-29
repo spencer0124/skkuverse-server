@@ -239,6 +239,10 @@ function buildTabsResponse(lang: "ko" | "en"): TabsResponse {
           college: source.college ?? null,
           noticeAvailable: source.crawlAvailable ?? true,
           excludeReason: source.excludeReason ?? null,
+          // Localized copy is resolved by TabConfigService (the served
+          // response). This legacy builder's response is never served —
+          // notices.topics imports only `categories` from this module.
+          excludeReasonText: null,
         });
       }
 
