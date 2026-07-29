@@ -1502,7 +1502,7 @@
     "college": "공과대학",
     "appCategory": "dept",
     "crawlAvailable": false,
-    "excludeReason": "temporarilyUnavailable",
+    "excludeReason": "siteUnreachable",
     "hasCategory": false,
     "hasAuthor": false
   },
@@ -1601,7 +1601,7 @@
     "college": "공과대학",
     "appCategory": "dept",
     "crawlAvailable": false,
-    "excludeReason": "temporarilyUnavailable",
+    "excludeReason": "siteUnreachable",
     "hasCategory": false,
     "hasAuthor": true
   },
