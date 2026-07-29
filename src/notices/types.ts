@@ -127,6 +127,8 @@ interface TabPickerSource {
   college: string | null;
   noticeAvailable: boolean;
   excludeReason: string | null;
+  /** Localized reason copy resolved server-side from exclude-reasons.json. */
+  excludeReasonText: string | null;
 }
 interface TabPicker {
   key: string;

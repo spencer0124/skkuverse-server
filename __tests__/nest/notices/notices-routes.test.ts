@@ -107,6 +107,46 @@ describe("GET /notices/tabs", () => {
     expect(deptTab.label).toBe("Department");
   });
 
+  it("unavailable picker sources carry server-resolved excludeReasonText", async () => {
+    // Uses the real committed sources.json / exclude-reasons.json: cheme is
+    // retired with excludeReason "temporarilyUnavailable".
+    const res = await request(httpServer).get("/notices/tabs");
+    const deptTab = res.body.data.tabs.find(
+      (t: { key: string }) => t.key === "dept",
+    );
+    const cheme = deptTab.picker.sources.find(
+      (s: { id: string }) => s.id === "cheme",
+    );
+    expect(cheme.noticeAvailable).toBe(false);
+    expect(cheme.excludeReason).toBe("temporarilyUnavailable");
+    expect(cheme.excludeReasonText).toBe("잠시 점검 중이에요");
+  });
+
+  it("excludeReasonText is localized per response language", async () => {
+    const res = await request(httpServer)
+      .get("/notices/tabs")
+      .set("Accept-Language", "en");
+    const deptTab = res.body.data.tabs.find(
+      (t: { key: string }) => t.key === "dept",
+    );
+    const cheme = deptTab.picker.sources.find(
+      (s: { id: string }) => s.id === "cheme",
+    );
+    expect(cheme.excludeReasonText).toBe("Temporarily under maintenance");
+  });
+
+  it("available picker sources have null excludeReasonText", async () => {
+    const res = await request(httpServer).get("/notices/tabs");
+    const deptTab = res.body.data.tabs.find(
+      (t: { key: string }) => t.key === "dept",
+    );
+    const available = deptTab.picker.sources.find(
+      (s: { noticeAvailable: boolean }) => s.noticeAvailable,
+    );
+    expect(available.excludeReason).toBeNull();
+    expect(available.excludeReasonText).toBeNull();
+  });
+
   it("fixed tabs have tagged payload with sourceId, name, campus", async () => {
     const res = await request(httpServer).get("/notices/tabs");
     const academic = res.body.data.tabs.find(
