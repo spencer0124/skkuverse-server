@@ -12,6 +12,8 @@
  * from sendSuccess (controller @Res()), byte-identical to res.success.
  */
 
+import fs from "fs";
+import path from "path";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
 import { ObjectId } from "mongodb";
@@ -107,9 +109,18 @@ describe("GET /notices/tabs", () => {
     expect(deptTab.label).toBe("Department");
   });
 
+  // exclude-reasons.json is the SSOT for reason copy — assert against it
+  // instead of literal strings so data-only sync PRs can't break the suite
+  // (docs/README.md 값 복사 금지 rule, applied to tests).
+  const excludeReasonMap = JSON.parse(
+    fs.readFileSync(
+      path.join(__dirname, "../../../src/notices/exclude-reasons.json"),
+      "utf8",
+    ),
+  ) as Record<string, { ko: string; en?: string }>;
+
   it("unavailable picker sources carry server-resolved excludeReasonText", async () => {
-    // Uses the real committed sources.json / exclude-reasons.json: cheme is
-    // retired with excludeReason "temporarilyUnavailable".
+    // Uses the real committed sources.json: cheme is a retired source.
     const res = await request(httpServer).get("/notices/tabs");
     const deptTab = res.body.data.tabs.find(
       (t: { key: string }) => t.key === "dept",
@@ -118,8 +129,10 @@ describe("GET /notices/tabs", () => {
       (s: { id: string }) => s.id === "cheme",
     );
     expect(cheme.noticeAvailable).toBe(false);
-    expect(cheme.excludeReason).toBe("temporarilyUnavailable");
-    expect(cheme.excludeReasonText).toBe("잠시 점검 중이에요");
+    expect(typeof cheme.excludeReason).toBe("string");
+    expect(cheme.excludeReasonText).toBe(
+      excludeReasonMap[cheme.excludeReason].ko,
+    );
   });
 
   it("excludeReasonText is localized per response language", async () => {
@@ -132,7 +145,9 @@ describe("GET /notices/tabs", () => {
     const cheme = deptTab.picker.sources.find(
       (s: { id: string }) => s.id === "cheme",
     );
-    expect(cheme.excludeReasonText).toBe("Temporarily under maintenance");
+    expect(cheme.excludeReasonText).toBe(
+      excludeReasonMap[cheme.excludeReason].en,
+    );
   });
 
   it("available picker sources have null excludeReasonText", async () => {
