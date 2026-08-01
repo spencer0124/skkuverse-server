@@ -11,6 +11,7 @@ import { AdModule } from "./ad/ad.module";
 import { BuildingModule } from "./building/building.module";
 import { MapModule } from "./map/map.module";
 import { NoticesModule } from "./notices/notices.module";
+import { MiniAppsModule } from "./miniapps/miniapps.module";
 
 /**
  * Root module.
@@ -43,6 +44,7 @@ import { NoticesModule } from "./notices/notices.module";
     BuildingModule,
     MapModule,
     NoticesModule,
+    MiniAppsModule,
   ],
 })
 export class AppModule {}

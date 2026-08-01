@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { t } from "../../infra/i18n";
+import { WEBVIEW_ORIGIN } from "../../infra/origins";
 import type { SupportedLang } from "../../infra/types";
 import { HSSCStations } from "./hssc.stations";
 import { jongroRoutes, type JongroRoute } from "../registry/jongro-registry";
@@ -85,7 +86,7 @@ function getBusGroups(lang: SupportedLang = "ko") {
         stations: mapStations(HSSCStations),
         routeOverlay: null,
         features: [
-          { type: "info", url: "https://webview.skkuuniverse.com/#/bus/hssc/info" },
+          { type: "info", url: `${WEBVIEW_ORIGIN}/#/bus/hssc/info` },
         ],
       },
     },
@@ -125,7 +126,7 @@ function getBusGroups(lang: SupportedLang = "ko") {
           { id: "hakbu", label: t("busconfig.badge.hakbu", lang), color: "1565C0" },
         ],
         features: [
-          { type: "info", url: "https://webview.skkuuniverse.com/#/bus/campus/info" },
+          { type: "info", url: `${WEBVIEW_ORIGIN}/#/bus/campus/info` },
         ],
       },
     },

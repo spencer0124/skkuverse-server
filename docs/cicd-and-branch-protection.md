@@ -1,4 +1,16 @@
+---
+title: CI/CD 및 브랜치 보호 전략 (미이관)
+type: reference
+status: deprecated
+owner: zoyoong124@gmail.com
+last-updated: 2026-07-22
+audience: internal
+---
+
 # CI/CD 및 브랜치 보호 전략
+
+> [!WARNING]
+> **미이관 레거시 문서.** NestJS 이관 이전에 작성됨 — 일부 경로·명령이 stale할 수 있다. 현행 진실은 `.github/workflows/`와 `README.md`. 분해 계획은 [docs/README.md](README.md) "이관 backlog".
 
 ## 워크플로우 구성
 

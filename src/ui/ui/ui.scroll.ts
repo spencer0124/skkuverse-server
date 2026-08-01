@@ -1,4 +1,5 @@
 import { t } from "../../infra/i18n";
+import { WEBVIEW_ORIGIN } from "../../infra/origins";
 import type { SupportedLang } from "../../infra/types";
 
 function getScrollComponent(lang: SupportedLang = "ko") {
@@ -22,8 +23,7 @@ function getScrollComponent(lang: SupportedLang = "ko") {
       icon: "Icons.bus_alert",
       pageLink: "/webview",
       color: "003626",
-      pageWebviewLink:
-        "https://webview.skkuuniverse.com/#/skku/lostandfound",
+      pageWebviewLink: `${WEBVIEW_ORIGIN}/#/skku/lostandfound`,
       altPageLink:
         "https://www.skku.edu/skku/campus/support/lost_and_found_2.do",
       useAltPageLink: false,
