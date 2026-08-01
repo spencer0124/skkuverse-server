@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "miniApps": [
+    {
+      "id": "hssc",
+      "name": "인사캠 총학생회",
+      "shortName": "인사캠 총학",
+      "order": 10,
+      "logo": { "kind": "remote", "path": "/miniapps/hssc.png" }
+    },
+    {
+      "id": "nsc",
+      "name": "자과캠 총학생회",
+      "shortName": "자과캠 총학",
+      "order": 20,
+      "logo": { "kind": "remote", "path": "/miniapps/nsc.png" }
+    },
+    {
+      "id": "skkuw",
+      "name": "성대신문",
+      "order": 30,
+      "logo": { "kind": "remote", "path": "/miniapps/skkuw.png" }
+    },
+    {
+      "id": "skkuzine",
+      "name": "성균웹진",
+      "order": 40,
+      "logo": { "kind": "remote", "path": "/miniapps/skkuzine.png" }
+    }
+  ]
+}
