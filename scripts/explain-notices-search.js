@@ -8,10 +8,18 @@
  *   - executionTimeMillis budget
  *   - selectivity (keysExamined / nReturned ratio)
  *
- * 3 cases (worst-case coverage):
- *   1) single source + q              — fixed-tab search
- *   2) multi-source $in (5 src) + q   — picker-tab worst case
- *   3) single source + q + type       — selective summaryType filter
+ * 5 cases (worst-case coverage):
+ *   1) single source + q               — fixed-tab search
+ *   2) multi-source $in (5 src) + q    — picker-tab worst case
+ *   3) single source + q + type        — selective summaryType filter
+ *   4) multi-source $in (20 src) + q   — app "전체" scope, matching term
+ *   5) multi-source $in (20 src) + q'  — same, term matching NOTHING
+ *
+ * Cases 4–5 gate the sourceIds cap raise 5 → 20 (notices.controller.ts
+ * MAX_MULTI_SOURCE_IDS). Case 5 is the one that matters: the regex is a
+ * post-filter, not index-covered, so a term with no matches forces the scan
+ * to exhaust all 20 merge-sorted index branches instead of short-circuiting
+ * once `limit` rows accumulate. A passing case 4 says nothing about case 5.
  *
  * Run:
  *   cd skkuverse-server
@@ -25,8 +33,15 @@ const config = require("../src/infra/config");
 const { getClient, closeClient } = require("../src/infra/db");
 
 const SEARCH_TERM = "공지"; // 매치 보장 한국어 (no zero-result false-fail)
+// Deliberately unmatchable — the worst case for a wide $in, because the scan
+// cannot stop early. Kept ASCII+Hangul nonsense so no future notice can
+// accidentally start matching it and silently turn this into a soft case.
+const NO_MATCH_TERM = "zzqx없는검색어zzqx";
 const TYPE_FILTER = "action_required"; // typically <10% selectivity
 const LIMIT = 21;
+// Mirrors NoticesController.MAX_MULTI_SOURCE_IDS. If that changes, change
+// this — the point of the case is to measure the contract's actual ceiling.
+const MAX_MULTI_SOURCE_IDS = 20;
 
 // MUST stay in sync with notices.search.js (Phase 1) — single source of truth
 // will live there once Phase 1 lands. For 0a, replicate the regex escape.
@@ -87,7 +102,7 @@ async function main() {
       { $match: { isDeleted: { $ne: true } } },
       { $group: { _id: "$sourceId", n: { $sum: 1 } } },
       { $sort: { n: -1 } },
-      { $limit: 5 },
+      { $limit: MAX_MULTI_SOURCE_IDS },
     ])
     .toArray();
 
@@ -99,9 +114,18 @@ async function main() {
 
   const top1 = busiest[0]._id;
   const top1Count = busiest[0].n;
-  const top5 = busiest.map((b) => b._id);
+  const topN = busiest.map((b) => b._id);
+  const top5 = topN.slice(0, 5);
   console.log(`> busiest source: ${top1} (${top1Count} docs)`);
   console.log(`> top5 sources: ${top5.join(", ")}`);
+  console.log(`> top${topN.length} sources (전체 scope stand-in): ${topN.join(", ")}`);
+  if (topN.length < MAX_MULTI_SOURCE_IDS) {
+    // Not fatal, but the 20-source cases are then measuring less than the
+    // contract allows — say so rather than let a green run over-promise.
+    console.log(
+      `⚠ only ${topN.length} sources have notices; cases 4-5 under-measure the ${MAX_MULTI_SOURCE_IDS}-source ceiling`,
+    );
+  }
 
   // Inventory all indexes — surfacing any index the app didn't declare
   // so we know what choices the planner has.
@@ -137,6 +161,16 @@ async function main() {
         type: TYPE_FILTER,
         q: SEARCH_TERM,
       }),
+      hint: HINT_4KEY,
+    },
+    // Cap-raise gate (5 → 20). See header note: the no-match variant is the
+    // real test, since it cannot short-circuit on `limit`.
+    multiIn20: {
+      filter: buildFilter({ sourceIds: topN, q: SEARCH_TERM }),
+      hint: HINT_4KEY,
+    },
+    multiIn20NoMatch: {
+      filter: buildFilter({ sourceIds: topN, q: NO_MATCH_TERM }),
       hint: HINT_4KEY,
     },
   };

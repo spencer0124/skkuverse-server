@@ -256,6 +256,22 @@ export class NoticesController {
 
   // GET /notices?sourceIds=cs,sw&limit=20&type=…&cursor=…&q=…
   // Multi-source merged list — uses the existing compound index via $in.
+  //
+  // The cap was originally 5, mirroring the largest picker tab's
+  // `maxSelection` in categories.json — the endpoint only ever served one
+  // picker tab's selection at a time. The app's search screen now offers an
+  // "전체" scope that unions every tab the user follows (5 fixed tabs + each
+  // picker's effective selection), which is ~8 by default and 20 if every
+  // picker is filled to its max. 20 is that ceiling, not a round number.
+  //
+  // Cost scales with the id count: $in makes one index-scan branch per
+  // source and MongoDB merge-sorts them. The `q` regex is NOT index-covered
+  // (post-filter on scanned docs), so a query matching little walks deep down
+  // every branch — that is the case the cap protects. Re-run
+  // `scripts/explain-notices-search.js` (multiIn20 / multiIn20NoMatch) before
+  // raising this further.
+  private static readonly MAX_MULTI_SOURCE_IDS = 20;
+
   @Get()
   async multi(
     @Query("sourceIds") sourceIdsQuery: unknown,
@@ -273,10 +289,11 @@ export class NoticesController {
       .split(",")
       .map((s: string) => s.trim())
       .filter(Boolean);
-    if (rawIds.length === 0 || rawIds.length > 5) {
+    const maxIds = NoticesController.MAX_MULTI_SOURCE_IDS;
+    if (rawIds.length === 0 || rawIds.length > maxIds) {
       throw new AppError(
         "INVALID_PARAMS",
-        "sourceIds: 1-5 comma-separated source IDs required",
+        `sourceIds: 1-${maxIds} comma-separated source IDs required`,
         400,
       );
     }
