@@ -1,0 +1,26 @@
+{
+  "loginRequired": {
+    "ko": "로그인이 필요한 사이트라 공지를 가져올 수 없어요",
+    "en": "Their site requires login, so we can't fetch notices"
+  },
+  "noWebsite": {
+    "ko": "아직 공식 사이트가 없어요",
+    "en": "They don't have an official site yet"
+  },
+  "externalSystem": {
+    "ko": "외부 시스템을 사용해서 가져올 수 없어요",
+    "en": "Their site uses an external system we can't reach"
+  },
+  "accessRestricted": {
+    "ko": "학내망에서만 볼 수 있어요",
+    "en": "Available only on the campus network"
+  },
+  "temporarilyUnavailable": {
+    "ko": "잠시 점검 중이에요",
+    "en": "Temporarily under maintenance"
+  },
+  "siteUnreachable": {
+    "ko": "학과 홈페이지에 연결이 되지 않아 공지를 가져올 수 없어요",
+    "en": "We can't reach their site, so we can't fetch notices"
+  }
+}

@@ -12,6 +12,8 @@
  * from sendSuccess (controller @Res()), byte-identical to res.success.
  */
 
+import fs from "fs";
+import path from "path";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
 import { ObjectId } from "mongodb";
@@ -105,6 +107,59 @@ describe("GET /notices/tabs", () => {
       (t: { key: string }) => t.key === "dept",
     );
     expect(deptTab.label).toBe("Department");
+  });
+
+  // exclude-reasons.json is the SSOT for reason copy — assert against it
+  // instead of literal strings so data-only sync PRs can't break the suite
+  // (docs/README.md 값 복사 금지 rule, applied to tests).
+  const excludeReasonMap = JSON.parse(
+    fs.readFileSync(
+      path.join(__dirname, "../../../src/notices/exclude-reasons.json"),
+      "utf8",
+    ),
+  ) as Record<string, { ko: string; en?: string }>;
+
+  it("unavailable picker sources carry server-resolved excludeReasonText", async () => {
+    // Uses the real committed sources.json: cheme is a retired source.
+    const res = await request(httpServer).get("/notices/tabs");
+    const deptTab = res.body.data.tabs.find(
+      (t: { key: string }) => t.key === "dept",
+    );
+    const cheme = deptTab.picker.sources.find(
+      (s: { id: string }) => s.id === "cheme",
+    );
+    expect(cheme.noticeAvailable).toBe(false);
+    expect(typeof cheme.excludeReason).toBe("string");
+    expect(cheme.excludeReasonText).toBe(
+      excludeReasonMap[cheme.excludeReason].ko,
+    );
+  });
+
+  it("excludeReasonText is localized per response language", async () => {
+    const res = await request(httpServer)
+      .get("/notices/tabs")
+      .set("Accept-Language", "en");
+    const deptTab = res.body.data.tabs.find(
+      (t: { key: string }) => t.key === "dept",
+    );
+    const cheme = deptTab.picker.sources.find(
+      (s: { id: string }) => s.id === "cheme",
+    );
+    expect(cheme.excludeReasonText).toBe(
+      excludeReasonMap[cheme.excludeReason].en,
+    );
+  });
+
+  it("available picker sources have null excludeReasonText", async () => {
+    const res = await request(httpServer).get("/notices/tabs");
+    const deptTab = res.body.data.tabs.find(
+      (t: { key: string }) => t.key === "dept",
+    );
+    const available = deptTab.picker.sources.find(
+      (s: { noticeAvailable: boolean }) => s.noticeAvailable,
+    );
+    expect(available.excludeReason).toBeNull();
+    expect(available.excludeReasonText).toBeNull();
   });
 
   it("fixed tabs have tagged payload with sourceId, name, campus", async () => {
@@ -569,12 +624,24 @@ describe("GET /notices — multi-source search query", () => {
     expect(res.body.error.code).toBe("INVALID_PARAMS");
   });
 
-  it("returns 400 INVALID_PARAMS when more than 5 sourceIds", async () => {
+  it("returns 400 INVALID_PARAMS when more than 20 sourceIds", async () => {
+    // 21 ids. The count guard runs before the unknown-sourceId guard, so
+    // these can be bogus — that ordering is what this asserts.
+    const ids = Array.from({ length: 21 }, (_, i) => `src${i}`).join(",");
+    const res = await request(httpServer).get(`/notices?sourceIds=${ids}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("INVALID_PARAMS");
+  });
+
+  it("lets 6 sourceIds past the count guard (was 400 under the old cap of 5)", async () => {
+    // Regression guard for the cap raise. Six ids used to fail the count
+    // check with INVALID_PARAMS; now they reach the validity check instead,
+    // so the error code is what proves the cap moved.
     const res = await request(httpServer).get(
       "/notices?sourceIds=a,b,c,d,e,f",
     );
     expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe("INVALID_PARAMS");
+    expect(res.body.error.code).toBe("INVALID_SOURCE_ID");
   });
 
   it("returns 400 INVALID_SOURCE_ID when a sourceId is unknown", async () => {
