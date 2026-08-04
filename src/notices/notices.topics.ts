@@ -12,9 +12,16 @@
 import { categories } from "./tabConfig";
 import type { CategoryConfig } from "./types";
 
-// MUST stay equal to MAX_TOPICS in skkuverse-app functions/src/handle-notice.ts
-// — that function rejects a payload with more topics than its own cap, so the
-// two are a cross-repo contract and the CF must be deployed first when raising.
+// Cross-repo contract `notices.topic-cap` (skkuverse/contracts/manifest.json).
+//
+// The ceiling is MAX_TOPICS in skkuverse-app
+// functions/src/notifications/tabsContract.ts — the Cloud Function rejects any
+// payload above it. The invariant is TOPIC_CAP <= MAX_TOPICS, not equality:
+// the app must deploy first when raising (ADR 0005), and `lte` keeps that
+// intermediate state green while still catching the reverse, which is the
+// dangerous one. CI enforces it against the value recorded in
+// .contracts.lock.json — do not hand-edit that file; run
+// `skkuverse_sync.py pull --repo server`.
 //
 // 30 is Firestore's real `array-contains-any` limit. The previous 10 was a
 // self-imposed "MVP conservative limit" (see the CF's types.ts), and it became
