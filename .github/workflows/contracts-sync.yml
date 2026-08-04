@@ -39,6 +39,11 @@ jobs:
         run: git clone --depth 1 https://github.com/spencer0124/skkuverse "$RUNNER_TEMP/sv"
 
       - name: Pull upstream contract state
+        # `shell: bash` is load-bearing: the implicit shell is `bash -e {0}`,
+        # which has errexit but NO pipefail, so `pull | tee` would take tee's
+        # exit status and a failing pull would look successful. Naming bash
+        # explicitly gets `bash --noprofile --norc -eo pipefail {0}`.
+        shell: bash
         run: |
           python3 "$RUNNER_TEMP/sv/tools/skkuverse_sync.py" pull --repo server --root . \
             | tee "$RUNNER_TEMP/pull.txt"
