@@ -11,7 +11,7 @@
  * clearTimeout, broken catch-fallback) is caught through the Nest surface too.
  *
  * Mocking strategy mirrors the Express test: stub lib/db before the dispatcher's
- * getNoticesCollection() consumes it, so the real claimNext/dispatchOne/sweepPending
+ * getNoticesCollection() consumes it, so the real claimNext/dispatchGroup/sweepPending
  * logic runs against our controlled mockCollection rather than a live Mongo.
  * The service has no Nest-injected deps (it imports getNoticesCollection,
  * buildTopics, config, logger as module functions), so we instantiate it directly
@@ -105,12 +105,12 @@ afterEach(() => {
 });
 
 // ──────────────────────────────────────────────────────────
-// dispatchOne
+// dispatchGroup
 // ──────────────────────────────────────────────────────────
-describe("NoticesDispatcherService.dispatchOne", () => {
+describe("NoticesDispatcherService.dispatchGroup", () => {
   it("marks pushedAt and skips fetch when topics are empty", async () => {
     const notice = makeNotice({ sourceId: "does-not-exist" });
-    const out = await service.dispatchOne(notice);
+    const out = await service.dispatchGroup([notice]);
     expect(out.result).toBe("skippedNoTopics");
     expect(global.fetch).not.toHaveBeenCalled();
     expect(mockCollection.updateOne).toHaveBeenCalledWith(
@@ -133,7 +133,7 @@ describe("NoticesDispatcherService.dispatchOne", () => {
     });
 
     const notice = makeNotice();
-    const out = await service.dispatchOne(notice);
+    const out = await service.dispatchGroup([notice]);
     expect(out.result).toBe("sent");
     expect(global.fetch).toHaveBeenCalledTimes(1);
     const [url, opts] = (global.fetch as jest.Mock).mock.calls[0];
@@ -176,7 +176,7 @@ describe("NoticesDispatcherService.dispatchOne", () => {
     });
 
     const notice = makeNotice();
-    const out = await service.dispatchOne(notice);
+    const out = await service.dispatchGroup([notice]);
     expect(out.result).toBe("failed");
 
     const update = mockCollection.updateOne.mock.calls[0][1];
@@ -190,7 +190,7 @@ describe("NoticesDispatcherService.dispatchOne", () => {
     (global.fetch as jest.Mock).mockRejectedValueOnce(new Error("ECONNRESET"));
 
     const notice = makeNotice();
-    const out = await service.dispatchOne(notice);
+    const out = await service.dispatchGroup([notice]);
     expect(out.result).toBe("failed");
     const update = mockCollection.updateOne.mock.calls[0][1];
     expect(update.$set).toHaveProperty("dispatchClaimedAt", null);
@@ -312,6 +312,8 @@ describe("NoticesDispatcherService.sweepPending", () => {
       sent: 0,
       failed: 0,
       skippedNoTopics: 0,
+      cfCalls: 0,
+      dedupedDocs: 0,
     });
     expect(global.fetch).not.toHaveBeenCalled();
 
@@ -364,23 +366,226 @@ describe("NoticesDispatcherService.sweepPending", () => {
 });
 
 // ──────────────────────────────────────────────────────────
-// dispatchOne / updateOne failure path (catch-handler-as-fallback invariant)
+// Cross-post grouping (skkuverse-server#75)
 //
-// dispatchOne has TWO updateOne sites: one inside `try` (mark-as-sent or
+// One article published to N board views becomes N Mongo documents (the
+// (articleNo, sourceId) unique key is crawler-owned), and the old row-at-a-time
+// dispatcher called the Cloud Function N times — so a user subscribed to
+// several of those boards got the same push N times. These pin the merge.
+// ──────────────────────────────────────────────────────────
+describe("NoticesDispatcherService — cross-post grouping", () => {
+  const HASH = "c".repeat(64);
+
+  function withSuccessfulFetch() {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ sent: 1, failed: 0, cleanedUp: 0 }),
+    });
+  }
+
+  /** Queues docs for claiming, then a null to drain the queue. */
+  function claimQueue(docs: NoticeDoc[]) {
+    let i = 0;
+    mockCollection.findOneAndUpdate.mockImplementation(async () =>
+      i < docs.length ? docs[i++] : null,
+    );
+  }
+
+  function sibling(sourceId: string, extra: Partial<NoticeDoc> = {}) {
+    return makeNotice({
+      sourceId,
+      title: "[교직] 성인지교육 이수 안내",
+      contentHash: HASH,
+      ...extra,
+    } as Partial<NoticeDoc>);
+  }
+
+  it("sends ONE push for a 3-way cross-post and resolves every member", async () => {
+    withSuccessfulFetch();
+    const docs = [
+      sibling("skku-notice02"), // category:academic
+      sibling("skku-notice06"), // category:scholarship
+      sibling("skku-notice07"), // category:event
+    ];
+    claimQueue(docs);
+
+    const summary = await service.sweepPending("test");
+
+    // One call, not three — this is the bug fix.
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(
+      (global.fetch as jest.Mock).mock.calls[0][1].body,
+    );
+    expect(payload.topics.sort()).toEqual([
+      "category:academic",
+      "category:event",
+      "category:scholarship",
+    ]);
+
+    // processed stays a DOCUMENT count; all three are resolved.
+    expect(summary.processed).toBe(3);
+    expect(summary.sent).toBe(3);
+    expect(summary.cfCalls).toBe(1);
+    expect(summary.dedupedDocs).toBe(2); // two pushes avoided
+    for (const doc of docs) {
+      expect(mockCollection.updateOne).toHaveBeenCalledWith(
+        { _id: doc._id },
+        expect.objectContaining({
+          $set: expect.objectContaining({ pushedAt: expect.any(Date) }),
+        }),
+      );
+    }
+  });
+
+  it("folds a topic-less mirror (skku-main) into its siblings' group", async () => {
+    withSuccessfulFetch();
+    const main = sibling("skku-main"); // maps to no topic at all
+    const docs = [main, sibling("skku-notice02")];
+    claimQueue(docs);
+
+    const summary = await service.sweepPending("test");
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(summary.sent).toBe(2);
+    expect(summary.skippedNoTopics).toBe(0);
+    // skku-main is resolved by the group rather than burning its own skip pass.
+    expect(mockCollection.updateOne).toHaveBeenCalledWith(
+      { _id: main._id },
+      expect.objectContaining({
+        $set: expect.objectContaining({ pushedAt: expect.any(Date) }),
+      }),
+    );
+    // The deep link must point at a board a subscriber can actually open.
+    const payload = JSON.parse(
+      (global.fetch as jest.Mock).mock.calls[0][1].body,
+    );
+    expect(payload.sourceId).toBe("skku-notice02");
+  });
+
+  it("sends all 16 topics for the 16-way department cross-post (TOPIC_CAP regression guard)", async () => {
+    // Measured in prod: one 교직 notice lands on 16 college boards, every one of
+    // them a `dept` picker source. At the old TOPIC_CAP of 10 the union would be
+    // silently sliced and 6 departments' subscribers would get NOTHING — a
+    // missed-notification regression strictly worse than the duplicate it fixes.
+    withSuccessfulFetch();
+    const deptSources = [
+      "art-undergrad",
+      "art-grad",
+      "sscience-undergrad",
+      "sscience-grad",
+      "scos-undergrad",
+      "scos-grad",
+      "liberalarts-undergrad",
+      "liberalarts-grad",
+      "coe-undergrad",
+      "coe-grad",
+      "ecostat-undergrad",
+      "ecostat-grad",
+      "sport-undergrad",
+      "sport-grad",
+      "cscience-undergrad",
+      "cscience-grad",
+    ];
+    claimQueue(deptSources.map((s) => sibling(s)));
+
+    const summary = await service.sweepPending("test");
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(
+      (global.fetch as jest.Mock).mock.calls[0][1].body,
+    );
+    expect(payload.topics).toHaveLength(16); // NOT truncated to 10
+    expect(payload.topics.sort()).toEqual(
+      deptSources.map((s) => `dept:${s}`).sort(),
+    );
+    expect(summary.sent).toBe(16);
+    expect(summary.cfCalls).toBe(1);
+    expect(summary.dedupedDocs).toBe(15);
+  });
+
+  it("does NOT merge same-titled docs when contentHash is missing", async () => {
+    withSuccessfulFetch();
+    claimQueue([
+      sibling("skku-notice02", { contentHash: null }),
+      sibling("skku-notice06", { contentHash: null }),
+    ]);
+
+    const summary = await service.sweepPending("test");
+
+    // Content could not be verified equal → merging is declined, not guessed.
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(summary.sent).toBe(2);
+    expect(summary.cfCalls).toBe(2);
+    expect(summary.dedupedDocs).toBe(0);
+  });
+
+  it("skips a group whose members contribute no topics at all", async () => {
+    claimQueue([sibling("does-not-exist-a"), sibling("does-not-exist-b")]);
+
+    const summary = await service.sweepPending("test");
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(summary.skippedNoTopics).toBe(2);
+    expect(summary.cfCalls).toBe(0);
+  });
+
+  it("releases the lease for EVERY member when the group's CF call fails", async () => {
+    (global.fetch as jest.Mock).mockRejectedValue(new Error("ECONNRESET"));
+    const docs = [sibling("skku-notice02"), sibling("skku-notice06")];
+    claimQueue(docs);
+
+    const summary = await service.sweepPending("test");
+
+    expect(summary.failed).toBe(2);
+    expect(summary.sent).toBe(0);
+    expect(summary.cfCalls).toBe(1);
+    for (const doc of docs) {
+      const call = mockCollection.updateOne.mock.calls.find(
+        (c: unknown[]) => (c[0] as { _id: unknown })._id === doc._id,
+      );
+      expect(call![1].$set).toHaveProperty("dispatchClaimedAt", null);
+      expect(call![1].$set.pushError).toMatch(/ECONNRESET/);
+      expect(call![1].$set).not.toHaveProperty("pushedAt");
+    }
+  });
+
+  it("keeps sweepBatchCap a DOCUMENT cap, not a group cap", async () => {
+    withSuccessfulFetch();
+    // 4 siblings of one article, but the cap admits only 2 documents.
+    claimQueue([
+      sibling("skku-notice02"),
+      sibling("skku-notice06"),
+      sibling("skku-notice07"),
+      sibling("skku-notice04"),
+    ]);
+
+    const summary = await service.sweepPending("test", { sweepBatchCap: 2 });
+
+    expect(summary.processed).toBe(2);
+    expect(mockCollection.findOneAndUpdate).toHaveBeenCalledTimes(2);
+    expect(global.fetch).toHaveBeenCalledTimes(1); // the 2 claimed still merge
+  });
+});
+
+// ──────────────────────────────────────────────────────────
+// dispatchGroup / updateOne failure path (catch-handler-as-fallback invariant)
+//
+// dispatchGroup has TWO updateOne sites: one inside `try` (mark-as-sent or
 // skippedNoTopics) and one inside `catch` (always-release lease on failure).
 // The catch acts as a graceful fallback: a single updateOne failure on the
 // happy path bounces into catch, the second updateOne succeeds, and the caller
-// gets `{ result: "failed" }` rather than a thrown error. dispatchOne only
+// gets `{ result: "failed" }` rather than a thrown error. dispatchGroup only
 // rejects when (a) the skippedNoTopics path's single updateOne fails, (b) both
 // updateOnes fail on the success path, or (c) the catch-path lease-release
-// updateOne fails. sweepPending does not catch dispatchOne rejections, so they
+// updateOne fails. sweepPending does not catch dispatchGroup rejections, so they
 // propagate up — but `finally { sweepInFlight = false }` always releases.
 // ──────────────────────────────────────────────────────────
-describe("NoticesDispatcherService.dispatchOne — updateOne failure path", () => {
+describe("NoticesDispatcherService.dispatchGroup — updateOne failure path", () => {
   it("rejects when the single updateOne on the skippedNoTopics path fails", async () => {
     mockCollection.updateOne.mockRejectedValueOnce(new Error("write conflict"));
     const notice = makeNotice({ sourceId: "does-not-exist" });
-    await expect(service.dispatchOne(notice)).rejects.toThrow("write conflict");
+    await expect(service.dispatchGroup([notice])).rejects.toThrow("write conflict");
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -391,7 +596,7 @@ describe("NoticesDispatcherService.dispatchOne — updateOne failure path", () =
       text: async () => JSON.stringify({ sent: 1, failed: 0, cleanedUp: 0 }),
     });
     mockCollection.updateOne.mockRejectedValueOnce(new Error("disk full"));
-    const out = await service.dispatchOne(makeNotice());
+    const out = await service.dispatchGroup([makeNotice()]);
     expect(out.result).toBe("failed");
     expect((out.error as Error).message).toBe("disk full");
     // The catch handler's lease-release updateOne ran (default mockResolvedValue).
@@ -409,7 +614,7 @@ describe("NoticesDispatcherService.dispatchOne — updateOne failure path", () =
       .mockRejectedValueOnce(new Error("lease release fail"));
     // The rejection that propagates is the lease-release one — the original
     // (first fail) error is shadowed because catch awaits the second updateOne.
-    await expect(service.dispatchOne(makeNotice())).rejects.toThrow(
+    await expect(service.dispatchGroup([makeNotice()])).rejects.toThrow(
       "lease release fail",
     );
   });
@@ -421,7 +626,7 @@ describe("NoticesDispatcherService.dispatchOne — updateOne failure path", () =
       text: async () => "bad gateway",
     });
     mockCollection.updateOne.mockRejectedValueOnce(new Error("net partition"));
-    await expect(service.dispatchOne(makeNotice())).rejects.toThrow(
+    await expect(service.dispatchGroup([makeNotice()])).rejects.toThrow(
       "net partition",
     );
   });
@@ -429,14 +634,14 @@ describe("NoticesDispatcherService.dispatchOne — updateOne failure path", () =
   it("rejects when the lease-release updateOne fails on a network error", async () => {
     (global.fetch as jest.Mock).mockRejectedValueOnce(new Error("ECONNRESET"));
     mockCollection.updateOne.mockRejectedValueOnce(new Error("mongo down"));
-    await expect(service.dispatchOne(makeNotice())).rejects.toThrow("mongo down");
+    await expect(service.dispatchGroup([makeNotice()])).rejects.toThrow("mongo down");
   });
 
   it("sweepPending propagates the rejection but releases sweepInFlight via finally — next sweep proceeds", async () => {
     mockCollection.findOneAndUpdate.mockResolvedValueOnce(
       makeNotice({ sourceId: "does-not-exist" }),
     );
-    // skippedNoTopics path has a single updateOne — one rejection rejects dispatchOne.
+    // skippedNoTopics path has a single updateOne — one rejection rejects dispatchGroup.
     mockCollection.updateOne.mockRejectedValueOnce(new Error("write fail"));
 
     await expect(service.sweepPending("propagate")).rejects.toThrow("write fail");

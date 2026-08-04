@@ -10,9 +10,10 @@
  *     → global ResponseInterceptor ({ meta, data } envelope)
  *     → HttpExceptionFilter.
  *
- * Asserts the { meta:{lang}, data:{ios, android} } envelope with ios/android
- * shape (minVersion + updateUrl), per-language meta.lang, and that no auth is
- * required (plain GET succeeds).
+ * Asserts the { meta:{lang}, data:{ios, android, webview} } envelope with
+ * ios/android shape (minVersion + updateUrl), the webview.bridgeOrigins
+ * allowlist, per-language meta.lang, and that no auth is required (plain GET
+ * succeeds).
  */
 import { Module } from "@nestjs/common";
 import { ExpressAdapter } from "@nestjs/platform-express";
@@ -22,6 +23,7 @@ import express from "express";
 import pinoHttp from "pino-http";
 import request from "supertest";
 import logger from "../../../src/infra/logger";
+import { WEBVIEW_ORIGIN, WEB_ORIGIN } from "../../../src/infra/origins";
 import { ConfigModule } from "../../../src/config/config.module";
 import { AppFeatureModule } from "../../../src/app/app-feature.module";
 import { LangMiddleware } from "../../../src/common/lang.middleware";
@@ -75,6 +77,29 @@ describe("GET /app/config", () => {
     expect(res.body.data.ios).toHaveProperty("updateUrl");
     expect(res.body.data.android).toHaveProperty("minVersion");
     expect(res.body.data.android).toHaveProperty("updateUrl");
+  });
+
+  it("publishes webview.bridgeOrigins derived from infra/origins", async () => {
+    const res = await request(httpServer).get("/app/config");
+    expect(res.status).toBe(200);
+    expect(res.body.data.webview.bridgeOrigins).toEqual([WEBVIEW_ORIGIN]);
+  });
+
+  it("lists only absolute https origins in bridgeOrigins", async () => {
+    // The client compares these against `new URL(pageUrl).origin`, which is
+    // always scheme+host+port with no trailing slash. A path or trailing slash
+    // here would never match and would silently disable the bridge.
+    const res = await request(httpServer).get("/app/config");
+    for (const origin of res.body.data.webview.bridgeOrigins as string[]) {
+      expect(origin).toMatch(/^https:\/\//);
+      expect(new URL(origin).origin).toBe(origin);
+    }
+  });
+
+  it("publishes web.origin so the client needn't hardcode the launcher host", async () => {
+    const res = await request(httpServer).get("/app/config");
+    expect(res.body.data.web.origin).toBe(WEB_ORIGIN);
+    expect(new URL(res.body.data.web.origin).origin).toBe(WEB_ORIGIN);
   });
 
   it("requires no auth (succeeds without a Bearer token)", async () => {

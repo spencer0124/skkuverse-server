@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "id": "skkuzine",
+  "startUrl": "https://webzine.skku.edu/skkuzine/index.do",
+  "verified": true,
+  "description": "성균웹진은 우리 성균관대학교의 하나뿐인 공식 웹진입니다. 성균관대학교의 SKKU와 인터넷 잡지라는 뜻의 webzine이 합쳐져서 만든 이름입니다. 2001년부터 정식 발간된 성균웹진은 성균관대학교의 각종 소식들과 흥미롭고 유익한 내용들을 담아내고 있습니다.",
+  "relatedLinks": [
+    { "url": "https://linktr.ee/skku_webzine" },
+    { "label": "카카오톡 채널 바로가기", "url": "https://pf.kakao.com/_skkuwebzine/friend" },
+    { "label": "인스타그램", "url": "https://www.instagram.com/skku_webzine" }
+  ],
+  "noticeBanner": { "title": "성균웹진 6월호가 발행되었어요! 📢", "subtitle": "방금 · 공지" }
+}

@@ -1,3 +1,12 @@
+---
+title: Oracle Cloud VM 점검 대비 가이드 (Historical)
+type: postmortem
+status: superseded
+owner: zoyoong124@gmail.com
+last-updated: 2026-04-13
+audience: internal
+---
+
 # Oracle Cloud VM 점검 대비 가이드 *(Historical — 2026-04-13)*
 
 > ⚠ **이 문서는 2026-04-13에 끝난 일회성 점검 이벤트의 historical record다.** Pre-maintenance checklist는 그 시점 시스템 상태(Docker 재시작 정책, nginx auto-restart 등) 검증을 위한 것이고, 모든 항목은 점검 통과 후 그 이상 유효 갱신되지 않았다. 향후 다른 점검이 잡히면 이 문서를 템플릿으로 새 문서를 만들 것 (직접 갱신하지 말 것 — 과거 사실 보존).

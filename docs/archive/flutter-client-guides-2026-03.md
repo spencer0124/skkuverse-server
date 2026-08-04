@@ -1,3 +1,12 @@
+---
+title: Flutter Client Integration Guides (Historical)
+type: explanation
+status: superseded
+owner: zoyoong124@gmail.com
+last-updated: 2026-03-31
+audience: internal
+---
+
 # Flutter Client Integration Guides *(Historical — 2026-03)*
 
 > ⚠ **2026-03 시점의 Flutter 클라이언트 마이그레이션 가이드 모음.** 당시 Flutter 클라이언트가 새 building / bus-schedule / map-overlay / smart-schedule API를 사용하기 위해 작성됨. 클라이언트가 React Native + Expo로 전환된 현재, 본문의 "Flutter" 언급은 *legacy client*를 가리킨다.

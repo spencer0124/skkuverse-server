@@ -1,5 +1,5 @@
 import { Controller, Get } from "@nestjs/common";
-import { AppFeatureService } from "./app-feature.service";
+import { AppFeatureService, type AppClientConfig } from "./app-feature.service";
 
 /**
  * GET /app/config — port of the /app/config route.
@@ -14,10 +14,7 @@ export class AppConfigFeatureController {
   constructor(private readonly appFeature: AppFeatureService) {}
 
   @Get("config")
-  getConfig(): {
-    ios: { minVersion: string; updateUrl: string | null };
-    android: { minVersion: string; updateUrl: string | null };
-  } {
+  getConfig(): AppClientConfig {
     return this.appFeature.getConfig();
   }
 }

@@ -12,7 +12,18 @@
 import { categories } from "./tabConfig";
 import type { CategoryConfig } from "./types";
 
-const TOPIC_CAP = 10; // sendNotification function rejects > 10.
+// MUST stay equal to MAX_TOPICS in skkuverse-app functions/src/handle-notice.ts
+// — that function rejects a payload with more topics than its own cap, so the
+// two are a cross-repo contract and the CF must be deployed first when raising.
+//
+// 30 is Firestore's real `array-contains-any` limit. The previous 10 was a
+// self-imposed "MVP conservative limit" (see the CF's types.ts), and it became
+// actively dangerous once the dispatcher started merging cross-posted siblings
+// into one call: the 16-way department cross-post (skkuverse-server#75) unions
+// to 16 `dept:<sourceId>` topics, and silently slicing that to 10 would drop 6
+// departments' subscribers — turning a duplicate-notification bug into a
+// missed-notification bug.
+const TOPIC_CAP = 30;
 
 // Minimal shape — buildTopics only reads sourceId. Compatible with the
 // fully-typed NoticeDoc (PR3-3) as well as test fixtures that pass

@@ -1,6 +1,15 @@
+---
+title: 공지 크롤링 소스 목록 (snapshot · 미이관)
+type: reference
+status: deprecated
+owner: zoyoong124@gmail.com
+last-updated: 2026-07-22
+audience: internal
+---
+
 # 성균관대학교 공지사항 크롤링 소스 목록 (snapshot)
 
-> ⚠ **이 문서는 2026-03-29 시점 snapshot이다 (148 entries, 수집 시점 기준).** 현재 진실(SSOT)은 `features/notices/sources.json` (147 entries, `skkuverse-crawler`의 `generate_artifacts.py`가 생성). 두 값이 다르면 sources.json이 진실이다.
+> ⚠ **이 문서는 2026-03-29 시점 snapshot이다 (148 entries, 수집 시점 기준).** 현재 진실(SSOT)은 `src/notices/sources.json` (`skkuverse-crawler`의 아티팩트 생성기가 만든 걸 서버가 vendor). 두 값이 다르면 sources.json이 진실이다.
 >
 > 이 .md는 *수집 단계의 작업 메모* — URL 출처, 비고, 전략 결정의 근거를 남기는 historical reference. 크롤러 구현 상태나 소스 변경은 `skkuverse-crawler` README/CHANGELOG에서 확인한다.
 

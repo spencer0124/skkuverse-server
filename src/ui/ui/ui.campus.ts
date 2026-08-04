@@ -1,4 +1,5 @@
 import { t } from "../../infra/i18n";
+import { WEBVIEW_ORIGIN } from "../../infra/origins";
 import type { SupportedLang } from "../../infra/types";
 
 function getCampusServiceItems(lang: SupportedLang = "ko") {
@@ -22,7 +23,7 @@ function getCampusServiceItems(lang: SupportedLang = "ko") {
       title: t("campus.lostFound.title", lang),
       emoji: "🧳",
       actionType: "webview",
-      actionValue: "https://webview.skkuuniverse.com/#/skku/lostandfound",
+      actionValue: `${WEBVIEW_ORIGIN}/#/skku/lostandfound`,
       webviewTitle: t("campus.lostFound.title", lang),
       webviewColor: "003626",
     },

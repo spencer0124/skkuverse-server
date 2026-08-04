@@ -13,6 +13,14 @@ const assets = [
   ["src/bus/schedule/skku-rest-days.json", "dist/src/bus/schedule/skku-rest-days.json"],
   // jongro.registry reads this with fs.readFileSync(__dirname/<name>)
   ["src/bus/registry/jongro-routes.json", "dist/src/bus/registry/jongro-routes.json"],
+  // miniapps/miniapps.ts reads these with fs.readFileSync(__dirname/<name>).
+  // Every details/<id>.json listed in index.json must appear here too — the
+  // loader reads them eagerly at boot, so a missing file is a startup crash.
+  ["src/miniapps/index.json", "dist/src/miniapps/index.json"],
+  ["src/miniapps/details/hssc.json", "dist/src/miniapps/details/hssc.json"],
+  ["src/miniapps/details/nsc.json", "dist/src/miniapps/details/nsc.json"],
+  ["src/miniapps/details/skkuw.json", "dist/src/miniapps/details/skkuw.json"],
+  ["src/miniapps/details/skkuzine.json", "dist/src/miniapps/details/skkuzine.json"],
 ];
 
 for (const [src, dest] of assets) {
