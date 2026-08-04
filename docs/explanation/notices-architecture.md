@@ -48,13 +48,13 @@ audience: internal
 
 **핵심 원칙: 쓰기는 세 저장소가 각자 소유, 읽기는 서버가 전담.** (구조적 결정 → [decisions/0002](../decisions/0002-notices-read-only-ownership.md))
 
+> 시스템 전체(레포 경계·쓰기 주체)의 canonical 다이어그램은 umbrella [container-view](https://github.com/spencer0124/skkuverse/blob/main/docs/architecture/container-view.md) · [notice-pipeline](https://github.com/spencer0124/skkuverse/blob/main/docs/flows/notice-pipeline.md). 아래는 **서버 읽기·디스패치 경로에 국한된 뷰**이며, upstream writer의 필드·인덱스 정의는 크롤러 [schema/notices.md](https://github.com/spencer0124/skkuverse-crawler/blob/main/docs/reference/schema/notices.md)가 소유한다.
+
 ```text
-  skkuverse-crawler (Python, 배치)          skkuverse-ai (FastAPI)
-    - 공지 크롤 / nh3 sanitize                 - AI 요약
-    - cleanMarkdown 변환                       - summary* 필드 $set
-    - unique index (articleNo, sourceId)             │
-          │ write notices                            │ write summary*
-          ▼                                          ▼
+     upstream writers ─ skkuverse-crawler (크롤·정제) · skkuverse-ai (요약)
+                        (필드·인덱스 정의는 크롤러 schema/notices.md — 위 링크)
+          │ write notices / summary*
+          ▼
         ┌──────────────────────────────────────────────┐
         │  MongoDB  skku_notices.notices                │
         └───────────────▲──────────────────────────────┘
@@ -72,8 +72,7 @@ audience: internal
                                         → FCM Cloud Function → FCM v1 fan-out
 ```
 
-- 크롤러는 문서 자체와 unique 인덱스를 소유.
-- AI 프로세서는 `summary*` 필드를 `$set`으로 소유.
+- upstream writer(크롤러=문서·unique 인덱스, AI=`summary*` `$set`)의 필드·인덱스 정의는 크롤러 canonical [schema/notices.md](https://github.com/spencer0124/skkuverse-crawler/blob/main/docs/reference/schema/notices.md)가 소유 — 서버 문서는 복제하지 않는다.
 - 서버는 **read-optimization 인덱스**만 추가 소유 (`notices-data.service.ts`의 `onModuleInit`에서 idempotent ensure). 쓰기는 절대 안 함.
 
 ## 3. 설계 결정의 근거 (미시 결정)
