@@ -1,0 +1,88 @@
+name: Contract sync
+
+# The freshness half of the contract system. `ci.yml` checks this repo's
+# vendored config against its own lock (offline, blocking); this checks the
+# lock against the producer's main and, when behind, prepares the update as a
+# ready-to-merge PR rather than a notification.
+#
+# Why a PR and not an issue: an issue is a task someone must act on, and a
+# neglected one trains you to ignore the next. A PR is a completed proposal
+# that needs a merge click, and it rides the review flow you already use.
+# Same shape as Renovate/Dependabot, minus the infrastructure.
+#
+# Fixed branch name, force-pushed, so repeated drift updates one PR instead
+# of accumulating a pile.
+on:
+  schedule:
+    - cron: '0 21 * * *'   # 06:00 KST
+  workflow_dispatch:
+
+# Elevated only here. The repo default stays read, so no other workflow gains
+# write access.
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      BASE: dev
+      SYNC_BRANCH: contracts/sync
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Fetch contract tooling
+        run: git clone --depth 1 https://github.com/spencer0124/skkuverse "$RUNNER_TEMP/sv"
+
+      - name: Pull upstream contract state
+        # `shell: bash` is load-bearing: the implicit shell is `bash -e {0}`,
+        # which has errexit but NO pipefail, so `pull | tee` would take tee's
+        # exit status and a failing pull would look successful. Naming bash
+        # explicitly gets `bash --noprofile --norc -eo pipefail {0}`.
+        shell: bash
+        run: |
+          python3 "$RUNNER_TEMP/sv/tools/skkuverse_sync.py" pull --repo server --root . \
+            | tee "$RUNNER_TEMP/pull.txt"
+
+      # No drift means `pull` wrote nothing at all — it rewrites a lock only
+      # when a hash actually changed, so a clean fleet produces zero diffs.
+      # That property is what keeps this workflow silent on most days.
+      - name: Stop if already in sync
+        id: drift
+        run: |
+          if git diff --quiet; then
+            echo "in sync — nothing to propose"
+            echo "drifted=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "drifted=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --stat
+          fi
+
+      - name: Open or update the sync PR
+        if: steps.drift.outputs.drifted == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$SYNC_BRANCH"
+          git commit -am "chore(contracts): sync vendored config from upstream SSOT"
+          git push -f origin "$SYNC_BRANCH"
+
+          # The PR carries both the updated files and the updated lock, so its
+          # own integrity check is green — it is merge-ready, not a chore.
+          body="$(printf 'Upstream SSOT moved and this repo is behind. Opened automatically by `.github/workflows/contracts-sync.yml`.\n\nThe vendored files **and** `.contracts.lock.json` are both updated here, so the integrity check on this PR is green — review the diff and merge.\n\n```\n%s\n```\n\nContract definitions: https://github.com/spencer0124/skkuverse/blob/main/contracts/manifest.json\n' "$(cat "$RUNNER_TEMP/pull.txt")")"
+
+          if gh pr view "$SYNC_BRANCH" --json number >/dev/null 2>&1; then
+            gh pr edit "$SYNC_BRANCH" --body "$body"
+            echo "updated the existing sync PR"
+          else
+            gh pr create --base "$BASE" --head "$SYNC_BRANCH" \
+              --title "chore(contracts): sync vendored config from upstream SSOT" \
+              --body "$body"
+          fi
