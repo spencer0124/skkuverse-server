@@ -2,7 +2,12 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    # dev included: every feature PR targets dev (main only ever receives the
+    # release merge), so gating main alone meant this workflow never ran on
+    # the PRs that actually carry changes — a contract or test regression
+    # merged into dev and stayed invisible until release. skkuverse-crawler
+    # already fires on both for the same reason.
+    branches: [main, dev]
 
 jobs:
   test:
