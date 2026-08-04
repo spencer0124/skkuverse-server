@@ -81,7 +81,7 @@ audience: internal
 | [notices-api-architecture.md](notices-api-architecture.md) | superseded — 위 5개 문서로 분할 완료. 포인터 스텁만 남음 |
 | [project-docs.md](project-docs.md) | 미이관 — Oracle 배포 + Bus 시스템 + 외부 API + 건물. Express drift |
 | [cicd-and-branch-protection.md](cicd-and-branch-protection.md) | 미이관 — CI/CD·브랜치 보호 |
-| [skku-notice-sources.md](skku-notice-sources.md) | 미이관 — 크롤 소스 스냅샷 (SSOT는 `src/notices/sources.json`) |
+| [skku-notice-sources.md](skku-notice-sources.md) | deprecated — 포인터 스텁만 남음. 소스 SSOT는 `src/notices/sources.json` + 크롤러 `sources.json`/coverage |
 | [skku-departments.md](skku-departments.md) | 미이관 — 학과 홈페이지 에디토리얼 참조 |
 
 ## 이관 backlog
@@ -90,7 +90,7 @@ flagship-first 원칙으로 notices만 먼저 완전 이관했다. 다음 이관
 
 - **`project-docs.md`(대형) 분해:** Oracle 배포 → `how-to/deploy-oracle-cloud.md`; Bus Schedule System → `explanation/bus-schedule-architecture.md` + `reference/bus-api.md` + `how-to/add-bus-route.md`; 외부 API(HSSC·Jongro·Hyehwa·Quota·Map) → `reference/external-apis.md`; 건물 → `reference/building-api.md` + `explanation/building-data.md`. 전 구간 Express→NestJS drift 수정.
 - **`CLAUDE.md`** 아키텍처 섹션 NestJS 전면 재작성 (현재 stale 배너만).
-- **`skku-notice-sources.md` / `skku-departments.md`** → `reference/`로 분류 + staleness 정합.
+- **`skku-departments.md`** → `reference/`로 분류 + staleness 정합. (`skku-notice-sources.md`는 크롤러/`src/notices/sources.json` SSOT 링크 포인터 스텁으로 정리 완료.)
 - 각 문서를 분해할 때 `.markdownlint-cli2.jsonc`의 `ignores`에서 해당 줄 제거.
 
 ## 문서 작성 규칙
