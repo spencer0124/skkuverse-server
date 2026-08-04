@@ -2,7 +2,12 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    # dev included: every feature PR targets dev (main only ever receives the
+    # release merge), so gating main alone meant this workflow never ran on
+    # the PRs that actually carry changes — a contract or test regression
+    # merged into dev and stayed invisible until release. skkuverse-crawler
+    # already fires on both for the same reason.
+    branches: [main, dev]
 
 jobs:
   test:
@@ -16,6 +21,23 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
+      # src/notices/*.json are vendored from skkuverse-crawler. This asserts
+      # they still match .contracts.lock.json — a hand edit, a partial copy,
+      # or a codegen copy that landed without a lock update all fail here.
+      # Offline by design: it compares against this repo's own lock, so it can
+      # never go red because someone edited a department in another repo.
+      # After `npm run build` so a JSON missing from copy-build-assets.js
+      # (present in src/, absent from dist/, container dies at boot) is caught
+      # by the same run.
+      #
+      # Cloned to RUNNER_TEMP rather than checked out into the workspace,
+      # where knip (project: **/*.{js,ts}) and depcheck would see it.
+      # No setup-python: ubuntu-latest ships python3 and the tool is
+      # stdlib-only, so this adds no npm dependency.
+      - name: Fetch contract tooling
+        run: git clone --depth 1 https://github.com/spencer0124/skkuverse "$RUNNER_TEMP/sv"
+      - name: Contract integrity
+        run: python3 "$RUNNER_TEMP/sv/tools/skkuverse_sync.py" check --repo server --root .
       - run: npm test
         env:
           NAVER_MAP_STYLE_ID: ${{ secrets.NAVER_MAP_STYLE_ID }}

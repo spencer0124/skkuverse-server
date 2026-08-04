@@ -18,6 +18,16 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # Also here, not just in ci.yml: this is the path that actually reaches
+      # prod, and a partial copy of src/notices/*.json makes TabConfigService
+      # throw at boot, so the rolling update would fail its health poll and
+      # roll back. `deploy` needs this job, so catching it here saves a
+      # deploy-and-rollback cycle. Offline, so a GitHub outage cannot block a
+      # release for a reason unrelated to it.
+      - name: Fetch contract tooling
+        run: git clone --depth 1 https://github.com/spencer0124/skkuverse "$RUNNER_TEMP/sv"
+      - name: Contract integrity
+        run: python3 "$RUNNER_TEMP/sv/tools/skkuverse_sync.py" check --repo server --root .
       - run: npm test
         env:
           NAVER_MAP_STYLE_ID: ${{ secrets.NAVER_MAP_STYLE_ID }}
