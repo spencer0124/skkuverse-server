@@ -10,7 +10,7 @@
         "repo": "crawler",
         "path": "py/generated/server-categories.json",
         "ref": "main",
-        "commit": "b30e8a13a5dfb2c2179cc3ad2665e0b71a60c5a4",
+        "commit": "288239759b13d87a0ed5c671bf2521ade2bb4fce",
         "sha256": "36e26285167b79517800f6136a1fc729445e6a2795747c4bac7fcb92b7513ce2"
       },
       "syncedAt": "2026-08-04T10:48:30Z"
@@ -22,7 +22,7 @@
         "repo": "crawler",
         "path": "py/generated/server-exclude-reasons.json",
         "ref": "main",
-        "commit": "b30e8a13a5dfb2c2179cc3ad2665e0b71a60c5a4",
+        "commit": "288239759b13d87a0ed5c671bf2521ade2bb4fce",
         "sha256": "33d092f8c2f0d13f585a6f24660f2fd0bde38893e3a35e6c72ef277f6ec14f8c"
       },
       "syncedAt": "2026-08-04T10:48:30Z"
@@ -34,10 +34,25 @@
         "repo": "crawler",
         "path": "py/generated/server-sources.json",
         "ref": "main",
-        "commit": "b30e8a13a5dfb2c2179cc3ad2665e0b71a60c5a4",
+        "commit": "288239759b13d87a0ed5c671bf2521ade2bb4fce",
         "sha256": "738374f8c9e3f47d3dfbf3655e8c424c093fcdcb430e697c81731a8e8804e1d9"
       },
       "syncedAt": "2026-08-04T10:48:30Z"
+    },
+    "notices.topic-cap": {
+      "path": "src/notices/notices.topics.ts",
+      "symbol": "TOPIC_CAP",
+      "value": 30,
+      "relation": "lte",
+      "producer": {
+        "repo": "app",
+        "path": "functions/src/notifications/tabsContract.ts",
+        "symbol": "MAX_TOPICS",
+        "ref": "main",
+        "commit": "27b05436291e6fabb537eda0f8b90fdd5cb2a37a",
+        "value": 30
+      },
+      "syncedAt": "2026-08-04T13:12:48Z"
     }
   }
 }
