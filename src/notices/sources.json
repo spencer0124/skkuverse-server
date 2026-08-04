@@ -1105,8 +1105,8 @@
     "campus": "both",
     "college": null,
     "appCategory": "general",
-    "crawlAvailable": true,
-    "excludeReason": null,
+    "crawlAvailable": false,
+    "excludeReason": "loginRequired",
     "hasCategory": true,
     "hasAuthor": true
   },
