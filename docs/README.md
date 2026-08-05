@@ -137,8 +137,9 @@ frontmatter 다음은 반드시: `# H1`(문서당 하나) → `> 한 줄 요약`
 - 코드펜스는 **언어 태그 필수** (`bash`, `ts`, `js`, `json`, `jsonc`, `yaml`, `text`)
 - 구조화된 사실(파라미터·경로·옵션)은 표로
 - 주의·경고는 GitHub admonition: `> [!NOTE]`, `> [!WARNING]`
-- 본문 언어는 한국어, 기술 용어는 영어 그대로
-- 린트: `npm run lint:md` (markdownlint-cli2, 설정은 루트 `.markdownlint-cli2.jsonc`). globs는 이관된 문서만 게이트 — 레거시 flat 문서는 `ignores`로 유예.
+- **본문 언어는 영어.** 워크스페이스 공통 규칙이며 SSOT는 [skkuverse/CLAUDE.md](https://github.com/spencer0124/skkuverse/blob/main/CLAUDE.md)다. 유일한 예외는 사용자에게 전달되는 제품 카피(`label.ko`, i18n 문자열) — 문서가 아니라 데이터다. 예외 경로는 이 레포의 `.conventions.json`에 선언한다.
+  - 이 줄은 원래 "본문 언어는 한국어"였다. 남아 있는 한국어 문서는 아직 이관 전이며, 손대는 부분부터 영어로 옮긴다.
+- 린트: `npm run lint:md` (markdownlint-cli2). **규칙은 `.markdownlint.jsonc`** — umbrella의 `conventions/markdownlint.jsonc`에서 `conventions.markdownlint` 계약으로 vendoring되고 해시 락으로 고정된다. 직접 수정하지 말고 umbrella를 고쳐 `skkuverse_sync.py pull`을 돌린다. 어떤 경로를 검사할지(globs/ignores)만 루트 `.markdownlint-cli2.jsonc`에 로컬로 둔다.
 
 ### 6. 라이프사이클
 
