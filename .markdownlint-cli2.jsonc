@@ -1,27 +1,20 @@
 {
-  // markdownlint-cli2 config — docs 컨벤션 게이트 (docs/README.md 참조)
+  // markdownlint-cli2 config — the docs convention gate (see docs/README.md)
   "config": {
-    "default": true,
-
-    // ── 비활성: 한국어 산문 + 자유 서식과 충돌하는 규칙 ──
-    "MD013": false, // line-length — 한국어 장문 산문에 부적합
-    "MD033": false, // inline HTML — <details>, <br> 등 허용
-    "MD024": { "siblings_only": true }, // 중복 헤딩 — 형제 레벨에서만 금지 (릴리스노트/타임라인 패턴 허용)
-    "MD036": false, // emphasis-as-heading — **강조 라벨** 관용 표현 허용
-    "MD028": false, // blanks-inside-blockquote — `> 요약` 다음 `> [!NOTE]` 인접 패턴이 스키마 골격이라 허용
-
-    // ── 핵심 강제 규칙 (명시적으로 기록; default true지만 의도 표시) ──
-    "MD001": true, // 헤딩 레벨 건너뛰기 금지
-    "MD003": { "style": "atx" }, // # 스타일 헤딩만
-    "MD025": { "front_matter_title": "" }, // H1은 문서당 하나 — frontmatter title은 헤딩으로 세지 않음 (스키마상 title+H1 공존)
-    "MD040": true, // 코드펜스 언어 태그 필수
-    "MD041": false // 첫 줄 H1 요구 — frontmatter 뒤 인용 요약 패턴과 충돌 시 대비
+    // Rules come from .markdownlint.jsonc, vendored from the umbrella by the
+    // `conventions.markdownlint` contract and hash-locked in
+    // .contracts.lock.json. Do not edit that file — edit
+    // skkuverse/conventions/markdownlint.jsonc and run `skkuverse_sync.py pull`.
+    //
+    // Rules central, globs local: which paths this repo lints is genuinely
+    // repo-specific and stays below.
+    "extends": ".markdownlint.jsonc"
   },
 
-  // Flagship-first: Diátaxis로 이관된 문서 + 프레임워크 문서만 게이트.
-  // 미이관 레거시 flat 문서(project-docs.md 등)는 아래 ignores로 유예 —
-  // 이 목록이 곧 마이그레이션 TODO다 (docs/README.md "이관 backlog" 참조).
-  // 문서를 Diátaxis로 분해할 때마다 여기서 한 줄씩 제거한다.
+  // Flagship-first: only documents already migrated to Diataxis are gated.
+  // Legacy flat documents are deferred via `ignores` below, and that list IS
+  // the migration backlog — delete a line from it each time a document is
+  // broken out into the taxonomy.
   "globs": ["docs/**/*.md"],
   "gitignore": true,
   "ignores": [
