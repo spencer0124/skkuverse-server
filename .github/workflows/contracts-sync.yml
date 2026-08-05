@@ -45,7 +45,7 @@ jobs:
         # explicitly gets `bash --noprofile --norc -eo pipefail {0}`.
         shell: bash
         run: |
-          python3 "$RUNNER_TEMP/sv/tools/skkuverse_sync.py" pull --repo server --root . \
+          python3 "$RUNNER_TEMP/sv/exported/sync_contracts.py" pull --repo server --root . \
             | tee "$RUNNER_TEMP/pull.txt"
 
       # No drift means `pull` wrote nothing at all — it rewrites a lock only
