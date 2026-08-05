@@ -1,5 +1,5 @@
 {
-  "_note": "Exceptions to the shared SKKUverse conventions, declared by this repo. Checked by tools/conventions_lint.py in spencer0124/skkuverse. Keep exceptions here rather than centrally, so whoever needs one declares it in the same commit as the code that needs it.",
+  "_note": "Exceptions to the shared SKKUverse conventions, declared by this repo. Checked by exported/lint_conventions.py in spencer0124/skkuverse. Keep exceptions here rather than centrally, so whoever needs one declares it in the same commit as the code that needs it.",
 
   "_productCopy": "Korean that IS the product rather than documentation. src/notices/*.json carry label.ko for department and category names; infra/i18n.ts is the server-generated UI string table. Both are data shipped to users.",
   "productCopy": [
