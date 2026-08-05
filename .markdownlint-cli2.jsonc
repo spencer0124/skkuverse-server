@@ -4,7 +4,7 @@
     // Rules come from .markdownlint.jsonc, vendored from the umbrella by the
     // `conventions.markdownlint` contract and hash-locked in
     // .contracts.lock.json. Do not edit that file — edit
-    // skkuverse/conventions/markdownlint.jsonc and run `skkuverse_sync.py pull`.
+    // skkuverse/conventions/markdownlint.jsonc and run `sync_contracts.py pull`.
     //
     // Rules central, globs local: which paths this repo lints is genuinely
     // repo-specific and stays below.

@@ -21,7 +21,7 @@ import type { CategoryConfig } from "./types";
 // intermediate state green while still catching the reverse, which is the
 // dangerous one. CI enforces it against the value recorded in
 // .contracts.lock.json — do not hand-edit that file; run
-// `skkuverse_sync.py pull --repo server`.
+// `sync_contracts.py pull --repo server`.
 //
 // 30 is Firestore's real `array-contains-any` limit. The previous 10 was a
 // self-imposed "MVP conservative limit" (see the CF's types.ts), and it became

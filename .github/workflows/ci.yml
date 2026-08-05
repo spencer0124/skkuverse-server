@@ -37,7 +37,7 @@ jobs:
       - name: Fetch contract tooling
         run: git clone --depth 1 https://github.com/spencer0124/skkuverse "$RUNNER_TEMP/sv"
       - name: Contract integrity
-        run: python3 "$RUNNER_TEMP/sv/tools/skkuverse_sync.py" check --repo server --root .
+        run: python3 "$RUNNER_TEMP/sv/exported/sync_contracts.py" check --repo server --root .
       # Shared conventions, defined once in the umbrella. Same clone, so this
       # adds no dependency and no install step.
       #
@@ -48,7 +48,7 @@ jobs:
       # when docs/ is English.
       - name: Conventions
         run: |
-          python3 "$RUNNER_TEMP/sv/tools/conventions_lint.py" --root . \
+          python3 "$RUNNER_TEMP/sv/exported/lint_conventions.py" --root . \
             --only frontmatter --only structure
       - run: npm test
         env:
