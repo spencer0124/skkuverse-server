@@ -66,7 +66,6 @@ skkuverse-server/
 │   ├── scheduling/           # Poller registry service (in-flight guard)
 │   ├── bus/                  # HSSC shuttle, jongro, campus ETA, schedules, station
 │   ├── notices/              # 147-source feed, tabs, FCM dispatch, internal endpoint
-│   ├── search/               # Building & space free-text search
 │   ├── ad/                   # Ad placements + impression/click events
 │   ├── building/             # Building detail + sync poller
 │   ├── map/                  # Map config, markers, overlays
@@ -184,11 +183,6 @@ Every successful response uses the envelope `{ meta: { lang, ... }, data: ... }`
 | GET | `/health` | — | Liveness |
 | GET | `/health/ready` | — | Readiness (DB ping + poller running, unless `ROLE=api`) |
 
-### Search
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/search/*` | firebase | Building & space free-text search |
-
 ### Bus & station
 | Method | Path | Auth | Description |
 |---|---|---|---|
@@ -216,6 +210,7 @@ Every successful response uses the envelope `{ meta: { lang, ... }, data: ... }`
 | GET | `/map/config` | — | Map style + tile config |
 | GET | `/map/markers` | — | Static building/spot markers |
 | GET | `/map/overlays` | — | Polygon/route overlays |
+| GET | `/building/search` | — | Ranked building + room search (`?q=`, optional `?campus=`) — see [ADR 0006](docs/decisions/0006-building-search-relevance-ranking.md) |
 | GET | `/building/*` | — | Building detail + list |
 | GET | `/ui/*` | — | SDUI fragments (bus list, campus list, scroll config) |
 | GET | `/app/version` | — | iOS/Android min version + update URL |
@@ -226,7 +221,7 @@ Every successful response uses the envelope `{ meta: { lang, ... }, data: ... }`
 | GET | `/ad/placements` | firebase | Active ads (weighted random) per placement |
 | POST | `/ad/events` | firebase | Record impression or click |
 
-Rate limits: search (60/min, keyed by uid), notices (120/min, uid-keyed), everything else general (120/min, IP-keyed). All limiters fall back to IP when uid is absent.
+Rate limits: notices (120/min, uid-keyed), everything else general (120/min, IP-keyed). All limiters fall back to IP when uid is absent.
 
 ---
 

@@ -81,7 +81,7 @@ audience: internal
 
 ### 응답 envelope: 공통 `{ meta, data }` 유지
 
-공지 API만 다른 envelope으로 바꿀 수도 있었지만 거절. `/ad`, `/bus`, `/search`, `/building` 전부가 공통 응답 형태(`src/common/response.interceptor.ts` + `send-success.ts`)를 쓴다. 새 엔드포인트만 다르면 클라이언트가 두 형태를 알아야 한다. **일관성이 설계보다 이긴다.**
+공지 API만 다른 envelope으로 바꿀 수도 있었지만 거절. `/ad`, `/bus`, `/building` 전부가 공통 응답 형태(`src/common/response.interceptor.ts` + `send-success.ts`)를 쓴다. 새 엔드포인트만 다르면 클라이언트가 두 형태를 알아야 한다. **일관성이 설계보다 이긴다.**
 
 ### 커서: `(date, crawledAt, _id)` 트리플
 

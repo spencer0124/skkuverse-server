@@ -65,6 +65,7 @@ audience: internal
 | [0003-fcm-dispatch-cloud-function-claim-lease.md](decisions/0003-fcm-dispatch-cloud-function-claim-lease.md) | accepted (백필) |
 | [0004-strict-config-pre-deploy-dry-load.md](decisions/0004-strict-config-pre-deploy-dry-load.md) | accepted (백필) |
 | [0005-notice-dispatch-content-group.md](decisions/0005-notice-dispatch-content-group.md) | accepted |
+| [0006-building-search-relevance-ranking.md](decisions/0006-building-search-relevance-ranking.md) | accepted |
 
 ### internal (포스트모템)
 
