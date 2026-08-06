@@ -17,6 +17,10 @@ const assets = [
   // Every details/<id>.json listed in index.json must appear here too — the
   // loader reads them eagerly at boot, so a missing file is a startup crash.
   ["src/miniapps/index.json", "dist/src/miniapps/index.json"],
+  [
+    "src/miniapps/details/eskara-2026.json",
+    "dist/src/miniapps/details/eskara-2026.json",
+  ],
   ["src/miniapps/details/hssc.json", "dist/src/miniapps/details/hssc.json"],
   ["src/miniapps/details/nsc.json", "dist/src/miniapps/details/nsc.json"],
   ["src/miniapps/details/skkuw.json", "dist/src/miniapps/details/skkuw.json"],

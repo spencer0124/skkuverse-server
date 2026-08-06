@@ -2,6 +2,13 @@
   "version": 1,
   "miniApps": [
     {
+      "id": "eskara-2026",
+      "name": "ESKARA 2026",
+      "shortName": "ESKARA",
+      "order": 5,
+      "logo": { "kind": "remote", "path": "/miniapps/eskara-2026.png" }
+    },
+    {
       "id": "hssc",
       "name": "인사캠 총학생회",
       "shortName": "인사캠 총학",
