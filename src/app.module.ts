@@ -6,7 +6,6 @@ import { HealthModule } from "./health/health.module";
 import { BusModule } from "./bus/bus.module";
 import { AppFeatureModule } from "./app/app-feature.module";
 import { UiModule } from "./ui/ui.module";
-import { SearchModule } from "./search/search.module";
 import { AdModule } from "./ad/ad.module";
 import { BuildingModule } from "./building/building.module";
 import { MapModule } from "./map/map.module";
@@ -39,7 +38,6 @@ import { MiniAppsModule } from "./miniapps/miniapps.module";
     BusModule,
     AppFeatureModule,
     UiModule,
-    SearchModule,
     AdModule,
     BuildingModule,
     MapModule,

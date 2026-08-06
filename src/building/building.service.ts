@@ -1,16 +1,14 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
 import logger from "../infra/logger";
 import {
-  countSearchBuildings,
-  countSearchSpaces,
   ensureIndexes,
   getAllBuildings,
   getBuildingBySkkuId,
   getConnectionsForBuilding,
   getFloorsByBuildNo,
-  searchBuildings,
-  searchSpaces,
 } from "./building.data";
+import { searchBuildings, searchSpaces } from "./building.search";
+import type { RankedSearchResult } from "./building.search";
 import type {
   BuildingDoc,
   Campus,
@@ -18,12 +16,6 @@ import type {
   FloorGroup,
   SpaceDoc,
 } from "./types";
-
-interface SearchCounts {
-  hssc: number;
-  nsc: number;
-  total: number;
-}
 
 /**
  * BuildingService — thin @Injectable wrapper over the validated, read-only
@@ -75,22 +67,22 @@ export class BuildingService implements OnModuleInit {
     return getConnectionsForBuilding(skkuId);
   }
 
+  /**
+   * Ranked search. Rows and per-campus counts arrive together from one $facet,
+   * so the count can never describe a different predicate than the list — the
+   * separate countSearch* methods this replaces each rebuilt the filter by hand.
+   */
   searchBuildings(
     query: string,
     campus?: Campus | null,
-  ): Promise<BuildingDoc[]> {
+  ): Promise<RankedSearchResult<BuildingDoc>> {
     return searchBuildings(query, campus);
   }
 
-  searchSpaces(query: string, campus?: Campus | null): Promise<SpaceDoc[]> {
+  searchSpaces(
+    query: string,
+    campus?: Campus | null,
+  ): Promise<RankedSearchResult<SpaceDoc>> {
     return searchSpaces(query, campus);
-  }
-
-  countSearchBuildings(query: string): Promise<SearchCounts> {
-    return countSearchBuildings(query);
-  }
-
-  countSearchSpaces(query: string): Promise<SearchCounts> {
-    return countSearchSpaces(query);
   }
 }

@@ -3,6 +3,10 @@ import type { Request, Response } from "express";
 import { t } from "../infra/i18n";
 import type { SupportedLang } from "../infra/types";
 import { toDisplayNo } from "./building.data";
+import {
+  BUILDING_SEARCH_LIMIT,
+  SPACE_SEARCH_LIMIT,
+} from "./building.search";
 import type {
   BuildingDoc,
   Campus,
@@ -100,14 +104,18 @@ export class BuildingController {
     }
     const campus = campusParam as Campus | null;
 
-    const [buildings, spaces, allBuildings, buildingCounts, spaceCounts] =
-      await Promise.all([
-        this.building.searchBuildings(q, campus),
-        this.building.searchSpaces(q, campus),
-        this.building.getAllBuildings(),
-        this.building.countSearchBuildings(q),
-        this.building.countSearchSpaces(q),
-      ]);
+    // Rows and counts now arrive together (one $facet per collection), so the
+    // five-way fan-out collapsed to three and the count can no longer describe a
+    // different predicate than the list.
+    const [buildingResult, spaceResult, allBuildings] = await Promise.all([
+      this.building.searchBuildings(q, campus),
+      this.building.searchSpaces(q, campus),
+      this.building.getAllBuildings(),
+    ]);
+    const buildings = buildingResult.items;
+    const spaces = spaceResult.items;
+    const buildingCounts = buildingResult.counts;
+    const spaceCounts = spaceResult.counts;
 
     const lang = reqLang(req);
 
@@ -175,6 +183,24 @@ export class BuildingController {
         counts: {
           building: buildingCounts,
           space: spaceCounts,
+        },
+        // Additive — the app's parseBuildingSearchResult reads only known keys,
+        // so this ships without a client change. The row caps sit above any
+        // realistic query (the largest building has 801 rooms), which is what
+        // makes spaceCount and counts.space.total agree; `truncated` is here so
+        // that on a pathological one-character query the cut is recorded rather
+        // than silently presented as the whole result.
+        limits: {
+          building: {
+            limit: BUILDING_SEARCH_LIMIT,
+            total: buildingResult.total,
+            truncated: buildingResult.truncated,
+          },
+          space: {
+            limit: SPACE_SEARCH_LIMIT,
+            total: spaceResult.total,
+            truncated: spaceResult.truncated,
+          },
         },
       },
     );

@@ -11,16 +11,22 @@ jest.mock("../../../src/building/building.data", () => ({
   getBuildingBySkkuId: jest.fn(),
   getFloorsByBuildNo: jest.fn(),
   getConnectionsForBuilding: jest.fn(),
+}));
+
+// Search moved out of building.data into its own module; the service delegates
+// there for the two ranked queries (counts now ride along with the rows, so the
+// former countSearch* pair no longer exists).
+jest.mock("../../../src/building/building.search", () => ({
   searchBuildings: jest.fn(),
   searchSpaces: jest.fn(),
-  countSearchBuildings: jest.fn(),
-  countSearchSpaces: jest.fn(),
 }));
 
 import * as data from "../../../src/building/building.data";
+import * as search from "../../../src/building/building.search";
 import { BuildingService } from "../../../src/building/building.service";
 
 const mocked = data as jest.Mocked<typeof data>;
+const mockedSearch = search as jest.Mocked<typeof search>;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -72,20 +78,28 @@ describe("BuildingService delegation", () => {
   });
 
   it("searchBuildings / searchSpaces forward query + campus", async () => {
-    mocked.searchBuildings.mockResolvedValue([]);
-    mocked.searchSpaces.mockResolvedValue([]);
+    const empty = {
+      items: [],
+      counts: { hssc: 0, nsc: 0, total: 0 },
+      total: 0,
+      truncated: false,
+    };
+    mockedSearch.searchBuildings.mockResolvedValue(empty);
+    mockedSearch.searchSpaces.mockResolvedValue(empty);
     await svc.searchBuildings("law", "nsc");
     await svc.searchSpaces("law", null);
-    expect(mocked.searchBuildings).toHaveBeenCalledWith("law", "nsc");
-    expect(mocked.searchSpaces).toHaveBeenCalledWith("law", null);
+    expect(mockedSearch.searchBuildings).toHaveBeenCalledWith("law", "nsc");
+    expect(mockedSearch.searchSpaces).toHaveBeenCalledWith("law", null);
   });
 
-  it("countSearchBuildings / countSearchSpaces forward query", async () => {
-    mocked.countSearchBuildings.mockResolvedValue({ hssc: 0, nsc: 0, total: 0 });
-    mocked.countSearchSpaces.mockResolvedValue({ hssc: 0, nsc: 0, total: 0 });
-    await svc.countSearchBuildings("q");
-    await svc.countSearchSpaces("q");
-    expect(mocked.countSearchBuildings).toHaveBeenCalledWith("q");
-    expect(mocked.countSearchSpaces).toHaveBeenCalledWith("q");
+  it("passes the ranked result through untouched (counts ride with rows)", async () => {
+    const ranked = {
+      items: [],
+      counts: { hssc: 2, nsc: 3, total: 5 },
+      total: 5,
+      truncated: true,
+    };
+    mockedSearch.searchSpaces.mockResolvedValue(ranked);
+    await expect(svc.searchSpaces("q")).resolves.toBe(ranked);
   });
 });
