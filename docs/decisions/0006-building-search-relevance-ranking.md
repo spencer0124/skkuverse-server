@@ -87,6 +87,10 @@ Concatenating strong then weak preserves relevance order for free, since every s
 
 Removing the cap entirely was rejected: `q=실` would ship ~1.5 MB and 6173 rows to a phone.
 
+**The band split does not bound a short NUMERIC query, and it was never going to.** `spaceCd` prefixes are dense at one digit: `^2` matches **1839** rooms, `^9` 1122, `^7` 848. Those are genuinely strong matches, so they fill the strong band up to its 1000 cap — and `q=2` is exactly what fires while a user types "27101" with a pause. The server cannot distinguish that from someone who means building 2.
+
+So the client-side cost is fixed on the client: `skkuverse-app` now renders results in a `FlatList` instead of a `ScrollView` with an eager `.map()` (branch `feat/search-virtualized-list`). The two changes are complementary — the band split removes the *pointless* rows (`q=연구`: 1765 → 100) and virtualization removes the *rendering* cost of the legitimate ones (`q=298`: 801 rooms windowed instead of mounted). Neither alone is sufficient.
+
 The useful side effect: for a query under the cap **and no `campus` filter**, `meta.spaceCount === meta.counts.space.total`. The app renders the row count in the section header and the uncapped count on the campus tab, so raising the cap makes those agree — the badge contradiction closes with no app release. With `?campus=` set the two legitimately differ (`spaceCount` is campus-scoped, `counts` is campus-agnostic by design); the app is unaffected because it reads the badge from a separate campus-less request. `meta.limits` ships additively so a pathological query records the cut instead of presenting a truncated list as the whole result.
 
 ### The legacy `/search/*` proxy is deleted
