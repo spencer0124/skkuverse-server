@@ -1,6 +1,5 @@
 /**
  * Empirical ordering proof for the auth → rate-limit fix (parity with Express
- * index.ts:129 `app.use("/search", verifyToken, searchLimiter, ...)` and
  * index.ts:137 `app.use("/ad", verifyToken, adRoute)` + eventLimiter on POST
  * /events).
  *
@@ -12,9 +11,15 @@
  *
  * This test proves the fix at the assembled-app level: with Firebase mocked to
  * resolve a uid, a request carrying a valid Bearer token must have req.uid
- * ALREADY SET when byUidOrIp (the real lib/rateLimitKeys key generator) runs —
+ * ALREADY SET when byUidOrIp (the real infra/rateLimitKeys key generator) runs —
  * i.e. byUidOrIp returns the uid, not the IP. Before the fix this assertion
  * fails (uid undefined at limiter time → IP fallback).
+ *
+ * POST /ad/events is the subject because it is now the only route pairing
+ * FirebaseAuthMiddleware with a uid-keyed limiter. This test previously drove
+ * the same invariant through /search/facilities; that surface was the legacy
+ * SKKU campusMap.do proxy and has been deleted, so the assertion moved here
+ * rather than being dropped — the ordering it guards is module-independent.
  */
 
 // Firebase configured + verifyIdToken resolves a deterministic uid.
@@ -44,17 +49,12 @@ jest.mock("../../../src/infra/rateLimitKeys", () => {
   };
 });
 
-// axios mocked so the search handler resolves without external calls.
-jest.mock("axios", () => ({
-  __esModule: true,
-  default: { get: jest.fn().mockResolvedValue({ data: { items: [] } }) },
-  get: jest.fn().mockResolvedValue({ data: { items: [] } }),
-}));
-
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
 import config from "../../../src/infra/config";
-import { buildSearchApp } from "../../helpers/nest/build-search-app";
+import { AdDataService } from "../../../src/ad/ad-data.service";
+import { AdStatsService } from "../../../src/ad/ad-stats.service";
+import { buildAdApp } from "../../helpers/nest/build-ad-app";
 
 let app: NestExpressApplication;
 let httpServer: import("http").Server;
@@ -66,7 +66,24 @@ beforeAll(async () => {
   (config.firebase as { serviceAccount: unknown }).serviceAccount = {
     project_id: "test",
   };
-  app = await buildSearchApp();
+  app = await buildAdApp([
+    {
+      provide: AdDataService,
+      useValue: {
+        onModuleInit: jest.fn(),
+        // recordEvent validates the placement against this map, so it must
+        // contain the placement the request posts or the handler 400s before
+        // the assertion below can mean anything.
+        getPlacements: jest.fn().mockResolvedValue({
+          splash: { enabled: true, adId: null },
+        }),
+      },
+    },
+    {
+      provide: AdStatsService,
+      useValue: { recordEvent: jest.fn().mockResolvedValue(undefined) },
+    },
+  ]);
   httpServer = app.getHttpServer();
 });
 
@@ -81,10 +98,11 @@ beforeEach(() => {
 });
 
 describe("auth runs before the uid-keyed rate limiter (Express order parity)", () => {
-  it("byUidOrIp sees req.uid (set by FirebaseAuthMiddleware) for an authenticated /search request", async () => {
+  it("byUidOrIp sees req.uid (set by FirebaseAuthMiddleware) for an authenticated POST /ad/events", async () => {
     const res = await request(httpServer)
-      .get("/search/facilities/test")
-      .set("Authorization", "Bearer valid-token");
+      .post("/ad/events")
+      .set("Authorization", "Bearer valid-token")
+      .send({ placement: "splash", event: "view" });
 
     expect(res.status).toBe(200);
     expect(mockVerifyIdToken).toHaveBeenCalledWith("valid-token");

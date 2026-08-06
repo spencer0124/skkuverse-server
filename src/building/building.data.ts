@@ -1,4 +1,4 @@
-import type { Collection, Filter } from "mongodb";
+import type { Collection } from "mongodb";
 import { getClient } from "../infra/db";
 import config from "../infra/config";
 import type {
@@ -46,6 +46,24 @@ function getConnectionsCollection(): Collection<ConnectionDoc> {
 
 // --- Indexes ---
 
+/**
+ * NOTE ON SEARCH: there is deliberately no index here for /building/search, and
+ * adding one would be cost without effect. A $or uses index-union only if EVERY
+ * branch is indexed; the search predicate ORs over name.ko / name.en /
+ * buildingName.* which are not, so the whole thing plans as SUBPLAN -> COLLSCAN
+ * and the spaceCd branch never gets its own IXSCAN. $options:"i" would disable
+ * prefix-anchoring anyway. Measured: ~20ms over 7691 spaces, and the endpoint
+ * went from six collection scans to two when rows and counts merged into one
+ * $facet. spaces is ~2.5MB and fully cached.
+ *
+ * If spaces ever grows ~10x, the fix is Atlas Search (autocomplete/edgeGram
+ * mapping on spaceCd), not a classic index. Watch the $facet ceiling too: each
+ * facet stage is capped at 100MB and CANNOT spill to disk (allowDiskUse does not
+ * apply), and the emitted document is bound by the 16MB BSON limit.
+ *
+ * The indexes below serve /building/list, getFloorsByBuildNo and the sync
+ * upserts — keep them.
+ */
 async function ensureIndexes(): Promise<void> {
   const buildings = getBuildingsCollection();
   const buildingsRaw = getRawBuildingsCollection();
@@ -163,94 +181,8 @@ async function getFloorsByBuildNo(buildNo: string | null): Promise<FloorGroup[]>
   );
 }
 
-async function searchBuildings(
-  query: string,
-  campus?: Campus | null,
-): Promise<BuildingDoc[]> {
-  const col = getBuildingsCollection();
-  const regex = { $regex: escapeRegex(query), $options: "i" };
-  const filter: Filter<BuildingDoc> = {
-    $or: [
-      { "name.ko": regex },
-      { "name.en": regex },
-      { "description.ko": regex },
-    ],
-  };
-  if (campus) filter.campus = campus;
-
-  // Numeric-only queries match displayNo (user-facing building number)
-  if (/^\d+$/.test(query)) {
-    filter.$or!.push({ displayNo: query });
-  }
-
-  return col
-    .find(filter, { projection: { extensions: 0, sync: 0, enrichVersion: 0 } })
-    .limit(5)
-    .toArray();
-}
-
-async function searchSpaces(
-  query: string,
-  campus?: Campus | null,
-): Promise<SpaceDoc[]> {
-  const col = getSpacesCollection();
-  const regex = { $regex: escapeRegex(query), $options: "i" };
-  const filter: Filter<SpaceDoc> = {
-    $or: [
-      { "name.ko": regex },
-      { "name.en": regex },
-      { "buildingName.ko": regex },
-    ],
-  };
-  // Numeric/alphanumeric codes also match spaceCd directly
-  if (/^[\da-zA-Z]+$/.test(query)) {
-    filter.$or!.push({ spaceCd: query });
-  }
-  if (campus) filter.campus = campus;
-
-  return col
-    .find(filter, { projection: { _id: 0, sources: 0, syncedAt: 0 } })
-    .limit(20)
-    .toArray();
-}
-
-interface SearchCounts {
-  hssc: number;
-  nsc: number;
-  total: number;
-}
-
-async function countSearchBuildings(query: string): Promise<SearchCounts> {
-  const col = getBuildingsCollection();
-  const regex = { $regex: escapeRegex(query), $options: "i" };
-  const baseOr: Filter<BuildingDoc>[] = [
-    { "name.ko": regex },
-    { "name.en": regex },
-    { "description.ko": regex },
-  ];
-  if (/^\d+$/.test(query)) baseOr.push({ displayNo: query });
-  const [hssc, nsc] = await Promise.all([
-    col.countDocuments({ $or: baseOr, campus: "hssc" }),
-    col.countDocuments({ $or: baseOr, campus: "nsc" }),
-  ]);
-  return { hssc, nsc, total: hssc + nsc };
-}
-
-async function countSearchSpaces(query: string): Promise<SearchCounts> {
-  const col = getSpacesCollection();
-  const regex = { $regex: escapeRegex(query), $options: "i" };
-  const baseOr: Filter<SpaceDoc>[] = [
-    { "name.ko": regex },
-    { "name.en": regex },
-    { "buildingName.ko": regex },
-  ];
-  if (/^[\da-zA-Z]+$/.test(query)) baseOr.push({ spaceCd: query });
-  const [hssc, nsc] = await Promise.all([
-    col.countDocuments({ $or: baseOr, campus: "hssc" }),
-    col.countDocuments({ $or: baseOr, campus: "nsc" }),
-  ]);
-  return { hssc, nsc, total: hssc + nsc };
-}
+// Search (matching, ranking, counts) lives in building.search.ts — it needs its
+// own tier table and $facet pipelines, and is the part that carries unit tests.
 
 // --- Connections ---
 
@@ -316,9 +248,6 @@ export {
   getBuildingBySkkuId,
   getFloorsByBuildNo,
   getConnectionsForBuilding,
-  searchBuildings,
-  searchSpaces,
-  countSearchBuildings,
-  countSearchSpaces,
+  escapeRegex,
   clearCache,
 };
