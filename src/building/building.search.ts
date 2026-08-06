@@ -32,26 +32,50 @@ import {
 } from "./building.data";
 import type { BuildingDoc, Campus, SpaceDoc } from "./types";
 
-// --- Row caps ---
+// --- Row caps: two bands ---
 //
-// Sized from the data rather than picked round: the largest single building is
-// 기숙사신관 (buildNo 298) with 801 rooms, and the widest realistic
-// building-number query is "29" at 895 matches. 1000 therefore returns EVERY
-// room of ANY building — the product promise "type 27, get building 27's rooms"
-// holds for every building on both campuses.
+// A single flat cap cannot serve both goals at once. The product promise is
+// "type 27, get building 27's rooms" — the largest building (기숙사신관, buildNo
+// 298) has 801 rooms, so a cap that never truncates a building must be ~1000.
+// But the same cap applied to a weak keyword hit is a liability: "연구" matches
+// 1764 rooms, "실" matches 6173, and the app renders results in a plain
+// ScrollView with an eager .map() (SearchScreen.tsx) — no virtualization — so
+// every returned row is mounted at once, ~8 React elements each. A 1000-row
+// response to a one-character query is a multi-second freeze on mid-range
+// Android, and the app has no minimum query length.
 //
-// It is a ceiling, not a page size. It exists only to bound pathological
-// one-character queries: "실" matches 6173 rooms (~1.5 MB at ~247 bytes/row),
-// which no user wants scrolled. At 1000 the worst response is ~250 KB.
+// So the cap is split by relevance band. STRONG = the query is a prefix of the
+// room's own code, i.e. genuinely "rooms in building N"; those are returned in
+// full. WEAK = everything the query merely appears inside; those are the long
+// tail nobody scrolls, capped tightly.
 //
-// Consequence worth knowing: for any query under the cap, meta.spaceCount ===
-// meta.counts.space.total, so the app's section header and campus-tab badge
-// agree by construction. They can only diverge on those junk queries.
+//   q=27   -> 168 strong + <=100 weak
+//   q=298  -> 801 strong + <=100 weak
+//   q=연구  ->   0 strong + <=100 weak   (was 1000 flat)
+//   q=실    ->   0 strong + <=100 weak   (was 1000 flat)
+//
+// meta.limits.truncated still reports any cut, so a truncated tail is never
+// presented as the whole result.
+//
+// Consequence worth knowing: for a query under the cap AND no campus filter,
+// meta.spaceCount === meta.counts.space.total, so the app's section header and
+// campus-tab badge agree. With ?campus= set they legitimately differ —
+// spaceCount is campus-scoped while counts stays campus-agnostic (it feeds the
+// toggle). The app is unaffected because it reads the badge from a separate
+// campus-less request.
 const SPACE_SEARCH_LIMIT = 1000;
+const SPACE_WEAK_LIMIT = 100;
+/** Cuts at the spaceCd-prefix tier (50) — see SPACE_TIERS. */
+const SPACE_STRONG_MIN_SCORE = 50;
 
-// buildings holds 78 documents total, so this is above the maximum possible
-// match count — effectively "no limit" while still bounding the pipeline.
+// buildings holds 78 documents total, so the strong cap is above the maximum
+// possible match count. The weak band matters for a different reason: `q=관`
+// matches 69 buildings, 29 of them ONLY through description.ko — a field the
+// results list never renders, so those rows have no visible reason to be there.
 const BUILDING_SEARCH_LIMIT = 100;
+const BUILDING_WEAK_LIMIT = 10;
+/** Cuts below the name-substring tier (20), leaving description-only (10) weak. */
+const BUILDING_STRONG_MIN_SCORE = 20;
 
 // --- Relevance tiers ---
 
@@ -125,15 +149,29 @@ function tierRegex(mode: TierMode, escaped: string): string {
 }
 
 /**
- * $regexMatch THROWS on non-string input, and two production `spaces` rows
- * carry spaceCd: null (600주년기념관 buildNo 101, 의학관 buildNo 271 — both
- * spaceList-only records with empty names). $ifNull is therefore load-bearing,
- * not defensive padding.
+ * $regexMatch THROWS on non-string input, so every scored path is coerced first.
+ * This is load-bearing, not defensive padding: two production `spaces` rows
+ * already carry spaceCd: null (600주년기념관 buildNo 101, 의학관 buildNo 271 —
+ * both spaceList-only records with empty names).
+ *
+ * The guard tests $type rather than using $ifNull, because $ifNull only covers
+ * null and missing. building.sync.ts passes SKKU's JSON values straight through
+ * (`spaceCd: item.spaceCd`) and SkkuSpaceListItem.spaceCd: string is a
+ * compile-time assertion about an EXTERNAL payload, not a runtime guarantee. If
+ * SKKU ever emitted `"spaceCd": 27101` as a number, one such row would make
+ * $regexMatch throw and every /building/search request would 500 — for every
+ * query, not just ones touching that row. The old find({spaceCd: {$regex}})
+ * simply failed to match instead, so an unguarded $ifNull would convert a
+ * one-row data blip into a total endpoint outage.
+ *
+ * Matching the `typeof cur === "string" ? cur : ""` in readPath also keeps the
+ * JS twin and this compiler from disagreeing on non-string scalars.
  */
 function pathMatches(path: string, regex: string): Document {
+  const field = `$${path}`;
   return {
     $regexMatch: {
-      input: { $ifNull: [`$${path}`, ""] },
+      input: { $cond: [{ $eq: [{ $type: field }, "string"] }, field, ""] },
       regex,
       options: "i",
     },
@@ -263,8 +301,9 @@ interface RankedSearchResult<T> {
 }
 
 interface RankedFacet<T> {
-  rows: T[];
-  counts: Array<{ _id: Campus; n: number }>;
+  strong: T[];
+  weak: T[];
+  counts: Array<{ _id: Campus | null; n: number }>;
   total: Array<{ n: number }>;
 }
 
@@ -277,18 +316,24 @@ function toRankedResult<T>(facets: Array<RankedFacet<T>>): RankedSearchResult<T>
   }
   let hssc = 0;
   let nsc = 0;
+  // $group on $campus emits _id: null for a doc missing the field; such a row
+  // belongs to neither campus and is excluded from the badge, which is the same
+  // thing the old per-campus countDocuments did.
   for (const row of facet.counts) {
     if (row._id === "hssc") hssc = row.n;
     else if (row._id === "nsc") nsc = row.n;
   }
+  // Concatenation preserves relevance order: every strong score is by
+  // definition above every weak one, and each band is already sorted.
+  const items = [...facet.strong, ...facet.weak];
   // Not a silent fallback: $count legitimately emits zero documents when the
   // campus-scoped match set is empty.
   const total = facet.total[0]?.n ?? 0;
   return {
-    items: facet.rows,
+    items,
     counts: { hssc, nsc, total: hssc + nsc },
     total,
-    truncated: total > facet.rows.length,
+    truncated: total > items.length,
   };
 }
 
@@ -313,17 +358,31 @@ async function searchSpaces(
 ): Promise<RankedSearchResult<SpaceDoc>> {
   const col = getSpacesCollection();
   const campusStage: Document[] = campus ? [{ $match: { campus } }] : [];
+  const projectStage = {
+    $project: { _id: 0, _score: 0, sources: 0, syncedAt: 0 },
+  };
+  const sortStage = { $sort: { _score: -1, spaceCd: 1 } };
 
   const pipeline: Document[] = [
     { $match: spaceKeywordFilter(query) },
+    // Scored once here rather than inside each band: both bands read _score, so
+    // hoisting it costs one pass instead of two.
+    { $addFields: { _score: tiersToScoreExpr(SPACE_TIERS, query) } },
     {
       $facet: {
-        rows: [
+        strong: [
           ...campusStage,
-          { $addFields: { _score: tiersToScoreExpr(SPACE_TIERS, query) } },
-          { $sort: { _score: -1, spaceCd: 1 } },
+          { $match: { _score: { $gte: SPACE_STRONG_MIN_SCORE } } },
+          sortStage,
           { $limit: SPACE_SEARCH_LIMIT },
-          { $project: { _id: 0, _score: 0, sources: 0, syncedAt: 0 } },
+          projectStage,
+        ],
+        weak: [
+          ...campusStage,
+          { $match: { _score: { $lt: SPACE_STRONG_MIN_SCORE } } },
+          sortStage,
+          { $limit: SPACE_WEAK_LIMIT },
+          projectStage,
         ],
         counts: [{ $group: { _id: "$campus", n: { $sum: 1 } } }],
         total: [...campusStage, { $count: "n" }],
@@ -349,24 +408,29 @@ async function searchBuildings(
 ): Promise<RankedSearchResult<BuildingDoc>> {
   const col = getBuildingsCollection();
   const campusStage: Document[] = campus ? [{ $match: { campus } }] : [];
+  const projectStage = {
+    $project: { _score: 0, extensions: 0, sync: 0, enrichVersion: 0 },
+  };
+  const sortStage = { $sort: { _score: -1, _id: 1 } };
 
   const pipeline: Document[] = [
     { $match: buildingKeywordFilter(query) },
+    { $addFields: { _score: tiersToScoreExpr(BUILDING_TIERS, query) } },
     {
       $facet: {
-        rows: [
+        strong: [
           ...campusStage,
-          { $addFields: { _score: tiersToScoreExpr(BUILDING_TIERS, query) } },
-          { $sort: { _score: -1, _id: 1 } },
+          { $match: { _score: { $gte: BUILDING_STRONG_MIN_SCORE } } },
+          sortStage,
           { $limit: BUILDING_SEARCH_LIMIT },
-          {
-            $project: {
-              _score: 0,
-              extensions: 0,
-              sync: 0,
-              enrichVersion: 0,
-            },
-          },
+          projectStage,
+        ],
+        weak: [
+          ...campusStage,
+          { $match: { _score: { $lt: BUILDING_STRONG_MIN_SCORE } } },
+          sortStage,
+          { $limit: BUILDING_WEAK_LIMIT },
+          projectStage,
         ],
         counts: [{ $group: { _id: "$campus", n: { $sum: 1 } } }],
         total: [...campusStage, { $count: "n" }],
@@ -382,9 +446,13 @@ async function searchBuildings(
 
 export {
   BUILDING_SEARCH_LIMIT,
+  BUILDING_STRONG_MIN_SCORE,
   BUILDING_TIERS,
+  BUILDING_WEAK_LIMIT,
   SPACE_SEARCH_LIMIT,
+  SPACE_STRONG_MIN_SCORE,
   SPACE_TIERS,
+  SPACE_WEAK_LIMIT,
   buildingKeywordFilter,
   scoreLocally,
   searchBuildings,

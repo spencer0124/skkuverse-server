@@ -41,7 +41,9 @@ import {
   BUILDING_SEARCH_LIMIT,
   BUILDING_TIERS,
   SPACE_SEARCH_LIMIT,
+  SPACE_STRONG_MIN_SCORE,
   SPACE_TIERS,
+  SPACE_WEAK_LIMIT,
   buildingKeywordFilter,
   scoreLocally,
   searchSpaces,
@@ -78,31 +80,30 @@ describe("room ranking (q=27) — the reported bug", () => {
     expect(scoreSpace("27", dormNameOnly)).toBe(5);
   });
 
-  it("sorts every ^27 room ahead of every dormitory room", () => {
-    const docs = [dormNameOnly, dormCode, engineering];
-    const sorted = [...docs].sort(
-      (a, b) =>
-        scoreSpace("27", b) - scoreSpace("27", a) ||
-        String(a.spaceCd).localeCompare(String(b.spaceCd)),
-    );
-    expect(sorted[0]).toBe(engineering);
+  it("scores every room of building 27 into one tier above all dorm noise", () => {
+    // The property that matters: the WHOLE prefix tier outranks the WHOLE rest,
+    // so no dormitory row can ever appear between two of building 27's rooms.
+    const building27 = [
+      room("27101", "측량기기성능검사실", "제2공학관27동"),
+      room("27114A", "교육매체지원실", "제2공학관27동"),
+      room("27422", "SSIT 강의실", "제2공학관27동"),
+    ].map((r) => scoreSpace("27", r));
+    const noise = [dormCode, dormNameOnly].map((r) => scoreSpace("27", r));
+    expect(new Set(building27)).toEqual(new Set([50]));
+    expect(Math.min(...building27)).toBeGreaterThan(Math.max(...noise));
   });
 
-  it("orders same-tier rooms by ascending spaceCd (stable across syncs)", () => {
-    const rooms = [
-      room("27114A", "교육매체지원실", "제2공학관27동"),
-      room("27101", "측량기기성능검사실", "제2공학관27동"),
-      room("27102", "공학교육혁신센터", "제2공학관27동"),
-    ];
-    expect(rooms.every((r) => scoreSpace("27", r) === 50)).toBe(true);
-    const sorted = [...rooms].sort((a, b) =>
-      String(a.spaceCd).localeCompare(String(b.spaceCd)),
-    );
-    expect(sorted.map((r) => r.spaceCd)).toEqual([
-      "27101",
-      "27102",
-      "27114A",
-    ]);
+  it("is not satisfied by the OLD equality predicate (regression guard)", () => {
+    // The bug was `{ spaceCd: query }`. Reproduce it and assert it fails to find
+    // the room, so this test would go red if the equality ever came back.
+    const oldPredicateMatches = (q: string, cd: string): boolean => cd === q;
+    expect(oldPredicateMatches("27", "27101")).toBe(false);
+    // The shipped filter is a regex, and it does match.
+    const or = spaceKeywordFilter("27").$or as Document[];
+    const clause = or.find((c) => "spaceCd" in c) as {
+      spaceCd: { $regex: string; $options: string };
+    };
+    expect(new RegExp(clause.spaceCd.$regex, "i").test("27101")).toBe(true);
   });
 
   it("ranks an exact code above a prefix match", () => {
@@ -135,6 +136,21 @@ describe("scoring edge cases from real production rows", () => {
     const orphan = room(null, "숙실(271)", "기숙사신관");
     expect(() => scoreSpace("27", orphan)).not.toThrow();
     expect(scoreSpace("27", orphan)).toBe(5);
+  });
+
+  it("treats a non-string spaceCd as empty rather than matching it", () => {
+    // If SKKU ever emits `"spaceCd": 27101` as a JSON number, sync passes it
+    // straight through. The Mongo guard coerces it to "" ($regexMatch would
+    // otherwise throw and 500 every request); readPath must agree, or the JS
+    // twin would silently score a row the pipeline scores differently.
+    const numeric = room(27101, "측량기기성능검사실", "제2공학관27동");
+    const stringy = room("27101", "측량기기성능검사실", "제2공학관27동");
+    expect(() => scoreSpace("27", numeric)).not.toThrow();
+    // Falls back to the buildingName SUBSTRING tier (10) — "제2공학관27동" does
+    // not start with "27" — instead of the spaceCd prefix tier (50) it would
+    // have earned as a string. Demoted, never crashing.
+    expect(scoreSpace("27", numeric)).toBe(10);
+    expect(scoreSpace("27", stringy)).toBe(50);
   });
 
   it("matches the single lowercase spaceCd case-insensitively", () => {
@@ -188,11 +204,15 @@ describe("tiersToScoreExpr — the Mongo compiler", () => {
     expect(expr.$switch.default).toBe(0);
   });
 
-  it("wraps every scored input in $ifNull and matches case-insensitively", () => {
+  it("guards every scored input by $type and matches case-insensitively", () => {
+    // $regexMatch throws on non-string input. The guard must be a $type test,
+    // not $ifNull — $ifNull covers null/missing but would still hand a NUMBER
+    // to $regexMatch, and one such row would 500 the whole endpoint.
     const json = JSON.stringify(expr);
     const regexMatches = json.match(/"\$regexMatch"/g) ?? [];
-    const ifNulls = json.match(/"\$ifNull"/g) ?? [];
-    expect(ifNulls).toHaveLength(regexMatches.length);
+    const typeGuards = json.match(/"\$type"/g) ?? [];
+    expect(typeGuards).toHaveLength(regexMatches.length);
+    expect(json).not.toContain("$ifNull");
     const options = json.match(/"options":"i"/g) ?? [];
     expect(options).toHaveLength(regexMatches.length);
   });
@@ -221,7 +241,9 @@ describe("searchSpaces pipeline assembly", () => {
       return {
         toArray: jest
           .fn()
-          .mockResolvedValue([{ rows: [], counts: [], total: [] }]),
+          .mockResolvedValue([
+            { strong: [], weak: [], counts: [], total: [] },
+          ]),
       };
     });
     return searchSpaces("27", campus).then(() => captured);
@@ -231,11 +253,15 @@ describe("searchSpaces pipeline assembly", () => {
     mockCollection.aggregate.mockReset();
   });
 
+  const facetOf = (pipeline: Document[]): Record<string, Document[]> =>
+    (pipeline[2] as { $facet: Record<string, Document[]> }).$facet;
+
   it("keeps campus inside the facet, never in the leading $match", async () => {
     const pipeline = await capturePipeline("nsc");
     expect(JSON.stringify(pipeline[0])).not.toContain("campus");
-    const facet = (pipeline[1] as { $facet: Record<string, Document[]> }).$facet;
-    expect(facet.rows?.[0]).toEqual({ $match: { campus: "nsc" } });
+    const facet = facetOf(pipeline);
+    expect(facet.strong?.[0]).toEqual({ $match: { campus: "nsc" } });
+    expect(facet.weak?.[0]).toEqual({ $match: { campus: "nsc" } });
     expect(facet.total?.[0]).toEqual({ $match: { campus: "nsc" } });
     // counts must span both campuses.
     expect(JSON.stringify(facet.counts)).not.toContain("nsc");
@@ -243,38 +269,100 @@ describe("searchSpaces pipeline assembly", () => {
 
   it("omits the campus stage entirely when no campus is given", async () => {
     const pipeline = await capturePipeline();
-    const facet = (pipeline[1] as { $facet: Record<string, Document[]> }).$facet;
-    expect(facet.rows?.[0]).toHaveProperty("$addFields");
+    const facet = facetOf(pipeline);
+    expect(facet.strong?.[0]).toEqual({
+      $match: { _score: { $gte: SPACE_STRONG_MIN_SCORE } },
+    });
     expect(facet.total?.[0]).toEqual({ $count: "n" });
   });
 
-  it("sorts by score then spaceCd and caps at SPACE_SEARCH_LIMIT", async () => {
+  it("scores once before the facet, not per band", async () => {
     const pipeline = await capturePipeline();
-    const facet = (pipeline[1] as { $facet: Record<string, Document[]> }).$facet;
-    expect(facet.rows).toContainEqual({ $sort: { _score: -1, spaceCd: 1 } });
-    expect(facet.rows).toContainEqual({ $limit: SPACE_SEARCH_LIMIT });
-    expect(facet.rows).toContainEqual({
-      $project: { _id: 0, _score: 0, sources: 0, syncedAt: 0 },
-    });
+    expect(pipeline[1]).toHaveProperty("$addFields._score");
+    const facet = facetOf(pipeline);
+    for (const band of [facet.strong, facet.weak]) {
+      expect(JSON.stringify(band)).not.toContain("$addFields");
+    }
   });
 
-  it("caps rooms above the largest building (801 rooms) and buildings above 78", () => {
+  it("splits the caps by band so a weak query cannot flood the client", async () => {
+    const pipeline = await capturePipeline();
+    const facet = facetOf(pipeline);
+    expect(facet.strong).toContainEqual({ $limit: SPACE_SEARCH_LIMIT });
+    expect(facet.weak).toContainEqual({ $limit: SPACE_WEAK_LIMIT });
+    // Bands must partition the match set — no row counted twice, none dropped.
+    expect(facet.strong).toContainEqual({
+      $match: { _score: { $gte: SPACE_STRONG_MIN_SCORE } },
+    });
+    expect(facet.weak).toContainEqual({
+      $match: { _score: { $lt: SPACE_STRONG_MIN_SCORE } },
+    });
+    for (const band of [facet.strong, facet.weak]) {
+      expect(band).toContainEqual({ $sort: { _score: -1, spaceCd: 1 } });
+      expect(band).toContainEqual({
+        $project: { _id: 0, _score: 0, sources: 0, syncedAt: 0 },
+      });
+    }
+  });
+
+  it("sizes the strong cap above the largest building and cuts the weak tail", () => {
+    // 기숙사신관 (buildNo 298) holds 801 rooms — the strong band must never
+    // truncate a building. The weak band is what keeps q=실 (6173 matches) from
+    // reaching a non-virtualized ScrollView.
     expect(SPACE_SEARCH_LIMIT).toBeGreaterThan(801);
+    expect(SPACE_WEAK_LIMIT).toBeLessThanOrEqual(100);
     expect(BUILDING_SEARCH_LIMIT).toBeGreaterThan(78);
+    // The strong cut must land on the spaceCd-prefix tier.
+    expect(SPACE_STRONG_MIN_SCORE).toBe(50);
   });
 });
 
 describe("toRankedResult", () => {
   it("maps per-campus groups into the counts envelope", () => {
     const r = toRankedResult([
-      { rows: [1, 2], counts: [{ _id: "nsc" as const, n: 269 }], total: [{ n: 269 }] },
+      {
+        strong: [1, 2],
+        weak: [],
+        counts: [{ _id: "nsc" as const, n: 269 }],
+        total: [{ n: 269 }],
+      },
     ]);
     expect(r.counts).toEqual({ hssc: 0, nsc: 269, total: 269 });
     expect(r.truncated).toBe(true);
   });
 
+  it("concatenates strong before weak so relevance order survives", () => {
+    const r = toRankedResult([
+      {
+        strong: ["27101", "27102"],
+        weak: ["91227"],
+        counts: [{ _id: "nsc" as const, n: 3 }],
+        total: [{ n: 3 }],
+      },
+    ]);
+    expect(r.items).toEqual(["27101", "27102", "91227"]);
+    expect(r.truncated).toBe(false);
+  });
+
+  it("ignores a null campus group rather than folding it into a campus", () => {
+    const r = toRankedResult([
+      {
+        strong: [],
+        weak: [],
+        counts: [
+          { _id: null, n: 4 },
+          { _id: "hssc" as const, n: 6 },
+        ],
+        total: [{ n: 10 }],
+      },
+    ]);
+    expect(r.counts).toEqual({ hssc: 6, nsc: 0, total: 6 });
+  });
+
   it("treats an empty $count as zero (not a silent fallback)", () => {
-    const r = toRankedResult([{ rows: [], counts: [], total: [] }]);
+    const r = toRankedResult([
+      { strong: [], weak: [], counts: [], total: [] },
+    ]);
     expect(r.total).toBe(0);
     expect(r.truncated).toBe(false);
   });
