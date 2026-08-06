@@ -1,4 +1,4 @@
-import type { Collection, Filter } from "mongodb";
+import type { Collection } from "mongodb";
 import { getClient } from "../infra/db";
 import config from "../infra/config";
 import type {

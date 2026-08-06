@@ -69,7 +69,15 @@ beforeAll(async () => {
   app = await buildAdApp([
     {
       provide: AdDataService,
-      useValue: { onModuleInit: jest.fn(), getPlacements: jest.fn() },
+      useValue: {
+        onModuleInit: jest.fn(),
+        // recordEvent validates the placement against this map, so it must
+        // contain the placement the request posts or the handler 400s before
+        // the assertion below can mean anything.
+        getPlacements: jest.fn().mockResolvedValue({
+          splash: { enabled: true, adId: null },
+        }),
+      },
     },
     {
       provide: AdStatsService,
