@@ -1,0 +1,40 @@
+// Canonical markdownlint rules for every SKKUverse repository.
+//
+// Vendored into each repo as `.markdownlint.jsonc` by the contract
+// `conventions.markdownlint` and hash-locked, so a repo cannot drift from it
+// without CI saying so. Do not edit the vendored copies — edit this file and
+// run `skkuverse_sync.py pull --all`.
+//
+// RULES ARE CENTRAL, GLOBS ARE LOCAL. This file carries only the rule set;
+// each repo keeps its own `.markdownlint-cli2.jsonc` naming which paths to
+// lint and which to skip, because those are genuinely repo-specific
+// (`docs/**` in one repo, `**/*.md` minus an Expo build tree in another).
+// That split is why the two existing copies were byte-identical everywhere
+// except `globs` and `ignores`.
+//
+// Consume it like this:
+//
+//     // .markdownlint-cli2.jsonc
+//     {
+//       "config": { "extends": ".markdownlint.jsonc" },
+//       "globs": ["docs/**/*.md"],
+//       "ignores": ["**/CHANGELOG.md"]
+//     }
+{
+  "default": true,
+
+  // ── Disabled: rules that fight this workspace's prose style ──
+  "MD013": false, // line-length — prose is wrapped by meaning, not column count
+  "MD033": false, // inline HTML — <details> and <br> are used deliberately
+  "MD024": { "siblings_only": true }, // duplicate headings — banned only among siblings, so release-note and timeline patterns work
+  "MD036": false, // emphasis-as-heading — **bold labels** are an accepted idiom here
+  "MD028": false, // blanks-inside-blockquote — `> summary` followed by `> [!NOTE]` is the documented doc skeleton
+
+  // ── Enforced. Listed explicitly even where `default: true` already covers
+  //    them, so the intent is on the record rather than inherited by accident.
+  "MD001": true, // no skipped heading levels
+  "MD003": { "style": "atx" }, // `#` headings only
+  "MD025": { "front_matter_title": "" }, // exactly one H1 per document; the frontmatter `title` is not counted, since the schema has both
+  "MD040": true, // every fenced code block declares a language
+  "MD041": false // first line need not be a heading — every document starts with frontmatter
+}

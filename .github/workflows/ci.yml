@@ -38,6 +38,18 @@ jobs:
         run: git clone --depth 1 https://github.com/spencer0124/skkuverse "$RUNNER_TEMP/sv"
       - name: Contract integrity
         run: python3 "$RUNNER_TEMP/sv/exported/sync_contracts.py" check --repo server --root .
+      # Shared conventions, defined once in the umbrella. Same clone, so this
+      # adds no dependency and no install step.
+      #
+      # `--only` rather than the full set: `language` fails today because the
+      # docs are still Korean, and turning the whole check off until that is
+      # finished would mean the two rules this repo ALREADY satisfies go
+      # ungated for however long the translation takes. Add `language` here
+      # when docs/ is English.
+      - name: Conventions
+        run: |
+          python3 "$RUNNER_TEMP/sv/exported/lint_conventions.py" --root . \
+            --only frontmatter --only structure
       - run: npm test
         env:
           NAVER_MAP_STYLE_ID: ${{ secrets.NAVER_MAP_STYLE_ID }}

@@ -24,8 +24,6 @@ let svc: {
   getConnectionsForBuilding: jest.Mock;
   searchBuildings: jest.Mock;
   searchSpaces: jest.Mock;
-  countSearchBuildings: jest.Mock;
-  countSearchSpaces: jest.Mock;
 };
 
 beforeAll(async () => {
@@ -37,8 +35,6 @@ beforeAll(async () => {
     getConnectionsForBuilding: jest.fn(),
     searchBuildings: jest.fn(),
     searchSpaces: jest.fn(),
-    countSearchBuildings: jest.fn(),
-    countSearchSpaces: jest.fn(),
   };
   app = await buildBuildingApp([{ provide: BuildingService, useValue: svc }]);
   httpServer = app.getHttpServer();
@@ -97,25 +93,49 @@ describe("GET /building/list", () => {
 });
 
 describe("GET /building/search", () => {
+  // Rows and counts arrive together now — one ranked envelope per collection.
+  function ranked(items: unknown[], counts: { hssc: number; nsc: number }) {
+    const total = counts.hssc + counts.nsc;
+    return {
+      items,
+      counts: { ...counts, total },
+      total,
+      truncated: total > items.length,
+    };
+  }
+
   function seedSearchHappyPath() {
-    svc.searchBuildings.mockResolvedValue([
-      { _id: 1, buildNo: "100", campus: "hssc", name: { ko: "법학관", en: "Law" } },
-    ]);
-    svc.searchSpaces.mockResolvedValue([
-      {
-        buildNo: "100",
-        campus: "hssc",
-        spaceCd: "100-A101",
-        name: { ko: "강의실", en: "" },
-        buildingName: { ko: "법학관", en: "" },
-        floor: { ko: "1층", en: "" },
-      },
-    ]);
+    svc.searchBuildings.mockResolvedValue(
+      ranked(
+        [
+          {
+            _id: 1,
+            buildNo: "100",
+            campus: "hssc",
+            name: { ko: "법학관", en: "Law" },
+          },
+        ],
+        { hssc: 1, nsc: 0 },
+      ),
+    );
+    svc.searchSpaces.mockResolvedValue(
+      ranked(
+        [
+          {
+            buildNo: "100",
+            campus: "hssc",
+            spaceCd: "100-A101",
+            name: { ko: "강의실", en: "" },
+            buildingName: { ko: "법학관", en: "" },
+            floor: { ko: "1층", en: "" },
+          },
+        ],
+        { hssc: 1, nsc: 0 },
+      ),
+    );
     svc.getAllBuildings.mockResolvedValue([
       { _id: 1, buildNo: "100", campus: "hssc" },
     ]);
-    svc.countSearchBuildings.mockResolvedValue({ hssc: 1, nsc: 0, total: 1 });
-    svc.countSearchSpaces.mockResolvedValue({ hssc: 1, nsc: 0, total: 1 });
   }
 
   it("rejects missing q with 400 MISSING_QUERY", async () => {
@@ -168,11 +188,9 @@ describe("GET /building/search", () => {
   });
 
   it("returns empty arrays + zero counts when nothing matches", async () => {
-    svc.searchBuildings.mockResolvedValue([]);
-    svc.searchSpaces.mockResolvedValue([]);
+    svc.searchBuildings.mockResolvedValue(ranked([], { hssc: 0, nsc: 0 }));
+    svc.searchSpaces.mockResolvedValue(ranked([], { hssc: 0, nsc: 0 }));
     svc.getAllBuildings.mockResolvedValue([]);
-    svc.countSearchBuildings.mockResolvedValue({ hssc: 0, nsc: 0, total: 0 });
-    svc.countSearchSpaces.mockResolvedValue({ hssc: 0, nsc: 0, total: 0 });
     const res = await request(httpServer).get("/building/search?q=zzz");
     expect(res.status).toBe(200);
     expect(res.body.data.buildings).toEqual([]);
@@ -186,6 +204,91 @@ describe("GET /building/search", () => {
     await request(httpServer).get("/building/search?q=law&campus=hssc");
     expect(svc.searchBuildings).toHaveBeenCalledWith("law", "hssc");
     expect(svc.searchSpaces).toHaveBeenCalledWith("law", "hssc");
+  });
+
+  it("spaceCount is the ROW count, not the group count", async () => {
+    // Two rooms in one building: the app renders spaceCount in the section
+    // header while data.spaces is the grouped list, so they legitimately differ.
+    svc.searchSpaces.mockResolvedValue(
+      ranked(
+        [
+          {
+            buildNo: "100",
+            campus: "hssc",
+            spaceCd: "10001",
+            name: { ko: "A", en: "" },
+            buildingName: { ko: "법학관", en: "" },
+            floor: { ko: "1층", en: "" },
+          },
+          {
+            buildNo: "100",
+            campus: "hssc",
+            spaceCd: "10002",
+            name: { ko: "B", en: "" },
+            buildingName: { ko: "법학관", en: "" },
+            floor: { ko: "1층", en: "" },
+          },
+        ],
+        { hssc: 2, nsc: 0 },
+      ),
+    );
+    svc.searchBuildings.mockResolvedValue(ranked([], { hssc: 0, nsc: 0 }));
+    svc.getAllBuildings.mockResolvedValue([]);
+
+    const res = await request(httpServer).get("/building/search?q=100");
+    expect(res.body.meta.spaceCount).toBe(2);
+    expect(res.body.data.spaces).toHaveLength(1);
+    expect(res.body.data.spaces[0].items).toHaveLength(2);
+  });
+
+  it("space groups follow row order, so relevance ranking survives grouping", async () => {
+    svc.searchSpaces.mockResolvedValue(
+      ranked(
+        [
+          {
+            buildNo: "227",
+            campus: "nsc",
+            spaceCd: "27101",
+            name: { ko: "측량기기성능검사실", en: "" },
+            buildingName: { ko: "제2공학관27동", en: "" },
+            floor: { ko: "1층", en: "" },
+          },
+          {
+            buildNo: "295",
+            campus: "nsc",
+            spaceCd: "95127",
+            name: { ko: "남자숙실(127)", en: "" },
+            buildingName: { ko: "기숙사지관", en: "" },
+            floor: { ko: "1층", en: "" },
+          },
+        ],
+        { hssc: 0, nsc: 2 },
+      ),
+    );
+    svc.searchBuildings.mockResolvedValue(ranked([], { hssc: 0, nsc: 0 }));
+    svc.getAllBuildings.mockResolvedValue([]);
+
+    const res = await request(httpServer).get("/building/search?q=27");
+    expect(
+      res.body.data.spaces.map((g: { buildNo: string }) => g.buildNo),
+    ).toEqual(["227", "295"]);
+  });
+
+  it("reports truncation in meta.limits without disturbing meta.counts", async () => {
+    svc.searchBuildings.mockResolvedValue(ranked([], { hssc: 0, nsc: 0 }));
+    svc.searchSpaces.mockResolvedValue({
+      items: [],
+      counts: { hssc: 0, nsc: 6173, total: 6173 },
+      total: 6173,
+      truncated: true,
+    });
+    svc.getAllBuildings.mockResolvedValue([]);
+
+    const res = await request(httpServer).get("/building/search?q=%EC%8B%A4");
+    expect(res.body.meta.counts.space.total).toBe(6173);
+    expect(res.body.meta.limits.space.truncated).toBe(true);
+    expect(res.body.meta.limits.space.total).toBe(6173);
+    expect(res.body.meta.limits.space.limit).toBe(1000);
   });
 });
 
