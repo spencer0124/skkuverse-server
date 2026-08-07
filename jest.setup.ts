@@ -16,6 +16,7 @@ const defaults: Record<string, string> = {
   MONGO_AD_DB_NAME: "skkubus_ads",
   MONGO_BUILDING_DB_NAME: "skkumap",
   MONGO_NOTICES_DB_NAME: "skku_notices",
+  MONGO_EVENTMAP_DB_NAME: "eventmap",
   NOTICES_SERVICE_START_DATE: "2026-03-09",
   NAVER_API_KEY_ID: "test-naver-id",
   NAVER_API_KEY: "test-naver-key",

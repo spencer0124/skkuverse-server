@@ -108,6 +108,24 @@ const config = {
     },
   },
 
+  eventmap: {
+    // Strict: no fallback. A missing MONGO_EVENTMAP_DB_NAME must crash at boot
+    // rather than silently writing event content into bus_campus.
+    dbName: devDbName(process.env.MONGO_EVENTMAP_DB_NAME),
+    collections: {
+      activations: "activations",
+      places: "places",
+      sessions: "sessions",
+      snapshots: "snapshots",
+    },
+    // Consumed by the Phase 2 materializer poller / manifest memo. Declared with
+    // the rest of the block because docs/reference/eventmap-api.md §3 specifies
+    // one block — splitting it across phases is how the doc and code drift.
+    materializeIntervalMs:
+      parseInt(process.env.EVENTMAP_MATERIALIZE_INTERVAL_MS || "", 10) || 60_000,
+    manifestCacheTtlMs: 15_000,
+  },
+
   firebase: {
     serviceAccount: process.env.FIREBASE_SERVICE_ACCOUNT || null,
   },
@@ -164,6 +182,7 @@ const required: ReadonlyArray<readonly [string, unknown, string]> = [
   ["building.dbName", config.building.dbName, "MONGO_BUILDING_DB_NAME"],
   ["ad.dbName", config.ad.dbName, "MONGO_AD_DB_NAME"],
   ["notices.dbName", config.notices.dbName, "MONGO_NOTICES_DB_NAME"],
+  ["eventmap.dbName", config.eventmap.dbName, "MONGO_EVENTMAP_DB_NAME"],
   [
     "notices.serviceStartDate",
     config.notices.serviceStartDate,

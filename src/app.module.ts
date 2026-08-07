@@ -11,6 +11,7 @@ import { BuildingModule } from "./building/building.module";
 import { MapModule } from "./map/map.module";
 import { NoticesModule } from "./notices/notices.module";
 import { MiniAppsModule } from "./miniapps/miniapps.module";
+import { EventMapModule } from "./eventmap/eventmap.module";
 
 /**
  * Root module.
@@ -43,6 +44,7 @@ import { MiniAppsModule } from "./miniapps/miniapps.module";
     MapModule,
     NoticesModule,
     MiniAppsModule,
+    EventMapModule,
   ],
 })
 export class AppModule {}
