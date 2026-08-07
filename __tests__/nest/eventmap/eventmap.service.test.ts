@@ -86,8 +86,14 @@ describe("EventMapService.onModuleInit", () => {
     // key; the unique index is what makes one lose with a duplicate-key 11000
     // instead of both writing. Losing this index means losing the reason there
     // is no lock collection.
+    //
+    // NOT keyed by lang. All three languages live in one document precisely so
+    // that a version is inserted atomically — with a per-language split,
+    // insertMany's non-atomicity let two racing writers each land part of the
+    // same version, and the loser's probe of a single language then reported
+    // "unchanged" without noticing.
     expect(indexSpecs()).toContain(
-      JSON.stringify([{ layerSetId: 1, version: 1, lang: 1 }, { unique: true }]),
+      JSON.stringify([{ layerSetId: 1, version: 1 }, { unique: true }]),
     );
   });
 

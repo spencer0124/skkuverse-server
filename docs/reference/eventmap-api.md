@@ -1,9 +1,9 @@
 ---
 title: Event Map API Reference
 type: reference
-status: draft
+status: active
 owner: zoyoong124@gmail.com
-last-updated: 2026-08-06
+last-updated: 2026-08-07
 audience: internal
 ---
 
@@ -45,6 +45,50 @@ Config is split by **who edits it**, not by what it is.
 > Any new `.json` under `src/` must be registered in `scripts/copy-build-assets.js`. `tsc` does not
 > copy JSON, and a miss breaks **production only** — dev reads from `src/`.
 
+### 2.1 Structure file schema
+
+One file per layer set, `src/eventmap/config/<layerSetId>.json`, named after the id it declares
+(mismatch is a load error). `eventmap.config.ts` lists them explicitly in `CONFIG_FILES` rather than
+`readdir`ing, so a file missing from `copy-build-assets.js` surfaces as a named `ENOENT` instead of a
+silently absent event map — which is indistinguishable from a finished festival.
+
+| Field | Notes |
+| --- | --- |
+| `schemaVersion` | Copied to the wire. Clients ignore a snapshot whose value exceeds theirs |
+| `configVersion` | **A human label only.** Excluded from `configHash` *and* from the payload — see §6.5 |
+| `campus`, `camera`, `timezone` | Copied to the wire. `camera.lat` is range-checked against ±90 |
+| `refreshAfterSec` | Manifest poll cadence while active. `300` is served when nothing runs |
+| `stackKeyBy` | `"placeId"` \| `"zone"` — the density lever of §7.2 |
+| `icons` | `{kind:"symbol", symbol}` or `{kind:"remote", uri, width, height}`. `symbol` is checked against a hand-mirrored copy of `@mj-studio/react-native-naver-map`'s closed `MarkerSymbol` union (verified byte-for-byte at 2.7.0; a drift fails loud with the offending path). `remote` requires `https://` |
+| `layers[]` | `id · render · label · filter · defaultVisible · minZoom? · maxZoom? · iconId · sortId` |
+| `chipGroups[]` | `id · label? · selection · chips[]`. Chip ids are the client's selection keys and must be unique **across all groups**, not per group |
+| `sorts[]` | `by ∈ {order, title, startAt}`. `distance` is deliberately absent until the app depends on `expo-location` |
+| `cardTemplates[]` | `slots[]` of `title \| subtitle \| hours \| thumbnail \| tags \| field{fieldKey,label}` |
+| `itemDefaults` | `byCategory` + `fallback`, each `{iconId, iconIdClosed?, pinPriority, cardTemplateId}` |
+
+`itemDefaults` is how a session becomes a *pin*: `iconId`, `iconIdClosed`, `pinPriority` and
+`cardTemplateId` appear on every wire item but exist on no Mongo document, so they are looked up by
+the session's `category`.
+
+**`byCategory` keys are NOT validated against anything.** `category` is an open string edited in
+Mongo (§4.2), so an unmapped value is *content*, and content falls back to `itemDefaults.fallback`
+and logs. Compare the references *inside* each presentation — `iconId`, `cardTemplateId` — which are
+structure→structure and block publication outright. The line is drawn by who can fix it: a PR, or an
+ops person at 22:00 (ADR 0004 invariant 2).
+
+ESKARA 2026 ships **symbol** icons. No pin art exists yet, and a `remote` icon whose URI 404s renders
+a blank marker — the client's tolerant parser catches an unknown `kind`, not a dead URL. Swapping in
+real art later is a config PR with no client change.
+
+> [!IMPORTANT]
+> **Client-side follow-up (Phase 3).** `skkuverse-app`'s `docs/eventmap-rendering.md` §6.3 currently
+> documents the pin `image` as `{httpUri}` from the `icons` dict. With symbol icons that member is
+> absent on every entry, so an implementer following it literally lands on the `{symbol:'green'}`
+> fallback and draws **every ESKARA pin the same colour** — colour being the whole visual
+> differentiation here (bar red, booth blue, food yellow, stage pink, facility lightblue, `*_off`
+> gray). The mapping to add is `{kind:"symbol", symbol:"red"} → {symbol:"red"}`; the library's
+> `MapImageProp` already accepts it.
+
 ## 3. Config wiring
 
 `src/infra/config.ts`, after the `notices` block:
@@ -76,6 +120,13 @@ needs the var too, or every suite that transitively imports config logs a spurio
 > **Deploy ordering.** `config.ts` validates required env at boot with `process.exit(1)`. Set
 > `MONGO_EVENTMAP_DB_NAME` on the host **before** deploying the code that requires it, or the deploy
 > workflow's config dry-load aborts and `git checkout $PREV_COMMIT`.
+
+> [!WARNING]
+> **`docker-compose.local-verify.yml` must override every DB we write.** It runs `NODE_ENV=production`
+> on purpose (§ its own header), so `devDbName()` is a no-op and `env_file: .env` injects the *real*
+> names. `MONGO_EVENTMAP_DB_NAME=eventmap_dev` is now set on all three services; without it
+> `npm run verify:serve` would have the materializer publishing into the production `eventmap`
+> database. Add every future DB there too.
 
 ## 4. Collections
 
@@ -173,15 +224,14 @@ check the map going home; cutting at 00:00 flips the map back while users are st
 
 ```ts
 export interface SnapshotDoc {
-  _id: string;                    // `${layerSetId}:${version}:${lang}`
+  _id: string;                    // `${layerSetId}:${version}`
   layerSetId: string;
   version: number;                // monotonic per layerSetId
-  lang: "ko" | "en" | "zh";       // text resolved server-side, so lang is identity
-  payload: EventMapSnapshot;
-  etag: string;
-  /** md5 over INPUTS ONLY — configVersion + sorted [_id, updatedAt] of contributors.
-   *  EXCLUDES `now`, so an idle tick produces no version. Otherwise
-   *  `immutable, max-age=1y` would thrash every 60 seconds. */
+  /** ALL THREE LANGUAGES IN ONE DOCUMENT — see below. */
+  payloads: Record<"ko" | "en" | "zh", EventMapSnapshot>;
+  etags: Record<"ko" | "en" | "zh", string>;
+  /** md5 over INPUTS ONLY — see §6.5. EXCLUDES `now`, so an idle tick produces
+   *  no version; otherwise `immutable, max-age=1y` would thrash every 60 s. */
   contentHash: string;
   materializedAt: Date;
   publishedAt: Date;
@@ -190,6 +240,17 @@ export interface SnapshotDoc {
   gcAt: Date | null;
 }
 ```
+
+**Why one document rather than three keyed by `lang`.** `insertMany` is not atomic
+across documents, so with a per-language split two writers racing on the same version could
+interleave: version N ending up with writer A's `ko` and writer B's `en`/`zh` — three rows agreeing
+on `contentHash` while their payloads differ, all served `immutable, max-age=1y`. Worse, the loser's
+duplicate-key retry probes one language to decide whether it lost, so A would re-read its **own** `ko`,
+see a matching hash, and report `unchanged` — never learning that half of version N belonged to
+someone else. A Korean user and an English user on version N would then see different maps for a
+year. One document makes the interleaving unrepresentable, and turns the unique index on
+`{layerSetId, version}` into a clean mutex. The ETag stays **per language**, because each language is
+a distinct resource with its own bytes.
 
 ### 4.5 Why there is no `tenants` collection
 
@@ -213,7 +274,7 @@ Created by `ensureIndexes()` in `eventmap.data.ts`, called **non-fatally** from 
 | `sessions` | `{layerSetId, dayIndex, slot}` | the axis query; also the shape ops type into Atlas by hand |
 | `sessions` | `{layerSetId, startAt}` | `nextChangeAt` = min future boundary |
 | `activations` | `{enabled}` | manifest read path |
-| `snapshots` | `{layerSetId, version, lang}` **unique** | serve latest **and** the concurrency primitive (§6.3) |
+| `snapshots` | `{layerSetId, version}` **unique** | serve latest **and** the concurrency primitive (§6.3). Not keyed by lang — §4.4 |
 | `snapshots` | `{gcAt}` TTL `expireAfterSeconds: 0` | reap superseded versions |
 
 No text index — substring search over ~50 items is a client-side `.filter()`.
@@ -224,12 +285,22 @@ No text index — substring search over ~50 items is a client-side `.filter()`.
 
 | Module | Responsibility |
 | --- | --- |
+| `eventmap.config.ts` | Loads + validates the structure tier; owns `canonicalStringify` and both hashes |
 | `eventmap.materialize.ts` | **Pure.** No DB, no clock — both injected. Carries the 75 % line-coverage gate cheaply, as `weightedRandomSelect` does in `src/ad/ad.data.ts` |
-| `eventmap.data.ts` | Raw-driver I/O, `ensureIndexes`, `seedIfEmpty` |
-| `eventmap-materializer.service.ts` | Registers with `PollerRegistryService` (60 s) |
+| `eventmap.data.ts` | Raw-driver I/O, `ensureIndexes` (no `seedIfEmpty` — there is no sensible default event) |
+| `eventmap-materializer.service.ts` | Registers with `PollerRegistryService` (60 s); owns `publish()` |
 
 Use `PollerRegistryService`, **not** `@nestjs/schedule` — the registry provides the in-flight guard,
 the warm-up immediate run, and `.catch().finally()` semantics.
+
+`publish({layerSetId?, dryRun?})` is the single entry point for both the poller and the force-publish
+route, so a festival-night correction exercises exactly the path that has been running all week.
+
+**The config loader never throws at import.** `src/miniapps/miniapps.ts` does, because there the
+registry *is* the feature; here a previously published snapshot is already being served, and step 3
+below is explicit that an invalid config is skipped rather than fatal. Instead the loader returns
+`{config, configHash, error: null}` or `{config: null, error}`, logs loudly, and the materializer
+declines to publish.
 
 ### 6.2 One pass
 
@@ -247,23 +318,59 @@ the warm-up immediate run, and `.catch().finally()` semantics.
    ```
 
    Convention, enforced by review: any variable holding a GeoJSON pair is named `lngLat`.
-5. Build `tags[]` (§6.4).
-6. Compute `status` as of `materializedAt`:
+5. Build `tags[]` (§6.4). A session is **dropped into `dropped[]` with a reason** — never aborting
+   the pass — when its `placeId` does not resolve, its `title` is blank in every language, its plot
+   has unusable coordinates, or **`startAt`/`endAt` are not Dates**. Every drop is logged and
+   reported by `dryRun`.
+
+   That last one is not defensive padding. Mongo stores whatever it is handed, and the primary
+   workflow here is a festival-night `mongosh` edit: `$set: { startAt: "2026-09-16T09:00:00Z" }`,
+   with quotes instead of `ISODate(...)`, round-trips as a **string**. Unguarded that becomes
+   `.getTime()` on a string — a throw out of the entire pass, so the poller publishes nothing ever
+   again for that layer set *and* `dryRun`, the tool for diagnosing it, returns the same error
+   instead of naming the row. `deriveStatus` is likewise total against a non-Date bound: `NaN`
+   comparisons are all false, so an unguarded version would silently report `closed` — a booth that
+   is open telling everyone it is shut.
+
+   A malformed **action** drops that button only, into a separate `rejectedActions[]`, because the
+   booth still renders and nothing about the result would otherwise say anything went wrong.
+6. Compute `status` as of `materializedAt`. **`cancelled` is evaluated FIRST**, before the time
+   comparisons — the table below reorders the original for that reason. `lifecycle` is an explicit
+   ops action while a null bound is merely data shape, so a cancelled always-on facility must still
+   read closed.
 
    | Condition | Status |
    | --- | --- |
-   | `startAt == null && endAt == null` | `open` (always-on facilities) |
    | `lifecycle === "cancelled"` | `closed` + `fields.cancelled` |
+   | `startAt == null && endAt == null` | `open` (always-on facilities) |
+   | only one bound set | `unknown` |
    | `now < startAt` | `upcoming` |
    | `startAt <= now < endAt` | `open` |
    | `now >= endAt` | `closed` |
-   | only one bound set | `unknown` |
 
-7. `nextChangeAt` = min `{startAt, endAt}` strictly greater than `now`, else `null`.
-8. Resolve i18n per lang → three payloads.
-9. `contentHash` over inputs only. Equal to the active snapshot's → **return, no write.**
+   **ONE RULE: an item ships bounds if and only if its status can change.** The client's rule is
+   "both bounds null → trust the shipped status, otherwise recompute" (§9), so null bounds are the
+   server's only lever for "do not recompute this one", and it is pulled for every item whose status
+   is fixed:
+
+   - `cancelled` has a real window, but shipping it would make a rain-cancelled 주점 flip itself back
+     to 운영중 on every device at its original start time, with no way for the server to intervene.
+   - A **one-sided** window is permanently `unknown`, and shipping its single bound sends the client
+     into `deriveStatus(startAt, null, now)` — behaviour neither side specifies. It would then
+     disagree with the `["status",["open"]]` chip filtering it, and since one-sided sessions
+     contribute no boundaries, no republish ever corrects the drift.
+
+   The rule is tied to the boundary set rather than to `lifecycle`, so the two cannot drift: whatever
+   cannot move the map also cannot move on the device. The hours survive in `hoursLabel`, which is
+   display text and is never re-derived.
+7. `nextChangeAt` = min `{startAt, endAt}` strictly greater than `now`, else `null`. Sessions that are
+   `cancelled` or one-sided contribute **no** boundaries: their status never changes, and waking every
+   device for a non-event is worse than not waking it.
+8. Resolve i18n per lang → three payloads. Resolution is `text[lang] → text.en → text.ko`, treating a
+   **blank** string as absent — `??` alone would accept an ops-typed `en: ""` and ship a nameless pin.
+9. `contentHash` over inputs only (§6.5). Equal to the active snapshot's → **return, no write.**
 10. `version = max + 1`; ETag per payload; `insertMany([ko,en,zh], {ordered:false})`; previous version's `gcAt = now + 7d`.
-11. Clear the manifest memo.
+11. Clear the manifest memo — in **this process only** (§7.1).
 
 ### 6.3 ROLE topology — who may publish
 
@@ -271,11 +378,19 @@ the warm-up immediate run, and `.catch().finally()` semantics.
 scheduled materializer runs on **exactly one process**.
 
 The real race is force-publish, which must live on the api replicas so it works when the poller is
-wedged — and there are two. **There is deliberately no lock collection:** both replicas compute the
-same `contentHash` → same version → same `_id`, so the unique index makes one win with a duplicate-key
-`11000` and the loser re-reads, the idiom already in `ad.data.ts:seedIfEmpty`. Both serve
-byte-identical bytes, so the race is correct by construction. Document this, or the next reader will
-"fix" it with a lock.
+wedged — and there are two. **There is deliberately no lock collection:** the unique
+`{layerSetId, version, lang}` index is the primitive. Two writers racing on the same version number
+collide, one wins, and the loser takes a duplicate-key `11000` — the idiom already in
+`ad.data.ts:seedIfEmpty`. Document this, or the next reader will "fix" it with a lock.
+
+**But the usual justification has a gap worth naming.** "Both computed the same `contentHash`, so
+both would have written identical bytes" is true only when both processes read the *same inputs*. If
+an ops edit lands between the two reads, the hashes diverge and the loser is holding the **newer**
+materialization; exiting on `11000` there would silently discard a festival-night correction. So the
+loser re-reads and branches:
+
+- the winner's `contentHash` equals ours → done, nothing was lost;
+- it differs → recompute `version = latest + 1` and retry, bounded at 3 attempts.
 
 `ROLE=combined` also runs pollers — right for dev, but never run one alongside the production
 topology or two writers race the version counter.
@@ -295,6 +410,33 @@ topology or two writers race the version counter.
 
 Lowercased, nulls dropped, deduplicated. `status` is **not** a tag — it is a separate predicate node
 kind because the client recomputes it against the device clock (§9).
+
+### 6.5 The two hashes
+
+Both are md5 over `canonicalStringify` — object keys sorted at every depth, `Date` → ISO. Array order
+is preserved, because it is meaningful (layer draw order, chip display order).
+
+| Hash | Over | Reacts to |
+| --- | --- | --- |
+| `configHash` | the **parsed** config, minus `configVersion` | meaning only |
+| `contentHash` | `configHash` + `layerSetId` + the activation + every contributing place and session, whole and `_id`-sorted | any input change except `now` |
+
+**`configHash` is not a hash of the file text.** Raw text would change on a `prettier` run or a
+reordered key, and each such no-op would mint a version and throw away every client's one-year, ~90 KB
+snapshot cache. Nor is it a manual `configVersion`: a forgotten bump would leave a deployed structure
+change permanently withheld behind `max-age=1y`. Hence `configVersion` is a log label, excluded from
+the hash *and* from the payload — anything on the wire must be in the hash, or a served snapshot can
+disagree with the live config.
+
+**`contentHash` covers whole documents, not `[_id, updatedAt]` pairs.** The pair form is cheaper but
+assumes every writer stamps `updatedAt`, and the entire point of this feature is a festival-night
+`mongosh` edit: a `$set` that fixes a price and forgets `updatedAt` would leave the pair-hash
+identical and the correction would never publish. 62 places + ~50 sessions of canonical JSON is not a
+cost worth that failure mode. The importer's discipline (§10) stays correct and simply stops being
+load-bearing.
+
+Sorting by `_id` before hashing is what lets two api replicas agree: BSON field order alone does not
+survive an ops edit identically on both.
 
 ## 7. Endpoints
 
@@ -317,11 +459,35 @@ kind because the client recomputes it against the device clock (§9).
 }
 ```
 
-`activeLayerSetId: null` (with `version`/`snapshotUrl` null) when nothing runs. `snapshotUrl` is
-formed **entirely server-side including `?lang=`** — the client never builds it. `refreshAfterSec` is
-server-driven polling: `300` normally, `60` during an event.
+`activeLayerSetId: null` (with `version`/`snapshotUrl` null) when nothing runs — including when an
+activation is live but nothing has been published yet, since there would be no `snapshotUrl` to
+follow. `snapshotUrl` is formed **entirely server-side including `?lang=`** — the client never builds
+it. `refreshAfterSec` is server-driven polling: `300` normally, `60` during an event.
+
+**`nextChangeAt` is derived per request, not echoed from the snapshot.** The snapshot's own field is
+a fact as of materialization, and an idle tick mints no version (§6.5), so a stored value is in the
+past within minutes. The client arms a one-shot timer on this field to re-render at the moment a
+booth opens; echo a past instant and it arms nothing, and a 주점 opening at 18:00 reads 준비중 until
+the next poll. The derivation is a scan of the memoized items, so it costs no DB read.
 
 This handler must **never throw**; any DB error degrades to `activeLayerSetId: null`.
+
+**The degraded answer is not cached.** A genuine "nothing is running" — kill switch, event over — is
+a real answer and gets the normal `max-age=15`. A caught DB error returns the same body with
+`Cache-Control: no-store` and no strong `ETag`, so a two-second Mongo hiccup cannot pin "festival off"
+into shared caches. (Express still attaches its own *weak* validator inside `res.json()`; there is no
+clean per-route suppression, and it is harmless — `no-store` forbids storing the response, and a
+client that revalidates anyway only gets a 304 while the server is still degraded.)
+
+**Memo invalidation is process-local.** §6.2 step 11 clears only the publishing process. When the
+poller publishes, api-1 and api-2 keep their own memos until `manifestCacheTtlMs` (15 s) expires, so
+that TTL — not the clear — is the real bound in §12 and behind the kill switch's "~75 s". The clear
+is a latency win for one process, not distributed invalidation; adding real invalidation would be a
+distributed-systems problem in exchange for 15 seconds.
+
+The memo is a **single entry, not one per language**: version, `publishedAt` and the status
+boundaries are identical across ko/en/zh, and only `snapshotUrl`'s `?lang=` differs. It reads the
+`ko` document and builds the rest per request.
 
 ### 7.2 `GET /eventmap/snapshot/:layerSetId/:version?lang=ko`
 
@@ -329,12 +495,30 @@ This handler must **never throw**; any DB error degrades to `activeLayerSetId: n
 
 Validation order is the repo rule — **400 → 404 → 304**:
 
-1. `version` not a positive integer, or `lang` ∉ `{ko,en,zh}` → `400 INVALID_PARAM`
+1. `version` not a positive integer, or `lang` **missing** or ∉ `{ko,en,zh}` → `400 INVALID_PARAM`
 2. no snapshot for `(layerSetId, version, lang)` → `404 SNAPSHOT_NOT_FOUND`
 3. `If-None-Match` matches the stored ETag → `304`
 4. otherwise `sendSuccess(req, res, payload)` via `@Res()`
 
-An unknown id with a stale `If-None-Match` returns **404, not 304**. Pin this in a test.
+An unknown id with a stale `If-None-Match` returns **404, not 304**. Pin this in a test: a client
+holding a TTL-reaped version needs to be sent back to the manifest, and a 304 tells it the opposite.
+
+**`?lang=` is required, with no `Accept-Language` fallback.** RFC 8246 `immutable` is a promise that
+this URL's representation will not change for its freshness lifetime; a header-derived fallback would
+make one URL return three bodies under a one-year promise. `Vary: Accept-Language` protects a
+conforming cache, but a year is too long to bet on every intermediary — and on the app's own HTTP
+cache — honouring it. The manifest always emits `?lang=`, so no real client is affected.
+
+**`gcAt` (7 d) and `max-age=1y` disagree on purpose, and the client absorbs it.** RFC 8246 scopes
+`immutable` to the freshness lifetime, and a stale response is revalidated normally — so a client
+that slept past the TTL reap can hold a version that no longer exists. That is a `404`, and the
+client rule is: invalidate the manifest, refetch, retry once, never surface an error.
+
+Snapshots are memoized in-process, keyed by `(layerSetId, version, lang)` and capped at six entries.
+Version-keyed means an entry can never be stale, only surplus; six is two versions' worth of
+languages, enough to cover the minutes around a publish when clients are split. A **miss is not
+cached** — a reaped version is a 404 the client recovers from, and caching the absence would only
+delay that.
 
 Payload (abridged; structure and items travel together so a layer toggle costs zero network):
 
@@ -393,6 +577,32 @@ Payload (abridged; structure and items travel together so a layer toggle costs z
 
 ~50 items × ~600 B ≈ 30 KB, gzipping under 10 KB.
 
+The example above is abridged; this is the complete member list, because the client's failure mode
+for a field it cannot find is to **render nothing for that slot**, so an omission here shows up as a
+blank card rather than an error.
+
+| Member | Notes |
+| --- | --- |
+| top level | `schemaVersion · id · version · lang · materializedAt · nextChangeAt · timezone · campus · camera · icons · layers · chipGroups · sorts · **cardTemplates** · items` |
+| `items[]` | `id · placeId · stackKey · lat · lng · title · subtitle · tags · status · startAt · endAt · hoursLabel · iconId · iconIdClosed · pinPriority · cardTemplateId · **order** · **media** · **fields** · actions` |
+
+The four easiest to forget, and what each is for:
+
+- **`cardTemplates`** — what every `items[].cardTemplateId` resolves against. Without it on the wire,
+  no card renders at all.
+- **`order`** — backs `sorts[].by === "order"`, the `manual` sort that most layers name.
+- **`media.thumbnailUrl`** — backs the `thumbnail` slot.
+- **`fields`** — backs `{kind:"field"}` slots, including the `cancelled` badge of §6.2.
+
+`layers[].maxZoom`, `chipGroups[].label` and `chips[].defaultSelected` are always emitted, normalized
+to `null`/`false` rather than omitted.
+
+**`subtitle` falls back to `tenant.name`** when a session has none, which is why a booth with no
+subtitle still shows the club running it.
+
+**`iconIdClosed`** is the closed-state icon, complementing (not replacing) the client's `alpha`
+dimming. ESKARA maps a gray `*_off` variant for every category.
+
 **`items[]` carries flat `lat`/`lng`, never GeoJSON.** Naver RN takes flat scalars; GeoJSON adds a
 per-render transform plus payload bloat, and RFC 7946 §6.1 defines no processing model for foreign
 members. GeoJSON stays in Mongo where it earns the 2dsphere index.
@@ -402,11 +612,44 @@ to `zone` if 대운동장 is too dense — a server edit, no data change, no app
 
 ### 7.3 `POST /internal/eventmap/publish`
 
-`X-Internal-Token` + `crypto.timingSafeEqual`, copied from `notices.internal.controller.ts`.
-`@HttpCode(200)`. Body `{ layerSetId?: string, dryRun?: boolean }`. **Not** rate-limited.
+`X-Internal-Token` + `crypto.timingSafeEqual` via `src/common/internal-token.ts`, shared with
+`notices.internal.controller.ts` rather than duplicated — one implementation of a constant-time
+comparison. The secret is `INTERNAL_DISPATCH_TOKEN`, deliberately the same one: both callers are us,
+behind the same boundary, and a second env var is one more thing to have missing on the host at 22:00.
+
+`@HttpCode(200)`. Body `{ layerSetId?: string, dryRun?: boolean }`. **Not** rate-limited —
+`EventMapModule.configure()` binds the limiter to the `eventmap` prefix only, which does not match
+`internal/eventmap`. During an incident ops must be able to hammer this.
 
 `dryRun: true` validates and materializes, returning the summary **without writing**. With no admin
-UI this is the ops safety net.
+UI this is the ops safety net; the summary carries `counts` and the `dropped[]` list with reasons.
+
+**An explicit `layerSetId` skips the window check *and* `enabled`.** Without an id, the active layer
+set is resolved as the poller does. With one, the activation is loaded by `_id` alone — validating and
+pre-materializing next week's festival before it opens is the whole value of `dryRun`, and impossible
+if the lookup demands a live window. Publishing a version for a not-yet-active or disabled set is
+harmless: the manifest still reports `activeLayerSetId: null`. (Note that `enabled` is a `contentHash`
+input, so a force-publish after flipping the kill switch *will* mint a version.)
+
+**`force: true` publishes even when `contentHash` is unchanged**, and it is the lever for the one
+case the hash structurally cannot see. The hash covers the *inputs*; it does not cover the
+materializer's own output logic or the server-generated strings in `infra/i18n.ts`. After a deploy
+that changes either, every input hash is identical, so the poller reports `unchanged` forever and
+clients hold the pre-deploy payload for up to a year with no guarantee that an ops content edit will
+arrive to dislodge it. It is explicit rather than automatic because mixing a build identifier into the
+hash would republish on every deploy, discarding every client's cache for changes that usually touch
+neither the payload nor the strings on it.
+
+> **Run `force` after any deploy that changes the wire payload or `infra/i18n.ts`.**
+>
+> ```bash
+> curl -s -X POST https://api.skkuverse.com/internal/eventmap/publish \
+>   -H "X-Internal-Token: $INTERNAL_DISPATCH_TOKEN" -H 'Content-Type: application/json' \
+>   -d '{"force":true}' | jq
+> ```
+
+Summary `reason` is one of `published · unchanged · dry-run · no-active-layer-set ·
+unknown-layer-set · invalid-config · conflict`.
 
 ## 8. Actions
 
@@ -434,9 +677,24 @@ export interface SessionAction {
 **ESKARA 2026 emits `webview` and `external` only.** Switching a button to `miniapp` later is a
 payload change with no app release.
 
-`actionValue` is always a complete URL. A relative string handed to a URL opener is the shape of an
-open redirect. There is no server-side version gating and no per-client rewriting: the app ships over
-the air, so responses vary only on `Accept-Language`.
+**`actionValue` shape is checked per type**, and a button failing the check is dropped while the booth
+survives — ops authored it, and losing one button is recoverable.
+
+| `actionType` | Required shape |
+| --- | --- |
+| `content` | any non-blank string — it is prose, so spaces and newlines are fine |
+| `route` | starts with `/` but **not** `//`, and contains no whitespace |
+| `webview` · `external` · `miniapp` | absolute `https://` URL, no whitespace |
+
+Anchors alone do not do this: `$` without the `m` flag still matches **before a final newline**, so
+`"https://evil.com\n"` satisfies an otherwise correct `^...$` pattern — and a spreadsheet paste is
+exactly how a trailing newline reaches Mongo. The whitespace check is therefore explicit. `//evil.com`
+is rejected for `route` because it is a protocol-relative URL wearing a path's clothes.
+
+The prose rule "always a complete URL" is about the *openers*: a relative string handed to one is the
+shape of an open redirect. `route` is the documented exception (`/(tabs)/transit`), which is why the
+check is per type rather than global. There is no server-side version gating and no per-client
+rewriting: the app ships over the air, so responses vary only on `Accept-Language`.
 
 ### 8.1 Linking to the map
 
@@ -457,8 +715,13 @@ would bump the version several times an hour and defeat the caching design.
 
 So the snapshot ships **facts**: `startAt`, `endAt`, `status` as of `materializedAt`, and
 `nextChangeAt`. The client recomputes against its own clock, falling back to the shipped status when
-device time is more than an hour off the response `Date` header. Side benefit: the map keeps telling
-the truth on a dead network, which is the actual festival condition.
+device time is more than an hour off the response `Date` header, or when **both bounds are null**.
+Side benefit: the map keeps telling the truth on a dead network, which is the actual festival
+condition.
+
+That last fallback is why §6.2 step 6b nulls a cancelled session's bounds: it is the only lever the
+server has to say "do not recompute this one". Anything whose status must not move on the device —
+today that is `cancelled`, tomorrow it could be something else — has to ship without bounds.
 
 ## 10. Authoring order
 
@@ -491,9 +754,14 @@ not optional, because without it the first header key becomes `U+FEFF` + `placeI
 fails for a missing id, blaming the data for an encoding problem.
 
 **`updatedAt` is only written when a place actually changed.** The importer diffs against what is
-stored and skips untouched documents. This is not an optimisation — §6.2 computes `contentHash` from
-the contributors' `[_id, updatedAt]`, so stamping every document on every import would publish a new
-snapshot version after a re-import that changed nothing, and `immutable, max-age=1y` would thrash.
+stored and skips untouched documents.
+
+This was originally load-bearing: `contentHash` hashed the contributors' `[_id, updatedAt]`, so
+stamping every document on every import would have published a new version after a re-import that
+changed nothing, and `immutable, max-age=1y` would have thrashed. §6.5 now hashes the whole
+documents, which reverses the dependency — an unchanged document serializes identically whether or
+not its `updatedAt` moved, so the importer's discipline is correct but no longer the thing holding
+the caching design up. Keep it anyway: it is still the cheapest way to keep a re-import a no-op.
 
 **Only the demo seed ever flips `enabled`.** The importer's activation write is `$setOnInsert`, so it
 can create the document but never modify it. That is what makes the two scripts' run order
@@ -504,7 +772,7 @@ cannot take the live map down.
 
 | Code | Status | When |
 | --- | --- | --- |
-| `INVALID_PARAM` | 400 | non-numeric `version`, unsupported `lang` |
+| `INVALID_PARAM` | 400 | non-positive or non-integer `version`; `lang` **missing** or unsupported |
 | `SNAPSHOT_NOT_FOUND` | 404 | unknown `layerSetId`, or a version reaped by TTL |
 | `UNAUTHORIZED` | 401 | missing or wrong `X-Internal-Token` |
 
@@ -549,12 +817,17 @@ Clients fall back to the base campus map within ~75 s. **Rehearse before the fes
 
 | Concern | File |
 | --- | --- |
-| Storage types | `src/eventmap/types.ts` |
+| Storage + wire types | `src/eventmap/types.ts` |
+| Structure load, validation, both hashes | `src/eventmap/eventmap.config.ts` |
 | Pure materialization | `src/eventmap/eventmap.materialize.ts` |
+| Publish orchestration + poller | `src/eventmap/eventmap-materializer.service.ts` |
+| Manifest / snapshot reads + memos | `src/eventmap/eventmap.service.ts` |
+| HTTP | `src/eventmap/eventmap.controller.ts`, `eventmap.internal.controller.ts` |
+| Shared internal-token check | `src/common/internal-token.ts` |
 | I/O + indexes | `src/eventmap/eventmap.data.ts` (no `seedIfEmpty` — there is no sensible default event) |
 | Ops sheet → places | `scripts/import-eventmap-csv.js` + `scripts/lib/eventmap-{csv,db}.js` |
 | Local demo dataset | `scripts/seed-eventmap-demo.js` |
-| Layer/chip/filter structure | `src/eventmap/config/*.json` |
+| Layer/chip/filter structure | `src/eventmap/config/*.json` (+ `CONFIG_FILES` and `copy-build-assets.js`) |
 | DB + collection names | `src/infra/config.ts` `eventmap` block |
 | Tests | `__tests__/nest/eventmap/`, helper `__tests__/helpers/nest/build-eventmap-app.ts` |
 | Predicate parity fixture | **origin** `skkuverse/contracts/predicate-vectors.json`; vendored copy under `__tests__/`, hash-locked in `.contracts.lock.json`. Never hand-edit the copy — re-run `pull --repo server` |

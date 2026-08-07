@@ -19,10 +19,15 @@
 #   (JSON 로깅 / swagger off / USE_PROD_API 강제)으로 검증된다.
 #
 # 그러면 DB 격리는 어떻게? production 모드에선 config.devDbName() 가 no-op 이므로,
-# DB "이름" 환경변수를 직접 _dev 값으로 덮어쓴다. 아래 4개가 우리가 write 하는 DB:
-#   bus_campus / skkubus_ads / skkumap / skku_notices → 각각 *_dev.
+# DB "이름" 환경변수를 직접 _dev 값으로 덮어쓴다. 아래 5개가 우리가 write 하는 DB:
+#   bus_campus / skkubus_ads / skkumap / skku_notices / eventmap → 각각 *_dev.
 #   prod DB 는 절대 건드리지 않는다.
 #   (INJA/JAIN 셔틀 스케줄·map DB 는 read-only 라 override 불필요 — 읽기뿐.)
+#
+# ⚠️ 새 DB 를 추가하면 반드시 여기에도 추가할 것. env_file: .env 가 prod 이름을
+# 그대로 주입하고 production 모드에선 devDbName() 이 no-op 이라, 빠뜨리면 조용히
+# prod DB 에 write 한다. eventmap 이 실제로 그 상태였다(skkuverse#14):
+# materializer poller 가 prod `eventmap` 에 스냅샷을 발행할 뻔했다.
 #
 # 그리고 DISPATCH_SWEEP_ENABLED=false 로 FCM dispatch sweep poller 등록을 막아
 # (notices.dispatch.poller.ts:22) 로컬 poller 가 실제 유저에게 푸시를 보내는 경로를
@@ -41,6 +46,7 @@ services:
       - MONGO_AD_DB_NAME=skkubus_ads_dev
       - MONGO_BUILDING_DB_NAME=skkumap_dev
       - MONGO_NOTICES_DB_NAME=skku_notices_dev
+      - MONGO_EVENTMAP_DB_NAME=eventmap_dev
 
   api-1:
     environment:
@@ -51,6 +57,7 @@ services:
       - MONGO_AD_DB_NAME=skkubus_ads_dev
       - MONGO_BUILDING_DB_NAME=skkumap_dev
       - MONGO_NOTICES_DB_NAME=skku_notices_dev
+      - MONGO_EVENTMAP_DB_NAME=eventmap_dev
 
   api-2:
     environment:
@@ -61,3 +68,4 @@ services:
       - MONGO_AD_DB_NAME=skkubus_ads_dev
       - MONGO_BUILDING_DB_NAME=skkumap_dev
       - MONGO_NOTICES_DB_NAME=skku_notices_dev
+      - MONGO_EVENTMAP_DB_NAME=eventmap_dev
