@@ -13,8 +13,26 @@
  * that drift impossible to express.
  */
 
-/** First-party webview SPA host (apps/webview). The ONLY origin granted the RN bridge. */
-export const WEBVIEW_ORIGIN = "https://webview.skkuuniverse.com";
+/**
+ * First-party webview SPA host — skkuverse-web `apps/webview`, on Cloudflare Pages.
+ *
+ * Every webview URL this API hands out is built from this constant, so changing
+ * it moves the app to a different deployment on the next `GET /app/config`.
+ */
+export const WEBVIEW_ORIGIN = "https://webview.skkuverse.com";
+
+/**
+ * The previous webview host, no longer used to build URLs.
+ *
+ * Still granted the bridge, because skkuverse-app's offline SDUI fallback names
+ * it literally (`packages/shared/src/sdui/defaults.ts`) and that string is
+ * compiled into released binaries. A client that has not taken an OTA yet can
+ * still open it, and dropping it here would leave that page loading with a dead
+ * bridge — the exact silent failure this file exists to prevent.
+ *
+ * Removable once no released build still carries the old string.
+ */
+export const LEGACY_WEBVIEW_ORIGIN = "https://webview.skkuuniverse.com";
 
 /** Marketing/launcher site — mini-app share links, A2HS shortcuts, remote mini-app logos. */
 export const WEB_ORIGIN = "https://skkuverse.com";
@@ -28,6 +46,7 @@ export const WEB_ORIGIN = "https://skkuverse.com";
  * granted for) and grants nothing when the list is absent or unmatched.
  *
  * Adding an entry here is a trust decision: it hands `Linking.openURL` and the
- * map-select channel to every page served by that host.
+ * map-select channel to every page served by that host. Both entries are hosts
+ * we own and deploy.
  */
-export const BRIDGE_ORIGINS = [WEBVIEW_ORIGIN] as const;
+export const BRIDGE_ORIGINS = [WEBVIEW_ORIGIN, LEGACY_WEBVIEW_ORIGIN] as const;

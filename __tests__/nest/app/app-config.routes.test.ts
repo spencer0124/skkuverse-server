@@ -23,7 +23,7 @@ import express from "express";
 import pinoHttp from "pino-http";
 import request from "supertest";
 import logger from "../../../src/infra/logger";
-import { WEBVIEW_ORIGIN, WEB_ORIGIN } from "../../../src/infra/origins";
+import { BRIDGE_ORIGINS, WEBVIEW_ORIGIN, WEB_ORIGIN } from "../../../src/infra/origins";
 import { ConfigModule } from "../../../src/config/config.module";
 import { AppFeatureModule } from "../../../src/app/app-feature.module";
 import { LangMiddleware } from "../../../src/common/lang.middleware";
@@ -82,7 +82,13 @@ describe("GET /app/config", () => {
   it("publishes webview.bridgeOrigins derived from infra/origins", async () => {
     const res = await request(httpServer).get("/app/config");
     expect(res.status).toBe(200);
-    expect(res.body.data.webview.bridgeOrigins).toEqual([WEBVIEW_ORIGIN]);
+    // Derived rather than re-listed, so adding an origin does not mean editing
+    // the same list in two places. This asserts the plumbing: whatever
+    // infra/origins declares is what the endpoint publishes.
+    expect(res.body.data.webview.bridgeOrigins).toEqual([...BRIDGE_ORIGINS]);
+    // The host the API currently builds webview URLs from has to be in the
+    // allowlist, or every page it serves loads with a dead bridge.
+    expect(res.body.data.webview.bridgeOrigins).toContain(WEBVIEW_ORIGIN);
   });
 
   it("lists only absolute https origins in bridgeOrigins", async () => {
