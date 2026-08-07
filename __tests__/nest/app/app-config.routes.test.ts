@@ -91,6 +91,22 @@ describe("GET /app/config", () => {
     expect(res.body.data.webview.bridgeOrigins).toContain(WEBVIEW_ORIGIN);
   });
 
+  it("grants the bridge to both webview deployments", async () => {
+    const res = await request(httpServer).get("/app/config");
+    const origins = res.body.data.webview.bridgeOrigins as string[];
+    // Deliberately literal rather than derived from BRIDGE_ORIGINS. The
+    // assertion above passes whatever the constant happens to say, including a
+    // list that has silently lost a host — which is the one mistake that cannot
+    // be caught after deploy, because a missing origin produces no error on
+    // either side, just a page whose buttons stop doing anything.
+    //
+    // Both deployments are live and both are addressed by clients in the field:
+    // the API builds URLs for one, and skkuverse-app's compiled-in offline
+    // fallback names the other. See skkuverse#46.
+    expect(origins).toContain("https://webview.skkuuniverse.com");
+    expect(origins).toContain("https://webview.skkuverse.com");
+  });
+
   it("lists only absolute https origins in bridgeOrigins", async () => {
     // The client compares these against `new URL(pageUrl).origin`, which is
     // always scheme+host+port with no trailing slash. A path or trailing slash
