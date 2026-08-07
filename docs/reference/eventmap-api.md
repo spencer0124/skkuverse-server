@@ -66,7 +66,11 @@ Config is split by **who edits it**, not by what it is.
   },
 ```
 
-Add `["eventmap.dbName", config.eventmap.dbName, "MONGO_EVENTMAP_DB_NAME"]` to `required[]`.
+Add `["eventmap.dbName", config.eventmap.dbName, "MONGO_EVENTMAP_DB_NAME"]` to `required[]` — and to
+the **same list mirrored in `src/config/env.validation.ts`**, which is what actually throws at Nest
+bootstrap. Adding it in only one place leaves the bootstrap silently permissive: the deploy
+workflow's pre-deploy dry-load still passes and the container boots missing config. `jest.setup.ts`
+needs the var too, or every suite that transitively imports config logs a spurious FATAL.
 
 > [!WARNING]
 > **Deploy ordering.** `config.ts` validates required env at boot with `process.exit(1)`. Set
@@ -469,7 +473,32 @@ cannot exist without coordinates. This puts the survey on the critical path in e
 carrying a nullable coordinate through the materializer, the wire format and the renderer.
 
 The CSV importer **rejects** rows with missing or non-numeric coordinates rather than inserting a
-partial document.
+partial document — and rejects the whole file if any single row is bad, because a half-imported map
+hides its own gaps.
+
+Two scripts do this, over one shared reader:
+
+| Script | Role |
+| --- | --- |
+| `scripts/lib/eventmap-csv.js` | pure CSV → `PlaceDoc` reader + validation. No DB, no clock — hence unit-tested |
+| `scripts/lib/eventmap-db.js` | the Mongo writers both scripts share |
+| `scripts/import-eventmap-csv.js` | ops sheet → `places`. `--dry-run`, `--retire-missing` |
+| `scripts/seed-eventmap-demo.js` | demo `sessions` over the real places, times relative to `now`. `_dev` only |
+
+Parsing is `csv-parse` (a devDependency — scripts never ship in the runtime image). The ops sheet is
+edited in a spreadsheet, so quoted commas, doubled quotes and a UTF-8 BOM all occur; `bom: true` is
+not optional, because without it the first header key becomes `U+FEFF` + `placeId` and every row
+fails for a missing id, blaming the data for an encoding problem.
+
+**`updatedAt` is only written when a place actually changed.** The importer diffs against what is
+stored and skips untouched documents. This is not an optimisation — §6.2 computes `contentHash` from
+the contributors' `[_id, updatedAt]`, so stamping every document on every import would publish a new
+snapshot version after a re-import that changed nothing, and `immutable, max-age=1y` would thrash.
+
+**Only the demo seed ever flips `enabled`.** The importer's activation write is `$setOnInsert`, so it
+can create the document but never modify it. That is what makes the two scripts' run order
+irrelevant, and more importantly it means re-importing a corrected sheet **during** the festival
+cannot take the live map down.
 
 ## 11. Error codes
 
@@ -522,7 +551,9 @@ Clients fall back to the base campus map within ~75 s. **Rehearse before the fes
 | --- | --- |
 | Storage types | `src/eventmap/types.ts` |
 | Pure materialization | `src/eventmap/eventmap.materialize.ts` |
-| I/O + indexes + seed | `src/eventmap/eventmap.data.ts` |
+| I/O + indexes | `src/eventmap/eventmap.data.ts` (no `seedIfEmpty` — there is no sensible default event) |
+| Ops sheet → places | `scripts/import-eventmap-csv.js` + `scripts/lib/eventmap-{csv,db}.js` |
+| Local demo dataset | `scripts/seed-eventmap-demo.js` |
 | Layer/chip/filter structure | `src/eventmap/config/*.json` |
 | DB + collection names | `src/infra/config.ts` `eventmap` block |
 | Tests | `__tests__/nest/eventmap/`, helper `__tests__/helpers/nest/build-eventmap-app.ts` |
