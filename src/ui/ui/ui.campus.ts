@@ -23,7 +23,7 @@ function getCampusServiceItems(lang: SupportedLang = "ko") {
       title: t("campus.lostFound.title", lang),
       emoji: "🧳",
       actionType: "webview",
-      actionValue: `${WEBVIEW_ORIGIN}/#/skku/lostandfound`,
+      actionValue: `${WEBVIEW_ORIGIN}/skku/lostandfound`,
       webviewTitle: t("campus.lostFound.title", lang),
       webviewColor: "003626",
     },
