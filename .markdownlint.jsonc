@@ -1,16 +1,14 @@
 // Canonical markdownlint rules for every SKKUverse repository.
 //
-// Vendored into each repo as `.markdownlint.jsonc` by the contract
-// `conventions.markdownlint` and hash-locked, so a repo cannot drift from it
-// without CI saying so. Do not edit the vendored copies — edit this file and
-// run `skkuverse_sync.py pull --all`.
+// Declared as the contract `conventions.markdownlint`, which each consumer
+// vendors as `.markdownlint.jsonc` and pins by content hash. Whether that
+// contract is enforced yet is state, so it is generated onto the landing page
+// rather than written here. Never edit a vendored copy: edit this file and run
+// `sync_contracts.py pull --all`.
 //
-// RULES ARE CENTRAL, GLOBS ARE LOCAL. This file carries only the rule set;
-// each repo keeps its own `.markdownlint-cli2.jsonc` naming which paths to
-// lint and which to skip, because those are genuinely repo-specific
-// (`docs/**` in one repo, `**/*.md` minus an Expo build tree in another).
-// That split is why the two existing copies were byte-identical everywhere
-// except `globs` and `ignores`.
+// This file carries only the rule set. Each repo names its own paths in its
+// own `.markdownlint-cli2.jsonc`, for the reason given in
+// conventions/README.md.
 //
 // Consume it like this:
 //
@@ -27,7 +25,7 @@
   "MD013": false, // line-length — prose is wrapped by meaning, not column count
   "MD033": false, // inline HTML — <details> and <br> are used deliberately
   "MD024": { "siblings_only": true }, // duplicate headings — banned only among siblings, so release-note and timeline patterns work
-  "MD036": false, // emphasis-as-heading — **bold labels** are an accepted idiom here
+  "MD036": false, // emphasis-as-heading — a run-in heading opening a list item is the documented idiom. Bold used mid-sentence is a different thing, and internal/check/prose.py catches that
   "MD028": false, // blanks-inside-blockquote — `> summary` followed by `> [!NOTE]` is the documented doc skeleton
 
   // ── Enforced. Listed explicitly even where `default: true` already covers
