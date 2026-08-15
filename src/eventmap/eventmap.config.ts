@@ -121,6 +121,27 @@ function asBoolean(value: unknown, where: string, fallbackValue: boolean): boole
   return value;
 }
 
+/**
+ * An open-keyed record of booleans, frozen because loadOne's freeze is shallow.
+ *
+ * The keys are NOT validated against anything, for the reason itemDefaults gives
+ * for byCategory: they name layers owned by a different endpoint (`/map/config`),
+ * and a whitelist here would be a second source of truth that goes stale the
+ * moment that endpoint gains a layer. An unknown key matches nothing and does
+ * nothing. A non-boolean value does fail, because truthiness would silently force
+ * a layer ON — the one direction the client cannot recover from.
+ */
+function asBooleanRecord(value: unknown, where: string): Record<string, boolean> {
+  if (value === undefined || value === null) return Object.freeze({});
+  const raw = asRecord(value, where);
+  const out: Record<string, boolean> = {};
+  for (const [key, entry] of Object.entries(raw)) {
+    if (typeof entry !== "boolean") fail(`${where}["${key}"] must be a boolean`);
+    out[key] = entry;
+  }
+  return Object.freeze(out);
+}
+
 function asOneOf<T extends string>(
   value: unknown,
   allowed: readonly T[],
@@ -446,6 +467,7 @@ export function assertValidConfig(raw: unknown): EventMapConfig {
       ["placeId", "zone"] as const,
       "config.stackKeyBy",
     ),
+    basemapOverride: asBooleanRecord(root.basemapOverride, "config.basemapOverride"),
     icons,
     layers,
     chipGroups,

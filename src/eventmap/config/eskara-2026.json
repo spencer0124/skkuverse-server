@@ -8,6 +8,8 @@
   "refreshAfterSec": 60,
   "stackKeyBy": "placeId",
 
+  "basemapOverride": { "building_numbers": false },
+
   "icons": {
     "generic": { "kind": "symbol", "symbol": "green" },
     "generic_off": { "kind": "symbol", "symbol": "gray" },

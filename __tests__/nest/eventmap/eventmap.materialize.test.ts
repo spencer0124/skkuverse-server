@@ -593,6 +593,18 @@ describe("materialize — payload shape", () => {
     expect(enBar.filter).toEqual(koBar.filter);
   });
 
+  it("carries basemapOverride into every language payload", () => {
+    // The client's failure mode for a field it cannot find is to render nothing
+    // for that slot, so an omission here shows up as a base map that never dims
+    // rather than as an error. Asserting per language is the point: `base` is
+    // spread into all three, and a field added to only one of them would still
+    // pass a single-language check.
+    const result = materialize(input());
+    for (const lang of ["ko", "en", "zh"] as const) {
+      expect(result.payloads[lang].basemapOverride).toEqual({ building_numbers: false });
+    }
+  });
+
   it("reports counts covering inputs and surviving items", () => {
     const result = materialize(
       input({
