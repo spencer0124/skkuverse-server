@@ -5,6 +5,8 @@
  * Reproduces the request pipeline main.ts wires, WITHOUT touching the real DB:
  *
  *   pino-http → express.json → LangMiddleware (req.lang + req.__startNs + Vary)
+ *     → exposeResponseHeaders (Access-Control-Expose-Headers, app-wide so the
+ *       304 early-returns below still carry it)
  *     → BusRateLimitMiddleware (applied by EventMapModule.configure() to the
  *       "eventmap" prefix ONLY — /internal/eventmap must stay unthrottled)
  *     → EventMapController / EventMapInternalController (@Res() + sendSuccess
@@ -27,6 +29,7 @@ import logger from "../../../src/infra/logger";
 import { EventMapModule } from "../../../src/eventmap/eventmap.module";
 import { SchedulingModule } from "../../../src/scheduling/scheduling.module";
 import { LangMiddleware } from "../../../src/common/lang.middleware";
+import { exposeResponseHeaders } from "../../../src/common/expose-headers";
 import { HttpExceptionFilter } from "../../../src/common/http-exception.filter";
 import { ResponseInterceptor } from "../../../src/common/response.interceptor";
 
@@ -56,6 +59,7 @@ export async function buildEventMapApp(
   expressInstance.use((req, res, next) =>
     lang.use(req as never, res as never, next),
   );
+  expressInstance.use(exposeResponseHeaders);
 
   const builder = Test.createTestingModule({ imports: [TestEventMapAppModule] });
   for (const o of overrides) {

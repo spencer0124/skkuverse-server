@@ -154,6 +154,55 @@ describe("GET /eventmap/manifest", () => {
   });
 });
 
+describe("Access-Control-Expose-Headers", () => {
+  // Date, ETag and Age are not CORS-safelisted, and they are exactly what a
+  // client needs for freshness rather than content: the clock offset is measured
+  // from the manifest's Date, and computeOffset discards any response carrying
+  // Age > 0. Mounted app-wide precisely so the early-return paths below keep it.
+  const EXPECTED = "Date, ETag, Age";
+
+  it("is set on a normal 200", async () => {
+    svc.getManifest.mockResolvedValue({ manifest: ACTIVE_MANIFEST, degraded: false });
+
+    const res = await request(httpServer).get("/eventmap/manifest");
+
+    expect(res.headers["access-control-expose-headers"]).toBe(EXPECTED);
+  });
+
+  it("survives the manifest 304, which returns before setting any header", async () => {
+    svc.getManifest.mockResolvedValue({ manifest: ACTIVE_MANIFEST, degraded: false });
+    const first = await request(httpServer).get("/eventmap/manifest");
+
+    const second = await request(httpServer)
+      .get("/eventmap/manifest")
+      .set("If-None-Match", first.headers.etag as string);
+
+    expect(second.status).toBe(304);
+    expect(second.headers["access-control-expose-headers"]).toBe(EXPECTED);
+  });
+
+  it("survives the snapshot 304", async () => {
+    svc.getSnapshot.mockResolvedValue(SNAPSHOT);
+    const url = "/eventmap/snapshot/eskara-2026/7?lang=ko";
+    const first = await request(httpServer).get(url);
+
+    const second = await request(httpServer)
+      .get(url)
+      .set("If-None-Match", first.headers.etag as string);
+
+    expect(second.status).toBe(304);
+    expect(second.headers["access-control-expose-headers"]).toBe(EXPECTED);
+  });
+
+  it("is set on the degraded manifest, which sets only Cache-Control", async () => {
+    svc.getManifest.mockResolvedValue({ manifest: INACTIVE_MANIFEST, degraded: true });
+
+    const res = await request(httpServer).get("/eventmap/manifest");
+
+    expect(res.headers["access-control-expose-headers"]).toBe(EXPECTED);
+  });
+});
+
 describe("GET /eventmap/snapshot/:layerSetId/:version", () => {
   it("serves the payload as immutable for a year", async () => {
     svc.getSnapshot.mockResolvedValue(SNAPSHOT);
