@@ -11,8 +11,8 @@
  * currently active, which is I/O and therefore not this module's business.
  */
 import { t } from "../infra/i18n";
-import { WEBVIEW_ORIGIN } from "../infra/origins";
 import type { SupportedLang } from "../infra/types";
+import { ROOT_RELATIVE_PATH_RE, toWebviewUrl } from "../infra/webview-url";
 import { canonicalStringify, md5 } from "./eventmap.hash";
 import type {
   ActivationDoc,
@@ -221,20 +221,6 @@ export function buildTags(session: SessionDoc, place: PlaceDoc): string[] {
 // --- Actions ----------------------------------------------------------------
 
 const ABSOLUTE_HTTPS_RE = /^https:\/\/[^\s/][^\s]*$/;
-// The leading-"//" rejection matters: "//evil.com" is a protocol-relative URL
-// wearing a path's clothes, and it is the exact shape the app's own mini-app
-// deep-link notes call out as an origin escape.
-//
-// A leading backslash is the same attack with a different keystroke, and it is
-// the one an anchored regex misses. WHATWG treats "\" as "/" for special
-// schemes, so `new URL("/\\evil.com", "https://webview.skkuverse.com/")`
-// resolves to https://evil.com/ — verified, not assumed. Nothing reachable
-// today turns a value from here into a URL that way (webview values are
-// concatenated onto the origin, which fixes the authority before the backslash
-// is read, and `route` goes to router.push rather than an opener), so this
-// closes the gap while it is still theoretical rather than after something
-// starts resolving it.
-const APP_ROUTE_RE = /^\/(?![/\\])[^\s]*$/;
 const WHITESPACE_RE = /\s/;
 
 /**
@@ -247,41 +233,6 @@ const WHITESPACE_RE = /\s/;
  */
 function isCleanValue(value: string): boolean {
   return value.length > 0 && !WHITESPACE_RE.test(value);
-}
-
-/**
- * Resolve a `webview` value to the absolute URL the wire carries, or null if it
- * does not address a page on our own web view.
- *
- * Ops may author the value as a root-relative path (`/eskara/entry`), which is
- * joined onto WEBVIEW_ORIGIN here. That spelling exists so nobody has to type a
- * host: naming one by hand is exactly what src/infra/origins.ts was created to
- * stop, after the four URLs this API emits sat as literals until skkuverse#46.
- *
- * An absolute value is still accepted, because the console writes one, but it
- * must land on WEBVIEW_ORIGIN and must address something other than the shell
- * root. Both halves are load-bearing, and the second is the subtle one:
- * `https://webview.skkuverse.com/#/eskara/entry` passes any prefix check, yet a
- * fragment never reaches the origin, so BrowserRouter resolves it to `/` and the
- * SPA fallback answers at HTTP 200 — below the app webview's `statusCode >= 400`
- * overlay. The user lands on the wrong page with no retry affordance and nothing
- * on either side logs a failure. `pathname !== "/"` is what catches that, and it
- * catches a bare origin and a trailing `/#` for free. An ordinary `#anchor` on a
- * real path survives, because it addresses a real page.
- */
-function toWebviewUrl(value: string): string | null {
-  // "/" alone would resolve to the shell root, which is the same dead end as the
-  // fragment case below — the two spellings have to agree on what is valid.
-  if (value !== "/" && APP_ROUTE_RE.test(value)) return `${WEBVIEW_ORIGIN}${value}`;
-  if (!ABSOLUTE_HTTPS_RE.test(value)) return null;
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    return null;
-  }
-  if (url.origin !== WEBVIEW_ORIGIN || url.pathname === "/") return null;
-  return value;
 }
 
 /**
@@ -307,7 +258,7 @@ function isValidActionValue(action: SessionAction): boolean {
 
   switch (action.actionType) {
     case "route":
-      return APP_ROUTE_RE.test(value);
+      return ROOT_RELATIVE_PATH_RE.test(value);
     case "webview":
       return toWebviewUrl(value) !== null;
     case "external":

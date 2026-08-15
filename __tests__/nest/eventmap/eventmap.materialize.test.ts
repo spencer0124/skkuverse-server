@@ -426,6 +426,18 @@ describe("materialize — actions", () => {
       expect(actionsFor(`${WEBVIEW_ORIGIN}/#/eskara/entry`)).toEqual([]);
     });
 
+    it("rejects a fragment after a real path, in both spellings", () => {
+      // The case an origin-and-path check misses, and the worse of the two: the
+      // pathname is real, so this opens the ESKARA index instead of the entry
+      // page — a plausible screen the user has no reason to distrust.
+      expect(actionsFor(`${WEBVIEW_ORIGIN}/eskara#/entry`)).toEqual([]);
+      expect(actionsFor("/eskara#/entry")).toEqual([]);
+    });
+
+    it("rejects an anchor on a real page, an allowance nothing used", () => {
+      expect(actionsFor(`${WEBVIEW_ORIGIN}/eskara/entry#tickets`)).toEqual([]);
+    });
+
     it("rejects the shell root itself, in either spelling", () => {
       expect(actionsFor(`${WEBVIEW_ORIGIN}/`)).toEqual([]);
       expect(actionsFor("/")).toEqual([]);

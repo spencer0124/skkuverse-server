@@ -10,6 +10,7 @@
  * That asymmetry is deliberate. Fail loud where you can fix it; fail soft where
  * you can only render it.
  */
+import { isOnWebviewOrigin, toWebviewUrl } from "../infra/webview-url";
 import type { MiniAppDetail, MiniAppIndexRaw } from "./types";
 
 const HTTP_RE = /^https?:\/\//;
@@ -46,15 +47,20 @@ export function assertValidRegistry(
     if (!HTTP_RE.test(detail.startUrl)) {
       throw new Error(`miniapp registry: bad startUrl for "${entry.id}"`);
     }
-    // A fragment route is the one malformed startUrl that produces no error at
-    // all: the fragment never reaches the origin, the web view's SPA fallback
-    // answers the bare path with the shell at HTTP 200, and the app's error
-    // overlay only rises above status 400. The user gets the wrong page and the
-    // logs stay clean. These URLs are hand-typed here rather than built from
-    // WEBVIEW_ORIGIN, so this file is exactly where that recurs.
-    if (detail.startUrl.includes("#")) {
+    // Our own web view routes by path, so a startUrl pointing at it must address
+    // a real page: a fragment or a bare origin produces no error anywhere, just
+    // the SPA shell at HTTP 200 and a user on the wrong page. These URLs are
+    // hand-typed here rather than built from WEBVIEW_ORIGIN, so this file is
+    // exactly where that recurs.
+    //
+    // Gated on the origin, and that gate is not cosmetic. Four of the five
+    // registered mini-apps are third parties (student.skku.edu, www.skkuw.com,
+    // webzine.skku.edu); they route however they like, and skkuw's startUrl is a
+    // bare root path already. Applying our rule to them would turn someone else's
+    // routing choice into a boot failure here, since this runs at import.
+    if (isOnWebviewOrigin(detail.startUrl) && !toWebviewUrl(detail.startUrl)) {
       throw new Error(
-        `miniapp registry: startUrl for "${entry.id}" uses a fragment; the web view routes by path`,
+        `miniapp registry: startUrl for "${entry.id}" must address a page on the web view — no fragment, not the root`,
       );
     }
     for (const link of detail.relatedLinks) {

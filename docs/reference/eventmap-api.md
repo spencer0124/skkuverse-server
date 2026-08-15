@@ -707,7 +707,7 @@ survives — ops authored it, and losing one button is recoverable.
 | --- | --- |
 | `content` | any non-blank string — it is prose, so spaces and newlines are fine |
 | `route` | starts with `/` but **not** `//`, and contains no whitespace |
-| `webview` | a root-relative path (**preferred**), or an absolute URL on `WEBVIEW_ORIGIN`. Either way it must address something other than the shell root |
+| `webview` | a root-relative path (**preferred**), or an absolute URL on `WEBVIEW_ORIGIN`. Either way it must address a real page: **no fragment at all**, and the path may not be `/` |
 | `external` · `miniapp` | absolute `https://` URL, no whitespace |
 
 **A `webview` value is resolved against `WEBVIEW_ORIGIN` at materialization**, so `/eskara/entry`
@@ -723,10 +723,34 @@ An absolute value is still accepted, because the console writes one, but it must
 `https://webview.skkuverse.com/#/eskara/entry` satisfies any prefix check, yet a fragment never
 reaches the origin, so `BrowserRouter` resolves it to `/`, the SPA fallback answers with the shell at
 **HTTP 200**, and the app's webview only raises its error overlay above status 400. The user lands on
-the wrong page with no retry affordance and nothing on either side logs a failure. Checking the
-resolved `pathname` catches that, and catches a bare origin and a trailing `/#` with it, while leaving
-an ordinary `#anchor` on a real path alone. The mini-app registry carries the same guard, for the same
-reason, on `startUrl`.
+the wrong page with no retry affordance and nothing on either side logs a failure.
+
+Both halves of the rule are needed, and neither catches the other's case:
+
+| Value | `pathname` | `hash` | |
+| --- | --- | --- | --- |
+| `«O»/#/eskara/entry` | `/` | `#/eskara/entry` | rejected — fragment stripped, lands on the shell |
+| `«O»/` · `«O»` · `«O»/#` | `/` | | rejected — the shell root, which renders the 404 page |
+| `«O»/eskara#/entry` | `/eskara` | `#/entry` | rejected — **the worse one**, see below |
+| `«O»/eskara/entry?day=1` | `/eskara/entry` | | accepted |
+
+> [!WARNING]
+> **An anchor on a real path is no longer accepted, and that is a revoked guarantee.** This section
+> previously promised that `«O»/eskara/entry#tickets` would survive "because it addresses a real
+> page". True, and it was the hole: `«O»/eskara#/entry` keeps a real `pathname` too, passes an
+> origin-and-path check, and still opens the ESKARA **index** rather than the entry page. That failure
+> is worse than a bare origin — the user arrives somewhere plausible rather than somewhere obviously
+> broken, and has no reason to suspect it. No first-party page uses an anchor, so the allowance bought
+> nothing.
+
+The mini-app registry applies the same rule to `startUrl`, but **only when the URL is on
+`WEBVIEW_ORIGIN`**. Four of the five registered mini-apps are third parties, `assertValidRegistry`
+runs at import and throws, and `skkuw`'s `startUrl` is already a bare root path — so applying our
+routing choice to their hosts would turn someone else's site into a boot failure here.
+
+Both call sites share one definition, `src/infra/webview-url.ts`. It exports a predicate rather than
+a validator that throws, because the two callers want opposite failure modes: the materializer drops
+one button and reports it in `rejectedActions`, the registry refuses to boot.
 
 Anchors alone do not do this: `$` without the `m` flag still matches **before a final newline**, so
 `"https://evil.com\n"` satisfies an otherwise correct `^...$` pattern — and a spreadsheet paste is

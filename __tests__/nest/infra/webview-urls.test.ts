@@ -19,6 +19,8 @@
  * of these payloads is covered without this file being updated.
  */
 import { getCampusSections } from "../../../src/ui/ui/ui.campus";
+import fs from "fs";
+import path from "path";
 import { getScrollComponent } from "../../../src/ui/ui/ui.scroll";
 import { getBusGroups } from "../../../src/bus/bus-config/bus-config.data";
 import { BRIDGE_ORIGINS, WEBVIEW_ORIGIN } from "../../../src/infra/origins";
@@ -35,10 +37,33 @@ function webviewUrlsIn(value: unknown): string[] {
   return [];
 }
 
+/**
+ * The mini-app registry is walked too, and it is the one place a webview URL is
+ * still hand-typed rather than built from WEBVIEW_ORIGIN — which is how
+ * `eskara-2026.json` came to name the legacy host in hash form.
+ *
+ * Safe to fold in whole: `webviewUrlsIn` filters on the string `webview.`, and
+ * the four third-party entries (`student.skku.edu`, `www.skkuw.com`,
+ * `webzine.skku.edu`) do not match it. Their URLs answer to their own hosts'
+ * rules, not to the assertions below.
+ */
+const registryDetails = Object.fromEntries(
+  fs
+    .readdirSync(path.join(__dirname, "../../../src/miniapps/details"))
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => [
+      f,
+      JSON.parse(
+        fs.readFileSync(path.join(__dirname, "../../../src/miniapps/details", f), "utf8"),
+      ) as unknown,
+    ]),
+);
+
 const payloads: Record<string, unknown> = {
   "GET /ui/home/campus": getCampusSections(),
   "GET /ui/home/scroll": getScrollComponent(),
   "GET /bus/config": getBusGroups(),
+  "src/miniapps/details/*.json": registryDetails,
 };
 
 describe("webview URLs the API hands out", () => {
