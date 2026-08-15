@@ -100,6 +100,17 @@ describe("assertValidRegistry", () => {
     ).toThrow(/bad startUrl/);
   });
 
+  it("rejects a fragment-routed startUrl, which fails without failing", () => {
+    // The one malformed startUrl that raises nothing anywhere: the fragment
+    // never reaches the origin, the SPA fallback answers at HTTP 200, and the
+    // app's error overlay only rises above 400. Wrong page, clean logs.
+    expect(() =>
+      assertValidRegistry(index(), {
+        a: { ...details().a, startUrl: "https://webview.skkuverse.com/#/eskara" },
+      }),
+    ).toThrow(/uses a fragment/);
+  });
+
   it("rejects a non-http relatedLinks url", () => {
     expect(() =>
       assertValidRegistry(index(), {

@@ -46,6 +46,17 @@ export function assertValidRegistry(
     if (!HTTP_RE.test(detail.startUrl)) {
       throw new Error(`miniapp registry: bad startUrl for "${entry.id}"`);
     }
+    // A fragment route is the one malformed startUrl that produces no error at
+    // all: the fragment never reaches the origin, the web view's SPA fallback
+    // answers the bare path with the shell at HTTP 200, and the app's error
+    // overlay only rises above status 400. The user gets the wrong page and the
+    // logs stay clean. These URLs are hand-typed here rather than built from
+    // WEBVIEW_ORIGIN, so this file is exactly where that recurs.
+    if (detail.startUrl.includes("#")) {
+      throw new Error(
+        `miniapp registry: startUrl for "${entry.id}" uses a fragment; the web view routes by path`,
+      );
+    }
     for (const link of detail.relatedLinks) {
       if (!HTTP_RE.test(link.url)) {
         throw new Error(
