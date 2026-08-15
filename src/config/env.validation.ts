@@ -40,8 +40,12 @@ function apiUrl(prodKey: string, devKey: string): string | undefined {
 
 /**
  * Returns the list of missing required config entries as "name (env: VAR)"
- * strings. Exact mirror of lib/config.ts required[] (all 14 entries — full
+ * strings. Exact mirror of lib/config.ts required[] (all 15 entries — full
  * parity with the existing fail-loud surface, not just the bus subset).
+ *
+ * Adding an entry to config.ts's required[] without adding it here leaves the
+ * Nest bootstrap silently permissive: the deploy workflow's pre-deploy dry-load
+ * would still pass, and the container would boot missing config.
  */
 export function findMissingRequired(): string[] {
   const required: ReadonlyArray<readonly [string, unknown, string]> = [
@@ -59,6 +63,7 @@ export function findMissingRequired(): string[] {
     ["building.dbName", devDbName(process.env.MONGO_BUILDING_DB_NAME), "MONGO_BUILDING_DB_NAME"],
     ["ad.dbName", devDbName(process.env.MONGO_AD_DB_NAME), "MONGO_AD_DB_NAME"],
     ["notices.dbName", devDbName(process.env.MONGO_NOTICES_DB_NAME), "MONGO_NOTICES_DB_NAME"],
+    ["eventmap.dbName", devDbName(process.env.MONGO_EVENTMAP_DB_NAME), "MONGO_EVENTMAP_DB_NAME"],
     ["notices.serviceStartDate", process.env.NOTICES_SERVICE_START_DATE, "NOTICES_SERVICE_START_DATE"],
     ["notices.dispatch.functionUrl", process.env.FCM_FUNCTION_URL, "FCM_FUNCTION_URL"],
     ["notices.dispatch.apiKey", process.env.FCM_API_KEY, "FCM_API_KEY"],

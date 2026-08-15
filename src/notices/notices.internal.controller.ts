@@ -1,9 +1,9 @@
 import { Controller, Post, Body, Req, HttpCode } from "@nestjs/common";
-import crypto from "crypto";
 import type { Request } from "express";
 import config from "../infra/config";
 import logger from "../infra/logger";
 import { AppError } from "../common/app-error";
+import { tokensMatch } from "../common/internal-token";
 import {
   NoticesDispatcherService,
   type SweepSummary,
@@ -19,23 +19,15 @@ import {
  * solely for log correlation; the work is the sweep itself.
  *
  * Auth: shared secret in the X-Internal-Token header, compared in constant time
- * (tokensMatch). NO Firebase auth + NO rate limit here — the caller is the
- * crawler service, not an end user. NoticesModule.configure() deliberately does
- * NOT bind FirebaseAuthMiddleware / noticesLimiter to /internal routes.
+ * (common/internal-token.tokensMatch — shared with the event map's publish route
+ * since skkuverse#14; the body is unchanged from when it lived here). NO Firebase
+ * auth + NO rate limit here — the caller is the crawler service, not an end user.
+ * NoticesModule.configure() deliberately does NOT bind FirebaseAuthMiddleware /
+ * noticesLimiter to /internal routes.
  *
  * Returns the SweepSummary as a plain value → the global ResponseInterceptor
  * wraps it in the { meta, data } envelope, byte-identical to res.success(summary).
  */
-
-function tokensMatch(provided: unknown, expected: unknown): boolean {
-  if (typeof provided !== "string" || typeof expected !== "string") {
-    return false;
-  }
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
-}
 
 interface PingBody {
   source?: string;

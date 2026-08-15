@@ -100,6 +100,55 @@ describe("assertValidRegistry", () => {
     ).toThrow(/bad startUrl/);
   });
 
+  describe("a startUrl on our own web view must address a page", () => {
+    // The malformed shapes here raise nothing anywhere: the fragment never
+    // reaches the origin, the SPA fallback answers at HTTP 200, and the app's
+    // error overlay only rises above 400. Wrong page, clean logs.
+    const withStartUrl = (startUrl: string) => () =>
+      assertValidRegistry(index(), { a: { ...details().a, startUrl } });
+
+    it("rejects a fragment route", () => {
+      expect(withStartUrl("https://webview.skkuverse.com/#/eskara")).toThrow(/must address a page/);
+    });
+
+    it("rejects a fragment after a real path, which an origin-and-path check misses", () => {
+      // Lands on the ESKARA index rather than the entry page — the worse failure,
+      // because the user arrives somewhere plausible.
+      expect(withStartUrl("https://webview.skkuverse.com/eskara#/entry")).toThrow(
+        /must address a page/,
+      );
+    });
+
+    it("rejects the bare origin, which the old fragment-only ban let through", () => {
+      expect(withStartUrl("https://webview.skkuverse.com/")).toThrow(/must address a page/);
+    });
+
+    it("accepts a real page", () => {
+      expect(withStartUrl("https://webview.skkuverse.com/eskara")).not.toThrow();
+    });
+  });
+
+  describe("a third-party startUrl keeps its own routing", () => {
+    // The rule is origin-gated on purpose. Four of the five registered mini-apps
+    // are third parties, this check runs at import, and assertValidRegistry
+    // throws — so applying our routing choice to their URLs would mean the server
+    // does not boot because someone else's site changed.
+    const withStartUrl = (startUrl: string) => () =>
+      assertValidRegistry(index(), { a: { ...details().a, startUrl } });
+
+    it("allows a bare root path — this is skkuw's real startUrl", () => {
+      expect(withStartUrl("https://www.skkuw.com/")).not.toThrow();
+    });
+
+    it("allows a fragment, because that host may legitimately route by hash", () => {
+      expect(withStartUrl("https://example.com/#/section")).not.toThrow();
+    });
+
+    it("still requires http(s)", () => {
+      expect(withStartUrl("javascript:alert(1)")).toThrow(/bad startUrl/);
+    });
+  });
+
   it("rejects a non-http relatedLinks url", () => {
     expect(() =>
       assertValidRegistry(index(), {

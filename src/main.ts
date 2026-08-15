@@ -11,6 +11,7 @@ import config from "./infra/config";
 import { closeClient, ping as pingDb } from "./infra/db";
 import { AppModule } from "./app.module";
 import { ResponseInterceptor } from "./common/response.interceptor";
+import { exposeResponseHeaders } from "./common/expose-headers";
 import { HttpExceptionFilter } from "./common/http-exception.filter";
 import { LangMiddleware } from "./common/lang.middleware";
 import { BusCacheService } from "./bus/cache/bus-cache.service";
@@ -61,6 +62,10 @@ async function bootstrap(): Promise<void> {
   expressInstance.use((req, res, next) =>
     langMiddleware.use(req as never, res as never, next),
   );
+
+  // Must run before any handler — see the docblock. The eventmap 304 branches
+  // return before setting headers of their own, which is the case this exists for.
+  expressInstance.use(exposeResponseHeaders);
 
   // bodyParser:false is REQUIRED: with a pre-built ExpressAdapter, Nest's
   // registerParserMiddleware → ExpressAdapter.isMiddlewareApplied reads the
