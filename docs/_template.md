@@ -1,70 +1,67 @@
 ---
-title: <Title Case 제목>
-type: how-to
+title: <Title Case>
+type: explanation
 status: draft
 owner: zoyoong124@gmail.com
-last-updated: 2026-07-22
-audience: internal
+last-updated: YYYY-MM-DD
+audience: public
 ---
 
-# <제목>
+# <Title>
 
-> 한 줄 요약: 이 문서가 무엇이고 누가 읽어야 하는지.
-
-> [!NOTE]
-> 선행 조건이나 맥락이 있으면 여기에. 없으면 이 블록 삭제.
+> One-line summary: what this document is, and who should read it.
 
 <!--
-type별 권장 섹션 골격 — 해당 type의 섹션만 남기고 나머지는 삭제.
+Section skeletons by `type` — keep the one that matches, delete the rest.
+Write everything in English (see ../CLAUDE.md).
 
-■ how-to (절차 런북)
-  ## 개요
-  ## 사전 준비
-  ## 단계
-  ## 트러블슈팅
-  ## 관련 문서
+Every type this workspace uses is listed, because the file is vendored into
+each repo by the `conventions.docs-template` contract and a consumer cannot
+add a missing one without breaking the hash. A repo simply ignores the
+skeletons for types it does not write.
 
-■ reference (계약·스펙)
-  ## 요약
-  ## <스펙 섹션들 — 구조화된 사실은 표로>
-  ## 관련 문서
+- how-to (a runbook for one task)
+    ## Overview
+    ## Prerequisites
+    ## Steps
+    ## Troubleshooting
+    ## Related
 
-■ explanation (메커니즘·배경)
-  ## 문제
-  ## 원인 / 메커니즘
-  ## 정석 해법 / 패턴
-  ## 안티패턴
-  ## 관련 문서
+- tutorial (a guided first run, for someone with no context)
+    ## What you will build
+    ## Prerequisites
+    ## Steps
+    ## Next steps
+    ## Related
 
-■ adr (docs/decisions/NNNN-kebab-title.md)
-  ## Status
-  ## Context
-  ## Decision
-  ## Consequences
+- reference (contracts and maps)
+    ## Summary
+    ## <table-driven sections>
+    ## Related
 
-■ postmortem (docs/internal/YYYY-MM-topic.md)
-  메타데이터 표 (Date/Status/Detection/Trigger/Root Cause)
-  ## TL;DR
-  ## Impact
-  ## Timeline
-  ## Root Cause — 5 Whys
-  ## Resolution
-  ## What Went Well / Wrong
-  ## Action Items
+- explanation (mechanism and background)
+    ## Context
+    ## Structure (diagram)
+    ## Rationale / trade-offs
+    ## Related
+
+- adr (decisions/NNNN-kebab-title.md)
+    ## Status
+    ## Context
+    ## Decision
+    ## Consequences
+
+- postmortem (internal/YYYY-MM-topic.md)
+    metadata table (Date / Status / Detection / Trigger / Root cause)
+    ## TL;DR
+    ## Impact
+    ## Timeline
+    ## Root cause — 5 whys
+    ## Resolution
+    ## What went well / what went wrong
+    ## Action items
 -->
 
-## 개요
+## Related
 
-짧은 프레이밍 문단 (한국어).
-
-## 단계
-
-1. 첫 단계
-
-   ```bash
-   echo "언어 태그 필수"
-   ```
-
-## 관련 문서
-
-- [docs/README.md](README.md) — 작성 규칙
+- [docs/README.md](README.md) — writing rules
