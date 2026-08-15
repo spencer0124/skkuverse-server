@@ -1,7 +1,7 @@
 ---
 title: Event Map API Reference
 type: reference
-status: active
+status: accepted
 owner: zoyoong124@gmail.com
 last-updated: 2026-08-07
 audience: internal
