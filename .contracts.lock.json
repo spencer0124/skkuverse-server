@@ -1,19 +1,31 @@
 {
   "lockVersion": 1,
   "repo": "server",
-  "note": "Written by skkuverse_sync.py. Do not hand-edit, and never resolve a merge conflict here by hand - take either side, then re-run `pull --repo server`.",
+  "note": "Written by sync_contracts.py. Do not hand-edit, and never resolve a merge conflict here by hand - take either side, then re-run `pull --repo server`.",
   "contracts": {
+    "conventions.docs-template": {
+      "path": "docs/_template.md",
+      "sha256": "8d9a74eb073480a90a0e46e3d4149315bf53a1709987fcffd0a3a243465f90c2",
+      "producer": {
+        "repo": "umbrella",
+        "path": "docs/_template.md",
+        "ref": "main",
+        "commit": "1b45b40a601f4dfae9cc6aec61f6619fc35c3bed",
+        "sha256": "8d9a74eb073480a90a0e46e3d4149315bf53a1709987fcffd0a3a243465f90c2"
+      },
+      "syncedAt": "2026-08-15T09:33:08Z"
+    },
     "conventions.markdownlint": {
       "path": ".markdownlint.jsonc",
-      "sha256": "f416bcab34d8114516a47be53c7fd38646d0ec7fb92b41f80116f3683e4b54ef",
+      "sha256": "e9657ea55ddfdca15b1a7a3e81be94c8d4845fd6da452f6d5689f12dabb865a5",
       "producer": {
         "repo": "umbrella",
         "path": "conventions/markdownlint.jsonc",
         "ref": "main",
-        "commit": "672a16ea65d96aa88efb517cd304da2c0487de0d",
-        "sha256": "f416bcab34d8114516a47be53c7fd38646d0ec7fb92b41f80116f3683e4b54ef"
+        "commit": "1b45b40a601f4dfae9cc6aec61f6619fc35c3bed",
+        "sha256": "e9657ea55ddfdca15b1a7a3e81be94c8d4845fd6da452f6d5689f12dabb865a5"
       },
-      "syncedAt": "2026-08-05T02:42:51Z"
+      "syncedAt": "2026-08-15T09:33:07Z"
     },
     "notices.categories": {
       "path": "src/notices/categories.json",
@@ -22,7 +34,7 @@
         "repo": "crawler",
         "path": "py/generated/server-categories.json",
         "ref": "main",
-        "commit": "9cf521b2869d05dffe58ad81c3af79e186ac251d",
+        "commit": "3c6c08de969b739d43ef8f65446e13e970f46d98",
         "sha256": "36e26285167b79517800f6136a1fc729445e6a2795747c4bac7fcb92b7513ce2"
       },
       "syncedAt": "2026-08-04T10:48:30Z"
@@ -34,7 +46,7 @@
         "repo": "crawler",
         "path": "py/generated/server-exclude-reasons.json",
         "ref": "main",
-        "commit": "9cf521b2869d05dffe58ad81c3af79e186ac251d",
+        "commit": "3c6c08de969b739d43ef8f65446e13e970f46d98",
         "sha256": "33d092f8c2f0d13f585a6f24660f2fd0bde38893e3a35e6c72ef277f6ec14f8c"
       },
       "syncedAt": "2026-08-04T10:48:30Z"
@@ -46,7 +58,7 @@
         "repo": "crawler",
         "path": "py/generated/server-sources.json",
         "ref": "main",
-        "commit": "9cf521b2869d05dffe58ad81c3af79e186ac251d",
+        "commit": "3c6c08de969b739d43ef8f65446e13e970f46d98",
         "sha256": "738374f8c9e3f47d3dfbf3655e8c424c093fcdcb430e697c81731a8e8804e1d9"
       },
       "syncedAt": "2026-08-04T10:48:30Z"
@@ -61,7 +73,7 @@
         "path": "functions/src/notifications/tabsContract.ts",
         "symbol": "MAX_TOPICS",
         "ref": "main",
-        "commit": "27b05436291e6fabb537eda0f8b90fdd5cb2a37a",
+        "commit": "4e3b5c5301d38dd2f2c308847f03cff052ad6ab1",
         "value": 30
       },
       "syncedAt": "2026-08-04T13:12:48Z"
