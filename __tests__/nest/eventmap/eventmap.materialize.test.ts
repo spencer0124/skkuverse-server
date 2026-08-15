@@ -385,6 +385,11 @@ describe("materialize — actions", () => {
         { id: "trailing-newline", label: { ko: "a" }, actionType: "external", actionValue: "https://evil.com\n" },
         // A protocol-relative URL wearing a path's clothes.
         { id: "protocol-relative", label: { ko: "b" }, actionType: "route", actionValue: "//evil.com" },
+        // The same escape with a backslash, which an anchored ^\/(?!\/) misses.
+        // WHATWG folds "\" into "/" for special schemes, so this resolves to
+        // https://evil.com/ the moment anything treats it as a relative URL.
+        { id: "backslash-relative", label: { ko: "d" }, actionType: "route", actionValue: "/\\evil.com" },
+        { id: "backslash-webview", label: { ko: "e" }, actionType: "webview", actionValue: "/\\evil.com" },
         { id: "http", label: { ko: "c" }, actionType: "webview", actionValue: "http://plain.example.com" },
       ],
     });
@@ -392,6 +397,8 @@ describe("materialize — actions", () => {
 
     expect(result.payloads.ko.items[0]!.actions).toEqual([]);
     expect(result.rejectedActions.map((r) => r.actionId).sort()).toEqual([
+      "backslash-relative",
+      "backslash-webview",
       "http",
       "protocol-relative",
       "trailing-newline",

@@ -224,7 +224,17 @@ const ABSOLUTE_HTTPS_RE = /^https:\/\/[^\s/][^\s]*$/;
 // The leading-"//" rejection matters: "//evil.com" is a protocol-relative URL
 // wearing a path's clothes, and it is the exact shape the app's own mini-app
 // deep-link notes call out as an origin escape.
-const APP_ROUTE_RE = /^\/(?!\/)[^\s]*$/;
+//
+// A leading backslash is the same attack with a different keystroke, and it is
+// the one an anchored regex misses. WHATWG treats "\" as "/" for special
+// schemes, so `new URL("/\\evil.com", "https://webview.skkuverse.com/")`
+// resolves to https://evil.com/ — verified, not assumed. Nothing reachable
+// today turns a value from here into a URL that way (webview values are
+// concatenated onto the origin, which fixes the authority before the backslash
+// is read, and `route` goes to router.push rather than an opener), so this
+// closes the gap while it is still theoretical rather than after something
+// starts resolving it.
+const APP_ROUTE_RE = /^\/(?![/\\])[^\s]*$/;
 const WHITESPACE_RE = /\s/;
 
 /**
