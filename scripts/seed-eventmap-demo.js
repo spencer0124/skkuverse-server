@@ -155,10 +155,14 @@ function buildSessions(layerSetId, now) {
     actions: s.withActions
       ? [
           {
+            // Root-relative on purpose: the materializer joins WEBVIEW_ORIGIN,
+            // so this script never names a host. It is a .js file outside
+            // tsconfig and cannot import the constant, which is exactly the
+            // situation that put a stale host here in the first place.
             id: "entry",
             label: { ko: "입장 안내" },
             actionType: "webview",
-            actionValue: "https://webview.skkuuniverse.com/#/eskara/entry",
+            actionValue: "/eskara/entry",
             style: "primary",
           },
           {

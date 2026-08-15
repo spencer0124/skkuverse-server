@@ -11,6 +11,7 @@
  * currently active, which is I/O and therefore not this module's business.
  */
 import { t } from "../infra/i18n";
+import { WEBVIEW_ORIGIN } from "../infra/origins";
 import type { SupportedLang } from "../infra/types";
 import { canonicalStringify, md5 } from "./eventmap.hash";
 import type {
@@ -239,6 +240,41 @@ function isCleanValue(value: string): boolean {
 }
 
 /**
+ * Resolve a `webview` value to the absolute URL the wire carries, or null if it
+ * does not address a page on our own web view.
+ *
+ * Ops may author the value as a root-relative path (`/eskara/entry`), which is
+ * joined onto WEBVIEW_ORIGIN here. That spelling exists so nobody has to type a
+ * host: naming one by hand is exactly what src/infra/origins.ts was created to
+ * stop, after the four URLs this API emits sat as literals until skkuverse#46.
+ *
+ * An absolute value is still accepted, because the console writes one, but it
+ * must land on WEBVIEW_ORIGIN and must address something other than the shell
+ * root. Both halves are load-bearing, and the second is the subtle one:
+ * `https://webview.skkuverse.com/#/eskara/entry` passes any prefix check, yet a
+ * fragment never reaches the origin, so BrowserRouter resolves it to `/` and the
+ * SPA fallback answers at HTTP 200 — below the app webview's `statusCode >= 400`
+ * overlay. The user lands on the wrong page with no retry affordance and nothing
+ * on either side logs a failure. `pathname !== "/"` is what catches that, and it
+ * catches a bare origin and a trailing `/#` for free. An ordinary `#anchor` on a
+ * real path survives, because it addresses a real page.
+ */
+function toWebviewUrl(value: string): string | null {
+  // "/" alone would resolve to the shell root, which is the same dead end as the
+  // fragment case below — the two spellings have to agree on what is valid.
+  if (value !== "/" && APP_ROUTE_RE.test(value)) return `${WEBVIEW_ORIGIN}${value}`;
+  if (!ABSOLUTE_HTTPS_RE.test(value)) return null;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  if (url.origin !== WEBVIEW_ORIGIN || url.pathname === "/") return null;
+  return value;
+}
+
+/**
  * `actionValue` shape rules, per §8 plus the one case the prose glosses over.
  *
  * The doc says "always a complete URL" and then gives `route` the example
@@ -247,6 +283,10 @@ function isCleanValue(value: string): boolean {
  * an open redirect), while `route` never reaches an opener — it reaches
  * router.push. So the check is per type, and a value failing it drops that button
  * rather than the whole booth. Ops authored it; losing one button is recoverable.
+ *
+ * `webview` is a third case: relative is not merely tolerated but preferred, and
+ * the wire still carries a complete URL because resolveActions joins it. The
+ * invariant ADR 0004 names is about what an opener receives, not what Mongo holds.
  */
 function isValidActionValue(action: SessionAction): boolean {
   const value = action.actionValue;
@@ -259,6 +299,7 @@ function isValidActionValue(action: SessionAction): boolean {
     case "route":
       return APP_ROUTE_RE.test(value);
     case "webview":
+      return toWebviewUrl(value) !== null;
     case "external":
     case "miniapp":
       return ABSOLUTE_HTTPS_RE.test(value);
@@ -311,7 +352,13 @@ function resolveActions(actions: SessionAction[], lang: SupportedLang): WireActi
       // through en to ko, so this only degrades for a zh-only label.
       label: pick(action.label, lang) ?? action.id,
       actionType: action.actionType,
-      actionValue: action.actionValue,
+      // A relative `webview` value becomes absolute here, so the client only ever
+      // sees a complete URL. The `??` is unreachable — partitionActions already
+      // ran toWebviewUrl on this value — and exists to keep the type honest.
+      actionValue:
+        action.actionType === "webview"
+          ? (toWebviewUrl(action.actionValue) ?? action.actionValue)
+          : action.actionValue,
     };
     if (action.style) wire.style = action.style;
     return wire;

@@ -11,6 +11,7 @@
  * cancelled booth that re-derives itself back to "open" sends people walking, and
  * a content hash that ignores a Mongo edit means a festival-night fix never ships.
  */
+import { WEBVIEW_ORIGIN } from "../../../src/infra/origins";
 import { getLayerSetConfig } from "../../../src/eventmap/eventmap.config";
 import {
   buildTags,
@@ -345,7 +346,7 @@ describe("materialize — actions", () => {
           id: "entry",
           label: { ko: "입장 안내" },
           actionType: "webview",
-          actionValue: "https://webview.skkuuniverse.com/#/eskara/entry",
+          actionValue: "/eskara/entry",
           style: "primary",
         },
         // Relative value handed to a URL opener — the shape of an open redirect.
@@ -395,6 +396,48 @@ describe("materialize — actions", () => {
       "protocol-relative",
       "trailing-newline",
     ]);
+  });
+
+  describe("webview values resolve against WEBVIEW_ORIGIN", () => {
+    const webviewAction = (actionValue: string) =>
+      session({ actions: [{ id: "entry", label: { ko: "입장 안내" }, actionType: "webview", actionValue }] });
+    const actionsFor = (actionValue: string) =>
+      materialize(input({ sessions: [webviewAction(actionValue)] })).payloads.ko.items[0]!.actions;
+
+    it("joins a root-relative path onto the origin, so the wire carries a complete URL", () => {
+      expect(actionsFor("/eskara/entry")[0]!.actionValue).toBe(`${WEBVIEW_ORIGIN}/eskara/entry`);
+    });
+
+    it("passes an absolute URL on our own origin through untouched", () => {
+      const absolute = `${WEBVIEW_ORIGIN}/eskara/timetable`;
+      expect(actionsFor(absolute)[0]!.actionValue).toBe(absolute);
+    });
+
+    it("rejects a fragment URL, which resolves to the shell root at HTTP 200", () => {
+      // The whole reason this rule exists: it satisfies a prefix check, the app
+      // sees no error because the status is 200, and the user gets the wrong page.
+      expect(actionsFor(`${WEBVIEW_ORIGIN}/#/eskara/entry`)).toEqual([]);
+    });
+
+    it("rejects the shell root itself, in either spelling", () => {
+      expect(actionsFor(`${WEBVIEW_ORIGIN}/`)).toEqual([]);
+      expect(actionsFor("/")).toEqual([]);
+    });
+
+    it("rejects a webview URL on any other host, including the legacy one", () => {
+      expect(actionsFor("https://webview.skkuuniverse.com/eskara/entry")).toEqual([]);
+      expect(actionsFor("https://evil.example.com/eskara/entry")).toEqual([]);
+    });
+
+    it("leaves `external` alone — leaving the app is the point, so any https host is fine", () => {
+      const sponsor = session({
+        actions: [
+          { id: "sponsor", label: { ko: "후원사" }, actionType: "external", actionValue: "https://www.skku.edu/" },
+        ],
+      });
+      const actions = materialize(input({ sessions: [sponsor] })).payloads.ko.items[0]!.actions;
+      expect(actions[0]!.actionValue).toBe("https://www.skku.edu/");
+    });
   });
 
   it("reports action rejects ONCE, not once per language", () => {
