@@ -59,6 +59,7 @@ silently absent event map — which is indistinguishable from a finished festiva
 | `campus`, `camera`, `timezone` | Copied to the wire. `camera.lat` is range-checked against ±90 |
 | `refreshAfterSec` | Manifest poll cadence while active. `300` is served when nothing runs |
 | `stackKeyBy` | `"placeId"` \| `"zone"` — the density lever of §7.2 |
+| `basemapOverride` | Copied to the wire. Base-map layer ids this event forces to a visibility while active, keyed by the ids `GET /map/config` serves. Optional; absent means `{}`. Values must be booleans — a non-boolean is a load error, because truthiness would force a layer **on**, and revealing a layer the event meant to hide is the one direction the client cannot undo. Keys are **not** validated, for the same reason `byCategory` keys are not: they belong to another endpoint, so a list here would be a second source of truth. An unmatched key is inert |
 | `icons` | `{kind:"symbol", symbol}` or `{kind:"remote", uri, width, height}`. `symbol` is checked against a hand-mirrored copy of `@mj-studio/react-native-naver-map`'s closed `MarkerSymbol` union (verified byte-for-byte at 2.7.0; a drift fails loud with the offending path). `remote` requires `https://` |
 | `layers[]` | `id · render · label · filter · defaultVisible · minZoom? · maxZoom? · iconId · sortId` |
 | `chipGroups[]` | `id · label? · selection · chips[]`. Chip ids are the client's selection keys and must be unique **across all groups**, not per group |
@@ -75,6 +76,13 @@ Mongo (§4.2), so an unmapped value is *content*, and content falls back to `ite
 and logs. Compare the references *inside* each presentation — `iconId`, `cardTemplateId` — which are
 structure→structure and block publication outright. The line is drawn by who can fix it: a PR, or an
 ops person at 22:00 (ADR 0004 invariant 2).
+
+ESKARA 2026 sets `basemapOverride` to `{"building_numbers": false}`. That hides 건물번호 so pins stay
+legible while leaving 건물이름 (`building_labels`) up for orientation, which works only because
+`/map/config` has served the two as separate layers for a while. The client applies it as
+`override[id] ?? userToggle[id] ?? defaultVisible` and never persists it, so it disappears with the
+event instead of leaving a layer switched off with nothing on screen to explain why. It is therefore
+not a hard promise: it only bites while at least one event stack is visible on the selected campus.
 
 ESKARA 2026 ships **symbol** icons. No pin art exists yet, and a `remote` icon whose URI 404s renders
 a blank marker — the client's tolerant parser catches an unknown `kind`, not a dead URL. Swapping in
@@ -442,7 +450,8 @@ survive an ops edit identically on both.
 
 ### 7.1 `GET /eventmap/manifest`
 
-`ETag` · `Cache-Control: public, max-age=15` · `Vary: Accept-Language`
+`ETag` · `Cache-Control: public, max-age=15` · `Vary: Accept-Language` ·
+`Access-Control-Expose-Headers: Date, ETag, Age`
 
 ```json
 {
@@ -470,6 +479,17 @@ past within minutes. The client arms a one-shot timer on this field to re-render
 booth opens; echo a past instant and it arms nothing, and a 주점 opening at 18:00 reads 준비중 until
 the next poll. The derivation is a scan of the memoized items, so it costs no DB read.
 
+**`Access-Control-Expose-Headers` is set app-wide, in `src/common/expose-headers.ts`, not per route.**
+Both endpoints answer a matching `If-None-Match` with `res.status(304).end()`, which returns before
+setting a header of its own, and the degraded branch above sets only `Cache-Control` — so a per-route
+`res.set` would miss exactly the responses that need it. `Date` and `Age` are what §9's on-device
+clock correction reads, and neither is CORS-safelisted.
+
+It is inert today and shipped anyway: this API sends no `Access-Control-Allow-Origin` on any route and
+answers `OPTIONS` with 404, so a cross-origin fetch fails before it could read anything the header
+exposes. That makes it correct for the day CORS exists and a no-op until then — **it does not on its
+own make a browser target's clock correction work.** Native clients read these headers regardless.
+
 This handler must **never throw**; any DB error degrades to `activeLayerSetId: null`.
 
 **The degraded answer is not cached.** A genuine "nothing is running" — kill switch, event over — is
@@ -491,7 +511,8 @@ boundaries are identical across ko/en/zh, and only `snapshotUrl`'s `?lang=` diff
 
 ### 7.2 `GET /eventmap/snapshot/:layerSetId/:version?lang=ko`
 
-`ETag` · `Cache-Control: public, max-age=31536000, immutable` · `Vary: Accept-Language`
+`ETag` · `Cache-Control: public, max-age=31536000, immutable` · `Vary: Accept-Language` ·
+`Access-Control-Expose-Headers: Date, ETag, Age`
 
 Validation order is the repo rule — **400 → 404 → 304**:
 
@@ -528,6 +549,8 @@ Payload (abridged; structure and items travel together so a layer toggle costs z
   "id": "eskara-2026", "version": 17, "lang": "ko",
   "materializedAt": "…", "nextChangeAt": "…", "timezone": "Asia/Seoul",
   "campus": "nsc", "camera": { "lat": 37.29412, "lng": 126.97633, "zoom": 17.2 },
+
+  "basemapOverride": { "building_numbers": false },
 
   "icons": {
     "bar":     { "kind": "remote", "uri": "https://skkuverse.com/eventmap/eskara-2026/bar.png", "width": 32, "height": 40 },
@@ -567,7 +590,7 @@ Payload (abridged; structure and items travel together so a layer toggle costs z
     "actions": [
       { "id": "entry", "label": "입장 안내", "style": "primary",
         "actionType": "webview",
-        "actionValue": "https://webview.skkuuniverse.com/#/eskara/entry" },
+        "actionValue": "https://webview.skkuverse.com/eskara/entry" },
       { "id": "sponsor", "label": "후원사 페이지", "style": "secondary",
         "actionType": "external", "actionValue": "https://example.com/sponsor" }
     ]
@@ -583,7 +606,7 @@ blank card rather than an error.
 
 | Member | Notes |
 | --- | --- |
-| top level | `schemaVersion · id · version · lang · materializedAt · nextChangeAt · timezone · campus · camera · icons · layers · chipGroups · sorts · **cardTemplates** · items` |
+| top level | `schemaVersion · id · version · lang · materializedAt · nextChangeAt · timezone · campus · camera · **basemapOverride** · icons · layers · chipGroups · sorts · **cardTemplates** · items` |
 | `items[]` | `id · placeId · stackKey · lat · lng · title · subtitle · tags · status · startAt · endAt · hoursLabel · iconId · iconIdClosed · pinPriority · cardTemplateId · **order** · **media** · **fields** · actions` |
 
 The four easiest to forget, and what each is for:
@@ -684,7 +707,26 @@ survives — ops authored it, and losing one button is recoverable.
 | --- | --- |
 | `content` | any non-blank string — it is prose, so spaces and newlines are fine |
 | `route` | starts with `/` but **not** `//`, and contains no whitespace |
-| `webview` · `external` · `miniapp` | absolute `https://` URL, no whitespace |
+| `webview` | a root-relative path (**preferred**), or an absolute URL on `WEBVIEW_ORIGIN`. Either way it must address something other than the shell root |
+| `external` · `miniapp` | absolute `https://` URL, no whitespace |
+
+**A `webview` value is resolved against `WEBVIEW_ORIGIN` at materialization**, so `/eskara/entry`
+stored in Mongo reaches the client as `https://webview.skkuverse.com/eskara/entry`. The wire still
+carries a complete URL; only the storage form is relative.
+
+That exists so nobody types a host. `src/infra/origins.ts` is the single source for it, and the four
+webview URLs this API emits sat as literals until spencer0124/skkuverse#46 moved them — an action
+authored in Mongo or by the console has no compiler to stop it repeating that.
+
+An absolute value is still accepted, because the console writes one, but it must land on
+`WEBVIEW_ORIGIN` **and** name a real page. The second half is the subtle one:
+`https://webview.skkuverse.com/#/eskara/entry` satisfies any prefix check, yet a fragment never
+reaches the origin, so `BrowserRouter` resolves it to `/`, the SPA fallback answers with the shell at
+**HTTP 200**, and the app's webview only raises its error overlay above status 400. The user lands on
+the wrong page with no retry affordance and nothing on either side logs a failure. Checking the
+resolved `pathname` catches that, and catches a bare origin and a trailing `/#` with it, while leaving
+an ordinary `#anchor` on a real path alone. The mini-app registry carries the same guard, for the same
+reason, on `startUrl`.
 
 Anchors alone do not do this: `$` without the `m` flag still matches **before a final newline**, so
 `"https://evil.com\n"` satisfies an otherwise correct `^...$` pattern — and a spreadsheet paste is
