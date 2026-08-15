@@ -14,34 +14,32 @@
  */
 
 /**
- * First-party webview SPA host — the deployment every webview URL is built from.
+ * First-party webview SPA host — skkuverse-web `apps/webview`, on Cloudflare Pages.
  *
- * Still the older create-react-app deployment. The move to skkuverse-web
- * `apps/webview` on NEXT_WEBVIEW_ORIGIN waits for that bundle to switch from
- * hash routing to path routing, because the host and the URL form have to change
- * in the same commit: `.../#/skku/lostandfound` served by a BrowserRouter drops
- * the fragment, resolves to `/`, and answers HTTP 200. That is below the app's
- * `statusCode >= 400` error overlay, so the user gets a wrong page with no retry
- * affordance rather than an error. See skkuverse#46.
+ * Every webview URL this API hands out is built from this constant, and all of
+ * them are path-form. The bundle routes by path as of skkuverse#46, so a `#/`
+ * URL would drop its fragment, resolve to `/` and answer HTTP 200 — below the
+ * app's `statusCode >= 400` error overlay, which means a wrong page with no
+ * retry affordance rather than an error. Host and URL form move together or not
+ * at all.
  */
-export const WEBVIEW_ORIGIN = "https://webview.skkuuniverse.com";
+export const WEBVIEW_ORIGIN = "https://webview.skkuverse.com";
 
 /**
- * The webview host URLs are moving to, granted the bridge one deploy early.
+ * The previous webview host, no longer used to build URLs.
  *
- * The grant has to ship before the move, not with it. skkuverse-app reads
- * GET /app/config once at boot and memoizes it for the whole session
- * (`InitGate.tsx` -> `packages/shared/src/app/config-cache.ts`), while the SDUI
- * sections carrying these URLs refetch after 60 seconds. Granting and using a new
- * origin in one deploy therefore hands an already-running client the new URL
- * against the old allowlist: the page loads, looks correct, and every bridge
- * message is dropped in silence until the process is killed. iOS suspends rather
- * than kills, so that state can outlive the deploy by days.
+ * Still granted the bridge, because skkuverse-app's offline SDUI fallback names
+ * it literally (`packages/shared/src/sdui/defaults.ts`) and that string is
+ * compiled into released binaries. A client that has not taken an OTA yet can
+ * still open it, and dropping it here would leave that page loading with a dead
+ * bridge — the exact silent failure this file exists to prevent.
  *
- * Collapses back into a LEGACY_WEBVIEW_ORIGIN pair when WEBVIEW_ORIGIN flips and
- * the four URL builds move to path form — skkuverse#46, deploy C.
+ * Not removable on a schedule: an over-the-air update only reaches binaries
+ * built at the runtimeVersion in `apps/mobile/app.config.ts`, and anything older
+ * carries the old string for good. `src/miniapps/details/eskara-2026.json` also
+ * names this host by hand rather than building from a constant.
  */
-const NEXT_WEBVIEW_ORIGIN = "https://webview.skkuverse.com";
+export const LEGACY_WEBVIEW_ORIGIN = "https://webview.skkuuniverse.com";
 
 /** Marketing/launcher site — mini-app share links, A2HS shortcuts, remote mini-app logos. */
 export const WEB_ORIGIN = "https://skkuverse.com";
@@ -64,4 +62,4 @@ export const WEB_ORIGIN = "https://skkuverse.com";
  * released binaries that an over-the-air update reaches only if they were built
  * at the current runtimeVersion.
  */
-export const BRIDGE_ORIGINS = [WEBVIEW_ORIGIN, NEXT_WEBVIEW_ORIGIN] as const;
+export const BRIDGE_ORIGINS = [WEBVIEW_ORIGIN, LEGACY_WEBVIEW_ORIGIN] as const;

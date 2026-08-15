@@ -10,10 +10,10 @@
         "repo": "umbrella",
         "path": "docs/_template.md",
         "ref": "main",
-        "commit": "2faecacaac1acc496bddca55dec3ecf567496b63",
+        "commit": "1b45b40a601f4dfae9cc6aec61f6619fc35c3bed",
         "sha256": "8d9a74eb073480a90a0e46e3d4149315bf53a1709987fcffd0a3a243465f90c2"
       },
-      "syncedAt": "2026-08-10T04:07:15Z"
+      "syncedAt": "2026-08-15T09:33:08Z"
     },
     "conventions.markdownlint": {
       "path": ".markdownlint.jsonc",
@@ -22,10 +22,10 @@
         "repo": "umbrella",
         "path": "conventions/markdownlint.jsonc",
         "ref": "main",
-        "commit": "2faecacaac1acc496bddca55dec3ecf567496b63",
+        "commit": "1b45b40a601f4dfae9cc6aec61f6619fc35c3bed",
         "sha256": "e9657ea55ddfdca15b1a7a3e81be94c8d4845fd6da452f6d5689f12dabb865a5"
       },
-      "syncedAt": "2026-08-10T04:07:14Z"
+      "syncedAt": "2026-08-15T09:33:07Z"
     },
     "notices.categories": {
       "path": "src/notices/categories.json",
@@ -73,7 +73,7 @@
         "path": "functions/src/notifications/tabsContract.ts",
         "symbol": "MAX_TOPICS",
         "ref": "main",
-        "commit": "cd3c29a65c8ad171e37761f8bd9ef95dd64460f8",
+        "commit": "4e3b5c5301d38dd2f2c308847f03cff052ad6ab1",
         "value": 30
       },
       "syncedAt": "2026-08-04T13:12:48Z"

@@ -86,7 +86,7 @@ function getBusGroups(lang: SupportedLang = "ko") {
         stations: mapStations(HSSCStations),
         routeOverlay: null,
         features: [
-          { type: "info", url: `${WEBVIEW_ORIGIN}/#/bus/hssc/info` },
+          { type: "info", url: `${WEBVIEW_ORIGIN}/bus/hssc/info` },
         ],
       },
     },
@@ -126,7 +126,7 @@ function getBusGroups(lang: SupportedLang = "ko") {
           { id: "hakbu", label: t("busconfig.badge.hakbu", lang), color: "1565C0" },
         ],
         features: [
-          { type: "info", url: `${WEBVIEW_ORIGIN}/#/bus/campus/info` },
+          { type: "info", url: `${WEBVIEW_ORIGIN}/bus/campus/info` },
         ],
       },
     },

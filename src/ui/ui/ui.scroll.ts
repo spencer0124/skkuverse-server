@@ -23,7 +23,7 @@ function getScrollComponent(lang: SupportedLang = "ko") {
       icon: "Icons.bus_alert",
       pageLink: "/webview",
       color: "003626",
-      pageWebviewLink: `${WEBVIEW_ORIGIN}/#/skku/lostandfound`,
+      pageWebviewLink: `${WEBVIEW_ORIGIN}/skku/lostandfound`,
       altPageLink:
         "https://www.skku.edu/skku/campus/support/lost_and_found_2.do",
       useAltPageLink: false,
