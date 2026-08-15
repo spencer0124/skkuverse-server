@@ -24,3 +24,6 @@ __backups__/
 
 # TypeScript build output
 dist/
+
+# explain-diff plugin output — generated HTML walkthroughs, regenerable
+explain-diff/
