@@ -60,7 +60,10 @@ describe("toWebviewUrl — rejects", () => {
     ["our host as a domain prefix", "https://webview.skkuverse.com.evil.com/x"],
     ["a non-default port, which is a different origin", `${O}:8443/x`],
     ["a trailing-dot host, which is also a different origin", "https://webview.skkuverse.com./x"],
-    ["the legacy host", "https://webview.skkuuniverse.com/eskara/entry"],
+    // The retired webview host. It is no longer granted the bridge either, so
+    // this stays a rejection: an old ops-authored value or a copy-paste from a
+    // pre-move payload must not resolve to a first-party URL.
+    ["the retired legacy host", "https://webview.skkuuniverse.com/eskara/entry"],
     ["an unrelated host", "https://evil.com/x"],
     ["http rather than https", "http://webview.skkuverse.com/x"],
 
@@ -99,6 +102,8 @@ describe("isOnWebviewOrigin", () => {
     // a boot failure.
     expect(isOnWebviewOrigin("https://www.skkuw.com/")).toBe(false);
     expect(isOnWebviewOrigin("https://student.skku.edu/student/notice2.do")).toBe(false);
+    // Not third-party but retired: the predicate names one host, and the host it
+    // names is the one WEBVIEW_ORIGIN holds today.
     expect(isOnWebviewOrigin("https://webview.skkuuniverse.com/x")).toBe(false);
     expect(isOnWebviewOrigin(`${O}@evil.com/x`)).toBe(false);
   });
