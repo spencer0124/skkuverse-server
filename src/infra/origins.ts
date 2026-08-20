@@ -56,3 +56,28 @@ export const WEB_ORIGIN = "https://skkuverse.com";
  * old host — not on a schedule.
  */
 export const BRIDGE_ORIGINS = [WEBVIEW_ORIGIN] as const;
+
+/**
+ * Origins a BROWSER may read this API from.
+ *
+ * Distinct from BRIDGE_ORIGINS, and the two must not be conflated even though
+ * they hold the same host today. BRIDGE_ORIGINS answers "may this page call
+ * native code?" — a trust decision about a device capability. This answers "may
+ * this page read a public GET response?" — a far weaker grant over data that is
+ * already public to anyone with curl.
+ *
+ * It exists because `apps/webview` now fetches: the mini-app notification feed
+ * has to be readable seconds after a push, which a build artefact cannot be.
+ * Every other page there still renders from static data and needs none of this.
+ *
+ * Scope is deliberately narrow. Read-only methods only, so a browser at an
+ * allowed origin still cannot reach POST /internal/* even though those routes
+ * sit behind the same host — the token check would refuse it, but a preflight
+ * that never succeeds is the better place to stop. No credentials: nothing here
+ * is per-user, and `Access-Control-Allow-Credentials` with a reflected origin is
+ * how a public read surface quietly becomes an authenticated one.
+ */
+export const CORS_ORIGINS = [WEBVIEW_ORIGIN] as const;
+
+/** GET and HEAD are the whole of what a browser needs here; OPTIONS is the preflight itself. */
+export const CORS_METHODS = ["GET", "HEAD", "OPTIONS"] as const;

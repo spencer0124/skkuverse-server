@@ -26,6 +26,8 @@ import { Test } from "@nestjs/testing";
 import express from "express";
 import request from "supertest";
 import { LangMiddleware } from "../../src/common/lang.middleware";
+import { CORS_METHODS, CORS_ORIGINS, WEBVIEW_ORIGIN } from "../../src/infra/origins";
+import { EXPOSED_RESPONSE_HEADERS } from "../../src/common/expose-headers";
 
 @Controller("ping")
 class PingController {
@@ -42,6 +44,7 @@ class MiniModule {}
 function buildLikeMainTs(opts: {
   bodyParser?: false;
   mountLang: boolean;
+  cors?: boolean;
 }): Promise<NestExpressApplication> {
   return (async () => {
     const expressInstance = express();
@@ -60,6 +63,15 @@ function buildLikeMainTs(opts: {
       new ExpressAdapter(expressInstance),
       opts.bodyParser === false ? { bodyParser: false } : {},
     );
+    if (opts.cors) {
+      app.enableCors({
+        origin: [...CORS_ORIGINS],
+        methods: [...CORS_METHODS],
+        exposedHeaders: EXPOSED_RESPONSE_HEADERS,
+        credentials: false,
+        maxAge: 86400,
+      });
+    }
     await app.init();
     return app;
   })();
@@ -104,5 +116,78 @@ describe("main.ts bootstrap wiring (parity regression pins)", () => {
     const res = await request(app.getHttpServer()).get("/ping");
     expect(res.body.lang).toBeUndefined();
     await app.close();
+  });
+});
+
+/**
+ * CORS (skkuverse#17).
+ *
+ * apps/webview fetches the mini-app notification feed cross-origin. Before this
+ * existed the API sent no Access-Control-Allow-Origin and answered OPTIONS with
+ * 404, so the page could not read a single byte — and the failure was invisible
+ * server-side, because the request either never arrived or arrived and answered
+ * fine while the browser discarded it.
+ *
+ * These pin the policy, not the plumbing: which origin, which methods, and that
+ * credentials stay off.
+ */
+describe("CORS policy", () => {
+  let app: NestExpressApplication;
+
+  beforeAll(async () => {
+    app = await buildLikeMainTs({ bodyParser: false, mountLang: true, cors: true });
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it("allows the webview origin to read a GET", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/ping")
+      .set("Origin", WEBVIEW_ORIGIN);
+    expect(res.status).toBe(200);
+    expect(res.headers["access-control-allow-origin"]).toBe(WEBVIEW_ORIGIN);
+  });
+
+  it("answers the preflight instead of 404ing it", async () => {
+    const res = await request(app.getHttpServer())
+      .options("/ping")
+      .set("Origin", WEBVIEW_ORIGIN)
+      .set("Access-Control-Request-Method", "GET");
+    expect(res.status).toBeLessThan(300);
+    expect(res.headers["access-control-allow-origin"]).toBe(WEBVIEW_ORIGIN);
+  });
+
+  it("grants nothing to an origin that is not ours", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/ping")
+      .set("Origin", "https://evil.test");
+    // The response still succeeds — CORS is enforced by the browser, not the
+    // server — but without the header the browser discards it.
+    expect(res.headers["access-control-allow-origin"]).toBeUndefined();
+  });
+
+  it("does not offer POST, so /internal/* can never be preflighted from a page", async () => {
+    expect([...CORS_METHODS]).not.toContain("POST");
+    const res = await request(app.getHttpServer())
+      .options("/ping")
+      .set("Origin", WEBVIEW_ORIGIN)
+      .set("Access-Control-Request-Method", "POST");
+    expect(res.headers["access-control-allow-methods"] ?? "").not.toContain("POST");
+  });
+
+  it("never sends Allow-Credentials — nothing here is per-user", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/ping")
+      .set("Origin", WEBVIEW_ORIGIN);
+    expect(res.headers["access-control-allow-credentials"]).toBeUndefined();
+  });
+
+  it("exposes the freshness headers the event map clock correction needs", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/ping")
+      .set("Origin", WEBVIEW_ORIGIN);
+    expect(res.headers["access-control-expose-headers"]).toContain("ETag");
   });
 });

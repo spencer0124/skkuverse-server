@@ -144,6 +144,16 @@ export interface ActivationDoc {
    * Absent or null means NO push fires, which is the safe default: a layer set
    * that has not been pointed at a mini app simply does not notify anyone, and
    * devices converge on the ordinary manifest poll.
+   *
+   * ⚠️ SETTING THIS COSTS ONE SNAPSHOT VERSION AND ONE PUSH. computeContentHash
+   * hashes the whole activation document, so adding the field changes the hash:
+   * the next poller tick publishes a new version — retiring every client's
+   * `immutable, max-age=1y` cached snapshot — and, the field now being present,
+   * immediately fires a refresh push for a change with no user-visible content.
+   * Harmless, and once per wiring, but wire it BEFORE the event rather than
+   * during one. The field is intentionally left inside the hash: excluding it
+   * would mean a snapshot whose inputs no longer fully determine its hash, which
+   * is a worse property than one redundant republish.
    */
   notifyMiniAppId?: string | null;
   updatedAt: Date;

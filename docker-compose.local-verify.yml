@@ -20,7 +20,8 @@
 #
 # 그러면 DB 격리는 어떻게? production 모드에선 config.devDbName() 가 no-op 이므로,
 # DB "이름" 환경변수를 직접 _dev 값으로 덮어쓴다. 아래 5개가 우리가 write 하는 DB:
-#   bus_campus / skkubus_ads / skkumap / skku_notices / eventmap → 각각 *_dev.
+#   bus_campus / skkubus_ads / skkumap / skku_notices / eventmap / miniapps
+#   → 각각 *_dev.
 #   prod DB 는 절대 건드리지 않는다.
 #   (INJA/JAIN 셔틀 스케줄·map DB 는 read-only 라 override 불필요 — 읽기뿐.)
 #
@@ -33,7 +34,15 @@
 # (notices.dispatch.poller.ts:22) 로컬 poller 가 실제 유저에게 푸시를 보내는 경로를
 # 원천 차단한다. base 의 poller 는 이 값이 true 이므로 반드시 덮어써야 한다.
 #
-# 결과: 진짜 prod 와 동일한 런타임 거동 + 데이터 평면만 _dev + FCM 0건.
+# 결과: 진짜 prod 와 동일한 런타임 거동 + 데이터 평면만 _dev.
+#
+# ⚠️ "FCM 0건" 은 더 이상 무조건 참이 아니다. DISPATCH_SWEEP_ENABLED=false 는
+#    공지 sweep 만 막는다. skkuverse#17 이후 EventMapMaterializerService 가 새
+#    스냅샷 버전을 쓸 때 eventmap-refresh 사일런트 푸시를 직접 쏘는데, 이 poller
+#    는 여기서도 돈다. eventmap_dev 의 activation 문서에 notifyMiniAppId 가
+#    (prod 를 복사해서) 들어 있으면, 로컬 verify 가 **실제 구독자 기기로** 푸시를
+#    보낸다. 데이터 평면이 _dev 여도 FCM 은 _dev 가 아니다.
+#    → verify 용 activation 에는 notifyMiniAppId 를 비워 둘 것.
 
 services:
   poller:
@@ -47,6 +56,7 @@ services:
       - MONGO_BUILDING_DB_NAME=skkumap_dev
       - MONGO_NOTICES_DB_NAME=skku_notices_dev
       - MONGO_EVENTMAP_DB_NAME=eventmap_dev
+      - MONGO_MINIAPPS_DB_NAME=miniapps_dev
 
   api-1:
     environment:
@@ -58,6 +68,7 @@ services:
       - MONGO_BUILDING_DB_NAME=skkumap_dev
       - MONGO_NOTICES_DB_NAME=skku_notices_dev
       - MONGO_EVENTMAP_DB_NAME=eventmap_dev
+      - MONGO_MINIAPPS_DB_NAME=miniapps_dev
 
   api-2:
     environment:
@@ -69,3 +80,4 @@ services:
       - MONGO_BUILDING_DB_NAME=skkumap_dev
       - MONGO_NOTICES_DB_NAME=skku_notices_dev
       - MONGO_EVENTMAP_DB_NAME=eventmap_dev
+      - MONGO_MINIAPPS_DB_NAME=miniapps_dev

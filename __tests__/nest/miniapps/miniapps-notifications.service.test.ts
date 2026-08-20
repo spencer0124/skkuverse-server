@@ -92,6 +92,22 @@ describe("send — the feed entry and the delivery", () => {
     expect(recordDelivery).not.toHaveBeenCalled();
   });
 
+  it("reports DELIVERED when the multicast succeeded but recording it failed", async () => {
+    // 4200 devices already have the banner. Calling this "delivery failed" is
+    // the lie that gets ops to resend, and everyone gets it twice.
+    postToFcmFunction.mockResolvedValue({ sent: 4200, failed: 3, cleanedUp: 0 });
+    recordDelivery.mockRejectedValue(new Error("replica set step-down"));
+
+    const result = await service.send("eskara-2026", validDraft);
+
+    expect("delivery" in result ? result.delivery : null).toEqual({
+      sent: 4200,
+      failed: 3,
+      cleanedUp: 0,
+    });
+    expect("error" in result ? result.error : undefined).toBeUndefined();
+  });
+
   it("stores the Korean text and a null English pair when none is given", async () => {
     await service.send("eskara-2026", validDraft);
     const written = insertSentNotification.mock.calls[0][0];

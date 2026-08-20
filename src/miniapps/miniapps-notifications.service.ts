@@ -159,6 +159,11 @@ export class MiniAppNotificationsService implements OnModuleInit {
 
     await insertSentNotification(doc);
 
+    // ONLY the Cloud Function call is inside this try. Recording the result is
+    // deliberately outside it, because the two failures mean opposite things and
+    // ops acts on the difference: "not delivered" invites a retry, and a retry
+    // after a SUCCESSFUL delivery double-pushes every subscriber.
+    let delivery: SentNotificationDoc["delivery"];
     try {
       const res = await postToFcmFunction({
         type: "miniapp",
@@ -171,17 +176,11 @@ export class MiniAppNotificationsService implements OnModuleInit {
         ...(doc.actionType ? { actionType: doc.actionType } : {}),
         ...(doc.actionValue ? { actionValue: doc.actionValue } : {}),
       });
-      const delivery = {
+      delivery = {
         sent: Number(res.sent ?? 0),
         failed: Number(res.failed ?? 0),
         cleanedUp: Number(res.cleanedUp ?? 0),
       };
-      await recordDelivery(doc._id, delivery);
-      logger.info(
-        { miniAppId, notificationId: doc._id, ...delivery },
-        "[miniapp] Notification sent",
-      );
-      return { notificationId: doc._id, delivery };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       // Left with delivery: null on purpose. Loud, because a send that reached
@@ -192,6 +191,31 @@ export class MiniAppNotificationsService implements OnModuleInit {
       );
       return { notificationId: doc._id, delivery: null, error: message };
     }
+
+    // Delivered. Recording that can still fail — a replica-set step-down, a
+    // write timeout — and if it does, the banner is already on every subscriber's
+    // screen. Reporting THAT as a failed delivery would be a lie that costs a
+    // duplicate broadcast, so the response says delivered and the log says the
+    // record is the part that is missing.
+    try {
+      await recordDelivery(doc._id, delivery);
+    } catch (err: unknown) {
+      logger.error(
+        {
+          miniAppId,
+          notificationId: doc._id,
+          ...delivery,
+          err: err instanceof Error ? err.message : String(err),
+        },
+        "[miniapp] DELIVERED but the delivery record failed to write — do NOT resend",
+      );
+    }
+
+    logger.info(
+      { miniAppId, notificationId: doc._id, ...delivery },
+      "[miniapp] Notification sent",
+    );
+    return { notificationId: doc._id, delivery };
   }
 
   /**
