@@ -126,6 +126,22 @@ const config = {
     manifestCacheTtlMs: 15_000,
   },
 
+  miniapps: {
+    // Strict, no fallback — same reasoning as eventmap.dbName. A missing
+    // MONGO_MINIAPPS_DB_NAME must crash at boot rather than silently writing a
+    // mini app's broadcast log into bus_campus.
+    //
+    // Its own database rather than a collection inside eventmap's: one database
+    // per domain is the pattern here (notices, ads, buildings, eventmap each
+    // have one), and a mini-app feed outlives any single event map.
+    dbName: devDbName(process.env.MONGO_MINIAPPS_DB_NAME),
+    collections: {
+      sentNotifications: "sent_notifications",
+    },
+    /** Feed page size. The feed is a recent-history surface, not an archive. */
+    feedLimit: 50,
+  },
+
   firebase: {
     serviceAccount: process.env.FIREBASE_SERVICE_ACCOUNT || null,
   },
@@ -183,6 +199,7 @@ const required: ReadonlyArray<readonly [string, unknown, string]> = [
   ["ad.dbName", config.ad.dbName, "MONGO_AD_DB_NAME"],
   ["notices.dbName", config.notices.dbName, "MONGO_NOTICES_DB_NAME"],
   ["eventmap.dbName", config.eventmap.dbName, "MONGO_EVENTMAP_DB_NAME"],
+  ["miniapps.dbName", config.miniapps.dbName, "MONGO_MINIAPPS_DB_NAME"],
   [
     "notices.serviceStartDate",
     config.notices.serviceStartDate,

@@ -1,5 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import config from "../infra/config";
+import {
+  postToFcmFunction,
+  type FcmPayload as FcmPayloadRecord,
+  type FcmResponse,
+} from "../common/fcm-client";
 import logger from "../infra/logger";
 import { groupByDedupKey } from "./notices.dedup-key";
 import { getNoticesCollection } from "./notices.data";
@@ -49,13 +54,6 @@ interface FcmPayload {
   sourceId?: string;
   articleNo?: string;
   category?: string;
-}
-
-interface FcmResponse {
-  sent?: number;
-  failed?: number;
-  cleanedUp?: number;
-  [k: string]: unknown;
 }
 
 interface DispatchOutcome {
@@ -109,38 +107,13 @@ export class NoticesDispatcherService {
     return payload;
   }
 
+  /**
+   * Delegates to common/fcm-client. Kept as a method rather than inlined at the
+   * call site so the dispatcher's own tests keep their seam, and so the shape of
+   * this class is unchanged by the extraction.
+   */
   private async postToFunction(payload: FcmPayload): Promise<FcmResponse> {
-    const { functionUrl, apiKey, fcmTimeoutMs } = config.notices.dispatch;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), fcmTimeoutMs);
-    try {
-      const res = await fetch(functionUrl!, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-Key": apiKey!,
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-      const text = await res.text();
-      let body: FcmResponse | { raw: string } | null = null;
-      try {
-        body = text ? (JSON.parse(text) as FcmResponse) : null;
-      } catch {
-        body = { raw: text };
-      }
-      if (!res.ok) {
-        const err = new Error(
-          `sendNotification ${res.status}: ${typeof body === "object" ? JSON.stringify(body) : text}`,
-        ) as Error & { status?: number };
-        err.status = res.status;
-        throw err;
-      }
-      return (body as FcmResponse) || {};
-    } finally {
-      clearTimeout(timer);
-    }
+    return postToFcmFunction(payload as unknown as FcmPayloadRecord);
   }
 
   /**

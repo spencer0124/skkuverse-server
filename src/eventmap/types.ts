@@ -132,6 +132,20 @@ export interface ActivationDoc {
   activeUntil: Date | null;
   /** One-field kill switch. `false` takes the event map down immediately. */
   enabled: boolean;
+  /**
+   * Whose subscribers get told when this layer set publishes a new version.
+   *
+   * The silent `eventmap-refresh` push is scoped to `miniapp:<id>` like every
+   * other mini-app message, and a layer set id is NOT a mini-app id — they
+   * happen to look alike for ESKARA 2026 and will not always. Deriving one from
+   * the other by name is the coupling that breaks next year, so it is stated.
+   *
+   * Data rather than config so ops can wire or unwire it without a deploy.
+   * Absent or null means NO push fires, which is the safe default: a layer set
+   * that has not been pointed at a mini app simply does not notify anyone, and
+   * devices converge on the ordinary manifest poll.
+   */
+  notifyMiniAppId?: string | null;
   updatedAt: Date;
 }
 
