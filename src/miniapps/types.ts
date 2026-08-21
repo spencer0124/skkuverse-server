@@ -76,3 +76,48 @@ export interface MiniAppDetail {
   relatedLinks: MiniAppLink[];
   noticeBanner?: MiniAppNoticeBanner;
 }
+
+/**
+ * `sent_notifications` — one row per mini-app broadcast.
+ *
+ * BROADCAST-ONLY, and that is the whole reason this collection was allowed to
+ * exist at all. skkuverse-app ADR 0002 rejected a notification inbox because of
+ * the per-user half: read state, read-state sync, retention and cleanup. Its
+ * Revisited section narrowed that to permit a record of *what was broadcast*,
+ * which carries no user dimension. So there is deliberately no `uid`, no
+ * `readBy`, no `deletedAt`. Anyone adding one should amend that ADR first —
+ * those are the features whose absence is why the decision could be narrowed
+ * rather than reversed.
+ */
+export interface SentNotificationDoc {
+  /** Also the `notificationId` the Cloud Function echoes back in the FCM data map. */
+  _id: string;
+  miniAppId: string;
+  title_ko: string;
+  body_ko: string;
+  title_en: string | null;
+  body_en: string | null;
+  /** Where a tap lands. Absent means the mini app itself. */
+  actionType?: string;
+  actionValue?: string;
+  sentAt: Date;
+  /**
+   * What the Cloud Function reported, or null when the call failed.
+   *
+   * Null is a real state, not a missing value: the entry was published to the
+   * feed and not delivered. Deleting the row on a failed send would be the same
+   * feed/delivery drift in the other direction, which is what ADR 0002's added
+   * consequence warns about.
+   */
+  delivery: { sent: number; failed: number; cleanedUp: number } | null;
+}
+
+/** One entry as the public feed returns it. `_id` is renamed on the wire. */
+export interface MiniAppNotificationEntry {
+  id: string;
+  title: string;
+  body: string;
+  sentAt: string;
+  actionType?: string;
+  actionValue?: string;
+}

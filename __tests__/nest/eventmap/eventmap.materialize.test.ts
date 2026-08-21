@@ -443,7 +443,10 @@ describe("materialize — actions", () => {
       expect(actionsFor("/")).toEqual([]);
     });
 
-    it("rejects a webview URL on any other host, including the legacy one", () => {
+    it("rejects a webview URL on any other host, including the retired one", () => {
+      // The retired webview host is not granted the bridge any more either, so
+      // an ops-authored action pointing at it would open a page with dead
+      // buttons. Rejecting it at materialization is the only signal there is.
       expect(actionsFor("https://webview.skkuuniverse.com/eskara/entry")).toEqual([]);
       expect(actionsFor("https://evil.example.com/eskara/entry")).toEqual([]);
     });

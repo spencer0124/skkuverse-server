@@ -51,7 +51,6 @@ jobs:
             git pull origin main
 
             # Update Nginx config
-            sudo cp infra/nginx/api.skkuuniverse.com /etc/nginx/sites-available/
             sudo cp infra/nginx/api.skkuverse.com /etc/nginx/sites-available/
             sudo ln -sf /etc/nginx/sites-available/api.skkuverse.com /etc/nginx/sites-enabled/
             sudo nginx -t && sudo systemctl reload nginx

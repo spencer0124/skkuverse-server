@@ -14,6 +14,20 @@
  * directly into <Image source={{uri}}>), every index id resolves to a detail,
  * and an unknown slug 404s rather than 200-ing with null.
  */
+// The registry itself is static JSON with no database, which is why this file
+// builds the REAL MiniAppsModule rather than stubbing its service. Since
+// skkuverse#17 that module also carries MiniAppNotificationsService, whose
+// onModuleInit creates the feed's Mongo index — so without this mock, app.init()
+// tries to reach Atlas and the beforeAll hook times out. It fails only where
+// there is no route to Mongo, which is CI and not a laptop that gets a fast
+// connection refusal, so mocking here is what keeps the two agreeing.
+jest.mock("../../../src/miniapps/miniapps.data", () => ({
+  ensureIndexes: jest.fn(async () => undefined),
+  insertSentNotification: jest.fn(async () => undefined),
+  recordDelivery: jest.fn(async () => undefined),
+  listSentNotifications: jest.fn(async () => []),
+}));
+
 import { Module } from "@nestjs/common";
 import { ExpressAdapter } from "@nestjs/platform-express";
 import type { NestExpressApplication } from "@nestjs/platform-express";

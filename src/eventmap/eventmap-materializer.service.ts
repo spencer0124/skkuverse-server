@@ -1,6 +1,7 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
 import config from "../infra/config";
 import logger from "../infra/logger";
+import { postToFcmFunction } from "../common/fcm-client";
 import type { SupportedLang } from "../infra/types";
 import { PollerRegistryService } from "../scheduling/poller-registry.service";
 import { getLayerSetConfig } from "./eventmap.config";
@@ -214,7 +215,65 @@ export class EventMapMaterializerService implements OnModuleInit {
       };
     }
 
-    return this.commit(activation._id, loaded.config.configVersion, result, force);
+    const summary = await this.commit(
+      activation._id,
+      loaded.config.configVersion,
+      result,
+      force,
+    );
+
+    // The silent correction lever (skkuverse#17). Fires ONLY on a real new
+    // version: never on dryRun (nothing was written), never on the "unchanged"
+    // branch (the 60 s poller passes through it every tick, and pushing there
+    // would wake every subscribed device once a minute for nothing), and never
+    // when no mini app has been wired to this layer set.
+    //
+    // Deliberately after commit and deliberately not awaited into the summary:
+    // the publish has already succeeded and is what ops asked for. A push that
+    // fails must not turn a successful publish into an error, because the
+    // manifest poll still delivers the same change a minute later.
+    if (!dryRun && summary.published && activation.notifyMiniAppId) {
+      void this.notifyRefresh(activation.notifyMiniAppId, activation._id, summary.version);
+    }
+
+    return summary;
+  }
+
+  /**
+   * Tell subscribers to drop their cached manifest. Never throws.
+   *
+   * Worth being precise about what this buys, because "~0 s propagation" is only
+   * true in the foreground: a backgrounded app marks the query stale until it
+   * refocuses, and a force-quit iOS app receives nothing at all. The lever that
+   * always works is `refreshAfterSec` polling with ETag revalidation; this
+   * accelerates it for the people currently looking at the map.
+   */
+  private async notifyRefresh(
+    miniAppId: string,
+    layerSetId: string,
+    version: number | null,
+  ): Promise<void> {
+    try {
+      const res = await postToFcmFunction({
+        type: "eventmap-refresh",
+        miniAppId,
+        reason: `eventmap ${layerSetId} v${version ?? "?"}`,
+      });
+      logger.info(
+        { layerSetId, miniAppId, version, sent: res.sent ?? 0, failed: res.failed ?? 0 },
+        "[eventmap] Refresh push sent",
+      );
+    } catch (err: unknown) {
+      logger.warn(
+        {
+          layerSetId,
+          miniAppId,
+          version,
+          err: err instanceof Error ? err.message : String(err),
+        },
+        "[eventmap] Refresh push failed; devices converge on the next poll",
+      );
+    }
   }
 
   /**

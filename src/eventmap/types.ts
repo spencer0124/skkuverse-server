@@ -132,6 +132,30 @@ export interface ActivationDoc {
   activeUntil: Date | null;
   /** One-field kill switch. `false` takes the event map down immediately. */
   enabled: boolean;
+  /**
+   * Whose subscribers get told when this layer set publishes a new version.
+   *
+   * The silent `eventmap-refresh` push is scoped to `miniapp:<id>` like every
+   * other mini-app message, and a layer set id is NOT a mini-app id — they
+   * happen to look alike for ESKARA 2026 and will not always. Deriving one from
+   * the other by name is the coupling that breaks next year, so it is stated.
+   *
+   * Data rather than config so ops can wire or unwire it without a deploy.
+   * Absent or null means NO push fires, which is the safe default: a layer set
+   * that has not been pointed at a mini app simply does not notify anyone, and
+   * devices converge on the ordinary manifest poll.
+   *
+   * ⚠️ SETTING THIS COSTS ONE SNAPSHOT VERSION AND ONE PUSH. computeContentHash
+   * hashes the whole activation document, so adding the field changes the hash:
+   * the next poller tick publishes a new version — retiring every client's
+   * `immutable, max-age=1y` cached snapshot — and, the field now being present,
+   * immediately fires a refresh push for a change with no user-visible content.
+   * Harmless, and once per wiring, but wire it BEFORE the event rather than
+   * during one. The field is intentionally left inside the hash: excluding it
+   * would mean a snapshot whose inputs no longer fully determine its hash, which
+   * is a worse property than one redundant republish.
+   */
+  notifyMiniAppId?: string | null;
   updatedAt: Date;
 }
 

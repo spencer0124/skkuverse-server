@@ -24,6 +24,11 @@ jest.mock("../../../src/eventmap/eventmap.data", () => ({
   findSnapshotByVersion: jest.fn(),
 }));
 
+const postToFcmFunction = jest.fn();
+jest.mock("../../../src/common/fcm-client", () => ({
+  postToFcmFunction: (...a: unknown[]) => postToFcmFunction(...a),
+}));
+
 const mockLogger = {
   info: jest.fn(),
   warn: jest.fn(),
@@ -134,6 +139,7 @@ beforeEach(() => {
   mocked.findLatestSnapshot.mockResolvedValue(null);
   mocked.insertSnapshot.mockResolvedValue(undefined);
   mocked.expireSupersededVersions.mockResolvedValue(undefined);
+  postToFcmFunction.mockResolvedValue({ sent: 0, failed: 0 });
 });
 
 describe("publish — the paths that must NOT write", () => {
@@ -495,5 +501,96 @@ describe("poller registration", () => {
       { err: "atlas is down" },
       "[eventmap] Materialize pass failed",
     );
+  });
+});
+
+/**
+ * The silent refresh push (skkuverse#17).
+ *
+ * Every case here is about NOT sending. A push that fires on the wrong branch is
+ * worse than one that never fires: the poller runs every 60 seconds, so a push
+ * on the "unchanged" path would wake every subscribed device once a minute,
+ * forever, for a map that did not change.
+ */
+describe("publish — the silent refresh push", () => {
+  const WIRED = { ...ACTIVATION, notifyMiniAppId: "eskara-2026" };
+
+  it("fires once when a new version is written", async () => {
+    mocked.findActiveActivation.mockResolvedValue(WIRED);
+
+    await buildService().publish({});
+    // The push is deliberately not awaited into the summary, so let the
+    // microtask queue drain before asserting.
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(postToFcmFunction).toHaveBeenCalledTimes(1);
+    const payload = postToFcmFunction.mock.calls[0][0];
+    expect(payload.type).toBe("eventmap-refresh");
+    expect(payload.miniAppId).toBe("eskara-2026");
+    expect(payload).not.toHaveProperty("notification");
+  });
+
+  it("does NOT fire on dryRun — nothing was written to refresh to", async () => {
+    mocked.findActiveActivation.mockResolvedValue(WIRED);
+    mocked.findActivationById.mockResolvedValue(WIRED);
+
+    await buildService().publish({ layerSetId: "eskara-2026", dryRun: true });
+    await Promise.resolve();
+
+    expect(postToFcmFunction).not.toHaveBeenCalled();
+  });
+
+  it("does NOT fire on the unchanged branch — this is the 60s poller's path", async () => {
+    mocked.findActiveActivation.mockResolvedValue(WIRED);
+    // First pass publishes and establishes the content hash.
+    await buildService().publish({});
+    await Promise.resolve();
+    await Promise.resolve();
+    const hash = mocked.insertSnapshot.mock.calls[0][0].contentHash;
+    postToFcmFunction.mockClear();
+
+    // Second pass sees the same inputs.
+    mocked.findLatestSnapshot.mockResolvedValue({ version: 1, contentHash: hash });
+    const summary = await buildService().publish({});
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(summary.reason).toBe("unchanged");
+    expect(postToFcmFunction).not.toHaveBeenCalled();
+  });
+
+  it("does NOT fire when no mini app is wired to the layer set", async () => {
+    // ACTIVATION has no notifyMiniAppId. Absent means nobody is told, which is
+    // the safe default — devices still converge on the ordinary poll.
+    mocked.findActiveActivation.mockResolvedValue(ACTIVATION);
+
+    await buildService().publish({});
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(postToFcmFunction).not.toHaveBeenCalled();
+  });
+
+  it("does NOT fire when the config is invalid — nothing was published", async () => {
+    mocked.findActiveActivation.mockResolvedValue(WIRED);
+    getLayerSetConfig.mockReturnValue({ config: null, configHash: null, error: "bad" });
+
+    await buildService().publish({});
+    await Promise.resolve();
+
+    expect(postToFcmFunction).not.toHaveBeenCalled();
+  });
+
+  it("a failed push does not fail the publish", async () => {
+    mocked.findActiveActivation.mockResolvedValue(WIRED);
+    postToFcmFunction.mockRejectedValue(new Error("function down"));
+
+    const summary = await buildService().publish({});
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(summary.published).toBe(true);
+    expect(mocked.insertSnapshot).toHaveBeenCalled();
   });
 });

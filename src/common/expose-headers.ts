@@ -20,12 +20,17 @@ export const EXPOSED_RESPONSE_HEADERS = "Date, ETag, Age";
  * A 304 is precisely when a client still needs `Date` and `Age`, so a per-route
  * `res.set` would miss the case it exists for.
  *
- * This is inert today, and shipped anyway. The API sends no
- * Access-Control-Allow-Origin on any route and answers OPTIONS with 404, so a
- * cross-origin fetch fails before it could read anything this exposes. That makes
- * the header correct for the day CORS exists and a no-op until then — it does NOT
- * by itself make a browser target's clock correction work. Native clients read
- * these headers regardless of CORS, so nothing here changes for them.
+ * This was inert until skkuverse#17: the API sent no Access-Control-Allow-Origin
+ * on any route and answered OPTIONS with 404, so a cross-origin fetch failed
+ * before it could read anything exposed here. main.ts now calls enableCors() for
+ * the origins in infra/origins.ts, so the header finally does something — for
+ * those origins only. It still does NOT by itself make a browser target's clock
+ * correction work for any other origin. Native clients read these headers
+ * regardless of CORS, so nothing here changes for them.
+ *
+ * Both this and enableCors()'s `exposedHeaders` are needed. Nest sets the header
+ * only on responses it handles as CORS, and the eventmap 304 branches this
+ * middleware exists for return before that.
  */
 export function exposeResponseHeaders(
   _req: Request,
