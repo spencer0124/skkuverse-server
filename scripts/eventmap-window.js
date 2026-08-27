@@ -8,9 +8,23 @@
  * That is the same hazard the CSV importer exists to remove for coordinates.
  *
  * Usage:
- *   node scripts/eventmap-window.js status  [--layer-set-id <id>]
- *   node scripts/eventmap-window.js open    [--layer-set-id <id>] [--minutes <n>]
- *   node scripts/eventmap-window.js close   [--layer-set-id <id>]
+ *   npm run eventmap -- status [--prod]
+ *   npm run eventmap -- open   [--prod] [--minutes <n>]
+ *   npm run eventmap -- close  [--prod]
+ *
+ *   --prod                 act on the production database (default: <name>_dev)
+ *   --layer-set-id <id>    default eskara-2026
+ *   --minutes <n>          open only. Default 15
+ *
+ * ## Why `--prod` and not NODE_ENV
+ *
+ * Every other script here resolves its database from NODE_ENV, which defaults to
+ * `_dev`. That is the right default for an importer — the dangerous direction
+ * should be the one you have to type. It is the WRONG mechanism for this script,
+ * because an env var is silently lost the moment a command is pasted across two
+ * lines, and the failure is invisible: the script prints a cheerful success for
+ * a database nobody meant to touch. It happened on the first real run. A flag
+ * cannot be dropped without also dropping the word next to it.
  *
  * `open` defaults to a 15-MINUTE window, not an open-ended one. A rehearsal is
  * the common case and a forgotten `enabled: true` is the expensive mistake, so
@@ -37,7 +51,13 @@
  * back on the base campus map. Rehearse it before the festival rather than
  * discovering the delay during one.
  */
-require("dotenv").config();
+const path = require("path");
+
+// Anchored to the repo, not to the shell's cwd. This is the one script somebody
+// reaches for during an incident, quite possibly from another directory, and
+// dotenv's default of resolving `.env` against process.cwd() would hand them a
+// missing-MONGO_URL error that says nothing about why.
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 const { MongoClient } = require("mongodb");
 
 const { resolveDbName } = require("./lib/eventmap-db");
@@ -54,12 +74,15 @@ function parseArgs(argv) {
     command: null,
     layerSetId: DEFAULT_LAYER_SET_ID,
     minutes: DEFAULT_MINUTES,
+    prod: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (COMMANDS.includes(arg)) {
       if (args.command) throw new Error(`two commands given: ${args.command}, ${arg}`);
       args.command = arg;
+    } else if (arg === "--prod") {
+      args.prod = true;
     } else if (arg === "--layer-set-id") {
       args.layerSetId = argv[++i];
     } else if (arg === "--minutes") {
@@ -116,6 +139,11 @@ async function main() {
     console.error("MONGO_URL not set in .env");
     process.exit(1);
   }
+
+  // resolveDbName reads NODE_ENV, which is what every other script here uses.
+  // The flag drives it rather than the caller's environment, so the target can
+  // never be decided by something that fell off the end of a pasted line.
+  process.env.NODE_ENV = args.prod ? "production" : "development";
   const dbName = resolveDbName();
 
   const client = new MongoClient(mongoUrl);
@@ -124,7 +152,9 @@ async function main() {
     const activations = client.db(dbName).collection("activations");
     const now = new Date();
 
-    console.log(`database   ${dbName}`);
+    // Named on its own line and marked, because "which database did that touch?"
+    // is the question this script must never leave ambiguous.
+    console.log(`database   ${dbName}${args.prod ? "   ← PRODUCTION" : "   (dev — pass --prod for production)"}`);
     console.log(`layerSetId ${args.layerSetId}`);
 
     const before = await activations.findOne({ _id: args.layerSetId });

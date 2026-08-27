@@ -26,7 +26,17 @@ describe("eventmap-window — parseArgs", () => {
       command: "open",
       layerSetId: "eskara-2026",
       minutes: 15,
+      prod: false,
     });
+  });
+
+  it("defaults to dev and requires --prod to name production", () => {
+    // NODE_ENV was the original mechanism and it silently fell off the end of a
+    // pasted line, opening a window on _dev while reporting success. A flag
+    // cannot be dropped without also dropping the word next to it.
+    expect(parseArgs(["open"]).prod).toBe(false);
+    expect(parseArgs(["open", "--prod"]).prod).toBe(true);
+    expect(parseArgs(["close", "--prod"]).prod).toBe(true);
   });
 
   it("accepts a plain whole number of minutes", () => {

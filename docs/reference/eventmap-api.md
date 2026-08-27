@@ -963,15 +963,24 @@ snapshot, a matching `If-None-Match` returning 304, and a distinct ETag per `lan
 `scripts/eventmap-window.js` is the only lever that decides whether anybody sees the event map.
 
 ```bash
-NODE_ENV=production node scripts/eventmap-window.js status
-NODE_ENV=production node scripts/eventmap-window.js open --minutes 10
-NODE_ENV=production node scripts/eventmap-window.js close
+npm run eventmap -- status --prod
+npm run eventmap -- open --prod --minutes 10
+npm run eventmap -- close --prod
 ```
+
+**`--prod`, not `NODE_ENV`.** Every other script here resolves its database from `NODE_ENV`, which is
+right for an importer: the dangerous direction is the one you have to type. It is the wrong mechanism
+here, because an env var is silently lost the moment a command is pasted across two lines, and the
+failure is invisible — a cheerful success against a database nobody meant to touch. That happened on
+the first real run. Omit the flag and the target is `<name>_dev`, printed on its own line either way.
 
 `open` defaults to **15 minutes**, not open-ended: a rehearsal is the common case and a forgotten
 `enabled: true` is the expensive mistake, so `activeUntil` is a dead man's switch. A real festival
 states its length once, deliberately. The script never creates an activation — an unknown id is an
 error rather than an upsert, so a typo cannot look like a success.
+
+The npm script carries `--dns-result-order=ipv4first` (§13.5) so the incident path does not depend on
+remembering it.
 
 `refreshAfterSec` flipping from 300 to the config's value is what confirms the window is genuinely
 open: 300 is `IDLE_REFRESH_AFTER_SEC`, served whenever nothing is active, and is not a value anyone
@@ -1001,11 +1010,12 @@ the source IP, not a client TLS fault. Two causes, and they look identical:
    than the allowlisted one. Prefix the command:
 
    ```bash
-   NODE_OPTIONS=--dns-result-order=ipv4first NODE_ENV=production node scripts/eventmap-window.js status
+   NODE_OPTIONS=--dns-result-order=ipv4first node scripts/import-eventmap-sessions.js --dry-run
    ```
 
    This is a property of the network the script is run from, which is why it stays an environment
-   variable rather than a hardcoded `family: 4` in the scripts.
+   variable rather than a hardcoded `family: 4` in the driver options. `npm run eventmap` already
+   carries it, since that is the one command somebody runs while something is going wrong.
 
 ## 14. Source of truth (file map)
 
