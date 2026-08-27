@@ -805,14 +805,46 @@ The CSV importer **rejects** rows with missing or non-numeric coordinates rather
 partial document — and rejects the whole file if any single row is bad, because a half-imported map
 hides its own gaps.
 
-Two scripts do this, over one shared reader:
+Four scripts do this, over two pure readers and one shared writer module:
 
 | Script | Role |
 | --- | --- |
 | `scripts/lib/eventmap-csv.js` | pure CSV → `PlaceDoc` reader + validation. No DB, no clock — hence unit-tested |
-| `scripts/lib/eventmap-db.js` | the Mongo writers both scripts share |
+| `scripts/lib/eventmap-sessions.js` | pure JSON → `SessionDoc` reader + validation. No DB; takes `now` as a parameter rather than reading a clock, so it stays deterministic |
+| `scripts/lib/eventmap-db.js` | the Mongo writers every script shares |
 | `scripts/import-eventmap-csv.js` | ops sheet → `places`. `--dry-run`, `--retire-missing` |
+| `scripts/import-eventmap-sessions.js` | authored line-up → `sessions`. `--dry-run`, `--delete-missing` |
 | `scripts/seed-eventmap-demo.js` | demo `sessions` over the real places, times relative to `now`. `_dev` only |
+
+### 10.1 Why sessions are JSON and places are CSV
+
+A place is flat — an id, a name, two coordinates — so a spreadsheet is the right editor and
+`csv-parse` the right reader. A session is not: `actions[]`, `media.images[]`, `fields{}` and every
+I18n value are nested, and a spreadsheet can only carry those as embedded JSON inside a cell, which
+is strictly worse than JSON throughout. Spreadsheet authoring for sessions is what skkuverse#19's
+dashboard is for; until it exists the JSON file is the ops surface and `--dry-run` is the safety net.
+
+**`timeBase` is a file-level, mutually exclusive choice.** `"absolute"` carries ISO instants and is
+what real festival content uses; the reader rejects a bare date or a zone-less datetime, because
+`Date.parse("2026-09-16")` is UTC midnight and a Seoul-authored time would silently move nine hours
+with nothing downstream noticing. `"relative"` carries minute offsets from the import instant, which
+is what a pipeline verification run wants — it puts closed, open, upcoming and unknown on the map at
+once and crosses status boundaries while someone is watching.
+
+A relative file is **not** idempotent: it resolves to new instants on every run, so every document is
+rewritten and the next publish mints a version. That is correct — it genuinely is a new dataset each
+time — but it is the one case the diff discipline below cannot deliver, so the importer says so on
+stdout rather than letting the numbers imply otherwise.
+
+**`days: [1, 2]` expands into one document per day**, suffixing `-d1` / `-d2` onto the id. A
+`SessionDoc` is ONE occupancy interval, so a 양일주점 running both nights is two documents; authoring
+it twice is how the two copies drift apart. Omit `days` entirely for an always-on facility.
+
+**A `placeId` is a soft reference** — no FK, and §4.2 explains why there is no tenants collection to
+give it one. A dangling reference therefore fails silently at materialize time, dropping the booth
+with nothing on the map to say so, which is why `import-eventmap-sessions.js` resolves every
+`placeId` against `places` before writing and hard-fails on a miss, on a campus that disagrees with
+the plot's, and on a plot that is not `lifecycle: "active"`.
 
 Parsing is `csv-parse` (a devDependency — scripts never ship in the runtime image). The ops sheet is
 edited in a spreadsheet, so quoted commas, doubled quotes and a UTF-8 BOM all occur; `bom: true` is
@@ -829,10 +861,17 @@ documents, which reverses the dependency — an unchanged document serializes id
 not its `updatedAt` moved, so the importer's discipline is correct but no longer the thing holding
 the caching design up. Keep it anyway: it is still the cheapest way to keep a re-import a no-op.
 
-**Only the demo seed ever flips `enabled`.** The importer's activation write is `$setOnInsert`, so it
-can create the document but never modify it. That is what makes the two scripts' run order
-irrelevant, and more importantly it means re-importing a corrected sheet **during** the festival
-cannot take the live map down.
+**Only the demo seed ever flips `enabled`.** The places importer's activation write is
+`$setOnInsert`, so it can create the document but never modify it, and the sessions importer does not
+touch `activations` at all. That is what makes the scripts' run order irrelevant, and more
+importantly it means re-importing a corrected sheet or line-up **during** the festival cannot take
+the live map down — nor can importing one early bring the map up before its window.
+
+The same asymmetry is what makes a pre-flight publish safe. `POST /internal/eventmap/publish` with an
+explicit `layerSetId` looks the activation up by id, without the window or `enabled` check (§7.3), so
+a snapshot can be materialized, published and fetched at its own URL while `GET /eventmap/manifest`
+still reports `activeLayerSetId: null` to every client. Content can therefore be staged and verified
+end to end on production before anyone can see it.
 
 ## 11. Error codes
 
@@ -856,6 +895,28 @@ the propagation window.
 
 ## 13. Operations
 
+### 13.1 Loading content
+
+The scripts resolve the database the same way `infra/config.ts` does, so **production needs
+`NODE_ENV=production` stated explicitly** — without it they write to `<base>_dev`. That default is
+deliberate: the dangerous direction should be the one you have to type.
+
+```bash
+# 1. Plots. Creates the activation if absent, DISABLED, and can never re-enable one.
+NODE_ENV=production node scripts/import-eventmap-csv.js --dry-run
+NODE_ENV=production node scripts/import-eventmap-csv.js
+
+# 2. Line-up. Every placeId is resolved against `places` before anything is written.
+NODE_ENV=production node scripts/import-eventmap-sessions.js --dry-run
+NODE_ENV=production node scripts/import-eventmap-sessions.js
+```
+
+Read the dry run's `categories` line against `config/<layerSetId>.json`: a category no layer filter
+matches still materializes, falling back through `itemDefaults.fallback`, but no layer draws it — so
+the pins are simply absent and nothing reports an error.
+
+### 13.2 Publishing
+
 ```bash
 # Validate without publishing
 curl -s -X POST https://api.skkuverse.com/internal/eventmap/publish \
@@ -870,6 +931,43 @@ curl -s -X POST https://api.skkuverse.com/internal/eventmap/publish \
 # What clients now see
 curl -s https://api.skkuverse.com/eventmap/manifest | jq '.data'
 ```
+
+Read the dry run's `dropped` and `rejectedActions` before publishing for real. A dropped session
+leaves no trace on the map, and a rejected action leaves the booth with one fewer button — neither
+looks like a failure to anyone reading the result.
+
+### 13.3 Staging on production before the window opens
+
+An explicit `layerSetId` publishes without requiring the window (§7.3, §10), so a snapshot can be
+staged and verified against the real CDN while the manifest still advertises nothing:
+
+```bash
+# The manifest must still be all-null after this — that is the proof of no exposure.
+curl -s https://api.skkuverse.com/eventmap/manifest | jq '.data'
+
+# The snapshot is reachable at its own URL regardless, so caching can be checked now.
+curl -sI "https://api.skkuverse.com/eventmap/snapshot/eskara-2026/1?lang=ko"
+```
+
+Worth checking here rather than during the event: `Cache-Control: immutable, max-age=1y` on the
+snapshot, a matching `If-None-Match` returning 304, a distinct ETag per `lang`, and whether the CDN
+passes `Date` and `Age` through — the client's clock offset is derived from those two headers alone
+and silently reads zero without them, freezing every pin at its shipped status.
+
+Opening the window for a rehearsal is safest with `activeUntil`, which closes itself:
+
+```js
+db.activations.updateOne({ _id: "eskara-2026" }, { $set: {
+  enabled: true,
+  activeFrom: new Date(),
+  activeUntil: new Date(Date.now() + 15 * 60 * 1000),
+  updatedAt: new Date()
+}})
+```
+
+`refreshAfterSec` flipping from 300 to the config's value is what confirms the window is genuinely
+open: 300 is `IDLE_REFRESH_AFTER_SEC`, served whenever nothing is active, and is not a value anyone
+edits.
 
 **Kill switch** — rain cancellation or anything going wrong:
 
@@ -892,6 +990,8 @@ Clients fall back to the base campus map within ~75 s. **Rehearse before the fes
 | Shared internal-token check | `src/common/internal-token.ts` |
 | I/O + indexes | `src/eventmap/eventmap.data.ts` (no `seedIfEmpty` — there is no sensible default event) |
 | Ops sheet → places | `scripts/import-eventmap-csv.js` + `scripts/lib/eventmap-{csv,db}.js` |
+| Line-up → sessions | `scripts/import-eventmap-sessions.js` + `scripts/lib/eventmap-{sessions,db}.js` |
+| Authored content | `scripts/data/eskara-2026-{places.csv,sessions.json}` |
 | Local demo dataset | `scripts/seed-eventmap-demo.js` |
 | Layer/chip/filter structure | `src/eventmap/config/*.json` (+ `CONFIG_FILES` and `copy-build-assets.js`) |
 | DB + collection names | `src/infra/config.ts` `eventmap` block |
