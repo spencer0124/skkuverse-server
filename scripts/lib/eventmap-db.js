@@ -188,10 +188,15 @@ async function upsertSessions(collection, docs, now) {
 
 // --- Activation writers -----------------------------------------------------
 //
-// INVARIANT: the demo seed is the only writer that ever flips `enabled`. The
-// importer never touches an existing activation.
+// INVARIANT: NO IMPORTER EVER FLIPS `enabled`. import-eventmap-csv.js can only
+// create an activation, disabled; import-eventmap-sessions.js does not touch the
+// collection at all. Exactly two scripts flip it, and both say so in their name
+// or their refusal to run outside _dev:
 //
-// That asymmetry is what makes the run order of the two scripts irrelevant:
+//   scripts/seed-eventmap-demo.js    _dev only, enables a 7-day demo window
+//   scripts/eventmap-window.js       the ops lever — open / close / status
+//
+// That asymmetry is what makes the run order of the import scripts irrelevant:
 //
 //   import → demo   demo's $set wins            → enabled: true
 //   demo   → import import is $setOnInsert, the

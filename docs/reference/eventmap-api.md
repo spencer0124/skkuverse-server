@@ -958,28 +958,54 @@ curl -sI "https://api.skkuverse.com/eventmap/snapshot/eskara-2026/1?lang=ko"
 Worth checking here rather than during the event: `Cache-Control: immutable, max-age=1y` on the
 snapshot, a matching `If-None-Match` returning 304, and a distinct ETag per `lang`.
 
-Opening the window for a rehearsal is safest with `activeUntil`, which closes itself:
+### 13.4 The window — and the kill switch
 
-```js
-db.activations.updateOne({ _id: "eskara-2026" }, { $set: {
-  enabled: true,
-  activeFrom: new Date(),
-  activeUntil: new Date(Date.now() + 15 * 60 * 1000),
-  updatedAt: new Date()
-}})
+`scripts/eventmap-window.js` is the only lever that decides whether anybody sees the event map.
+
+```bash
+NODE_ENV=production node scripts/eventmap-window.js status
+NODE_ENV=production node scripts/eventmap-window.js open --minutes 10
+NODE_ENV=production node scripts/eventmap-window.js close
 ```
+
+`open` defaults to **15 minutes**, not open-ended: a rehearsal is the common case and a forgotten
+`enabled: true` is the expensive mistake, so `activeUntil` is a dead man's switch. A real festival
+states its length once, deliberately. The script never creates an activation — an unknown id is an
+error rather than an upsert, so a typo cannot look like a success.
 
 `refreshAfterSec` flipping from 300 to the config's value is what confirms the window is genuinely
 open: 300 is `IDLE_REFRESH_AFTER_SEC`, served whenever nothing is active, and is not a value anyone
 edits.
 
-**Kill switch** — rain cancellation or anything going wrong:
+`close` is the **kill switch** for a rain cancellation or anything else going wrong. Clients fall
+back to the base campus map within ~75 s (§12) — the delay applies to closing exactly as it does to
+opening. **Rehearse before the festival**, not during one.
 
-```js
-db.activations.updateOne({ _id: "eskara-2026" }, { $set: { enabled: false } })
-```
+### 13.5 When Atlas refuses with `SSL alert number 80`
 
-Clients fall back to the base campus map within ~75 s. **Rehearse before the festival.**
+A TCP connection that is accepted and then dropped before the handshake completes is Atlas rejecting
+the source IP, not a client TLS fault. Two causes, and they look identical:
+
+1. The machine's IP is not in Network Access. Check the current one and add it.
+2. **The traffic is leaving over NAT64.** If `openssl s_client` to the shard host succeeds while the
+   Node driver still fails, this is the one. `dig AAAA` shows nothing because it queries DNS
+   directly; the synthesis happens in `getaddrinfo`:
+
+   ```bash
+   node -e 'require("dns").lookup("<shard-host>",{all:true,verbatim:true},(e,a)=>console.log(a))'
+   ```
+
+   A `64:ff9b::/96` address in that list is the RFC 6052 well-known prefix — the resolver has
+   synthesized an IPv6 address for an IPv4-only host. Node 18+ defaults to `verbatim` order and picks
+   it first, so the connection exits through the NAT64 gateway and Atlas sees *its* address rather
+   than the allowlisted one. Prefix the command:
+
+   ```bash
+   NODE_OPTIONS=--dns-result-order=ipv4first NODE_ENV=production node scripts/eventmap-window.js status
+   ```
+
+   This is a property of the network the script is run from, which is why it stays an environment
+   variable rather than a hardcoded `family: 4` in the scripts.
 
 ## 14. Source of truth (file map)
 
@@ -996,6 +1022,7 @@ Clients fall back to the base campus map within ~75 s. **Rehearse before the fes
 | Ops sheet → places | `scripts/import-eventmap-csv.js` + `scripts/lib/eventmap-{csv,db}.js` |
 | Line-up → sessions | `scripts/import-eventmap-sessions.js` + `scripts/lib/eventmap-{sessions,db}.js` |
 | Authored content | `scripts/data/eskara-2026-{places.csv,sessions.json}` |
+| Window + kill switch | `scripts/eventmap-window.js` |
 | Local demo dataset | `scripts/seed-eventmap-demo.js` |
 | Layer/chip/filter structure | `src/eventmap/config/*.json` (+ `CONFIG_FILES` and `copy-build-assets.js`) |
 | DB + collection names | `src/infra/config.ts` `eventmap` block |
