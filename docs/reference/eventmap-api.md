@@ -979,6 +979,24 @@ the first real run. Omit the flag and the target is `<name>_dev`, printed on its
 states its length once, deliberately. The script never creates an activation — an unknown id is an
 error rather than an upsert, so a typo cannot look like a success.
 
+`--no-expiry` writes `activeUntil: null` and gives up that switch. It is right in exactly two
+situations, and "I do not want to pick a number" is neither:
+
+1. **Nothing that can render the layer set is deployed.** Before the client ships in a release or an
+   OTA, no user's app carries the code to fetch the manifest at all, so the window's audience is
+   whoever runs a dev build. Check the shipped tree, not the branch — `main` containing the code
+   proves nothing about what users have:
+
+   ```bash
+   git ls-tree -r --name-only ota/prod/<tag> | grep eventmap
+   ```
+
+2. **A long event whose end is genuinely unknown**, where a wrong `activeUntil` would drop the map
+   mid-festival — a worse failure than a forgotten one.
+
+`status` prints `NO EXPIRY — stays up until somebody runs close` on every read in that state, which
+is the only thing standing between "we meant to leave it up" and "nobody remembered it was up".
+
 The npm script carries `--dns-result-order=ipv4first` (§13.5) so the incident path does not depend on
 remembering it.
 

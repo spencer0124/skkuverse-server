@@ -32,6 +32,21 @@
  * A real festival is `--minutes` set to the length of the festival, stated once
  * and deliberately.
  *
+ * `--no-expiry` gives up that switch, writing `activeUntil: null` — which the
+ * schema calls unbounded and means the map stays up until somebody runs `close`.
+ * It is the right choice in exactly two situations, and neither is "I do not
+ * want to think about a number":
+ *
+ *   1. Nothing that can render the layer set is deployed yet. Before the client
+ *      ships in a release or an OTA, no user's app carries the code to fetch the
+ *      manifest at all, so the window's audience is whoever is running a dev
+ *      build — usually one simulator. Check the shipped tree, not the branch:
+ *      `git ls-tree -r --name-only ota/prod/<tag> | grep eventmap`.
+ *   2. A long event whose end is genuinely unknown, where a wrong `activeUntil`
+ *      would drop the map mid-festival — a worse failure than a forgotten one.
+ *
+ * The prompt when neither holds is `--minutes`.
+ *
  * ## What this does NOT do
  *
  * It never creates an activation — `import-eventmap-csv.js` owns that, with
@@ -75,6 +90,8 @@ function parseArgs(argv) {
     layerSetId: DEFAULT_LAYER_SET_ID,
     minutes: DEFAULT_MINUTES,
     prod: false,
+    noExpiry: false,
+    minutesGiven: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -83,6 +100,8 @@ function parseArgs(argv) {
       args.command = arg;
     } else if (arg === "--prod") {
       args.prod = true;
+    } else if (arg === "--no-expiry") {
+      args.noExpiry = true;
     } else if (arg === "--layer-set-id") {
       args.layerSetId = argv[++i];
     } else if (arg === "--minutes") {
@@ -95,6 +114,7 @@ function parseArgs(argv) {
         throw new Error(`--minutes must be a positive whole number of minutes (got "${raw}")`);
       }
       args.minutes = Number(raw);
+      args.minutesGiven = true;
     } else {
       throw new Error(`unknown argument: ${arg}`);
     }
@@ -103,6 +123,15 @@ function parseArgs(argv) {
     throw new Error(`expected one of [${COMMANDS.join(", ")}]`);
   }
   if (!args.layerSetId) throw new Error("--layer-set-id needs a value");
+  // Refusing the combination rather than silently letting one win: the two say
+  // opposite things about when the map comes down, and guessing which the
+  // operator meant is the wrong kind of helpful for this particular field.
+  if (args.noExpiry && args.minutesGiven) {
+    throw new Error("--no-expiry and --minutes contradict each other — pass one");
+  }
+  if (args.noExpiry && args.command !== "open") {
+    throw new Error(`--no-expiry only applies to open (got "${args.command}")`);
+  }
   return args;
 }
 
@@ -127,6 +156,11 @@ function describe(doc, now) {
   if (live && doc.activeUntil) {
     const mins = Math.round((doc.activeUntil - now) / 60000);
     lines.push(`  → closes itself in ~${mins} minute(s)`);
+  } else if (live) {
+    // The one state with no dead man's switch. Saying it on every status read is
+    // the only thing standing between "we meant to leave it up" and "nobody
+    // remembered it was up".
+    lines.push("  → NO EXPIRY — stays up until somebody runs close");
   }
   return lines.join("\n");
 }
@@ -183,12 +217,18 @@ async function main() {
       );
       console.log("\nCLOSED.");
     } else {
-      const until = new Date(now.getTime() + args.minutes * 60 * 1000);
+      const until = args.noExpiry
+        ? null
+        : new Date(now.getTime() + args.minutes * 60 * 1000);
       await activations.updateOne(
         { _id: args.layerSetId },
         { $set: { enabled: true, activeFrom: now, activeUntil: until, updatedAt: now } },
       );
-      console.log(`\nOPEN for ${args.minutes} minute(s), until ${until.toISOString()}.`);
+      console.log(
+        until === null
+          ? "\nOPEN with NO EXPIRY. Nothing will take this down but `close`."
+          : `\nOPEN for ${args.minutes} minute(s), until ${until.toISOString()}.`,
+      );
     }
 
     console.log(describe(await activations.findOne({ _id: args.layerSetId }), now));

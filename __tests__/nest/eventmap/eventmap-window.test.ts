@@ -27,6 +27,8 @@ describe("eventmap-window — parseArgs", () => {
       layerSetId: "eskara-2026",
       minutes: 15,
       prod: false,
+      noExpiry: false,
+      minutesGiven: false,
     });
   });
 
@@ -52,6 +54,22 @@ describe("eventmap-window — parseArgs", () => {
     for (const value of ["1e2", "0", "01", "1.5", "-5", "", "abc", " 10", "Infinity"]) {
       expect(() => parseArgs(["open", "--minutes", value])).toThrow(
         /--minutes must be a positive whole number/,
+      );
+    }
+  });
+
+  it("refuses --no-expiry together with --minutes", () => {
+    // The two say opposite things about when the map comes down. Letting one
+    // silently win is the wrong kind of helpful for this particular field.
+    expect(() => parseArgs(["open", "--no-expiry", "--minutes", "30"])).toThrow(
+      /contradict each other/,
+    );
+  });
+
+  it("refuses --no-expiry on anything but open", () => {
+    for (const command of ["close", "status"]) {
+      expect(() => parseArgs([command, "--no-expiry"])).toThrow(
+        /--no-expiry only applies to open/,
       );
     }
   });
