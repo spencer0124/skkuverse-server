@@ -3,7 +3,7 @@ title: Event Map API Reference
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-08-07
+last-updated: 2026-08-27
 audience: internal
 ---
 
@@ -785,7 +785,9 @@ So the snapshot ships **facts**: `startAt`, `endAt`, `status` as of `materialize
 `nextChangeAt`. The client recomputes against its own clock, falling back to the shipped status when
 **both bounds are null**. Because the bounds are absolute instants rather than wall-clock strings, a
 device in the wrong timezone still derives correctly; a device whose clock is genuinely wrong does
-not, and that is accepted rather than corrected.
+not, and that is accepted rather than corrected. The planned mitigation, not yet implemented, is an
+app-side warning when the device timezone is not `Asia/Seoul` — the one misconfiguration the client
+can still detect on its own, now that it no longer compares its clock against the server's.
 Side benefit: the map keeps telling the truth on a dead network, which is the actual festival
 condition.
 
@@ -954,9 +956,7 @@ curl -sI "https://api.skkuverse.com/eventmap/snapshot/eskara-2026/1?lang=ko"
 ```
 
 Worth checking here rather than during the event: `Cache-Control: immutable, max-age=1y` on the
-snapshot, a matching `If-None-Match` returning 304, a distinct ETag per `lang`, and whether the CDN
-passes `Date` and `Age` through — the client's clock offset is derived from those two headers alone
-and silently reads zero without them, freezing every pin at its shipped status.
+snapshot, a matching `If-None-Match` returning 304, and a distinct ETag per `lang`.
 
 Opening the window for a rehearsal is safest with `activeUntil`, which closes itself:
 

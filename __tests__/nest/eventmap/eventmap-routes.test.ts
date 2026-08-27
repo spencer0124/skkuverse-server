@@ -155,10 +155,11 @@ describe("GET /eventmap/manifest", () => {
 });
 
 describe("Access-Control-Expose-Headers", () => {
-  // Date, ETag and Age are not CORS-safelisted, and they are exactly what a
-  // client needs for freshness rather than content: the clock offset is measured
-  // from the manifest's Date, and computeOffset discards any response carrying
-  // Age > 0. Mounted app-wide precisely so the early-return paths below keep it.
+  // ETag is not CORS-safelisted, so a browser client cannot revalidate without
+  // this. Mounted app-wide precisely so the early-return paths below keep it: a
+  // 304 returns before setting a header of its own, and it is exactly the
+  // response whose ETag a client still needs to read. Date and Age were exposed
+  // here too until the client's clock-offset layer was removed.
   const EXPECTED = "ETag";
 
   it("is set on a normal 200", async () => {
