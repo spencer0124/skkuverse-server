@@ -8,6 +8,24 @@ interface CampusEntry {
   centerLat: number;
   centerLng: number;
   defaultZoom: number;
+  /**
+   * How far from the centre still counts as being on this campus, in metres.
+   *
+   * The app compares its camera centre against this to tell whether the map and
+   * the campus toggle are looking at the same place, and offers to reconcile
+   * them when they are not.
+   *
+   * Derived from the marker data this same service returns rather than picked:
+   * across both campus overlays the furthest building sits 460m from the 인사캠
+   * centre and 487m from the 자과캠 one, while the two centres are 32,692m
+   * apart. 1000m therefore covers a campus and its surroundings with room to
+   * spare and is 3% of the distance between them, so the two circles cannot
+   * overlap and "which campus" is never ambiguous.
+   *
+   * Old clients ignore this field, and clients newer than this deploy fall back
+   * to the same number when a server does not send it.
+   */
+  radiusM: number;
 }
 
 interface LayerEntry {
@@ -40,6 +58,7 @@ function getMapConfig(lang: SupportedLang = "ko"): MapConfigResponse {
         centerLat: 37.587241,
         centerLng: 126.992858,
         defaultZoom: 15.8,
+        radiusM: 1000,
       },
       {
         id: "nsc",
@@ -47,6 +66,7 @@ function getMapConfig(lang: SupportedLang = "ko"): MapConfigResponse {
         centerLat: 37.29358,
         centerLng: 126.974942,
         defaultZoom: 15.8,
+        radiusM: 1000,
       },
     ],
     layers: [
