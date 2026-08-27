@@ -97,7 +97,7 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: [...CORS_ORIGINS],
     methods: [...CORS_METHODS],
-    // Same three headers exposeResponseHeaders already sets. Nest would
+    // The same header exposeResponseHeaders already sets. Nest would
     // overwrite that header on CORS-handled responses, and the 304 branches it
     // exists for do not go through this path at all, so both are needed.
     exposedHeaders: EXPOSED_RESPONSE_HEADERS,
