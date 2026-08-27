@@ -451,7 +451,7 @@ survive an ops edit identically on both.
 ### 7.1 `GET /eventmap/manifest`
 
 `ETag` · `Cache-Control: public, max-age=15` · `Vary: Accept-Language` ·
-`Access-Control-Expose-Headers: Date, ETag, Age`
+`Access-Control-Expose-Headers: ETag`
 
 ```json
 {
@@ -482,13 +482,15 @@ the next poll. The derivation is a scan of the memoized items, so it costs no DB
 **`Access-Control-Expose-Headers` is set app-wide, in `src/common/expose-headers.ts`, not per route.**
 Both endpoints answer a matching `If-None-Match` with `res.status(304).end()`, which returns before
 setting a header of its own, and the degraded branch above sets only `Cache-Control` — so a per-route
-`res.set` would miss exactly the responses that need it. `Date` and `Age` are what §9's on-device
-clock correction reads, and neither is CORS-safelisted.
+`res.set` would miss exactly the responses that need it — a 304 is precisely the response whose
+`ETag` a client still needs to read, and `ETag` is not CORS-safelisted.
 
-It is inert today and shipped anyway: this API sends no `Access-Control-Allow-Origin` on any route and
-answers `OPTIONS` with 404, so a cross-origin fetch fails before it could read anything the header
-exposes. That makes it correct for the day CORS exists and a no-op until then — **it does not on its
-own make a browser target's clock correction work.** Native clients read these headers regardless.
+`Date` and `Age` were exposed here too, for the client's clock-offset measurement. That layer was
+removed: §9's derivation now runs against the device clock unadjusted, so neither header has a
+reader.
+
+CORS was enabled in skkuverse#17 for the first-party origins in `infra/origins.ts`, so this header
+does something for those origins. Native clients read it regardless of CORS.
 
 This handler must **never throw**; any DB error degrades to `activeLayerSetId: null`.
 
@@ -512,7 +514,7 @@ boundaries are identical across ko/en/zh, and only `snapshotUrl`'s `?lang=` diff
 ### 7.2 `GET /eventmap/snapshot/:layerSetId/:version?lang=ko`
 
 `ETag` · `Cache-Control: public, max-age=31536000, immutable` · `Vary: Accept-Language` ·
-`Access-Control-Expose-Headers: Date, ETag, Age`
+`Access-Control-Expose-Headers: ETag`
 
 Validation order is the repo rule — **400 → 404 → 304**:
 
@@ -781,7 +783,9 @@ would bump the version several times an hour and defeat the caching design.
 
 So the snapshot ships **facts**: `startAt`, `endAt`, `status` as of `materializedAt`, and
 `nextChangeAt`. The client recomputes against its own clock, falling back to the shipped status when
-device time is more than an hour off the response `Date` header, or when **both bounds are null**.
+**both bounds are null**. Because the bounds are absolute instants rather than wall-clock strings, a
+device in the wrong timezone still derives correctly; a device whose clock is genuinely wrong does
+not, and that is accepted rather than corrected.
 Side benefit: the map keeps telling the truth on a dead network, which is the actual festival
 condition.
 

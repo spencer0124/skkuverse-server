@@ -159,7 +159,7 @@ describe("Access-Control-Expose-Headers", () => {
   // client needs for freshness rather than content: the clock offset is measured
   // from the manifest's Date, and computeOffset discards any response carrying
   // Age > 0. Mounted app-wide precisely so the early-return paths below keep it.
-  const EXPECTED = "Date, ETag, Age";
+  const EXPECTED = "ETag";
 
   it("is set on a normal 200", async () => {
     svc.getManifest.mockResolvedValue({ manifest: ACTIVE_MANIFEST, degraded: false });
