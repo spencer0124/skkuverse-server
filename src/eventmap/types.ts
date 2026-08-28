@@ -10,20 +10,15 @@
 // building) already imports this one declaration, and a second copy would only
 // create two things to keep in sync for a value that cannot change.
 import type { Campus } from "../building/types";
-import type { SupportedLang } from "../infra/types";
+import type { I18n, SupportedLang } from "../infra/types";
+// Type-only, so the eventmap → map edge is erased at runtime. A chip camera is
+// the map's shape; the event config merely authors one.
+import type { MapCamera } from "../map/map-chip.types";
 
-export type { Campus };
-
-/**
- * ko is required; en/zh are optional.
- * Resolution happens once, at materialization: text[lang] ?? text.en ?? text.ko.
- * The client never sees an I18n object, so it never has to resolve anything.
- */
-export interface I18n {
-  ko: string;
-  en?: string;
-  zh?: string;
-}
+// I18n is infra now (`src/infra/types.ts`), because the map catalogue authors
+// its labels in the same shape and the two domains share one resolver.
+// Re-exported so the many event map call sites keep reading naturally.
+export type { Campus, I18n };
 
 /**
  * `places` — the physical plot. Permanent and occupant-agnostic: the ground
@@ -216,48 +211,18 @@ export interface SnapshotDoc {
 // so it blocks publication (ADR 0004 invariant 2).
 // ---------------------------------------------------------------------------
 
+/**
+ * The snapshot shape this server materializes, copied to the wire on every
+ * payload and manifest. The app ignores a snapshot declaring a HIGHER number,
+ * so bump it only for a breaking change — v2 is one: the predicate layers,
+ * chip groups and icon table left the snapshot, and every item gained
+ * `layerId`. One constant, read by the config loader (which refuses any other
+ * value) and by the inactive manifest (which has no snapshot to read one from).
+ */
+export const EVENTMAP_SCHEMA_VERSION = 2;
+
 /** Item status as of materialization. The client re-derives it (§9). */
 export type ItemStatus = "open" | "upcoming" | "closed" | "unknown";
-
-/**
- * The CLOSED predicate node set, shared by layer filters and chips.
- *
- * The server only ever VALIDATES these — the evaluator lives in the app alone,
- * because filter option counts (the one thing that would make the server
- * evaluate) are cut. Keeping the set closed is the point: a richer expression
- * language is a DSL that then needs versioning of its own.
- */
-export type Predicate =
-  | ["all"]
-  | ["has", string]
-  | ["hasAny", string[]]
-  | ["hasAll", string[]]
-  | ["not", Predicate]
-  | ["and", Predicate[]]
-  | ["or", Predicate[]]
-  | ["status", ItemStatus[]];
-
-export const PREDICATE_KINDS = [
-  "all",
-  "has",
-  "hasAny",
-  "hasAll",
-  "not",
-  "and",
-  "or",
-  "status",
-] as const;
-
-export const ITEM_STATUSES: readonly ItemStatus[] = [
-  "open",
-  "upcoming",
-  "closed",
-  "unknown",
-];
-
-/** `render: "cluster" | "list"` stay in the contract so switching is a server edit (§6). */
-export const LAYER_RENDERS = ["pin", "cluster", "list"] as const;
-export type LayerRender = (typeof LAYER_RENDERS)[number];
 
 /**
  * `distance` is deliberately absent: it needs expo-location, which the app does
@@ -267,39 +232,48 @@ export const SORT_KEYS = ["order", "title", "startAt"] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
 
 /**
- * `symbol` is what ESKARA 2026 ships. `remote` is declared now so swapping in
- * real pin art is a config PR with no client change — a remote icon whose URI
- * 404s renders a blank marker, and the client's tolerant parser only catches an
- * unknown `kind`, not a dead URL.
+ * The map layers a festival draws.
+ *
+ * These are MAP layers in the `/map/config` sense — a booth is an ordinary
+ * marker, drawn by the app's one renderer beside 건물번호 — and the config is
+ * where they are authored so that next year's festival is a JSON file and Mongo
+ * content, with no TypeScript to touch. Ids are opaque strings on the wire and
+ * are checked at load against the base map's own layer ids, because the two
+ * lists are served side by side in one response.
+ *
+ * Geometry (`placeDot`, pin size) is NOT here: that is how a festival marker is
+ * drawn, which is the map's business and the same for every festival. Only
+ * `color` is content — a category colour (주점 red, 먹거리 amber) is a fact about
+ * the event, not about the theme.
  */
-export type IconSpec =
-  | { kind: "symbol"; symbol: string }
-  | { kind: "remote"; uri: string; width: number; height: number };
-
-export interface LayerSpec {
+export interface EventLayerDef {
   id: string;
-  render: LayerRender;
   label: I18n;
-  filter: Predicate;
+  /** Bare hex, no `#` — the convention the app's `toCssColor` expects. */
+  color: string;
+  /**
+   * Is the layer on to begin with. The reset chip restores exactly the set
+   * with this `true`, which is why a config needs at least one.
+   */
   defaultVisible: boolean;
-  minZoom?: number | null;
-  maxZoom?: number | null;
-  iconId: string;
-  sortId: string;
 }
 
-export interface ChipSpec {
+/**
+ * A narrowing chip: one tap to show only these layers within the festival's
+ * group. The RESET chip — the way back, carrying the festival's `name` and
+ * `emoji` — is not authored; the server synthesises it from `defaultVisible`,
+ * so it can never drift from the layer list.
+ *
+ * `label` may be omitted for a single-layer chip, in which case the chip reads
+ * as its layer does. A chip spanning several layers has no such default and
+ * must say what it means.
+ */
+export interface EventChipDef {
   id: string;
-  label: I18n;
-  defaultSelected?: boolean;
-  predicate: Predicate;
-}
-
-export interface ChipGroupSpec {
-  id: string;
-  label?: I18n | null;
-  selection: "single" | "multi";
-  chips: ChipSpec[];
+  /** Tossface emoji, the mark the app's chip primitive already renders. */
+  emoji: string;
+  layerIds: string[];
+  label?: I18n;
 }
 
 export interface SortSpec {
@@ -323,16 +297,20 @@ export interface CardTemplateSpec {
 }
 
 /**
- * How a session's `category` becomes pin presentation.
+ * How a session's `category` becomes a marker on a layer, and a card.
  *
  * `category` is an OPEN string edited by ops (§4.2), so an unmapped value is
  * NOT a config error — it falls back and logs. Compare the structure→structure
- * references (iconId, cardTemplateId, sortId) which DO block publication: those
- * are developer-owned and a PR fixes them.
+ * references (layerId, cardTemplateId) which DO block publication: those are
+ * developer-owned and a PR fixes them.
+ *
+ * ONE table feeds both producers of a booth: the materializer stamps
+ * `item.layerId` and the marker projection stamps `marker.layerId` through the
+ * same `presentationFor`, so a booth's pin and its list row cannot disagree
+ * about which layer they belong to.
  */
 export interface ItemPresentation {
-  iconId: string;
-  iconIdClosed?: string | null;
+  layerId: string;
   pinPriority: number;
   cardTemplateId: string;
 }
@@ -340,6 +318,27 @@ export interface ItemPresentation {
 export interface ItemDefaults {
   byCategory: Record<string, ItemPresentation>;
   fallback: ItemPresentation;
+}
+
+/**
+ * THE resolver from a session's `category` to its presentation — and so to its
+ * `layerId`. Beside the table it reads, because both producers of a booth need
+ * it: the materializer stamps `item.layerId`, the marker projection stamps
+ * `marker.layerId`, and a booth's pin and its list row cannot disagree about
+ * which layer they belong to because there is exactly one of these.
+ *
+ * `category` is an OPEN string edited in Mongo, so an unmapped value is content,
+ * not a config bug — it falls back rather than blocking publication. The
+ * structure→structure references inside itemDefaults were already checked at
+ * config load, so whichever presentation is chosen here is guaranteed resolvable.
+ */
+export function presentationFor(config: EventMapConfig, category: string): ItemPresentation {
+  const { byCategory, fallback } = config.itemDefaults;
+  // `Object.hasOwn`, not `??`: `category` is ops-typed and `byCategory` is a
+  // plain object, so "constructor" or "toString" would otherwise resolve to a
+  // prototype member — truthy, and not a presentation — and the booth would
+  // ship with no layer and no card, silently.
+  return Object.hasOwn(byCategory, category) ? byCategory[category]! : fallback;
 }
 
 export interface EventMapConfig {
@@ -353,7 +352,16 @@ export interface EventMapConfig {
   configVersion: number;
   layerSetId: string;
   campus: Campus;
-  camera: { lat: number; lng: number; zoom: number };
+  /** The event's display name — the reset chip's label. */
+  name: I18n;
+  /** The reset chip's icon. */
+  emoji: string;
+  /**
+   * Where a festival chip points the camera. One camera per event: every chip
+   * shares it, and there is no longer a separate event-map surface that would
+   * want to open somewhere else.
+   */
+  camera: MapCamera;
   timezone: string;
   /** Manifest poll cadence while this layer set is active. 60 during an event. */
   refreshAfterSec: number;
@@ -362,9 +370,8 @@ export interface EventMapConfig {
    * to `zone` if a plaza is too dense — a server edit, no data change, no release.
    */
   stackKeyBy: "placeId" | "zone";
-  icons: Record<string, IconSpec>;
-  layers: LayerSpec[];
-  chipGroups: ChipGroupSpec[];
+  layers: EventLayerDef[];
+  chips: EventChipDef[];
   sorts: SortSpec[];
   cardTemplates: CardTemplateSpec[];
   itemDefaults: ItemDefaults;
@@ -384,32 +391,6 @@ export interface WireAction {
   actionType: SessionAction["actionType"];
   actionValue: string;
   style?: "primary" | "secondary";
-}
-
-export interface WireLayer {
-  id: string;
-  render: LayerRender;
-  label: string;
-  filter: Predicate;
-  defaultVisible: boolean;
-  minZoom: number | null;
-  maxZoom: number | null;
-  iconId: string;
-  sortId: string;
-}
-
-export interface WireChip {
-  id: string;
-  label: string;
-  defaultSelected: boolean;
-  predicate: Predicate;
-}
-
-export interface WireChipGroup {
-  id: string;
-  label: string | null;
-  selection: "single" | "multi";
-  chips: WireChip[];
 }
 
 export interface WireSort {
@@ -452,8 +433,12 @@ export interface EventMapItem {
   startAt: string | null;
   endAt: string | null;
   hoursLabel: string | null;
-  iconId: string;
-  iconIdClosed: string | null;
+  /**
+   * The `/map/config` layer this item's category resolves to — the join key
+   * between a snapshot item and its marker, and what lets the app list "what
+   * the 주점 chip is showing" without a second vocabulary.
+   */
+  layerId: string;
   pinPriority: number;
   cardTemplateId: string;
   order: number;
@@ -471,10 +456,6 @@ export interface EventMapSnapshot {
   nextChangeAt: string | null;
   timezone: string;
   campus: Campus;
-  camera: { lat: number; lng: number; zoom: number };
-  icons: Record<string, IconSpec>;
-  layers: WireLayer[];
-  chipGroups: WireChipGroup[];
   sorts: WireSort[];
   cardTemplates: WireCardTemplate[];
   items: EventMapItem[];

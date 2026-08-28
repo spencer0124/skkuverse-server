@@ -1,9 +1,20 @@
-import type { SupportedLang } from "./types";
+import { SUPPORTED_LANGS, type I18n, type SupportedLang } from "./types";
 
 /**
  * Minimal i18n module.
- * Provides t(key, lang) for translatable server-generated text.
- * Korean is the source/default language.
+ *
+ * Two resolvers for two shapes of authored text:
+ *
+ *  - `t(key, lang)` for the KEYED table below — server-generated SDUI copy.
+ *    Falls back `lang → ko → key`: every entry here is authored in all three
+ *    languages by this repo, so a miss is a bug the key itself makes visible.
+ *  - `pick(text, lang)` for an INLINE `{ko, en?, zh?}` object — event content,
+ *    map layer and chip labels, anything authored beside the thing it names.
+ *    Falls back `lang → en → ko`, blank treated as absent: ops authors `en`
+ *    far more often than `zh`, and an empty string is a paste, not a value.
+ *
+ * Two chains on purpose, because the two kinds of author fail differently.
+ * Korean is the source language in both.
  */
 type Translation = Partial<Record<SupportedLang, string>>;
 type Translations = Record<string, Translation>;
@@ -171,100 +182,6 @@ const translations: Translations = {
     zh: "自然校区",
   },
 
-  // Map config: layer labels
-  "map.layer.building_numbers": {
-    ko: "건물번호",
-    en: "Building Numbers",
-    zh: "建筑编号",
-  },
-  "map.layer.building_labels": {
-    ko: "건물이름",
-    en: "Building Names",
-    zh: "建筑名称",
-  },
-  "map.layer.bus_route_jongro07": {
-    ko: "종로07 노선",
-    en: "Jongro 07 Route",
-    zh: "钟路07路线",
-  },
-  "map.layer.bus_route_jongro02": {
-    ko: "종로02 노선",
-    en: "Jongro 02 Route",
-    zh: "钟路02路线",
-  },
-
-  // Map config: event marker layers. Present only while an activation window is
-  // open; the wording matches the layer set config so the two never disagree.
-  "map.layer.eskara26_stage": {
-    ko: "공연",
-    en: "Stages",
-    zh: "演出",
-  },
-  "map.layer.eskara26_bar": {
-    ko: "주점",
-    en: "Bars",
-    zh: "酒馆",
-  },
-  "map.layer.eskara26_food": {
-    ko: "먹거리",
-    en: "Food",
-    zh: "美食",
-  },
-  "map.layer.eskara26_booth": {
-    ko: "부스",
-    en: "Booths",
-    zh: "摊位",
-  },
-  "map.layer.eskara26_facility": {
-    ko: "편의시설",
-    en: "Facilities",
-    zh: "便利设施",
-  },
-  "map.layer.eskara26_etc": {
-    ko: "기타",
-    en: "Other",
-    zh: "其他",
-  },
-
-  // Map: chip labels. Keyed `map.chip.<chipId>`, resolved in map-chips.data.
-  // A chip whose key is missing here renders its own key as its label, because
-  // t() returns the key on a miss — __tests__/nest/map/map-chips.test.ts is
-  // what stops that shipping.
-
-  // The festival's own name, so the reset chip reads as the brand rather than
-  // as a category. Identical in all three languages on purpose: it is a proper
-  // noun, and translating it would name a festival that does not exist.
-  "map.chip.eskara26_view_all": {
-    ko: "26ESKARA",
-    en: "26ESKARA",
-    zh: "26ESKARA",
-  },
-  "map.chip.eskara26_view_stage": {
-    ko: "공연",
-    en: "Stage",
-    zh: "演出",
-  },
-  "map.chip.eskara26_view_bar": {
-    ko: "주점",
-    en: "Bar",
-    zh: "酒吧",
-  },
-  "map.chip.eskara26_view_food": {
-    ko: "먹거리",
-    en: "Food",
-    zh: "美食",
-  },
-  "map.chip.eskara26_view_booth": {
-    ko: "부스",
-    en: "Booth",
-    zh: "摊位",
-  },
-  "map.chip.eskara26_view_facility": {
-    ko: "편의시설",
-    en: "Facilities",
-    zh: "便利设施",
-  },
-
   // SDUI: campus tab
   "campus.title": {
     ko: "캠퍼스 서비스",
@@ -404,10 +321,40 @@ const translations: Translations = {
  * Translate a key to the given language.
  * Falls back to Korean if the key or language is not found.
  */
+/**
+ * text[lang] → text.en → text.ko, treating BLANK as absent.
+ *
+ * `??` alone would accept an ops-typed `en: ""` as a present value and render an
+ * empty caption — the failure looks like a rendering bug rather than a data one,
+ * so it survives a long time. Trim-and-skip costs nothing.
+ */
+function pick(text: I18n | null | undefined, lang: SupportedLang): string | null {
+  if (!text) return null;
+  for (const candidate of [text[lang], text.en, text.ko]) {
+    if (typeof candidate === "string" && candidate.trim() !== "") return candidate;
+  }
+  return null;
+}
+
+/**
+ * Whether ANY language has usable text.
+ *
+ * Not the same as `pick(text, "ko") != null`: that tries `[ko, en, ko]` and so
+ * cannot see a zh-only value. Using it as the drop test would discard a session
+ * titled only in Chinese while logging "blank in every language" — a false
+ * statement that sends the ops person looking in the wrong place.
+ */
+function hasAnyText(text: I18n | null | undefined): boolean {
+  if (!text) return false;
+  return SUPPORTED_LANGS.some(
+    (lang) => typeof text[lang] === "string" && text[lang]!.trim() !== "",
+  );
+}
+
 function t(key: string, lang: SupportedLang): string {
   const entry = translations[key];
   if (!entry) return key;
   return entry[lang] || entry.ko || key;
 }
 
-export { t };
+export { hasAnyText, pick, t };

@@ -226,10 +226,12 @@ async function main() {
           .join(", "),
     );
 
-    // A category with no matching layer filter still materializes — it falls
-    // back through itemDefaults.fallback — but it will not be drawn by any
-    // layer, so the pins silently do not appear. Naming the categories above is
-    // what lets the operator compare them against config/<layerSetId>.json.
+    // A category with no itemDefaults.byCategory entry still materializes and
+    // IS drawn — on itemDefaults.fallback.layerId (기타 for ESKARA), with the
+    // fallback's pinPriority — so a typo ("bat" for "bar") shows up as booths
+    // under the wrong chip and colour, not as missing pins. Naming the
+    // categories above is what lets the operator compare them against the
+    // byCategory keys in config/<layerSetId>.json before that happens.
     const boundaries = upcomingBoundaries(docs, now);
     if (boundaries.length > 0) {
       console.log(`next       status changes at ${boundaries.join(", ")}`);

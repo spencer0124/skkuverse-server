@@ -1,272 +1,294 @@
 {
-  "schemaVersion": 1,
-  "configVersion": 1,
+  "configVersion": 2,
   "layerSetId": "eskara-2026",
   "campus": "nsc",
-  "camera": { "lat": 37.295129, "lng": 126.971234, "zoom": 17.5 },
+  "name": {
+    "ko": "26ESKARA"
+  },
+  "emoji": "🎪",
+  "camera": {
+    "lat": 37.295129,
+    "lng": 126.971234,
+    "zoom": 17.5,
+    "tilt": 0,
+    "bearing": 0,
+    "durationMs": 500
+  },
   "timezone": "Asia/Seoul",
   "refreshAfterSec": 60,
   "stackKeyBy": "placeId",
-
-  "icons": {
-    "generic": { "kind": "symbol", "symbol": "green" },
-    "generic_off": { "kind": "symbol", "symbol": "gray" },
-    "bar": { "kind": "symbol", "symbol": "red" },
-    "bar_off": { "kind": "symbol", "symbol": "gray" },
-    "booth": { "kind": "symbol", "symbol": "blue" },
-    "booth_off": { "kind": "symbol", "symbol": "gray" },
-    "food": { "kind": "symbol", "symbol": "yellow" },
-    "food_off": { "kind": "symbol", "symbol": "gray" },
-    "stage": { "kind": "symbol", "symbol": "pink" },
-    "stage_off": { "kind": "symbol", "symbol": "gray" },
-    "facility": { "kind": "symbol", "symbol": "lightblue" },
-    "facility_off": { "kind": "symbol", "symbol": "gray" }
-  },
-
   "layers": [
     {
-      "id": "bar",
-      "render": "pin",
-      "label": { "ko": "주점", "en": "Bars", "zh": "酒馆" },
-      "filter": ["has", "cat:bar"],
-      "defaultVisible": true,
-      "minZoom": 15,
-      "maxZoom": null,
-      "iconId": "bar",
-      "sortId": "manual"
+      "id": "eskara26_stage",
+      "label": {
+        "ko": "공연",
+        "en": "Stages",
+        "zh": "演出"
+      },
+      "color": "F76CA0",
+      "defaultVisible": true
     },
     {
-      "id": "booth",
-      "render": "pin",
-      "label": { "ko": "부스", "en": "Booths", "zh": "摊位" },
-      "filter": ["has", "cat:booth"],
-      "defaultVisible": true,
-      "minZoom": 15,
-      "maxZoom": null,
-      "iconId": "booth",
-      "sortId": "manual"
+      "id": "eskara26_bar",
+      "label": {
+        "ko": "주점",
+        "en": "Bars",
+        "zh": "酒馆"
+      },
+      "color": "F04452",
+      "defaultVisible": true
     },
     {
-      "id": "food",
-      "render": "pin",
-      "label": { "ko": "먹거리", "en": "Food", "zh": "美食" },
-      "filter": ["has", "cat:food"],
-      "defaultVisible": true,
-      "minZoom": 15,
-      "maxZoom": null,
-      "iconId": "food",
-      "sortId": "manual"
+      "id": "eskara26_food",
+      "label": {
+        "ko": "먹거리",
+        "en": "Food",
+        "zh": "美食"
+      },
+      "color": "FFB800",
+      "defaultVisible": true
     },
     {
-      "id": "stage",
-      "render": "pin",
-      "label": { "ko": "공연", "en": "Stages", "zh": "演出" },
-      "filter": ["has", "cat:stage"],
-      "defaultVisible": true,
-      "minZoom": 14,
-      "maxZoom": null,
-      "iconId": "stage",
-      "sortId": "manual"
+      "id": "eskara26_booth",
+      "label": {
+        "ko": "부스",
+        "en": "Booths",
+        "zh": "摊位"
+      },
+      "color": "3182F6",
+      "defaultVisible": true
     },
     {
-      "id": "facility",
-      "render": "pin",
-      "label": { "ko": "편의시설", "en": "Facilities", "zh": "便利设施" },
-      "filter": ["has", "cat:facility"],
-      "defaultVisible": true,
-      "minZoom": 16,
-      "maxZoom": null,
-      "iconId": "facility",
-      "sortId": "title"
+      "id": "eskara26_facility",
+      "label": {
+        "ko": "편의시설",
+        "en": "Facilities",
+        "zh": "便利设施"
+      },
+      "color": "4CC9F0",
+      "defaultVisible": false
+    },
+    {
+      "id": "eskara26_etc",
+      "label": {
+        "ko": "기타",
+        "en": "Other",
+        "zh": "其他"
+      },
+      "color": "8B95A1",
+      "defaultVisible": true
     }
   ],
-
-  "chipGroups": [
+  "chips": [
     {
-      "id": "day",
-      "label": { "ko": "일자", "en": "Day", "zh": "日期" },
-      "selection": "single",
-      "chips": [
-        {
-          "id": "day_all",
-          "label": { "ko": "전체", "en": "All", "zh": "全部" },
-          "defaultSelected": true,
-          "predicate": ["all"]
-        },
-        {
-          "id": "day_1",
-          "label": { "ko": "1일차", "en": "Day 1", "zh": "第1天" },
-          "predicate": ["has", "day:1"]
-        },
-        {
-          "id": "day_2",
-          "label": { "ko": "2일차", "en": "Day 2", "zh": "第2天" },
-          "predicate": ["has", "day:2"]
-        }
-      ]
+      "id": "eskara26_view_stage",
+      "emoji": "🎤",
+      "layerIds": [
+        "eskara26_stage"
+      ],
+      "label": {
+        "ko": "공연",
+        "en": "Stage",
+        "zh": "演出"
+      }
     },
     {
-      "id": "slot",
-      "label": { "ko": "시간대", "en": "Time", "zh": "时段" },
-      "selection": "multi",
-      "chips": [
-        {
-          "id": "slot_day",
-          "label": { "ko": "주간", "en": "Daytime", "zh": "白天" },
-          "predicate": ["has", "slot:day"]
-        },
-        {
-          "id": "slot_night",
-          "label": { "ko": "야간", "en": "Night", "zh": "夜间" },
-          "predicate": ["has", "slot:night"]
-        }
-      ]
+      "id": "eskara26_view_bar",
+      "emoji": "🍺",
+      "layerIds": [
+        "eskara26_bar"
+      ],
+      "label": {
+        "ko": "주점",
+        "en": "Bar",
+        "zh": "酒吧"
+      }
     },
     {
-      "id": "category",
-      "label": { "ko": "종류", "en": "Kind", "zh": "种类" },
-      "selection": "multi",
-      "chips": [
-        {
-          "id": "cat_food",
-          "label": { "ko": "먹거리", "en": "Food", "zh": "美食" },
-          "predicate": ["hasAny", ["cat:food", "cat:bar"]]
-        },
-        {
-          "id": "cat_booth",
-          "label": { "ko": "부스", "en": "Booths", "zh": "摊位" },
-          "predicate": ["has", "cat:booth"]
-        },
-        {
-          "id": "cat_stage",
-          "label": { "ko": "공연", "en": "Stages", "zh": "演出" },
-          "predicate": ["has", "cat:stage"]
-        },
-        {
-          "id": "cat_facility",
-          "label": { "ko": "편의시설", "en": "Facilities", "zh": "便利设施" },
-          "predicate": ["has", "cat:facility"]
-        }
-      ]
+      "id": "eskara26_view_food",
+      "emoji": "🍢",
+      "layerIds": [
+        "eskara26_food"
+      ],
+      "label": {
+        "ko": "먹거리",
+        "en": "Food",
+        "zh": "美食"
+      }
     },
     {
-      "id": "now",
-      "label": null,
-      "selection": "multi",
-      "chips": [
-        {
-          "id": "open_now",
-          "label": { "ko": "지금 운영중", "en": "Open now", "zh": "正在营业" },
-          "predicate": ["status", ["open"]]
-        }
-      ]
+      "id": "eskara26_view_booth",
+      "emoji": "🎫",
+      "layerIds": [
+        "eskara26_booth"
+      ],
+      "label": {
+        "ko": "부스",
+        "en": "Booth",
+        "zh": "摊位"
+      }
+    },
+    {
+      "id": "eskara26_view_facility",
+      "emoji": "🚻",
+      "layerIds": [
+        "eskara26_facility"
+      ],
+      "label": {
+        "ko": "편의시설",
+        "en": "Facilities",
+        "zh": "便利设施"
+      }
     }
   ],
-
   "sorts": [
     {
       "id": "manual",
-      "label": { "ko": "추천순", "en": "Recommended", "zh": "推荐" },
+      "label": {
+        "ko": "추천순",
+        "en": "Recommended",
+        "zh": "推荐"
+      },
       "by": "order"
     },
     {
       "id": "title",
-      "label": { "ko": "이름순", "en": "Name", "zh": "名称" },
+      "label": {
+        "ko": "이름순",
+        "en": "Name",
+        "zh": "名称"
+      },
       "by": "title"
     },
     {
       "id": "soon",
-      "label": { "ko": "시작 임박순", "en": "Starting soon", "zh": "即将开始" },
+      "label": {
+        "ko": "시작 임박순",
+        "en": "Starting soon",
+        "zh": "即将开始"
+      },
       "by": "startAt"
     }
   ],
-
   "cardTemplates": [
     {
       "id": "booth",
       "slots": [
-        { "kind": "thumbnail" },
-        { "kind": "title" },
+        {
+          "kind": "thumbnail"
+        },
+        {
+          "kind": "title"
+        },
         {
           "kind": "field",
           "fieldKey": "cancelled",
-          "label": { "ko": "안내", "en": "Notice", "zh": "通知" }
+          "label": {
+            "ko": "안내",
+            "en": "Notice",
+            "zh": "通知"
+          }
         },
-        { "kind": "subtitle" },
-        { "kind": "hours" },
-        { "kind": "tags" }
+        {
+          "kind": "subtitle"
+        },
+        {
+          "kind": "hours"
+        },
+        {
+          "kind": "tags"
+        }
       ]
     },
     {
       "id": "bar",
       "slots": [
-        { "kind": "thumbnail" },
-        { "kind": "title" },
+        {
+          "kind": "thumbnail"
+        },
+        {
+          "kind": "title"
+        },
         {
           "kind": "field",
           "fieldKey": "cancelled",
-          "label": { "ko": "안내", "en": "Notice", "zh": "通知" }
+          "label": {
+            "ko": "안내",
+            "en": "Notice",
+            "zh": "通知"
+          }
         },
-        { "kind": "subtitle" },
-        { "kind": "hours" },
+        {
+          "kind": "subtitle"
+        },
+        {
+          "kind": "hours"
+        },
         {
           "kind": "field",
           "fieldKey": "menu",
-          "label": { "ko": "메뉴", "en": "Menu", "zh": "菜单" }
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          }
         },
-        { "kind": "tags" }
+        {
+          "kind": "tags"
+        }
       ]
     },
     {
       "id": "facility",
       "slots": [
-        { "kind": "title" },
+        {
+          "kind": "title"
+        },
         {
           "kind": "field",
           "fieldKey": "cancelled",
-          "label": { "ko": "안내", "en": "Notice", "zh": "通知" }
+          "label": {
+            "ko": "안내",
+            "en": "Notice",
+            "zh": "通知"
+          }
         },
-        { "kind": "hours" }
+        {
+          "kind": "hours"
+        }
       ]
     }
   ],
-
   "itemDefaults": {
     "byCategory": {
       "bar": {
-        "iconId": "bar",
-        "iconIdClosed": "bar_off",
+        "layerId": "eskara26_bar",
         "pinPriority": 30,
         "cardTemplateId": "bar"
       },
       "booth": {
-        "iconId": "booth",
-        "iconIdClosed": "booth_off",
+        "layerId": "eskara26_booth",
         "pinPriority": 20,
         "cardTemplateId": "booth"
       },
       "food": {
-        "iconId": "food",
-        "iconIdClosed": "food_off",
+        "layerId": "eskara26_food",
         "pinPriority": 20,
         "cardTemplateId": "booth"
       },
       "stage": {
-        "iconId": "stage",
-        "iconIdClosed": "stage_off",
+        "layerId": "eskara26_stage",
         "pinPriority": 40,
         "cardTemplateId": "booth"
       },
       "facility": {
-        "iconId": "facility",
-        "iconIdClosed": "facility_off",
+        "layerId": "eskara26_facility",
         "pinPriority": 10,
         "cardTemplateId": "facility"
       }
     },
     "fallback": {
-      "iconId": "generic",
-      "iconIdClosed": "generic_off",
+      "layerId": "eskara26_etc",
       "pinPriority": 0,
       "cardTemplateId": "booth"
     }

@@ -10,16 +10,16 @@
  * it is only known after the content hash has been compared against whatever is
  * currently active, which is I/O and therefore not this module's business.
  */
-import { t } from "../infra/i18n";
-import type { SupportedLang } from "../infra/types";
+import { hasAnyText, pick, t } from "../infra/i18n";
+import { SUPPORTED_LANGS, type SupportedLang } from "../infra/types";
 import { ROOT_RELATIVE_PATH_RE, toWebviewUrl } from "../infra/webview-url";
 import { canonicalStringify, md5 } from "./eventmap.hash";
+import { presentationFor } from "./types";
 import type {
   ActivationDoc,
   EventMapConfig,
   EventMapItem,
   EventMapSnapshotBody,
-  I18n,
   ItemPresentation,
   ItemStatus,
   PlaceDoc,
@@ -28,12 +28,9 @@ import type {
   WireAction,
   WireCardSlot,
   WireCardTemplate,
-  WireChipGroup,
-  WireLayer,
   WireSort,
 } from "./types";
 
-const LANGS: readonly SupportedLang[] = ["ko", "en", "zh"];
 
 export interface MaterializeInput {
   config: EventMapConfig;
@@ -74,37 +71,7 @@ export interface MaterializeResult {
   rejectedActions: RejectedAction[];
 }
 
-// --- i18n -------------------------------------------------------------------
-
-/**
- * text[lang] → text.en → text.ko, treating BLANK as absent.
- *
- * `??` alone would accept an ops-typed `en: ""` as a present value and render an
- * empty caption — the failure looks like a rendering bug rather than a data one,
- * so it survives a long time. Trim-and-skip costs nothing.
- */
-function pick(text: I18n | null | undefined, lang: SupportedLang): string | null {
-  if (!text) return null;
-  for (const candidate of [text[lang], text.en, text.ko]) {
-    if (typeof candidate === "string" && candidate.trim() !== "") return candidate;
-  }
-  return null;
-}
-
-/**
- * Whether ANY language has usable text.
- *
- * Not the same as `pick(text, "ko") != null`: that tries `[ko, en, ko]` and so
- * cannot see a zh-only value. Using it as the drop test would discard a session
- * titled only in Chinese while logging "blank in every language" — a false
- * statement that sends the ops person looking in the wrong place.
- */
-function hasAnyText(text: I18n | null | undefined): boolean {
-  if (!text) return false;
-  return (["ko", "en", "zh"] as const).some(
-    (lang) => typeof text[lang] === "string" && text[lang]!.trim() !== "",
-  );
-}
+// --- Instants ---------------------------------------------------------------
 
 /**
  * A usable instant, or `undefined` when the stored value is not a Date at all.
@@ -192,16 +159,15 @@ function shipsBounds(session: SessionDoc): boolean {
 
 // --- Tags -------------------------------------------------------------------
 
-/** §6.4. Lowercased, nulls dropped, deduplicated. `status` is NOT a tag. */
+/**
+ * §6.4. What ops wrote on the session and on the plot — lowercased, blanks
+ * dropped, deduplicated. Nothing is DERIVED: the `cat:` / `day:` / `slot:` axes
+ * existed for the predicate filters, and with those gone the only reader left
+ * is the card's `tags` slot, which prints every entry as a badge, verbatim.
+ * `status` was never a tag and still is not.
+ */
 export function buildTags(session: SessionDoc, place: PlaceDoc): string[] {
   const candidates: Array<string | null | undefined> = [
-    session.category ? `cat:${session.category}` : null,
-    session.dayIndex == null ? null : `day:${session.dayIndex}`,
-    session.slot ? `slot:${session.slot}` : null,
-    session.tenant?.id ? `tenant:${session.tenant.id}` : null,
-    session.tenant?.kind ? `kind:${session.tenant.kind}` : null,
-    `place:${session.placeId}`,
-    place.zone ? `zone:${place.zone}` : null,
     ...(session.tags ?? []),
     ...(place.tags ?? []),
   ];
@@ -328,34 +294,6 @@ function resolveActions(actions: SessionAction[], lang: SupportedLang): WireActi
 
 // --- Structure → wire -------------------------------------------------------
 
-function wireLayers(config: EventMapConfig, lang: SupportedLang): WireLayer[] {
-  return config.layers.map((layer) => ({
-    id: layer.id,
-    render: layer.render,
-    label: pick(layer.label, lang) ?? layer.id,
-    filter: layer.filter,
-    defaultVisible: layer.defaultVisible,
-    minZoom: layer.minZoom ?? null,
-    maxZoom: layer.maxZoom ?? null,
-    iconId: layer.iconId,
-    sortId: layer.sortId,
-  }));
-}
-
-function wireChipGroups(config: EventMapConfig, lang: SupportedLang): WireChipGroup[] {
-  return config.chipGroups.map((group) => ({
-    id: group.id,
-    label: pick(group.label, lang),
-    selection: group.selection,
-    chips: group.chips.map((chip) => ({
-      id: chip.id,
-      label: pick(chip.label, lang) ?? chip.id,
-      defaultSelected: chip.defaultSelected === true,
-      predicate: chip.predicate,
-    })),
-  }));
-}
-
 function wireSorts(config: EventMapConfig, lang: SupportedLang): WireSort[] {
   return config.sorts.map((sort) => ({
     id: sort.id,
@@ -383,17 +321,7 @@ function wireCardTemplates(
   }));
 }
 
-// --- Presentation -----------------------------------------------------------
-
-/**
- * `category` is an OPEN string edited in Mongo, so an unmapped value is content,
- * not a config bug — it falls back rather than blocking publication. The
- * structure→structure references inside itemDefaults were already checked at
- * config load, so whichever presentation is chosen here is guaranteed resolvable.
- */
-function presentationFor(config: EventMapConfig, category: string): ItemPresentation {
-  return config.itemDefaults.byCategory[category] ?? config.itemDefaults.fallback;
-}
+// --- Fields -----------------------------------------------------------------
 
 function resolveFields(
   session: SessionDoc,
@@ -529,8 +457,7 @@ function toItem(entry: JoinedSession, lang: SupportedLang): EventMapItem {
     startAt: entry.startAt?.toISOString() ?? null,
     endAt: entry.endAt?.toISOString() ?? null,
     hoursLabel: pick(session.hoursLabel, lang),
-    iconId: presentation.iconId,
-    iconIdClosed: presentation.iconIdClosed ?? null,
+    layerId: presentation.layerId,
     pinPriority: presentation.pinPriority,
     cardTemplateId: presentation.cardTemplateId,
     order: session.order ?? 0,
@@ -590,18 +517,14 @@ export function materialize(input: MaterializeInput): MaterializeResult {
     nextChangeAt: nextChangeAt ? nextChangeAt.toISOString() : null,
     timezone: config.timezone,
     campus: config.campus,
-    camera: config.camera,
-    icons: config.icons,
   };
 
   const payloads = Object.fromEntries(
-    LANGS.map((lang) => [
+    SUPPORTED_LANGS.map((lang) => [
       lang,
       {
         ...base,
         lang,
-        layers: wireLayers(config, lang),
-        chipGroups: wireChipGroups(config, lang),
         sorts: wireSorts(config, lang),
         cardTemplates: wireCardTemplates(config, lang),
         items: joined.map((entry) => toItem(entry, lang)),

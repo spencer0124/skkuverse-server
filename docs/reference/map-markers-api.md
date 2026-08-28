@@ -19,13 +19,13 @@ audience: internal
 
 | | |
 | --- | --- |
-| Routes | `GET /map/config`, `GET /map/markers/campus`, `GET /map/markers/eskara26` |
+| Routes | `GET /map/config`, `GET /map/markers/campus`, `GET /map/markers/event` |
 | Auth | none on all three |
 | Rate limit | `BusRateLimitMiddleware`, applied to the `/map` prefixes in `MapModule.configure` |
 | Wire schema | `src/map/map-marker.types.ts` (markers), `src/map/map-chip.types.ts` (chips) |
-| Producers | `src/map/map-markers.data.ts` (buildings), `src/map/map-eskara26-markers.data.ts` (festival sessions) |
-| Layer catalogue | `src/map/map-layers.data.ts` — ids, `chipGroupId`, geometry |
-| Chips | `src/map/map-chips.data.ts` — specs, boot-time validation |
+| Producers | `src/map/map-markers.data.ts` (buildings), `src/map/map-event-markers.data.ts` (festival sessions) |
+| Layer catalogue | `src/map/map-layers.data.ts` — the base layers, and the projection of a festival's `layers[]` from its config |
+| Chips | `src/map/map-chips.data.ts` — the base chips, the projection of a festival's `chips[]`, the synthesised reset chip, and the one validator both go through |
 | Response builder | `src/map/map-config.data.ts` |
 | Envelope | `{ meta: { lang }, data: { markers: [ … ] } }`, `Vary: Accept-Language`, `X-Response-Time` |
 | Tests | `__tests__/nest/map/` |
@@ -62,7 +62,7 @@ except `text.zh`.
 ```ts
 type MarkerTap =
   | { kind: "skku_building"; placeId: string }
-  | { kind: "eskara26"; placeId: string };
+  | { kind: "event"; placeId: string };
 ```
 
 ### 2.1 `text` ships every language, and is not resolved server-side
@@ -105,7 +105,7 @@ ambiguity is what made the field load-bearing rather than redundant.
 
 A **cancellation is now expressed by not serving the marker at all**. That is what frees null/null to
 mean one thing, and it turns "a closed booth draws no pin" into the definition rather than a rule
-somebody has to remember. `/map/markers/eskara26` therefore queries `lifecycle: "published"` alone:
+somebody has to remember. `/map/markers/event` therefore queries `lifecycle: "published"` alone:
 `draft` and `hidden` were never materialized either, and `cancelled` is absent.
 
 > [!IMPORTANT]
@@ -239,8 +239,8 @@ Response, abridged to one event layer of the six, `lang=ko`, with a window open:
         "label": "공연",
         "defaultVisible": true,
         "userConfigurable": true,
-        "endpoint": "/map/markers/eskara26",
-        "chipGroupId": "eskara26",
+        "endpoint": "/map/markers/event",
+        "chipGroupId": "eskara-2026",
         "style": { "color": "F76CA0", "width": 22, "height": 30, "captionTextSize": 9 }
       }
     ],
@@ -319,7 +319,7 @@ blank campus, and it flags the response `degraded`. Meanwhile `getAllBuildings` 
 query returned — `[]` included — for five minutes, while this route's normal TTL is a day. A brief
 empty read during a re-seed or a migration would therefore pin the fallback map into every client and
 edge cache for 24 hours, on a stable URL with no version stamp and no revalidation to bust it. The
-eskara26 sibling self-heals from the same failure inside its 60-second TTL; this route needs the
+event sibling self-heals from the same failure inside its 60-second TTL; this route needs the
 explicit guard to match.
 
 `degraded` is a **server-side signal and never reaches the wire** — the response body is `{ markers }`
@@ -372,14 +372,26 @@ that the fallback path emits `tap: null` on purpose: those markers exist precise
 buildings collection is empty, so there is no document for `/building/:id` to return and a tap could
 only open a sheet that fails.
 
-### 5.3 `GET /map/markers/eskara26`
+### 5.3 `GET /map/markers/event`
 
 `Cache-Control: public, max-age=60`.
 
 Every **published** session of the currently active layer set, projected onto its plot's coordinates.
 An empty list rather than an error when no festival is live — the app asks for this endpoint whenever
 the layer is configured, and "no festival today" is an ordinary answer. When nothing is active it does
-not touch Mongo at all.
+not touch Mongo at all. The same answer, with one warning per process, when an activation names a
+layer set this build has no usable config for (§8.6): a category table the server cannot trust is not
+one it draws from.
+
+Named for the **mechanism**, not the festival. Whichever layer set is live is served here, and the
+app never sees the URL except as `layers[].endpoint` in `/map/config` — so next year's festival
+changes no route and no client.
+
+Each marker's `layerId` is the session's `category` resolved through the layer set's
+`itemDefaults` — the **same table and the same function** (`presentationFor`) the materializer uses
+to stamp `layerId` on the snapshot item with the same `id`. That is the join the app relies on to
+list "what the 주점 chip is showing": a booth's pin and its list row cannot land on different layers,
+because there is exactly one resolver.
 
 A minute rather than the snapshot tier's `immutable`: this URL is **stable rather than
 version-stamped**, so it can never be immutable. A minute is long enough for the edge to absorb a
@@ -412,7 +424,7 @@ Response:
         "text": { "ko": "우끼끼친", "en": "Ukkikki", "zh": "乌key" },
         "startAt": "2026-09-16T07:00:00.000Z",
         "endAt": "2026-09-16T11:00:00.000Z",
-        "tap": { "kind": "eskara26", "placeId": "nsc-plaza-a3" }
+        "tap": { "kind": "event", "placeId": "nsc-plaza-a3" }
       },
       {
         "id": "eskara-2026-toilet-a",
@@ -423,7 +435,7 @@ Response:
         "text": { "ko": "화장실", "en": "Toilets" },
         "startAt": null,
         "endAt": null,
-        "tap": { "kind": "eskara26", "placeId": "nsc-plaza-b1" }
+        "tap": { "kind": "event", "placeId": "nsc-plaza-b1" }
       }
     ]
   }
@@ -441,8 +453,8 @@ layer is on, with no `status` beside it to make that ambiguous.
 
 ## 6. Why layers share endpoints
 
-Both building layers point at `/map/markers/campus`. All six event layers point at
-`/map/markers/eskara26`.
+Both building layers point at `/map/markers/campus`. Every festival layer points at
+`/map/markers/event`.
 
 The app keys its marker cache on the **endpoint string** (`['map', 'layer', 'markers', endpoint]`),
 so layers sharing one URL share a single fetch and a single cache entry, and each renders its own
@@ -461,43 +473,43 @@ The trade is that a layer cannot be fetched in isolation. That is acceptable pre
 layers sharing an endpoint share a data source: filtering them apart server-side would send the same
 documents twice.
 
-## 7. The eskara26 layer set
+## 7. The festival layer set
 
-Six layers, present in `GET /map/config` only while an activation window is open. The window is the
-on/off lever (`npm run eventmap open|close`), so a festival starts and ends with no deploy and the
-layers simply stop existing afterwards rather than lingering as dead toggles.
+A festival's layers are **authored in its config** — `src/eventmap/config/<layerSetId>.json`,
+`layers[]` — and present in `GET /map/config` only while that layer set's activation window is open.
+The window is the on/off lever (`npm run eventmap open|close`), so a festival starts and ends with no
+deploy and the layers simply stop existing afterwards rather than lingering as dead toggles.
 
-The list below is the shape, not the SSOT: `ESKARA26_LAYERS` in
-`src/map/map-eskara26-markers.data.ts` holds the ids, colours and default visibility, and each label
-is that id resolved through `src/infra/i18n.ts` (`map.layer.<id>`). Values are as served at the time
-of writing:
+Each entry is `{ id, label: {ko, en?, zh?}, color, defaultVisible }` and nothing else: `color` is
+content (a category colour is a fact about the event), and everything about how a festival pin is
+*drawn* — `markerStyle: "placeDot"`, the pin geometry — is the map's business, applied to every
+festival alike by `eventLayerSpecs` in `src/map/map-layers.data.ts`. Every festival layer is
+`userConfigurable: true`; one that ships `defaultVisible: false` is the opt-in tier (편의시설), not a
+locked background layer. Its `chipGroupId` is the **layer set id**, so two festivals could never share
+a chip group.
 
-| Layer id | `ko` label | Colour | `defaultVisible` | Fed by `category` |
-| --- | --- | --- | --- | --- |
-| `eskara26_stage` | 공연 | `F76CA0` | `true` | `stage` |
-| `eskara26_bar` | 주점 | `F04452` | `true` | `bar` |
-| `eskara26_food` | 먹거리 | `FFB800` | `true` | `food` |
-| `eskara26_booth` | 부스 | `3182F6` | `true` | `booth` |
-| `eskara26_facility` | 편의시설 | `4CC9F0` | `false` | `facility` |
-| `eskara26_etc` | 기타 | `8B95A1` | `true` | everything else |
+Which category lands on which layer is `itemDefaults.byCategory[<category>].layerId` in the same
+file, with `itemDefaults.fallback.layerId` for anything unmapped. That table is the **only** place
+the mapping exists; the materializer and this route both resolve through it
+([eventmap-api.md §2.1](eventmap-api.md)). A layer id that collides with a base layer, a
+`layerId` that names no layer, or a set with nothing `defaultVisible` is a rejected config (§8.6).
 
-Every one is `userConfigurable: true`, 편의시설 included — that one merely starts hidden. Nothing in
-the festival set is a locked background layer.
+The values as served for ESKARA 2026 are the file itself — read it rather than a copy here.
 
-They are declared as **one list** rather than an id array beside a colour map beside a hidden set:
-parallel structures keyed by the same strings drift, and the drift shows up as a layer with no colour
-rather than as a compile error. The layer id union is read off that list, so a category mapped to a
-layer that does not exist is a compile error instead of a booth belonging to nothing.
+Next year's festival is therefore a new JSON file (registered in `CONFIG_FILES` and
+`scripts/copy-build-assets.js`) plus Mongo content. No route, no TypeScript, no client branch: the
+ids inside the file are the festival's to choose, and `eskara26_*` is a choice, not a requirement.
 
-### 7.1 `eskara26_etc` — the fallback that is not a bug
+### 7.1 The fallback layer — the one that is not a bug
 
 `SessionDoc.category` is an **open string on purpose**: "전시" next year must be a Mongo edit, not a
-deploy. The `/map/config` layer list is a TypeScript literal. Those two facts collide, and an unmapped
-category has no layer to belong to.
+deploy. The layer table is a config file. Those two facts collide, and an unmapped category has no
+entry to belong to.
 
-It resolves to `eskara26_etc` rather than vanishing, because **a booth missing from the festival map
-is not a failure anyone can see or report**. A booth in the wrong bucket is visible and fixable; a
-booth nobody drew is silent.
+It resolves to `itemDefaults.fallback.layerId` rather than vanishing, because **a booth missing from
+the festival map is not a failure anyone can see or report**. A booth in the wrong bucket is visible
+and fixable; a booth nobody drew is silent. The importer prints the distinct categories it is about
+to write for exactly this comparison.
 
 ## 8. Chips
 
@@ -512,11 +524,12 @@ snapshot items on the map screen left to filter, so `<EventMapChipRow />` was re
 `CampusChipRow.tsx`, a hardcoded mock whose own header says the list "is what gets deleted" when an
 endpoint lands. This is that endpoint.
 
-> [!IMPORTANT]
-> `MapChip` is **not** `ChipSpec` / `ChipGroupSpec` / `WireChip` from
-> [eventmap-api.md](eventmap-api.md). Those carry a `Predicate` and filter snapshot items
-> client-side. A map chip carries an **action** and has no predicate at all. The names are close
-> because the UI affordance is the same pill; the contracts are unrelated.
+> [!NOTE]
+> `MapChip` is the **wire**. The **authored** form of a festival chip is `EventChipDef` in the layer
+> set's config — `{ id, emoji, layerIds, label? }` — and `src/map/map-chips.data.ts` projects it into
+> this shape, adding the camera and the synthesised reset chip (§8.5). The snapshot no longer carries
+> a chip vocabulary of its own; the predicate chips it used to ship are gone with the pins they
+> filtered.
 
 ### 8.1 The schema
 
@@ -530,13 +543,13 @@ type MapChipAction =
 
 interface MapChip {
   id: string;
-  label: string;                                  // t(`map.chip.<id>`), resolved server-side
+  label: string;                                  // pick(label, lang), resolved server-side
   icon: { kind: "emoji"; emoji: string } | null;
   action: MapChipAction;
 }
 ```
 
-Discriminated on `kind`, matching `MarkerTap` and `IconSpec` in this same domain rather than the flat
+Discriminated on `kind`, matching `MarkerTap` in this same domain rather than the flat
 `actionType` + `actionValue: string` pair the home screen's SDUI uses. That pair cannot carry a
 camera, and encoding one as JSON inside a string would put a second parser on the wire.
 
@@ -578,7 +591,7 @@ are properties of the layer, kept separate from where the layer's data comes fro
 | Layer | `chipGroupId` |
 | --- | --- |
 | `building_numbers`, `building_labels` | `null` — no chip may ever change them |
-| every `eskara26_*` | `"eskara26"` |
+| every festival layer | the layer set id, e.g. `"eskara-2026"` |
 
 `null` is a meaningful value here, not an omission.
 
@@ -594,55 +607,68 @@ It also costs nothing. The app already fetches this document.
 
 ### 8.5 The chips served
 
-| Chip id | `ko` label | Action | Live when |
-| --- | --- | --- | --- |
-| `eskara26_view_all` | 26ESKARA | `focus`, the five **default-visible** festival layers | activation open |
-| `eskara26_view_stage` | 공연 | `focus`, `eskara26_stage` | activation open |
-| `eskara26_view_bar` | 주점 | `focus`, `eskara26_bar` | activation open |
-| `eskara26_view_food` | 먹거리 | `focus`, `eskara26_food` | activation open |
-| `eskara26_view_booth` | 부스 | `focus`, `eskara26_booth` | activation open |
-| `eskara26_view_facility` | 편의시설 | `focus`, `eskara26_facility` | activation open |
+While a layer set is live, the row is: **the reset chip, then every chip authored in the layer set's
+config**, in file order — followed by nothing else, because `BASE_CHIPS` is empty. 분실물 lived there
+and was removed, and that action is still reachable from the campus SDUI (`src/ui/ui/ui.campus.ts`).
+So outside an activation window `chips` is `[]`, and a client must render nothing rather than an
+empty row. It stays a list because a permanent chip is an ordinary thing to want back.
 
-**Every chip served today is a festival chip.** `BASE_CHIPS` is empty — 분실물 lived there and was
-removed, and that action is still reachable from the campus SDUI (`src/ui/ui/ui.campus.ts`). So
-outside an activation window `chips` is `[]`, and a client must render nothing rather than an empty
-row. It stays a list because a permanent chip is an ordinary thing to want back.
+**The reset chip is synthesised, not authored.** Its id is `<layerSetId>_all` (`eskara-2026_all`), its
+label is the festival's `name`, its icon the festival's `emoji`, and its `layerIds` are exactly the
+layers marked `defaultVisible` — the festival's **default** set, not literally every layer. That
+distinction is load-bearing: a layer that ships `defaultVisible: false` (편의시설) must stay out of it,
+or the way back would turn on something the user never opted into and leave no chip that returns to
+the ordinary festival view. Deriving the list from the layer definitions is what makes drift
+impossible; a hand-written copy of the same ids is the parallel structure that quietly stops turning
+one category back on. The id form is a wire rule the app may key on (it logs `map_chip` taps by
+chip id), which is why it is written down here and in `resetChip()` rather than left to a template
+string.
+
+An authored chip is `{ id, emoji, layerIds, label? }`. It names one or more of the layer set's own
+layers and shares the config's `camera`. `label` may be omitted for a single-layer chip, in which
+case the chip reads as its layer does; a chip spanning several layers has no such default and must
+say what it means. ESKARA 2026 authors every label, because its pills read singular (`Bar`) where its
+layer toggles read plural (`Bars`) — copy that a deploy must not quietly change.
 
 Festival chips are gated by the **same activation window** as the festival layers, so a festival
 starts and ends with no deploy and its chips stop existing rather than lingering as dead buttons.
 
-`eskara26_view_all` is the way back, and it restores the festival's **default** layer set rather than
-literally every layer. That distinction is load-bearing: `eskara26_facility` ships
-`defaultVisible: false`, so a chip naming all six would turn on a layer the user never opted into and
-leave no chip that returns to the ordinary festival view. The list is derived from
-`defaultVisible`, so it cannot drift from the layer definitions.
+### 8.6 Validation is fail-loud where a PR fixes it, fail-soft where a snapshot can keep serving
 
-`eskara26_view_facility` earns its place precisely because 편의시설 is that opt-in layer — a chip is
-how an opt-in layer becomes reachable without a trip through the filter sheet, and it is what lets
-the reset chip leave 편의시설 out and still be a complete way back.
+One validator, `validateChipSpecs(specs, catalogue)`, checks a chip row against the catalogue it will
+be served beside and **returns** every problem it finds, accumulated. Two callers, two consequences:
 
-### 8.6 Validation is fail-loud, at boot
+| Row | When | On failure |
+| --- | --- | --- |
+| `BASE_CHIPS` against `BASE_LAYERS` | module import, `src/map/map-chips.data.ts` | throws `FATAL [map chips]` — repo TypeScript, a PR fixes it, the boot must not proceed |
+| the festival row (reset chip + authored chips) against **the full served catalogue** (base + festival layers) | config load, `assertValidConfig` in `src/eventmap/eventmap.config.ts` | the layer set is **rejected**: logged once with the path, the previous snapshot stays live, and `/map/config` serves the base layers only — the festival is off the campus map until the file is fixed |
 
-`validateChipSpecs` runs at module import in `src/map/map-chips.data.ts`, accumulates every problem
-and throws once with all of them. A bad chip therefore aborts startup instead of reaching a client.
-That is the `miniapps.schema.ts` posture, not the `eventmap.materialize.ts` one: these lists are repo
-config, so a bad value is a bug a PR fixes, not a runtime contingency to render around. Fail loud
-where you can fix it, fail soft where you can only render it.
+The second row is a deliberate posture, and it has a cost worth naming: while a config is broken the
+manifest still advertises the last good snapshot (the materializer's rule), so the list sheet knows
+booths the map does not draw. That is preferred to drawing from a category table the server could
+not validate.
 
-Four rules are enforced, and one more is enforced by the compiler:
+The rules:
 
-| Rule | Enforced by |
+| Rule | Where |
 | --- | --- |
-| `layerIds` names a real layer | **`tsc`** — `MapLayerId` is read off the layer lists |
-| every named layer has a non-null `chipGroupId` | `validateChipSpecs`, throws |
-| a chip's `layerIds` do not straddle two groups | `validateChipSpecs`, throws |
-| a `webview` URL passes `toWebviewUrl` | `validateChipSpecs`, throws |
-| chip ids are unique | `validateChipSpecs`, throws |
+| a festival layer id does not reuse a base layer id | `assertValidConfig` |
+| every `itemDefaults.*.layerId` and every chip `layerIds[]` entry names a layer of the set | `assertValidConfig` (`layerId`), `validateChipSpecs` (chips) |
+| every named layer has a non-null `chipGroupId` | `validateChipSpecs` |
+| a chip's `layerIds` do not straddle two groups | `validateChipSpecs` |
+| chip ids are unique — including against the synthesised reset chip's | `validateChipSpecs`, the only place that collision is visible at all |
+| a `webview` URL passes `toWebviewUrl` | `validateChipSpecs` |
+| at least one layer is `defaultVisible`, so the reset chip restores something | `assertValidConfig` |
+| a multi-layer chip carries a label; `layerIds` is non-empty; `color` is bare six-digit hex | `assertValidConfig` |
 
-The one thing neither catches is a **missing translation**: `t()` returns the key on a miss, silently,
-so a chip with no i18n entry would render `map.chip.foo` as its visible label. That is covered by
-`__tests__/nest/map/map-chips.test.ts`, in all three languages, exactly as the layer suite guards its
-half.
+There is no translation-miss case any more. Labels are inline `{ko, en?, zh?}` on the layer and the
+chip, resolved with the one `pick()` in `src/infra/i18n.ts`, so a label with no `ko` is a rejected
+config and a base layer with no label does not compile.
+
+`src/map/map-layers.data.ts` and `src/map/map-chips.data.ts` are **leaf modules** of this seam:
+`eventmap.config.ts` imports them to validate at load, so they may never import it — or anything that
+does — back. `eslint.config.js` refuses such an import for those two files; the rule is executable,
+not prose.
 
 ### 8.7 Reserved: the "nearby" chip
 
@@ -662,42 +688,43 @@ constraint it will run into.
 
 Stated plainly, because each one is a real constraint on the next deploy rather than a nicety.
 
-### 9.1 Deploy order is load-bearing — ship the app first
+### 9.1 Deploy order — the app half is prerequisite, not follow-up
 
-The app has **no `layerId` filter, no `tap` handling, and no `placeDot` marker style**. Its
-`RawMarkerData` still reads `skkuId` and `displayNo`, and its `markerStyle` union is
-`numberCircle | numberDot | textLabel` (`packages/shared/src/types/map.ts` and
-`packages/shared/src/map/parser.ts` in skkuverse-app).
+This server change is **not compatible with the shipped app**, and no deploy order makes it so.
+Chosen knowingly: the wire that named a festival had to go, and the two halves land inside one
+release. What an app built before its half sees against this server:
 
-Deploying this server before that app ships means every building is drawn **twice** — once per layer,
-with no filter to separate them — with a **blank label**, because the app looks for `displayNo` and a
-bare-string `text`, and **untappable**, because it looks for `skkuId`. The festival layers fare no
-better: an unknown `markerStyle` falls through to the default branch, and the event markers have no
-tap path at all.
+| Surface | Shipped app + this server |
+| --- | --- |
+| Festival pins | drawn — the app reads `layers[].endpoint` from `/map/config`, so `/map/markers/event` is found |
+| Chips | work — server-driven, dispatched on `action.kind` |
+| Tapping a pin | **inert** — `tap.kind: "event"` is not in the app's `TAP_KINDS` allowlist, and an unknown kind leaves the marker drawn but untappable |
+| List / peek sheet | **gone** — the snapshot's `schemaVersion` is 2, the app's parser drops any snapshot newer than its own `EVENTMAP_SCHEMA_VERSION = 1` |
+| `skkuverse://map?place=event:…` | dropped — `PLACE_KINDS` does not carry `event` |
 
-Nothing in the payload lets the server detect an old client. Order is the whole mechanism:
+The app-side change is: `TAP_KINDS` / `PLACE_KINDS` / the `CampusScreen` switch learn `event`;
+`EVENTMAP_SCHEMA_VERSION` becomes 2; the snapshot parser stops reading `layers`, `chipGroups`,
+`icons`, `camera`, `iconId` and reads `items[].layerId`. Until it ships, the festival map is a
+picture with no taps.
+
+### 9.2 The `<kind>:<placeId>` deep link
+
+The link is literally the two fields of `tap`, so it can never disagree with the marker it came from:
 
 ```text
-app release (or OTA) → verify → deploy server
-```
-
-### 9.2 The `<kind>:<placeId>` deep link is agreed but not reachable
-
-The agreed format makes the link literally the two fields of `tap`, so it can never disagree with the
-marker it came from:
-
-```text
-skkuverse://map?place=eskara26:nsc-truck-05
+skkuverse://map?place=event:nsc-truck-05
 skkuverse://map?place=skku_building:2
 ```
 
-It does **not work today**. The app's `PLACE_ID_RE` is `/^[a-z0-9-]+$/`
-(`apps/mobile/app/+native-intent.tsx` in skkuverse-app), which rejects the colon, so such a link fails
-the shape test and is dropped silently. Widening the pattern is app-side work in the next pass.
+The app's `PLACE_ID_RE` (`apps/mobile/app/+native-intent.tsx` in skkuverse-app) accepts both this and
+the bare `?place=<placeId>` form already; what it lacks is `event` in its `PLACE_KINDS` allowlist,
+which is part of the app half above. An earlier revision of this section said the colon was rejected
+— it is not, and has not been for some time.
 
-**Umbrella ADR 0004 invariant 1 still specifies the bare `?place=<placeId>` form and needs amending**
-to match — as does [eventmap-api.md §8.1](eventmap-api.md), which documents the bare form as the
-universal scheme.
+**Umbrella ADR 0004 invariant 1 still specifies the bare form and needs amending** to match, as does
+[eventmap-api.md §8.1](eventmap-api.md). The same amendment retires invariant 2's "unrecognised
+predicate node evaluates `false`" — there is no predicate on the wire — in favour of the item-level
+rule: an item whose `layerId` the app cannot resolve is dropped and counted.
 
 ### 9.3 `userConfigurable` is served but nothing consumes it
 
@@ -707,31 +734,21 @@ therefore a **promise about the wire**, not a description of shipped behaviour, 
 means `true`) is what makes that safe in the meantime: today's clients behave exactly as if every
 layer were configurable, which is what every layer currently is.
 
-### 9.4 Next year's festival costs a route, a config entry and a client branch
+### 9.4 Next year's festival is a config file
 
-`eskara26` appears in three places that are not data: the layer ids, the route path
-(`/map/markers/eskara26`), and the `tap.kind` literal. `eskara27` therefore needs a new route, a new
-layer set in the config, and a client branch that knows the new tap kind.
+Nothing that is not data names the festival any more: the route is `/map/markers/event`, the tap
+kind is `event`, the chip group is the layer set id, and the layers, chips, labels, colours, camera,
+name and emoji are all in `src/eventmap/config/<layerSetId>.json`. `eskara27` is a new file, a
+`CONFIG_FILES` entry, a `copy-build-assets.js` line, and Mongo content. That is ADR 0004 invariant 1
+— "next year's event arrives as data" — honoured, after an earlier revision of this section chose to
+violate it for unambiguity.
 
-That was chosen deliberately, against ADR 0004 invariant 1 — "It must never learn the name of a
-consumer" — and its consequence that "next year's event arrives as data". The price is worth naming:
-
-- A user who turned 주점 off does not carry that choice into next year's festival, because
-  `eskara27_*` are different ids. Arguably correct anyway — it is a different festival.
-- Generic `event_*` ids would preserve it, at the price of a name that says nothing about which
-  festival is live.
-
-> [!NOTE]
-> An earlier revision of this section claimed the ids would also accumulate **dead keys**, because
-> "the app persists base-map layer visibility permanently". That is wrong, and worth recording so
-> the argument is not rebuilt on it: `packages/shared/src/store/map.ts` is explicitly *"ephemeral
-> (not persisted)"* and has no `persist` middleware, so nothing accumulates. The **event** store
-> (`store/eventmap.ts`) is the persisted one, and it already resets when `activeLayerSetId` changes.
-> If the base-map store ever gains persistence, this cost becomes real — and the shadow rule in §4.1
-> has to land in the same change.
-
-Unambiguity won. A generic id in a log line, a deep link or a bug report cannot tell you which
-festival it belonged to, and the festival map is a thing that is debugged in a crowd at 22:00.
+What stays festival-named is chosen, not required: the **layer and chip ids inside the file**
+(`eskara26_bar`, `eskara26_view_bar`). A generic `event_bar` would let a user's 주점 toggle survive
+into next year's festival; a festival-named one does not, and does not need to — it is a different
+festival — while a log line, a deep link or a bug report can still say which one. The base-map layer
+store in the app is ephemeral (`packages/shared/src/store/map.ts`, no `persist`), so neither choice
+accumulates dead keys.
 
 ### 9.5 A chip camera cannot be honoured in one call
 
@@ -780,15 +797,18 @@ today changes the response and nothing on screen, with no error on either side.
 | Concern | File |
 | --- | --- |
 | Wire schema, both producers | `src/map/map-marker.types.ts` |
-| Layer catalogue, `chipGroupId`, marker geometry | `src/map/map-layers.data.ts` |
-| Chip specs, validation, festival gating | `src/map/map-chips.data.ts` |
+| Base layer catalogue, festival layer projection, `chipGroupId`, marker geometry | `src/map/map-layers.data.ts` |
+| Base chips, festival chip projection, the reset chip, the one chip validator | `src/map/map-chips.data.ts` |
 | Chip wire schema | `src/map/map-chip.types.ts` |
 | Response builder, campuses, activation lookup | `src/map/map-config.data.ts` |
 | Buildings → markers, empty-DB fallback | `src/map/map-markers.data.ts` |
-| Event sessions → markers, layer set, category mapping | `src/map/map-eskara26-markers.data.ts` |
+| Event sessions → markers | `src/map/map-event-markers.data.ts` |
+| "Which layer set is live, and is its config usable" | `src/eventmap/eventmap.active.ts` |
+| Festival layers, chips, labels, colours, camera, category → layer table | `src/eventmap/config/<layerSetId>.json` |
+| Category → presentation resolver (both producers) | `presentationFor` in `src/eventmap/types.ts` |
 | HTTP + `Cache-Control` | `src/map/controllers/map-config.controller.ts`, `src/map/controllers/map-markers.controller.ts` |
 | Module wiring, rate limit, endpoint inventory | `src/map/map.module.ts` |
-| Layer, campus and chip labels | `src/infra/i18n.ts` (`map.layer.*`, `map.campus.*`, `map.chip.*`) |
+| Campus labels | `src/infra/i18n.ts` (`map.campus.*`) — layer and chip labels are inline `{ko, en?, zh?}` on their specs, resolved with `pick()` from the same module |
 | Building documents | `src/building/building.data.ts` |
 | Event documents + activation window | `src/eventmap/eventmap.data.ts`, `src/eventmap/types.ts` |
 | Tests | `__tests__/nest/map/` |

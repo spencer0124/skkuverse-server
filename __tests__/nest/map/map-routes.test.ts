@@ -7,7 +7,7 @@
  * wiring is exercised without the real data modules (no DB, no config coupling).
  * BuildingService is overridden too because MapModule imports BuildingModule,
  * whose real onModuleInit would hit lib/db. The src/map/*.data modules are
- * covered by map-markers.test.ts and map-eskara26-markers.test.ts alongside.
+ * covered by map-markers.test.ts and map-event-markers.test.ts alongside.
  *
  * Envelope parity:
  *  - /map/config → plain return → ResponseInterceptor wraps in
@@ -26,7 +26,7 @@ let httpServer: import("http").Server;
 let svc: {
   getMapConfig: jest.Mock;
   getCampusMarkers: jest.Mock;
-  getEskara26Markers: jest.Mock;
+  getEventMarkers: jest.Mock;
   getOverlaysByCategory: jest.Mock;
   computeEtag: jest.Mock;
   getOverlayById: jest.Mock;
@@ -36,7 +36,7 @@ beforeAll(async () => {
   svc = {
     getMapConfig: jest.fn(),
     getCampusMarkers: jest.fn(),
-    getEskara26Markers: jest.fn(),
+    getEventMarkers: jest.fn(),
     getOverlaysByCategory: jest.fn(),
     computeEtag: jest.fn(),
     getOverlayById: jest.fn(),
@@ -144,7 +144,7 @@ describe("GET /map/markers/campus", () => {
   });
 });
 
-describe("GET /map/markers/eskara26", () => {
+describe("GET /map/markers/event", () => {
   it("wraps the markers in the envelope and sets Cache-Control", async () => {
     const data = {
       markers: [
@@ -157,13 +157,13 @@ describe("GET /map/markers/eskara26", () => {
           text: { ko: "우끼끼친", en: "Ukkikki" },
           startAt: null,
           endAt: null,
-          tap: { kind: "eskara26", placeId: "nsc-plaza-a3" },
+          tap: { kind: "event", placeId: "nsc-plaza-a3" },
         },
       ],
     };
-    svc.getEskara26Markers.mockResolvedValue(data);
+    svc.getEventMarkers.mockResolvedValue(data);
 
-    const res = await request(httpServer).get("/map/markers/eskara26");
+    const res = await request(httpServer).get("/map/markers/event");
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ meta: { lang: "ko" }, data });
@@ -177,13 +177,13 @@ describe("GET /map/markers/eskara26", () => {
   it("does not fall through to its sibling route", async () => {
     // Both live on @Controller("map/markers"), so a literal path must reach its
     // own handler and leave the other untouched.
-    svc.getEskara26Markers.mockResolvedValue({ markers: [] });
+    svc.getEventMarkers.mockResolvedValue({ markers: [] });
 
-    const res = await request(httpServer).get("/map/markers/eskara26");
+    const res = await request(httpServer).get("/map/markers/event");
 
     expect(res.status).toBe(200);
     // Both halves: its own handler ran, and the sibling's did not.
-    expect(svc.getEskara26Markers).toHaveBeenCalled();
+    expect(svc.getEventMarkers).toHaveBeenCalled();
     expect(svc.getCampusMarkers).not.toHaveBeenCalled();
   });
 });

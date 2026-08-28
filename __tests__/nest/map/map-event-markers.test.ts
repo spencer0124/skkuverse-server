@@ -4,7 +4,9 @@
  * The assertions worth having here are the ones that fail silently in
  * production: a [lng,lat] swap puts the booth in the ocean, a campus the app
  * does not recognise makes the marker vanish inside the client parser with no
- * error, and an unmapped category would drop a real booth off the festival map.
+ * error, an unmapped category would drop a real booth off the festival map —
+ * and a marker filed on a different layer from its snapshot item would let the
+ * map and the list disagree about what the 주점 chip is showing.
  */
 
 jest.mock("../../../src/eventmap/eventmap.data", () => ({
@@ -18,7 +20,15 @@ import {
   getPlacesCollection,
   getSessionsCollection,
 } from "../../../src/eventmap/eventmap.data";
-import { getEskara26Markers } from "../../../src/map/map-eskara26-markers.data";
+import { getLayerSetConfig } from "../../../src/eventmap/eventmap.config";
+import { materialize } from "../../../src/eventmap/eventmap.materialize";
+import type { PlaceDoc, SessionDoc } from "../../../src/eventmap/types";
+import { getEventMarkers } from "../../../src/map/map-event-markers.data";
+
+const loaded = getLayerSetConfig("eskara-2026");
+if (!loaded?.config) throw new Error(`eskara-2026 failed to load: ${loaded?.error}`);
+const CONFIG = loaded.config;
+const CONFIG_HASH = loaded.configHash;
 
 const mockFindActiveActivation = findActiveActivation as jest.MockedFunction<
   typeof findActiveActivation
@@ -83,7 +93,7 @@ function arrange(sessions: unknown[], places: unknown[] = [PLACE]) {
   return { placesFind: p.find, sessionsFind: s.find };
 }
 
-describe("getEskara26Markers", () => {
+describe("getEventMarkers", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFindActiveActivation.mockResolvedValue({
@@ -96,7 +106,7 @@ describe("getEskara26Markers", () => {
 
     // No festival today is an ordinary answer, not an error — and it must not
     // touch Mongo at all.
-    await expect(getEskara26Markers()).resolves.toEqual({ markers: [] });
+    await expect(getEventMarkers()).resolves.toEqual({ markers: [] });
     expect(mockPlaces).not.toHaveBeenCalled();
     expect(mockSessions).not.toHaveBeenCalled();
   });
@@ -104,7 +114,7 @@ describe("getEskara26Markers", () => {
   it("projects a session onto its plot's coordinates", async () => {
     arrange([session()]);
 
-    const { markers } = await getEskara26Markers();
+    const { markers } = await getEventMarkers();
 
     expect(markers).toHaveLength(1);
     expect(markers[0]).toEqual({
@@ -118,14 +128,14 @@ describe("getEskara26Markers", () => {
       text: { ko: "우끼끼친", en: "Ukkikki" },
       startAt: "2026-09-16T07:00:00.000Z",
       endAt: "2026-09-16T11:00:00.000Z",
-      tap: { kind: "eskara26", placeId: "nsc-plaza-a3" },
+      tap: { kind: "event", placeId: "nsc-plaza-a3" },
     });
   });
 
   it("asks only for published, undeleted sessions of the live set", async () => {
     const { placesFind, sessionsFind } = arrange([session()]);
 
-    await getEskara26Markers();
+    await getEventMarkers();
 
     // `cancelled` is deliberately absent: a cancellation is expressed by the
     // marker not existing, which is what lets both-null mean "always".
@@ -143,7 +153,7 @@ describe("getEskara26Markers", () => {
   it("carries an unbounded window through as null on both sides", async () => {
     arrange([session({ _id: "toilet", startAt: null, endAt: null, category: "facility" })]);
 
-    const { markers } = await getEskara26Markers();
+    const { markers } = await getEventMarkers();
 
     // Always-on: the device reads null/null as "no bound", so 화장실 never
     // leaves the map.
@@ -152,15 +162,58 @@ describe("getEskara26Markers", () => {
     expect(markers[0]!.layerId).toBe("eskara26_facility");
   });
 
-  it("files an unmapped category under eskara26_etc rather than dropping it", async () => {
-    // `category` is an open string so next year's 전시 is a Mongo edit, but the
-    // layer list is a TS literal. A booth nobody can see is not a reportable bug.
+  it("files an unmapped category under the config's fallback layer rather than dropping it", async () => {
+    // `category` is an open string so next year's 전시 is a Mongo edit. A booth
+    // nobody can see is not a reportable bug, so it lands somewhere visible.
     arrange([session({ category: "전시" })]);
 
-    const { markers } = await getEskara26Markers();
+    const { markers } = await getEventMarkers();
 
     expect(markers).toHaveLength(1);
-    expect(markers[0]!.layerId).toBe("eskara26_etc");
+    expect(markers[0]!.layerId).toBe(CONFIG.itemDefaults.fallback.layerId);
+  });
+
+  it("returns nothing when the live layer set has no config this build knows", async () => {
+    mockFindActiveActivation.mockResolvedValue({
+      _id: "eskara-2099",
+    } as Awaited<ReturnType<typeof findActiveActivation>>);
+
+    // Not an error: the config is what says which layer a category belongs to,
+    // and without it there is nothing correct to serve. Mongo is not consulted.
+    await expect(getEventMarkers()).resolves.toEqual({ markers: [] });
+    expect(mockPlaces).not.toHaveBeenCalled();
+    expect(mockSessions).not.toHaveBeenCalled();
+  });
+
+  it("files every session on the SAME layer the snapshot item lands on", async () => {
+    // The whole reason `layerId` exists on both: the app joins a marker to its
+    // snapshot item by `id` and lists items by the layers the map is showing.
+    // Two resolvers would let a 주점 pin sit on the map while its row is missing
+    // from the 주점 list. One table, one function, so this cannot happen — and
+    // this is the test that says so, across mapped and unmapped categories.
+    const sessions = [
+      session({ _id: "bar-1", category: "bar" }),
+      session({ _id: "stage-1", category: "stage" }),
+      session({ _id: "unmapped-1", category: "전시" }),
+    ];
+    arrange(sessions);
+
+    const { markers } = await getEventMarkers();
+    const items = materialize({
+      config: CONFIG,
+      configHash: CONFIG_HASH,
+      activation: { _id: "eskara-2026", activeFrom: null, activeUntil: null, enabled: true, updatedAt: new Date() },
+      places: [PLACE as unknown as PlaceDoc],
+      sessions: sessions as unknown as SessionDoc[],
+      now: new Date("2026-09-16T09:00:00.000Z"),
+    }).payloads.ko.items;
+
+    expect(markers.map((m) => m.id).sort()).toEqual(items.map((i) => i.id).sort());
+    for (const marker of markers) {
+      const item = items.find((i) => i.id === marker.id)!;
+      expect(marker.layerId).toBe(item.layerId);
+      expect(CONFIG.layers.some((l) => l.id === marker.layerId)).toBe(true);
+    }
   });
 
   it("takes campus from the plot, not the session's denormalized copy", async () => {
@@ -168,7 +221,7 @@ describe("getEskara26Markers", () => {
     // marker whose campus contradicts its position is dropped by the app parser.
     arrange([session({ campus: "hssc" })]);
 
-    const { markers } = await getEskara26Markers();
+    const { markers } = await getEventMarkers();
 
     expect(markers[0]!.campus).toBe("nsc");
   });
@@ -176,7 +229,7 @@ describe("getEskara26Markers", () => {
   it("skips a session whose place is missing or retired", async () => {
     arrange([session(), session({ _id: "orphan", placeId: "nsc-gone" })]);
 
-    const { markers } = await getEskara26Markers();
+    const { markers } = await getEventMarkers();
 
     // One typo in the session sheet must not take the festival down.
     expect(markers.map((m) => m.id)).toEqual(["s-1"]);
@@ -185,7 +238,7 @@ describe("getEskara26Markers", () => {
   it("falls back to Korean when a title has no English", async () => {
     arrange([session({ title: { ko: "에라의 불시착" } })]);
 
-    const { markers } = await getEskara26Markers();
+    const { markers } = await getEventMarkers();
 
     expect(markers[0]!.text).toEqual({
       ko: "에라의 불시착",
@@ -196,7 +249,7 @@ describe("getEskara26Markers", () => {
   it("carries an ops-authored Chinese title through to the wire", async () => {
     arrange([session({ title: { ko: "우끼끼친", en: "Ukkikki", zh: "乌key" } })]);
 
-    const { markers } = await getEskara26Markers();
+    const { markers } = await getEventMarkers();
 
     // The old snapshot path resolved titles across ko/en/zh server-side.
     // Flattening to {ko, en} here would lose Chinese booth names on a map whose
@@ -211,7 +264,7 @@ describe("getEskara26Markers", () => {
   it("omits zh entirely when ops authored none", async () => {
     arrange([session({ title: { ko: "에라의 불시착" } })]);
 
-    const { markers } = await getEskara26Markers();
+    const { markers } = await getEventMarkers();
 
     expect(markers[0]!.text).toEqual({
       ko: "에라의 불시착",

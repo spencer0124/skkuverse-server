@@ -21,6 +21,7 @@ import type {
   JongroStationMapping,
   TransferLine,
 } from "../types";
+import { isHex6 } from "../../infra/color";
 
 const isTest = process.env.NODE_ENV === "test";
 
@@ -135,9 +136,6 @@ export interface ValidationResult {
   errors: string[];
 }
 
-function isHex6(s: unknown): boolean {
-  return typeof s === "string" && /^[0-9A-Fa-f]{6}$/.test(s);
-}
 
 // `jongro07` and `jongro08` (two-digit zero-padded) — Seoul village bus
 // convention — and 10+ without zero padding. Rejects `jongro007`, `jongro2`,

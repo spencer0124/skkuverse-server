@@ -25,9 +25,10 @@ audience: internal
 | Writes | materializer poller (`ROLE !== "api"`) + force-publish endpoint |
 
 > [!IMPORTANT]
-> **Superseded.** `/map/config` **is** now extended: it lists the `eskara26_*` marker layers while
-> an activation window is open, and booth markers are served from `GET /map/markers/eskara26` in
-> the shared marker schema rather than from the snapshot. The independence this section claimed is
+> **Superseded.** `/map/config` **is** now extended: it lists the live layer set's marker layers and
+> chips while an activation window is open — both authored in this feature's config file (§2.1) —
+> and booth markers are served from `GET /map/markers/event` in the shared marker schema rather
+> than from the snapshot. The independence this section claimed is
 > preserved by containment instead of by separation — the activation lookup in `map-config.data.ts`
 > swallows its own failures and serves the base layers, so a Mongo problem cannot blank the campus
 > map. The manifest and snapshot endpoints below are still described as built; the map no longer
@@ -44,7 +45,7 @@ Config is split by **who edits it**, not by what it is.
 
 | Tier | Home | Edited by | Change cost |
 | --- | --- | --- | --- |
-| Structure — layers, chips, filters, sorts, card templates, icons | `src/eventmap/config/*.json` | developer | PR + deploy |
+| Structure — map layers, chips, name/emoji/camera, sorts, card templates, category → layer table | `src/eventmap/config/*.json` | developer | PR + deploy |
 | Activation — `activeFrom`, `activeUntil`, `enabled` | Mongo `activations` | ops | one field |
 | Content — places, sessions | Mongo `places`, `sessions` | ops | one field |
 
@@ -61,40 +62,42 @@ silently absent event map — which is indistinguishable from a finished festiva
 
 | Field | Notes |
 | --- | --- |
-| `schemaVersion` | Copied to the wire. Clients ignore a snapshot whose value exceeds theirs |
 | `configVersion` | **A human label only.** Excluded from `configHash` *and* from the payload — see §6.5 |
-| `campus`, `camera`, `timezone` | Copied to the wire. `camera.lat` is range-checked against ±90 |
+| `campus`, `timezone` | Copied to the wire |
+| `name`, `emoji` | The festival's display name and mark. They become the synthesised **reset chip** on the campus map ([map-markers-api.md §8.5](map-markers-api.md)); `name` is `{ko, en?, zh?}` |
+| `camera` | Where every festival chip points the campus map: `{lat, lng, zoom, tilt, bearing, durationMs}`, **all required**. `lat` is range-checked against ±90. Not on the snapshot |
 | `refreshAfterSec` | Manifest poll cadence while active. `300` is served when nothing runs |
 | `stackKeyBy` | `"placeId"` \| `"zone"` — the density lever of §7.2 |
-| `icons` | `{kind:"symbol", symbol}` or `{kind:"remote", uri, width, height}`. `symbol` is checked against a hand-mirrored copy of `@mj-studio/react-native-naver-map`'s closed `MarkerSymbol` union (verified byte-for-byte at 2.7.0; a drift fails loud with the offending path). `remote` requires `https://` |
-| `layers[]` | `id · render · label · filter · defaultVisible · minZoom? · maxZoom? · iconId · sortId` |
-| `chipGroups[]` | `id · label? · selection · chips[]`. Chip ids are the client's selection keys and must be unique **across all groups**, not per group |
+| `layers[]` | The festival's **map layers**, as `/map/config` will serve them: `{ id, label, color, defaultVisible }`. `color` is bare six-digit hex. Ids are unique and may not reuse a base layer's; at least one is `defaultVisible`. Geometry is the map's, not authored here |
+| `chips[]` | `{ id, emoji, layerIds, label? }` — the narrowing chips. `layerIds` name this set's layers; `label` may be omitted only for a single-layer chip. The reset chip is **not** authored — see map-markers-api.md §8.5 |
 | `sorts[]` | `by ∈ {order, title, startAt}`. `distance` is deliberately absent until the app depends on `expo-location` |
 | `cardTemplates[]` | `slots[]` of `title \| subtitle \| hours \| thumbnail \| tags \| field{fieldKey,label}` |
-| `itemDefaults` | `byCategory` + `fallback`, each `{iconId, iconIdClosed?, pinPriority, cardTemplateId}` |
+| `itemDefaults` | `byCategory` + `fallback`, each `{layerId, pinPriority, cardTemplateId}` |
 
-`itemDefaults` is how a session becomes a *pin*: `iconId`, `iconIdClosed`, `pinPriority` and
+**There is no `schemaVersion` in the file.** It is a fact about this server's materializer
+(`EVENTMAP_SCHEMA_VERSION` in `src/eventmap/types.ts`), stamped on every payload and manifest; a file
+that carries one is refused, because a copy left behind after a bump would tell every client the old
+shape while shipping the new one. Clients ignore a snapshot whose value exceeds theirs.
+
+`itemDefaults` is how a session becomes a *marker and a card*: `layerId`, `pinPriority` and
 `cardTemplateId` appear on every wire item but exist on no Mongo document, so they are looked up by
-the session's `category`.
+the session's `category`. `layerId` is the join key between a snapshot item and its `/map/markers`
+marker — the **same table, resolved by the same `presentationFor`**, stamps both, so a booth's pin
+and its list row cannot land on different layers.
 
 **`byCategory` keys are NOT validated against anything.** `category` is an open string edited in
 Mongo (§4.2), so an unmapped value is *content*, and content falls back to `itemDefaults.fallback`
-and logs. Compare the references *inside* each presentation — `iconId`, `cardTemplateId` — which are
-structure→structure and block publication outright. The line is drawn by who can fix it: a PR, or an
-ops person at 22:00 (ADR 0004 invariant 2).
+and logs. Compare the references *inside* each presentation — `layerId`, `cardTemplateId` — which
+are structure→structure and block publication outright. The line is drawn by who can fix it: a PR,
+or an ops person at 22:00 (ADR 0004 invariant 2).
 
-ESKARA 2026 ships **symbol** icons. No pin art exists yet, and a `remote` icon whose URI 404s renders
-a blank marker — the client's tolerant parser catches an unknown `kind`, not a dead URL. Swapping in
-real art later is a config PR with no client change.
+A festival's chips are validated here too, against the **full** row `/map/config` will serve — base
+layers and chips included — by the map's own validator, so the two domains cannot disagree about a
+chip. The rules and the failure posture are [map-markers-api.md §8.6](map-markers-api.md).
 
-> [!IMPORTANT]
-> **Client-side follow-up (Phase 3).** `skkuverse-app`'s `docs/eventmap-rendering.md` §6.3 currently
-> documents the pin `image` as `{httpUri}` from the `icons` dict. With symbol icons that member is
-> absent on every entry, so an implementer following it literally lands on the `{symbol:'green'}`
-> fallback and draws **every ESKARA pin the same colour** — colour being the whole visual
-> differentiation here (bar red, booth blue, food yellow, stage pink, facility lightblue, `*_off`
-> gray). The mapping to add is `{kind:"symbol", symbol:"red"} → {symbol:"red"}`; the library's
-> `MapImageProp` already accepts it.
+There is no icon table and no predicate language any more. A booth is an ordinary marker drawn by
+the app's one renderer, coloured by its layer; the pins, the chip groups and the filters the snapshot
+used to carry left with the surface that rendered them.
 
 ## 3. Config wiring
 
@@ -292,7 +295,8 @@ No text index — substring search over ~50 items is a client-side `.filter()`.
 
 | Module | Responsibility |
 | --- | --- |
-| `eventmap.config.ts` | Loads + validates the structure tier; owns `canonicalStringify` and both hashes |
+| `eventmap.config.ts` | Loads + validates the structure tier — including the festival's map layers and chips, against the base map's — and computes `configHash` over the snapshot's slice of it |
+| `eventmap.active.ts` | "Which layer set is live, and is its config usable" — the one answer `/map/config` and `/map/markers/event` both read, with a bad set reported once per process |
 | `eventmap.materialize.ts` | **Pure.** No DB, no clock — both injected. Carries the 75 % line-coverage gate cheaply, as `weightedRandomSelect` does in `src/ad/ad.data.ts` |
 | `eventmap.data.ts` | Raw-driver I/O, `ensureIndexes` (no `seedIfEmpty` — there is no sensible default event) |
 | `eventmap-materializer.service.ts` | Registers with `PollerRegistryService` (60 s); owns `publish()` |
@@ -303,17 +307,21 @@ the warm-up immediate run, and `.catch().finally()` semantics.
 `publish({layerSetId?, dryRun?})` is the single entry point for both the poller and the force-publish
 route, so a festival-night correction exercises exactly the path that has been running all week.
 
-**The config loader never throws at import.** `src/miniapps/miniapps.ts` does, because there the
-registry *is* the feature; here a previously published snapshot is already being served, and step 3
-below is explicit that an invalid config is skipped rather than fatal. Instead the loader returns
-`{config, configHash, error: null}` or `{config: null, error}`, logs loudly, and the materializer
-declines to publish.
+**The config loader never throws at import — for a config file.** `src/miniapps/miniapps.ts` does,
+because there the registry *is* the feature; here a previously published snapshot is already being
+served, and step 3 below is explicit that an invalid config is skipped rather than fatal. Instead the
+loader returns `{config, configHash, error: null}` or `{config: null, error}`, logs loudly, and the
+materializer declines to publish. (It does import `src/map/map-chips.data.ts`, which throws at
+import for a bad *base* chip — repo TypeScript that a PR fixes, the miniapps posture applied where it
+belongs.) A rejected config also takes the festival off the campus map, since `/map/config` reads
+the same verdict — see map-markers-api.md §8.6 for why that is preferred to drawing from a table the
+server could not validate.
 
 ### 6.2 One pass
 
 1. Load the enabled activation whose window contains `now`. None → publish nothing.
 2. Load `places` (`lifecycle: "active"`) and `sessions` (`lifecycle ∈ {published, cancelled}`, `deletedAt: null`).
-3. `assertValidConfig()` — dangling `cardTemplateId` / `iconId` / `sortId`, unknown predicate nodes, duplicate ids, empty layers. **On failure: log and skip.** The previous snapshot stays live.
+3. `assertValidConfig()` — dangling `cardTemplateId` / `layerId`, duplicate ids, empty layers, a layer id reused from the base map, a bad chip (map-markers-api.md §8.6), a file carrying its own `schemaVersion`. **On failure: log and skip.** The previous snapshot stays live.
 4. Join session → place. **The one and only coordinate conversion site:**
 
    ```ts
@@ -402,38 +410,34 @@ loser re-reads and branches:
 `ROLE=combined` also runs pollers — right for dev, but never run one alongside the production
 topology or two writers race the version counter.
 
-### 6.4 Tag generation
+### 6.4 Tags
 
-| Source | Tag |
-| --- | --- |
-| `category` | `cat:<category>` |
-| `dayIndex` | `day:<n>` |
-| `slot` | `slot:<slot>` |
-| `tenant.id` | `tenant:<id>` |
-| `tenant.kind` | `kind:<kind>` |
-| `placeId` | `place:<id>` |
-| `place.zone` | `zone:<zone>` |
-| author-supplied | `...session.tags`, `...place.tags` |
-
-Lowercased, nulls dropped, deduplicated. `status` is **not** a tag — it is a separate predicate node
-kind because the client recomputes it against the device clock (§9).
+`tags[]` is what ops wrote — `session.tags` then `place.tags` — lowercased, blanks dropped,
+deduplicated. Nothing is derived. The `cat:` / `day:` / `slot:` / `tenant:` / `kind:` / `place:` /
+`zone:` axes existed for the predicate filters, and with those gone the only reader left is the
+card's `tags` slot, which renders every entry as a badge, verbatim; a machine tag there is a
+`tenant:econ-council` pill on a booth card. `status` was never a tag and still is not — the client
+recomputes it against the device clock (§9).
 
 ### 6.5 The two hashes
 
 Both are md5 over `canonicalStringify` — object keys sorted at every depth, `Date` → ISO. Array order
-is preserved, because it is meaningful (layer draw order, chip display order).
+is preserved, because it is meaningful (sort order, card slot order).
 
 | Hash | Over | Reacts to |
 | --- | --- | --- |
-| `configHash` | the **parsed** config, minus `configVersion` | meaning only |
+| `configHash` | the **snapshot's slice** of the parsed config — `schemaVersion`, `layerSetId`, `campus`, `timezone`, `stackKeyBy`, `sorts`, `cardTemplates`, `itemDefaults` — and nothing else | meaning only, and only meaning that reaches a payload |
 | `contentHash` | `configHash` + `layerSetId` + the activation + every contributing place and session, whole and `_id`-sorted | any input change except `now` |
 
-**`configHash` is not a hash of the file text.** Raw text would change on a `prettier` run or a
-reordered key, and each such no-op would mint a version and throw away every client's one-year, ~90 KB
-snapshot cache. Nor is it a manual `configVersion`: a forgotten bump would leave a deployed structure
-change permanently withheld behind `max-age=1y`. Hence `configVersion` is a log label, excluded from
-the hash *and* from the payload — anything on the wire must be in the hash, or a served snapshot can
-disagree with the live config.
+**`configHash` is not a hash of the file text, nor of the whole file.** Raw text would change on a
+`prettier` run or a reordered key, and each such no-op would mint a version and throw away every
+client's one-year, ~90 KB snapshot cache. Nor is it a manual `configVersion`: a forgotten bump would
+leave a deployed structure change permanently withheld behind `max-age=1y`. And since the file now
+also feeds `/map/config` — `layers`, `chips`, `name`, `emoji`, `camera` — and the manifest
+(`refreshAfterSec`), none of which enters a payload, those are excluded too: a chip-emoji edit must
+not republish a byte-identical snapshot. The rule in both directions: **anything on the wire is in
+the hash, and nothing else is.** `SnapshotInputs` in `eventmap.config.ts` names the slice, and the
+config tests pin every member's effect, so a field added to the file cannot join the hash by accident.
 
 **`contentHash` covers whole documents, not `[_id, updatedAt]` pairs.** The pair form is cheaper but
 assumes every writer stamps `updatedAt`, and the entire point of this feature is a festival-night
@@ -542,33 +546,15 @@ languages, enough to cover the minutes around a publish when clients are split. 
 cached** — a reaped version is a 404 the client recovers from, and caching the absence would only
 delay that.
 
-Payload (abridged; structure and items travel together so a layer toggle costs zero network):
+Payload (abridged; content and the card/sort structure travel together, so a sort change costs zero
+network — the map layers and chips a booth is filtered by ride in `/map/config`, not here):
 
 ```jsonc
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "eskara-2026", "version": 17, "lang": "ko",
   "materializedAt": "…", "nextChangeAt": "…", "timezone": "Asia/Seoul",
-  "campus": "nsc", "camera": { "lat": 37.29412, "lng": 126.97633, "zoom": 17.2 },
-
-  "icons": {
-    "bar":     { "kind": "remote", "uri": "https://skkuverse.com/eventmap/eskara-2026/bar.png", "width": 32, "height": 40 },
-    "generic": { "kind": "symbol", "symbol": "green" }
-  },
-
-  "layers": [
-    { "id": "food", "render": "pin", "label": "먹거리", "defaultVisible": true,
-      "filter": ["hasAny", ["cat:food", "cat:bar"]], "minZoom": 15,
-      "iconId": "generic", "sortId": "manual" }
-  ],
-
-  "chipGroups": [
-    { "id": "day", "selection": "single", "chips": [
-      { "id": "day_all", "label": "전체", "defaultSelected": true, "predicate": ["all"] },
-      { "id": "day_1",   "label": "1일차", "predicate": ["has", "day:1"] } ] },
-    { "id": "now", "selection": "multi", "chips": [
-      { "id": "open_now", "label": "지금 운영중", "predicate": ["status", ["open"]] } ] }
-  ],
+  "campus": "nsc",
 
   "sorts": [
     { "id": "manual", "label": "추천순", "by": "order" },
@@ -580,11 +566,11 @@ Payload (abridged; structure and items travel together so a layer toggle costs z
     "placeId": "nsc-plaza-a3", "stackKey": "nsc-plaza-a3",
     "lat": 37.294118, "lng": 126.976334,
     "title": "소융대 티셔츠 부스", "subtitle": "정보통신대학 학생회",
-    "tags": ["cat:food", "day:1", "slot:day", "tenant:cse-council", "place:nsc-plaza-a3"],
+    "tags": ["featured"],
     "status": "open",
     "startAt": "2026-09-16T03:00:00.000Z", "endAt": "2026-09-16T07:00:00.000Z",
     "hoursLabel": "12:00–16:00",
-    "iconId": "bar", "iconIdClosed": "bar_off", "pinPriority": 10,
+    "layerId": "eskara26_booth", "pinPriority": 20,
     "cardTemplateId": "booth",
     "actions": [
       { "id": "entry", "label": "입장 안내", "style": "primary",
@@ -597,7 +583,7 @@ Payload (abridged; structure and items travel together so a layer toggle costs z
 }
 ```
 
-~50 items × ~600 B ≈ 30 KB, gzipping under 10 KB.
+~50 items × ~500 B ≈ 25 KB, gzipping under 10 KB.
 
 The example above is abridged; this is the complete member list, because the client's failure mode
 for a field it cannot find is to **render nothing for that slot**, so an omission here shows up as a
@@ -605,25 +591,25 @@ blank card rather than an error.
 
 | Member | Notes |
 | --- | --- |
-| top level | `schemaVersion · id · version · lang · materializedAt · nextChangeAt · timezone · campus · camera · icons · layers · chipGroups · sorts · **cardTemplates** · items` |
-| `items[]` | `id · placeId · stackKey · lat · lng · title · subtitle · tags · status · startAt · endAt · hoursLabel · iconId · iconIdClosed · pinPriority · cardTemplateId · **order** · **media** · **fields** · actions` |
+| top level | `schemaVersion · id · version · lang · materializedAt · nextChangeAt · timezone · campus · sorts · **cardTemplates** · items` |
+| `items[]` | `id · placeId · stackKey · lat · lng · title · subtitle · tags · status · startAt · endAt · hoursLabel · **layerId** · pinPriority · cardTemplateId · **order** · **media** · **fields** · actions` |
 
-The four easiest to forget, and what each is for:
+The ones easiest to forget, and what each is for:
 
 - **`cardTemplates`** — what every `items[].cardTemplateId` resolves against. Without it on the wire,
   no card renders at all.
+- **`layerId`** — the `/map/config` layer this item's category resolved to. The join between an item
+  and its marker, and how the app lists "what the 주점 chip is showing" against the layers the map is
+  currently drawing.
 - **`order`** — backs `sorts[].by === "order"`, the `manual` sort that most layers name.
 - **`media.thumbnailUrl`** — backs the `thumbnail` slot.
 - **`fields`** — backs `{kind:"field"}` slots, including the `cancelled` badge of §6.2.
 
-`layers[].maxZoom`, `chipGroups[].label` and `chips[].defaultSelected` are always emitted, normalized
-to `null`/`false` rather than omitted.
+**`pinPriority`** survives without a pin to prioritise: it is what orders the items of one
+`stackKey` inside the peek sheet, which decides the lead.
 
 **`subtitle` falls back to `tenant.name`** when a session has none, which is why a booth with no
 subtitle still shows the club running it.
-
-**`iconIdClosed`** is the closed-state icon, complementing (not replacing) the client's `alpha`
-dimming. ESKARA maps a gray `*_off` variant for every category.
 
 **`items[]` carries flat `lat`/`lng`, never GeoJSON.** Naver RN takes flat scalars; GeoJSON adds a
 per-render transform plus payload bloat, and RFC 7946 §6.1 defines no processing model for foreign
@@ -774,12 +760,12 @@ that means "show this on the map" — a notification, a mini-app page, another s
 an event-specific variant.
 
 > [!IMPORTANT]
-> **The bare form above is what ships; it is no longer what is agreed.** Map markers now carry
-> `tap: { kind, placeId }`, and the agreed link is literally those two fields —
-> `skkuverse://map?place=eskara26:nsc-truck-05`, `skkuverse://map?place=skku_building:2` — so a link
-> can never disagree with the marker it came from. It is **not reachable yet**: the app's
-> `PLACE_ID_RE` rejects the colon and drops such a link silently. ADR 0004 invariant 1 still
-> specifies the bare form and needs amending alongside the app change. See
+> **The bare form above still works; the agreed form carries the kind.** Map markers carry
+> `tap: { kind, placeId }`, and the link is literally those two fields —
+> `skkuverse://map?place=event:nsc-truck-05`, `skkuverse://map?place=skku_building:2` — so a link
+> can never disagree with the marker it came from. The app's `PLACE_ID_RE` accepts both forms;
+> `event` in its `PLACE_KINDS` allowlist is part of the app half of this change. ADR 0004 invariant 1
+> still specifies the bare form and needs amending. See
 > [map-markers-api.md §9.2](map-markers-api.md).
 
 ## 9. Status semantics
@@ -801,7 +787,7 @@ That last fallback is why §6.2 step 6b nulls a cancelled session's bounds: it i
 server has to say "do not recompute this one". Anything whose status must not move on the device —
 today that is `cancelled`, tomorrow it could be something else — has to ship without bounds.
 
-**All of this is the snapshot's contract, not the map's.** `GET /map/markers/eskara26` carries no
+**All of this is the snapshot's contract, not the map's.** `GET /map/markers/event` carries no
 `status` field at all: it ships the window alone, and a cancelled session is simply not served, which
 frees both-bounds-null to mean "always" and nothing else. The consequence is that the map pin for a
 cancelled booth disappears rather than showing as cancelled — the opposite of what `SessionDoc`'s own
@@ -930,9 +916,10 @@ NODE_ENV=production node scripts/import-eventmap-sessions.js --dry-run
 NODE_ENV=production node scripts/import-eventmap-sessions.js
 ```
 
-Read the dry run's `categories` line against `config/<layerSetId>.json`: a category no layer filter
-matches still materializes, falling back through `itemDefaults.fallback`, but no layer draws it — so
-the pins are simply absent and nothing reports an error.
+Read the dry run's `categories` line against the `itemDefaults.byCategory` keys in
+`config/<layerSetId>.json`: a category with no entry still materializes and IS drawn — on
+`itemDefaults.fallback.layerId`, with the fallback's `pinPriority` — so a typo shows up as booths
+under the wrong chip and colour, and nothing reports an error.
 
 ### 13.2 Publishing
 
@@ -1065,14 +1052,16 @@ the source IP, not a client TLS fault. Two causes, and they look identical:
 | Authored content | `scripts/data/eskara-2026-{places.csv,sessions.json}` |
 | Window + kill switch | `scripts/eventmap-window.js` |
 | Local demo dataset | `scripts/seed-eventmap-demo.js` |
-| Sessions → map markers (the `/map` surface) | `src/map/map-eskara26-markers.data.ts` — see [map-markers-api.md](map-markers-api.md) |
-| Layer/chip/filter structure | `src/eventmap/config/*.json` (+ `CONFIG_FILES` and `copy-build-assets.js`) |
+| Sessions → map markers (the `/map` surface) | `src/map/map-event-markers.data.ts` — see [map-markers-api.md](map-markers-api.md) |
+| Live layer set + usable config | `src/eventmap/eventmap.active.ts` |
+| Category → presentation (`layerId`, card), both producers | `presentationFor` in `src/eventmap/types.ts` |
+| Map layers, chips, name, emoji, camera, sorts, card templates, category table | `src/eventmap/config/*.json` (+ `CONFIG_FILES` and `copy-build-assets.js`) |
 | DB + collection names | `src/infra/config.ts` `eventmap` block |
 | Tests | `__tests__/nest/eventmap/`, helper `__tests__/helpers/nest/build-eventmap-app.ts` |
-| Predicate parity fixture | **origin** `skkuverse/contracts/predicate-vectors.json`; vendored copy under `__tests__/`, hash-locked in `.contracts.lock.json`. Never hand-edit the copy — re-run `pull --repo server` |
 
-Only needed if the server ever computes filter option counts. Until then the evaluator lives in the
-app alone and the contract stays `status: "planned"` — registered, dormant, nothing to sync.
+No contract is registered for this feature in the umbrella manifest. An earlier revision listed a
+`predicate-vectors.json` parity fixture as planned; it was never registered, and with the predicate
+language gone there is nothing for it to pin.
 
 ## 15. Related
 

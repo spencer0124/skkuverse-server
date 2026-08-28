@@ -57,8 +57,7 @@ function item(overrides: Partial<EventMapItem> = {}): EventMapItem {
     startAt: at(-60),
     endAt: at(60),
     hoursLabel: null,
-    iconId: "bar",
-    iconIdClosed: "bar_off",
+    layerId: "eskara26_bar",
     pinPriority: 30,
     cardTemplateId: "bar",
     order: 1,
@@ -78,7 +77,7 @@ const ACTIVATION = {
 };
 
 function snapshot(items: EventMapItem[], version = 17) {
-  const payload = { schemaVersion: 1, id: "eskara-2026", version, items };
+  const payload = { schemaVersion: 2, id: "eskara-2026", version, items };
   return {
     _id: `eskara-2026:${version}`,
     layerSetId: "eskara-2026",

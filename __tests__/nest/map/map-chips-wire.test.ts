@@ -23,14 +23,18 @@ jest.mock("../../../src/eventmap/eventmap.data", () => ({
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
 
+import { getLayerSetConfig } from "../../../src/eventmap/eventmap.config";
 import { findActiveActivation } from "../../../src/eventmap/eventmap.data";
 import { BuildingService } from "../../../src/building/building.service";
-import { BASE_CHIPS, ESKARA26_CHIPS } from "../../../src/map/map-chips.data";
+import { BASE_CHIPS } from "../../../src/map/map-chips.data";
 import { buildMapApp } from "../../helpers/nest/build-map-app";
 
 const mockFindActiveActivation = findActiveActivation as jest.MockedFunction<
   typeof findActiveActivation
 >;
+
+// The real config loads with no mock; the counts below derive from it.
+const CONFIG = getLayerSetConfig("eskara-2026")!.config!;
 
 describe("GET /map/config (real MapService)", () => {
   let app: NestExpressApplication;
@@ -91,14 +95,17 @@ describe("GET /map/config (real MapService)", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.meta.lang).toBe("en");
-    expect(res.body.data.chips).toHaveLength(
-      BASE_CHIPS.length + ESKARA26_CHIPS.length,
-    );
+    // Reset chip plus every authored chip, in that order.
+    expect(res.body.data.chips).toHaveLength(BASE_CHIPS.length + 1 + CONFIG.chips.length);
+    expect(res.body.data.chips[BASE_CHIPS.length].id).toBe("eskara-2026_all");
 
     const stageChip = res.body.data.chips.find(
       (c: { id: string }) => c.id === "eskara26_view_stage",
     );
-    // English, because the envelope is what varies on Accept-Language.
+    // English, because the envelope is what varies on Accept-Language — and the
+    // chip's OWN label: the pill reads singular ("Stage") where the layer
+    // toggle reads plural ("Stages"), authored copy that a deploy must not
+    // quietly change.
     expect(stageChip.label).toBe("Stage");
     expect(stageChip.action).toEqual({
       kind: "focus",

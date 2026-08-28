@@ -209,7 +209,7 @@ Every successful response uses the envelope `{ meta: { lang, ... }, data: ... }`
 |---|---|---|---|
 | GET | `/map/config` | — | Map style, campuses, layers, chips, camera defaults |
 | GET | `/map/markers/campus` | — | Building markers, both layers |
-| GET | `/map/markers/eskara26` | — | Festival booth markers, while the window is open |
+| GET | `/map/markers/event` | — | Festival booth markers of the live layer set, while its window is open |
 | GET | `/map/overlays` | — | Polygon/route overlays |
 | GET | `/building/search` | — | Ranked building + room search (`?q=`, optional `?campus=`) — see [ADR 0006](docs/decisions/0006-building-search-relevance-ranking.md) |
 | GET | `/building/*` | — | Building detail + list |

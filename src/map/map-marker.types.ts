@@ -17,18 +17,22 @@ import type { Campus } from "../building/types";
  * in Mongo. One addressing scheme is the whole point, and the app narrows it
  * back to a number inside the building branch, where `/building/:id` needs one.
  *
- * ⚠️ The agreed deep-link format is `<kind>:<placeId>` — so
- * `skkuverse://map?place=eskara26:nsc-truck-05` and
+ * The deep-link format is `<kind>:<placeId>` — so
+ * `skkuverse://map?place=event:nsc-truck-05` and
  * `skkuverse://map?place=skku_building:2` — which makes the link literally the
  * two fields below and lets it never disagree with the marker it came from.
- * That is NOT yet reachable: the app's `PLACE_ID_RE` is `/^[a-z0-9-]+$/`, so a
- * colon fails the shape test and the link is dropped silently. Widening it is
- * app-side work in the next pass. Umbrella ADR 0004 invariant 1 still specifies
- * the bare `?place=<placeId>` form and needs amending to match.
+ * The app's `PLACE_ID_RE` accepts both that and the bare `?place=<placeId>`
+ * form; `event` is a kind its `PLACE_KINDS` allowlist has to carry. Umbrella
+ * ADR 0004 invariant 1 still writes the bare form and needs amending to match.
+ *
+ * `event`, not the festival's name. A booth from ANY layer set resolves the
+ * same way — through the snapshot's `stacksByPlaceId` — so the kind names the
+ * mechanism, and next year's festival changes no client branch. That is the
+ * "must never learn the name of a consumer" half of ADR 0004 invariant 1.
  */
 export type MarkerTap =
   | { kind: "skku_building"; placeId: string }
-  | { kind: "eskara26"; placeId: string };
+  | { kind: "event"; placeId: string };
 
 export interface MapMarker {
   /**

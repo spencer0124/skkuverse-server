@@ -1,44 +1,53 @@
 /**
  * Structure-tier loader and validator (skkuverse#14).
  *
- * Contract: docs/reference/eventmap-api.md §2. Layers, chips, sorts, card
- * templates and icons are DEVELOPER-owned and ship in the repo; activation and
- * content are ops-owned and live in Mongo. This module owns the first tier.
+ * Contract: docs/reference/eventmap-api.md §2. Map layers, chips, sorts, card
+ * templates and the category → layer table are DEVELOPER-owned and ship in the
+ * repo; activation and content are ops-owned and live in Mongo. This module
+ * owns the first tier.
  *
  * Two things distinguish it from src/miniapps/miniapps.ts, which is otherwise
  * the same shape (readFileSync + __dirname + validate + freeze):
  *
- *  1. It NEVER throws at import. miniapps throws at boot because there the
- *     registry IS the feature; here a previously published snapshot is already
- *     being served, and eventmap-api.md §6.2 step 3 is explicit — an invalid
- *     config is logged and skipped, leaving the previous snapshot live. A
- *     config typo must not take the whole API down.
- *  2. The validity boundary is drawn by WHO CAN FIX IT. A layer pointing at a
- *     missing iconId is a developer bug, fixable by a PR, so it blocks
- *     publication. A session whose ops-typed `category` has no icon mapping is
+ *  1. It NEVER throws at import — for a CONFIG FILE. miniapps throws at boot
+ *     because there the registry IS the feature; here a previously published
+ *     snapshot is already being served, and eventmap-api.md §6.2 step 3 is
+ *     explicit — an invalid config is logged and skipped, leaving the previous
+ *     snapshot live. A config typo must not take the whole API down. (The one
+ *     caveat: this module imports `map-chips.data`, which does throw at import
+ *     for a bad BASE chip. That is repo TypeScript, not a config file, and a
+ *     PR fixes it — the miniapps posture, applied where it belongs.)
+ *  2. The validity boundary is drawn by WHO CAN FIX IT. A category pointing at
+ *     a missing layerId is a developer bug, fixable by a PR, so it blocks
+ *     publication. A session whose ops-typed `category` has no entry at all is
  *     22:00 content, so it falls back and logs (ADR 0004 invariant 2). That is
  *     why itemDefaults.byCategory keys are NOT validated against anything —
  *     they are an open set on purpose.
  */
 import fs from "fs";
 import path from "path";
+import { isHex6 } from "../infra/color";
 import logger from "../infra/logger";
 import { canonicalStringify, md5 } from "./eventmap.hash";
+import type { MapCamera } from "../map/map-chip.types";
+// Runtime imports INTO the map domain, and the reason the layer catalogue and
+// the chip validator live in leaf modules: a festival's layers and chips are
+// served beside the base map's, so they are validated against the full served
+// set here, at load. Neither module imports this one back.
+import { BASE_CHIPS, eventChipSpecs, validateChipSpecs } from "../map/map-chips.data";
+import { BASE_LAYERS, eventLayerSpecs } from "../map/map-layers.data";
 import type {
   CardSlot,
   CardTemplateSpec,
-  ChipGroupSpec,
-  ChipSpec,
+  EventChipDef,
+  EventLayerDef,
   EventMapConfig,
   I18n,
-  IconSpec,
   ItemDefaults,
   ItemPresentation,
-  LayerSpec,
-  Predicate,
   SortSpec,
 } from "./types";
-import { ITEM_STATUSES, LAYER_RENDERS, SORT_KEYS } from "./types";
+import { EVENTMAP_SCHEMA_VERSION, SORT_KEYS } from "./types";
 
 /**
  * The layer sets that exist, listed explicitly rather than discovered with
@@ -54,30 +63,6 @@ import { ITEM_STATUSES, LAYER_RENDERS, SORT_KEYS } from "./types";
  */
 const CONFIG_FILES = ["eskara-2026.json"] as const;
 
-/**
- * The closed MarkerSymbol union, hand-mirrored from
- * @mj-studio/react-native-naver-map src/types/MarkerSymbol.ts and verified
- * byte-for-byte against the 2.7.0 the app ships.
- *
- * Deliberately not registered as a cross-repo contract: the union is effectively
- * frozen, and a drift fails loud here naming the offending config path rather
- * than shipping a blank pin. Re-check it if the library is ever bumped.
- */
-const MARKER_SYMBOLS = [
-  "blue",
-  "gray",
-  "green",
-  "lightblue",
-  "pink",
-  "red",
-  "yellow",
-  "black",
-  "lowDensityCluster",
-  "mediumDensityCluster",
-  "highDensityCluster",
-] as const;
-
-const HTTPS_RE = /^https:\/\//;
 
 export type LoadedConfig =
   | { config: EventMapConfig; configHash: string; error: null }
@@ -148,120 +133,71 @@ function assertUnique(ids: string[], where: string): void {
   }
 }
 
-// --- Predicate --------------------------------------------------------------
-
-/**
- * Validates the closed node set. The server never EVALUATES a predicate — the
- * evaluator lives in the app alone, because filter option counts (the one
- * feature that would make the server evaluate) are cut. Validating here is what
- * lets the client fail soft: an unknown node is impossible on the wire, so its
- * `evaluates false` rule only ever fires for a genuinely newer schema.
- */
-function asPredicate(value: unknown, where: string): Predicate {
-  const node = asArray(value, where);
-  const kind = node[0];
-  if (typeof kind !== "string") fail(`${where}[0] must be a predicate kind string`);
-
-  switch (kind) {
-    case "all":
-      if (node.length !== 1) fail(`${where} "all" takes no arguments`);
-      return ["all"];
-    case "has":
-      return ["has", asString(node[1], `${where}[1]`)];
-    case "hasAny":
-    case "hasAll": {
-      const tags = asArray(node[1], `${where}[1]`);
-      if (tags.length === 0) fail(`${where} "${kind}" needs at least one tag`);
-      return [kind, tags.map((t, i) => asString(t, `${where}[1][${i}]`))];
-    }
-    case "not":
-      return ["not", asPredicate(node[1], `${where}[1]`)];
-    case "and":
-    case "or": {
-      const children = asArray(node[1], `${where}[1]`);
-      if (children.length === 0) fail(`${where} "${kind}" needs at least one child`);
-      return [kind, children.map((c, i) => asPredicate(c, `${where}[1][${i}]`))];
-    }
-    case "status": {
-      const statuses = asArray(node[1], `${where}[1]`);
-      if (statuses.length === 0) fail(`${where} "status" needs at least one status`);
-      return [
-        "status",
-        statuses.map((s, i) => asOneOf(s, ITEM_STATUSES, `${where}[1][${i}]`)),
-      ];
-    }
-    default:
-      fail(`${where} has unknown predicate kind "${kind}"`);
-  }
-}
-
 // --- Structure --------------------------------------------------------------
 
-function asIcon(value: unknown, where: string): IconSpec {
+function asEventLayer(value: unknown, where: string): EventLayerDef {
   const raw = asRecord(value, where);
-  const kind = asOneOf(raw.kind, ["symbol", "remote"] as const, `${where}.kind`);
-  if (kind === "symbol") {
-    return { kind, symbol: asOneOf(raw.symbol, MARKER_SYMBOLS, `${where}.symbol`) };
-  }
-  const uri = asString(raw.uri, `${where}.uri`);
-  // http:// would be blocked by ATS/cleartext policy on device and render nothing.
-  if (!HTTPS_RE.test(uri)) fail(`${where}.uri must be an https:// URL`);
-  return {
-    kind,
-    uri,
-    width: asFiniteNumber(raw.width, `${where}.width`),
-    height: asFiniteNumber(raw.height, `${where}.height`),
-  };
-}
-
-function asLayer(value: unknown, where: string): LayerSpec {
-  const raw = asRecord(value, where);
-  const optionalZoom = (v: unknown, key: string): number | null =>
-    v === undefined || v === null ? null : asFiniteNumber(v, `${where}.${key}`);
+  const color = asString(raw.color, `${where}.color`);
+  // The app's toCssColor prepends the "#" itself, so one here renders nothing
+  // — a blank pin that looks like missing data rather than a config typo. The
+  // rule is shared with the bus overlay colours, so there is one of it.
+  if (!isHex6(color)) fail(`${where}.color must be a 6-digit hex colour without "#"`);
   return {
     id: asString(raw.id, `${where}.id`),
-    render: asOneOf(raw.render, LAYER_RENDERS, `${where}.render`),
     label: asI18n(raw.label, `${where}.label`),
-    filter: asPredicate(raw.filter, `${where}.filter`),
+    color,
     defaultVisible: asBoolean(raw.defaultVisible, `${where}.defaultVisible`, true),
-    minZoom: optionalZoom(raw.minZoom, "minZoom"),
-    maxZoom: optionalZoom(raw.maxZoom, "maxZoom"),
-    iconId: asString(raw.iconId, `${where}.iconId`),
-    sortId: asString(raw.sortId, `${where}.sortId`),
   };
 }
 
-function asChipGroup(value: unknown, where: string): ChipGroupSpec {
+function asChip(value: unknown, where: string): EventChipDef {
   const raw = asRecord(value, where);
-  const selection = asOneOf(
-    raw.selection,
-    ["single", "multi"] as const,
-    `${where}.selection`,
+  const layerIds = asArray(raw.layerIds, `${where}.layerIds`).map((id, i) =>
+    asString(id, `${where}.layerIds[${i}]`),
   );
-  const chips = asArray(raw.chips, `${where}.chips`).map(
-    (c, i): ChipSpec => {
-      const chip = asRecord(c, `${where}.chips[${i}]`);
-      return {
-        id: asString(chip.id, `${where}.chips[${i}].id`),
-        label: asI18n(chip.label, `${where}.chips[${i}].label`),
-        defaultSelected: asBoolean(
-          chip.defaultSelected,
-          `${where}.chips[${i}].defaultSelected`,
-          false,
-        ),
-        predicate: asPredicate(chip.predicate, `${where}.chips[${i}].predicate`),
-      };
-    },
-  );
-  if (chips.length === 0) fail(`${where}.chips must not be empty`);
-  if (selection === "single" && chips.filter((c) => c.defaultSelected).length > 1) {
-    fail(`${where} is single-selection but has more than one defaultSelected chip`);
-  }
-  const group: ChipGroupSpec = { id: asString(raw.id, `${where}.id`), selection, chips };
+  // An empty list is the camera-only chip of the wire contract, and that is
+  // not a festival's to author — the reset chip already moves the camera.
+  if (layerIds.length === 0) fail(`${where}.layerIds must not be empty`);
+  const chip: EventChipDef = {
+    id: asString(raw.id, `${where}.id`),
+    emoji: asString(raw.emoji, `${where}.emoji`),
+    layerIds,
+  };
   if (raw.label !== undefined && raw.label !== null) {
-    group.label = asI18n(raw.label, `${where}.label`);
+    chip.label = asI18n(raw.label, `${where}.label`);
+  } else if (layerIds.length !== 1) {
+    // A single-layer chip reads as its layer does; anything wider has no such
+    // default and must say what it means. Left absent rather than filled in
+    // from the layer, so the hash reflects what was authored.
+    fail(`${where}.label is required when layerIds names more than one layer`);
   }
-  return group;
+  return chip;
+}
+
+/**
+ * Every field REQUIRED, the three motion values included. A default here would
+ * be a silent fallback for a number that decides how the map moves on every
+ * chip tap — exactly the kind of fallback config is not allowed to have.
+ */
+function asCamera(value: unknown, where: string): MapCamera {
+  const raw = asRecord(value, where);
+  const lat = asFiniteNumber(raw.lat, `${where}.lat`);
+  const lng = asFiniteNumber(raw.lng, `${where}.lng`);
+  // Cheap swap detector. Not a general guarantee — it only catches a flip
+  // because SKKU's longitude (126) exceeds latitude's ±90 range. The real
+  // defence is the single conversion site in eventmap.materialize.ts.
+  if (Math.abs(lat) > 90) {
+    fail(`${where}.lat ${lat} is outside ±90 — lat and lng may be swapped`);
+  }
+  if (Math.abs(lng) > 180) fail(`${where}.lng ${lng} is outside ±180`);
+  return {
+    lat,
+    lng,
+    zoom: asFiniteNumber(raw.zoom, `${where}.zoom`),
+    tilt: asFiniteNumber(raw.tilt, `${where}.tilt`),
+    bearing: asFiniteNumber(raw.bearing, `${where}.bearing`),
+    durationMs: asFiniteNumber(raw.durationMs, `${where}.durationMs`),
+  };
 }
 
 function asSort(value: unknown, where: string): SortSpec {
@@ -301,15 +237,11 @@ function asCardTemplate(value: unknown, where: string): CardTemplateSpec {
 
 function asItemPresentation(value: unknown, where: string): ItemPresentation {
   const raw = asRecord(value, where);
-  const out: ItemPresentation = {
-    iconId: asString(raw.iconId, `${where}.iconId`),
+  return {
+    layerId: asString(raw.layerId, `${where}.layerId`),
     pinPriority: asFiniteNumber(raw.pinPriority, `${where}.pinPriority`),
     cardTemplateId: asString(raw.cardTemplateId, `${where}.cardTemplateId`),
   };
-  if (raw.iconIdClosed !== undefined && raw.iconIdClosed !== null) {
-    out.iconIdClosed = asString(raw.iconIdClosed, `${where}.iconIdClosed`);
-  }
-  return out;
 }
 
 function asItemDefaults(value: unknown, where: string): ItemDefaults {
@@ -335,45 +267,46 @@ function asItemDefaults(value: unknown, where: string): ItemDefaults {
 export function assertValidConfig(raw: unknown): EventMapConfig {
   const root = asRecord(raw, "config");
 
-  const camera = asRecord(root.camera, "config.camera");
-  const lat = asFiniteNumber(camera.lat, "config.camera.lat");
-  const lng = asFiniteNumber(camera.lng, "config.camera.lng");
-  // Cheap swap detector. Not a general guarantee — it only catches a flip
-  // because SKKU's longitude (126) exceeds latitude's ±90 range. The real
-  // defence is the single conversion site in eventmap.materialize.ts.
-  if (Math.abs(lat) > 90) {
-    fail(`config.camera.lat ${lat} is outside ±90 — lat and lng may be swapped`);
+  // The schema version is a fact about THIS SERVER's materializer, stamped on
+  // every payload — not a fact about the file. A file that carries its own
+  // copy is either redundant or, left behind after a bump, a lie to every
+  // client about the shape it is about to receive. Refused rather than ignored.
+  if (root.schemaVersion !== undefined) {
+    fail(
+      `config.schemaVersion is stamped by the server (${EVENTMAP_SCHEMA_VERSION}) — remove it from the file`,
+    );
   }
-  if (Math.abs(lng) > 180) fail(`config.camera.lng ${lng} is outside ±180`);
 
-  const iconsRaw = asRecord(root.icons, "config.icons");
-  const icons: Record<string, IconSpec> = {};
-  for (const [id, icon] of Object.entries(iconsRaw)) {
-    icons[id] = asIcon(icon, `config.icons["${id}"]`);
-  }
-  if (Object.keys(icons).length === 0) fail("config.icons must not be empty");
+  const camera = asCamera(root.camera, "config.camera");
 
   const layers = asArray(root.layers, "config.layers").map((l, i) =>
-    asLayer(l, `config.layers[${i}]`),
+    asEventLayer(l, `config.layers[${i}]`),
   );
   if (layers.length === 0) fail("config.layers must not be empty");
   assertUnique(
     layers.map((l) => l.id),
     "config.layers",
   );
+  // The reset chip restores the default-visible set; with none there is no
+  // way back to the ordinary festival map.
+  if (!layers.some((l) => l.defaultVisible)) {
+    fail("config.layers must have at least one defaultVisible layer");
+  }
+  // /map/config serves both lists in one response and the app keys its
+  // visibility store on the id, so a festival layer called building_numbers
+  // would silently take over the buildings' toggle.
+  layers.forEach((layer, i) => {
+    if (BASE_LAYERS.some((base) => base.id === layer.id)) {
+      fail(`config.layers[${i}].id "${layer.id}" collides with a base map layer`);
+    }
+  });
 
-  const chipGroups = asArray(root.chipGroups, "config.chipGroups").map((g, i) =>
-    asChipGroup(g, `config.chipGroups[${i}]`),
-  );
-  assertUnique(
-    chipGroups.map((g) => g.id),
-    "config.chipGroups",
-  );
-  // Chip ids are the client's selection keys across ALL groups, so they must be
-  // globally unique, not merely unique within a group.
-  assertUnique(
-    chipGroups.flatMap((g) => g.chips.map((c) => c.id)),
-    "config.chipGroups[].chips",
+  // Shape only. Uniqueness and layer references are the chip VALIDATOR's
+  // rules, run below over the row exactly as it will be served — one owner,
+  // one set of messages, and the only place a collision with the synthesised
+  // reset chip can be seen at all.
+  const chips = asArray(root.chips, "config.chips").map((c, i) =>
+    asChip(c, `config.chips[${i}]`),
   );
 
   const sorts = asArray(root.sorts, "config.sorts").map((s, i) =>
@@ -397,18 +330,8 @@ export function assertValidConfig(raw: unknown): EventMapConfig {
   const itemDefaults = asItemDefaults(root.itemDefaults, "config.itemDefaults");
 
   // Referential integrity, structure → structure only.
-  const iconIds = new Set(Object.keys(icons));
-  const sortIds = new Set(sorts.map((s) => s.id));
+  const layerIds = new Set(layers.map((l) => l.id));
   const templateIds = new Set(cardTemplates.map((t) => t.id));
-
-  for (const layer of layers) {
-    if (!iconIds.has(layer.iconId)) {
-      fail(`config.layers["${layer.id}"].iconId "${layer.iconId}" is not in config.icons`);
-    }
-    if (!sortIds.has(layer.sortId)) {
-      fail(`config.layers["${layer.id}"].sortId "${layer.sortId}" is not in config.sorts`);
-    }
-  }
 
   const presentations: Array<[string, ItemPresentation]> = [
     ["config.itemDefaults.fallback", itemDefaults.fallback],
@@ -420,11 +343,10 @@ export function assertValidConfig(raw: unknown): EventMapConfig {
     ),
   ];
   for (const [where, presentation] of presentations) {
-    if (!iconIds.has(presentation.iconId)) {
-      fail(`${where}.iconId "${presentation.iconId}" is not in config.icons`);
-    }
-    if (presentation.iconIdClosed && !iconIds.has(presentation.iconIdClosed)) {
-      fail(`${where}.iconIdClosed "${presentation.iconIdClosed}" is not in config.icons`);
+    if (!layerIds.has(presentation.layerId)) {
+      // The whole point of the table: a category resolving to no layer is a
+      // booth that is never drawn, with nothing anywhere saying why.
+      fail(`${where}.layerId "${presentation.layerId}" is not in config.layers`);
     }
     if (!templateIds.has(presentation.cardTemplateId)) {
       fail(
@@ -433,12 +355,14 @@ export function assertValidConfig(raw: unknown): EventMapConfig {
     }
   }
 
-  return {
-    schemaVersion: asFiniteNumber(root.schemaVersion, "config.schemaVersion"),
+  const config: EventMapConfig = {
+    schemaVersion: EVENTMAP_SCHEMA_VERSION,
     configVersion: asFiniteNumber(root.configVersion, "config.configVersion"),
     layerSetId: asString(root.layerSetId, "config.layerSetId"),
     campus: asOneOf(root.campus, ["hssc", "nsc"] as const, "config.campus"),
-    camera: { lat, lng, zoom: asFiniteNumber(camera.zoom, "config.camera.zoom") },
+    name: asI18n(root.name, "config.name"),
+    emoji: asString(root.emoji, "config.emoji"),
+    camera,
     timezone: asString(root.timezone, "config.timezone"),
     refreshAfterSec: asFiniteNumber(root.refreshAfterSec, "config.refreshAfterSec"),
     stackKeyBy: asOneOf(
@@ -446,25 +370,69 @@ export function assertValidConfig(raw: unknown): EventMapConfig {
       ["placeId", "zone"] as const,
       "config.stackKeyBy",
     ),
-    icons,
     layers,
-    chipGroups,
+    chips,
     sorts,
     cardTemplates,
     itemDefaults,
   };
+
+  // The chip row exactly as /map/config will serve it — base chips, the
+  // synthesised reset chip, every authored chip — against the catalogue it
+  // will be served beside. One validator for both lists, so the messages here
+  // are the ones the map would have produced; and the only place a collision
+  // with the reset chip's id can be caught, since that chip is authored
+  // nowhere.
+  const chipErrors = validateChipSpecs(
+    [...BASE_CHIPS, ...eventChipSpecs(config)],
+    [...BASE_LAYERS, ...eventLayerSpecs(config)],
+  );
+  if (chipErrors.length > 0) fail(`config.chips: ${chipErrors.join("; ")}`);
+
+  return config;
 }
 
 /**
- * Hash of what the config MEANS.
+ * The slice of the config the SNAPSHOT is built from — and therefore the only
+ * slice `configHash` may cover.
  *
- * configVersion is stripped: it is a human label that never reaches the wire, so
- * including it would republish an identical payload — invalidating every
- * client's one-year cache — every time someone bumped it out of habit.
+ * The file now feeds two routes. `/map/config` serves `layers`, `chips`,
+ * `name`, `emoji` and `camera` live, per request; the manifest reads
+ * `refreshAfterSec` live. None of those enters a payload, so an edit to any
+ * of them must NOT mint a snapshot version: it would republish a byte-identical
+ * snapshot and throw away every client's one-year `immutable` cache for a
+ * change they already see through the other route. `configVersion` is a human
+ * label, out for the same reason it always was.
+ *
+ * The rule, both directions: anything in the payload is in the hash, and
+ * nothing else is. `Pick<EventMapConfig, …>` is what keeps a field added to the
+ * config from silently joining the hash — it has to be named here, and the test
+ * that pins each member's effect has to move with it.
  */
+type SnapshotInputs = Pick<
+  EventMapConfig,
+  | "schemaVersion"
+  | "layerSetId"
+  | "campus"
+  | "timezone"
+  | "stackKeyBy"
+  | "sorts"
+  | "cardTemplates"
+  | "itemDefaults"
+>;
+
+/** Hash of what the config MEANS to the snapshot. */
 export function computeConfigHash(config: EventMapConfig): string {
-  const hashable: Record<string, unknown> = { ...config };
-  delete hashable.configVersion;
+  const hashable: SnapshotInputs = {
+    schemaVersion: config.schemaVersion,
+    layerSetId: config.layerSetId,
+    campus: config.campus,
+    timezone: config.timezone,
+    stackKeyBy: config.stackKeyBy,
+    sorts: config.sorts,
+    cardTemplates: config.cardTemplates,
+    itemDefaults: config.itemDefaults,
+  };
   return md5(canonicalStringify(hashable));
 }
 

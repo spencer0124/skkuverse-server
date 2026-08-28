@@ -1,8 +1,8 @@
 import { Injectable, type NestMiddleware } from "@nestjs/common";
 import type { Request, Response, NextFunction } from "express";
-import type { SupportedLang } from "../infra/types";
+import { SUPPORTED_LANGS, type SupportedLang } from "../infra/types";
 
-const SUPPORTED: readonly SupportedLang[] = ["ko", "en", "zh"];
+const SUPPORTED: readonly SupportedLang[] = SUPPORTED_LANGS;
 
 /**
  * Port of lib/langMiddleware.ts. Sets req.lang (default "ko") parsed from the
