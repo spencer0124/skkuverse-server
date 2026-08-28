@@ -5,11 +5,10 @@ import logger from "../infra/logger";
 import type { SupportedLang } from "../infra/types";
 import type { CameraMotion, MapChip } from "./map-chip.types";
 import { getChips } from "./map-chips.data";
-import { ESKARA26_LAYERS } from "./map-eskara26-markers.data";
 import {
   BASE_LAYERS,
-  ESKARA26_CHIP_GROUP,
-  ESKARA26_LAYER_STYLE,
+  ESKARA26_LAYER_SPECS,
+  type LayerSpec,
   type MapLayerStyle,
 } from "./map-layers.data";
 
@@ -66,7 +65,9 @@ interface LayerEntry {
    * combinations are: always-on background (true/false), ordinary toggle
    * (true/true), opt-in (false/true), and defined-but-inert (false/false).
    *
-   * Three rules the client must hold, stated here because this is the contract:
+   * Four rules the client must hold. They are the same four as
+   * `docs/reference/map-markers-api.md` §4.1 — that document is the contract,
+   * and this list must not disagree with it:
    *
    *  - **An ABSENT value means `true`.** Never fail closed — GeoServer's "a
    *    layer is advertised by default" and Esri's `listMode` default of "show".
@@ -76,6 +77,10 @@ interface LayerEntry {
    *    layer still renders, is still deep-linkable, and is still returned by
    *    its marker endpoint. Only the control disappears. QGIS says it outright:
    *    flags are "used for the UI but are not preventing any API call."
+   *  - **Shadow a stored toggle, never overwrite it.** The resolution is a
+   *    fallback chain, not an assignment, so a preference survives the layer
+   *    becoming non-configurable and comes back when it becomes configurable
+   *    again. This is the one that destroys user data if you get it wrong.
    *  - **A chip may not change it either.** A chip tap is a user-initiated
    *    change, so `false` here puts the layer out of a chip's reach as well as
    *    out of the sheet's. Inert today — nothing is `false` — and stated now so
@@ -123,10 +128,10 @@ interface MapConfigResponse {
  * festival for a blank campus map, so a failure answers "no festival" and the
  * route keeps the never-fails property it had when it was sync.
  *
- * Called ONCE per request and handed to both builders below. Layers and chips
- * asking separately would be two reads for one answer, and — worse — could
- * disagree if the window closed between them, serving chips that point at
- * layers no longer in the list.
+ * Called ONCE per request and handed to both the layer list and the chip list.
+ * Asking separately would be two reads for one answer, and — worse — the two
+ * could disagree if the window closed between them, serving chips that point at
+ * layers no longer in the same response.
  */
 async function isFestivalLive(): Promise<boolean> {
   try {
@@ -140,42 +145,14 @@ async function isFestivalLive(): Promise<boolean> {
 }
 
 /**
- * The event's marker layers, or nothing when no festival is live.
- *
- * The activation window is the on/off lever — `npm run eventmap open|close`
- * — so a festival starts and ends with no deploy, and the layers simply stop
- * existing afterwards rather than lingering as dead toggles.
- */
-function getEskara26Layers(lang: SupportedLang, festivalLive: boolean): LayerEntry[] {
-  if (!festivalLive) return [];
-
-  // All six point at ONE endpoint. The app keys its marker cache on the endpoint
-  // string, so layers sharing one share a single fetch and a single cache entry,
-  // and each renders the subset carrying its own `layerId`. Six `?category=`
-  // endpoints would be six round trips for one small payload.
-  return ESKARA26_LAYERS.map((layer) => ({
-    id: layer.id,
-    type: "marker" as const,
-    markerStyle: "placeDot",
-    label: t(`map.layer.${layer.id}`, lang),
-    defaultVisible: layer.defaultVisible,
-    // Every festival layer is the user's to turn off, 편의시설 included — that
-    // one merely starts hidden. Nothing here is a locked background layer.
-    userConfigurable: true,
-    endpoint: "/map/markers/eskara26",
-    // One group, so a festival chip swaps these six between themselves and
-    // leaves 건물번호 and 건물이름 exactly as the user left them.
-    chipGroupId: ESKARA26_CHIP_GROUP,
-    style: { color: layer.color, ...ESKARA26_LAYER_STYLE },
-  }));
-}
-
-/**
  * Returns map layer configuration with campus definitions.
  * Text fields are resolved to the requested language via i18n.
  */
 async function getMapConfig(lang: SupportedLang = "ko"): Promise<MapConfigResponse> {
   const festivalLive = await isFestivalLive();
+  const layerSpecs: readonly LayerSpec[] = festivalLive
+    ? [...BASE_LAYERS, ...ESKARA26_LAYER_SPECS]
+    : BASE_LAYERS;
 
   return {
     naver: { styleId: config.naver.styleId },
@@ -202,20 +179,23 @@ async function getMapConfig(lang: SupportedLang = "ko"): Promise<MapConfigRespon
       },
     ],
     layers: [
-      // The catalogue lives in map-layers.data so chips can resolve a layer's
-      // group without importing this response builder. Labels are resolved
-      // here because they are the only per-request part of a layer.
-      // `...rest` rather than a field-by-field copy, so a member added to
-      // LayerSpec reaches the wire without an edit here; naming the first three
-      // only puts `label` where the festival layers below also put it.
-      ...BASE_LAYERS.map(({ id, type, markerStyle, ...rest }) => ({
+      // ONE mapping over both sets, and `...rest` rather than a field-by-field
+      // copy, so a member added to LayerSpec reaches the wire without an edit
+      // here. The festival six used to be built separately, which meant a new
+      // member shipped on the buildings and was silently missing from the
+      // booths with tsc green. Naming the first three fields only puts `label`
+      // in a readable position.
+      //
+      // The catalogue itself lives in map-layers.data so chips can resolve a
+      // layer's group without importing this response builder; labels are
+      // resolved here because they are the only per-request part of a layer.
+      ...layerSpecs.map(({ id, type, markerStyle, ...rest }) => ({
         id,
         type,
         markerStyle,
         label: t(`map.layer.${id}`, lang),
         ...rest,
       })),
-      ...getEskara26Layers(lang, festivalLive),
     ],
     chips: getChips(lang, festivalLive),
     cameraDefaults: {

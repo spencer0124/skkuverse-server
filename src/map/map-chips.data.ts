@@ -79,31 +79,40 @@ const ESKARA26_CAMERA = {
 } as const satisfies MapCamera;
 
 /**
- * Every festival layer, derived rather than listed.
+ * The festival layers that are on by default — what "축제 전체" restores.
  *
- * A second hand-written array of the same ids is the parallel structure the
- * layer module warns about: it drifts, and the drift shows up as a "전체" chip
- * that quietly stops turning one category on.
+ * Deliberately NOT every festival layer. `eskara26_facility` ships
+ * `defaultVisible: false`, so naming it here would make the reset chip turn on
+ * a layer the user never opted into, and leave no chip that gets back to the
+ * ordinary map. "전체" means the festival as it normally looks; 편의시설 has its
+ * own chip for when it is wanted.
+ *
+ * Derived from the layer list rather than written out. A second hand-written
+ * array of the same ids is the parallel structure the layer module warns about:
+ * it drifts, and the drift shows up as a reset chip that quietly stops turning
+ * one category back on.
  */
-const ALL_ESKARA26_LAYER_IDS: readonly MapLayerId[] = ESKARA26_LAYERS.map(
-  (layer) => layer.id,
-);
+const DEFAULT_ESKARA26_LAYER_IDS: readonly MapLayerId[] = ESKARA26_LAYERS.filter(
+  (layer) => layer.defaultVisible,
+).map((layer) => layer.id);
 
 /**
  * View presets for the festival, present only while one is live.
  *
  * Each is one tap for what otherwise costs opening the filter sheet and
- * toggling six things. `eskara26_view_all` is the way back: it names every
- * festival layer, so it restores the full map without touching 건물번호.
+ * toggling six things. `eskara26_view_all` is the way back: it restores the
+ * festival's DEFAULT layer set — not literally every layer — without touching
+ * 건물번호 or 건물이름.
  *
  * 편의시설 earns a chip precisely because its layer starts hidden — a chip is
- * how an opt-in layer becomes reachable without a trip through the sheet.
+ * how an opt-in layer becomes reachable without a trip through the sheet, and
+ * why the reset chip can leave it out and still be a complete way back.
  */
 export const ESKARA26_CHIPS = [
   {
     id: "eskara26_view_all",
     emoji: "🎪",
-    action: { kind: "focus", camera: ESKARA26_CAMERA, layerIds: ALL_ESKARA26_LAYER_IDS },
+    action: { kind: "focus", camera: ESKARA26_CAMERA, layerIds: DEFAULT_ESKARA26_LAYER_IDS },
   },
   {
     id: "eskara26_view_stage",

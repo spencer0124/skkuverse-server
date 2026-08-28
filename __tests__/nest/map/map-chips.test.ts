@@ -17,6 +17,7 @@
  */
 
 import { WEBVIEW_ORIGIN } from "../../../src/infra/origins";
+import { ESKARA26_LAYERS } from "../../../src/map/map-eskara26-markers.data";
 import { chipGroupOf } from "../../../src/map/map-layers.data";
 import {
   BASE_CHIPS,
@@ -97,6 +98,24 @@ describe("focus actions", () => {
       expect(group).not.toBeUndefined();
       expect(group).not.toBeNull();
     }
+  });
+
+  it("the reset chip restores the default set, not literally every layer", () => {
+    const all = getChips("ko", true).find((c) => c.id === "eskara26_view_all");
+    expect(all).toBeDefined();
+    if (all!.action.kind !== "focus") throw new Error("expected a focus chip");
+
+    const expected = ESKARA26_LAYERS.filter((l) => l.defaultVisible).map((l) => l.id);
+    expect([...all!.action.layerIds].sort()).toEqual([...expected].sort());
+
+    // The bug this guards: naming every festival layer makes "축제 전체" turn
+    // ON eskara26_facility, which ships defaultVisible: false. The user would
+    // land on a map carrying a layer they never opted into, with no chip left
+    // that gets back to the ordinary festival view.
+    expect(all!.action.layerIds).not.toContain("eskara26_facility");
+    expect(ESKARA26_LAYERS.find((l) => l.id === "eskara26_facility")!.defaultVisible).toBe(
+      false,
+    );
   });
 
   it("sends a complete camera, coordinates inside Korea", () => {

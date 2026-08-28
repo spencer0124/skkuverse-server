@@ -141,7 +141,7 @@ combinations are all meaningful:
 | `false` | `true` | Opt-in | 편의시설 — looked up when wanted, not carried on screen all festival |
 | `false` | `false` | Defined but inert — a kill switch | a layer shipped dark, switched on by a config change alone |
 
-### 4.1 Three contract rules
+### 4.1 Four contract rules
 
 1. **An absent `userConfigurable` means `true`. Never fail closed.** This follows GeoServer ("a
    layer is advertised by default") and Esri's `listMode` default of "show". An old client that has
@@ -152,7 +152,10 @@ combinations are all meaningful:
    still deep-linkable, and is still returned by its marker endpoint. Only the control disappears.
    QGIS says it outright about `LayerFlag::Private`: flags are "used for the UI but are not
    preventing any API call." Nothing here is an authorization boundary.
-3. **The client must shadow a stored toggle, not overwrite it.** A user's persisted visibility choice
+3. **A chip may not change it either.** A chip tap is a user-initiated change, so `false` here puts
+   the layer out of a chip's reach as well as out of the sheet's (§8.2). Inert today, since nothing
+   is `false`.
+4. **The client must shadow a stored toggle, not overwrite it.** A user's persisted visibility choice
    survives a layer becoming non-configurable and comes back when it becomes configurable again. The
    resolution is a fallback chain, not an assignment — the same shape the event map's
    `basemapOverride` already uses (`override[id] ?? userToggle[id] ?? defaultVisible`). Writing the
@@ -286,11 +289,15 @@ the envelope varies on `Accept-Language` while the marker data does not.
 `campuses[].radiusM` is how far from the centre still counts as being on a campus; it belongs to the
 campus reconciliation feature rather than to markers, and its derivation is in `map-config.data.ts`.
 
-`layers[].style` carries the **marker geometry**, which the app used to hardcode: `size` was
-`DOT_SIZE`, `width`/`height` were `PIN_WIDTH`/`PIN_HEIGHT` (the tintable base icon's natural
-proportions, so a client honouring them does not distort the tint), and `zIndex` was the label
-layer's `globalZIndex`. Every member is optional and every one has a client-side fallback, so a
-server that sends none of them renders as before.
+`layers[].style` carries the **marker geometry**, which the app hardcodes: `size` is `DOT_SIZE`,
+`width`/`height` are `PIN_WIDTH`/`PIN_HEIGHT` (the tintable base icon's natural proportions, so a
+client honouring them does not distort the tint), and `zIndex` is the label layer's `globalZIndex`.
+
+> [!WARNING]
+> **The geometry is served and not yet consumed** — see §9.7. `MapMarkerLayer.tsx` still uses its own
+> constants, and `parseLayerStyle` does not read `height` or `zIndex` at all. Only `color` and
+> `captionTextSize` reach a component today, so editing `size` here changes the wire and nothing on
+> screen. Every member is optional, so a server sending none of them renders as before either way.
 
 Colour is deliberately **not** moved for the building layers. Their fill and the placeDot tint fall
 back to `SdsColors.brand`, a design token that resolves per theme; a hex from here cannot. Geometry
@@ -556,9 +563,9 @@ chip.
    one group; every layer in that group is set (named → on, unnamed sibling → off); every layer
    outside it is untouched. An **empty** `layerIds` resolves no group, so the chip moves the camera
    and changes nothing — that is the camera-only chip, and it is why the field is not nullable.
-2. **Never a `userConfigurable: false` layer.** A chip tap is a user-initiated change, and that flag
-   already answers who may make one (§4). Inert today, since nothing is `false`; stated so it holds
-   when that quadrant gets its first occupant.
+2. **Never a `userConfigurable: false` layer** — §4.1 rule 3. A chip tap is a user-initiated change,
+   and that flag already answers who may make one. Inert today, since nothing is `false`; stated so
+   it holds when that quadrant gets its first occupant.
 
 Together these are what let a festival chip swap the six festival layers while 건물번호 and 건물이름
 stay visible **and** stay user-toggleable. Neither "exclusive over everything" nor "purely additive"
@@ -599,7 +606,7 @@ It also costs nothing. The app already fetches this document.
 | Chip id | `ko` label | Action | Live when |
 | --- | --- | --- | --- |
 | `lost_found` | 분실물 | `webview` → `/skku/lostandfound` | always |
-| `eskara26_view_all` | 축제 전체 | `focus`, all six festival layers | activation open |
+| `eskara26_view_all` | 축제 전체 | `focus`, the five **default-visible** festival layers | activation open |
 | `eskara26_view_stage` | 공연 | `focus`, `eskara26_stage` | activation open |
 | `eskara26_view_bar` | 주점 | `focus`, `eskara26_bar` | activation open |
 | `eskara26_view_food` | 먹거리 | `focus`, `eskara26_food` | activation open |
@@ -608,12 +615,16 @@ It also costs nothing. The app already fetches this document.
 
 Festival chips are gated by the **same activation window** as the festival layers, so a festival
 starts and ends with no deploy and its chips stop existing rather than lingering as dead buttons.
-`eskara26_view_all` is the way back: it names every festival layer, restoring the full map without
-touching the building layers.
 
-`eskara26_view_facility` earns its place precisely because 편의시설 is the opt-in layer
-(`defaultVisible: false`) — a chip is how an opt-in layer becomes reachable without a trip through the
-filter sheet.
+`eskara26_view_all` is the way back, and it restores the festival's **default** layer set rather than
+literally every layer. That distinction is load-bearing: `eskara26_facility` ships
+`defaultVisible: false`, so a chip naming all six would turn on a layer the user never opted into and
+leave no chip that returns to the ordinary festival view. The list is derived from
+`defaultVisible`, so it cannot drift from the layer definitions.
+
+`eskara26_view_facility` earns its place precisely because 편의시설 is that opt-in layer — a chip is
+how an opt-in layer becomes reachable without a trip through the filter sheet, and it is what lets
+the reset chip leave 편의시설 out and still be a complete way back.
 
 ### 8.6 Validation is fail-loud, at boot
 
@@ -747,6 +758,27 @@ that is precisely why this reorg stripped `?overlay=` (§6). A nearby URL carryi
 
 So §8.7's chip kind needs its own client hook with a quantised key, not `useLayerMarkers`. Recorded
 now because the constraint belongs to the design, not to the day it is discovered.
+
+### 9.7 Chips, camera defaults and marker geometry are served but not consumed
+
+The same shape as §9.3, and worth listing separately because §8 says "this is that endpoint" and a
+reader could stop there. As of this deploy the client reads **none** of it:
+
+| Served | Client state |
+| --- | --- |
+| `chips` | `parseMapConfig` builds `{naver, campuses, layers}` only; `MapConfig` has no `chips` member. `CampusChipRow.tsx` still renders its hardcoded `CAMPUS_CHIPS` mock |
+| `cameraDefaults` | not parsed; `CampusScreen` still uses literal `zoom: 17.5` / `duration: 500` at three call sites |
+| `layers[].chipGroupId` | not parsed |
+| `style.height`, `style.zIndex` | not parsed at all by `parseLayerStyle` |
+| `style.size`, `style.width` | parsed, then ignored — `MapMarkerLayer.tsx` uses `DOT_SIZE`, `PIN_WIDTH`, `PIN_HEIGHT` and `globalZIndex={100000}` regardless |
+| `campuses[].defaultTilt` / `defaultBearing` | parsed, then dropped by `focusCampus` |
+
+Only `style.color` and `style.captionTextSize` are honoured today.
+
+That is safe rather than broken — **this is why server-first is the right order here**, unlike §9.1.
+Every field is additive and the client's parsers ignore unknown keys, so nothing regresses while the
+client catches up. But it does mean the wire is a **promise** until it does: changing `size` here
+today changes the response and nothing on screen, with no error on either side.
 
 ## 10. Source of truth (file map)
 

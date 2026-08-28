@@ -16,14 +16,17 @@ import { ESKARA26_LAYERS, type Eskara26LayerId } from "./map-eskara26-markers.da
  */
 
 /**
- * The drawing knobs a layer may set, and the client's fallback if it does not.
+ * The drawing knobs a layer may set. Every member is optional, so a server that
+ * sends none of them renders exactly as one that never had the field.
  *
- * Every member is optional and every one has a client-side default, so an old
- * server that sends none of them renders exactly as it does today. This is the
- * marker geometry the app used to hardcode — `DOT_SIZE`, `PIN_WIDTH`,
- * `PIN_HEIGHT`, the caption sizes and the label layer's z-index all lived as
- * constants in `MapMarkerLayer.tsx`, which meant changing how a marker looks
- * was an app release.
+ * ⚠️ THE GEOMETRY IS NOT HONOURED BY THE SHIPPED CLIENT YET. Today
+ * `MapMarkerLayer.tsx` hardcodes `DOT_SIZE`, `PIN_WIDTH`/`PIN_HEIGHT` and the
+ * label layer's `globalZIndex`, and its parser does not read `height` or
+ * `zIndex` at all — only `color` and `captionTextSize` reach a component.
+ * Editing `size` here therefore changes the wire and nothing on screen, with no
+ * error on either side. These fields are a PROMISE about the wire until the
+ * client stops hardcoding them; see `docs/reference/map-markers-api.md` §9.7,
+ * which is the same shape §9.3 records for `userConfigurable`.
  *
  * ⚠️ COLOUR IS DELIBERATELY NOT MOVED for the building layers. The number
  * circle's fill and the placeDot's tint fall back to `SdsColors.brand`, a
@@ -154,6 +157,39 @@ export const ESKARA26_LAYER_STYLE = {
   captionTextSize: 9,
 } as const satisfies MapLayerStyle;
 
+/**
+ * The festival layers as ordinary `LayerSpec`s.
+ *
+ * Derived here rather than assembled inside the response builder so that BOTH
+ * layer sets reach the wire through one mapping. When the festival six were
+ * constructed field by field next to a spread of the base two, a member added
+ * to `LayerSpec` shipped on the buildings and was silently missing from the
+ * booths, with `tsc` green — the asymmetry looked like a formatting difference
+ * and behaved like a data loss.
+ *
+ * All six share ONE endpoint. The app keys its marker cache on the endpoint
+ * string, so layers sharing one share a single fetch and a single cache entry
+ * and each renders the subset carrying its own `layerId`; six `?category=`
+ * endpoints would be six round trips for one small payload.
+ *
+ * Every one is the user's to turn off, 편의시설 included — that one merely
+ * starts hidden. Nothing in the festival set is a locked background layer.
+ */
+export const ESKARA26_LAYER_SPECS: readonly LayerSpec[] = ESKARA26_LAYERS.map(
+  (layer) => ({
+    id: layer.id,
+    type: "marker",
+    markerStyle: "placeDot",
+    defaultVisible: layer.defaultVisible,
+    userConfigurable: true,
+    endpoint: "/map/markers/eskara26",
+    // One group, so a festival chip swaps these six between themselves and
+    // leaves 건물번호 and 건물이름 exactly as the user left them.
+    chipGroupId: ESKARA26_CHIP_GROUP,
+    style: { color: layer.color, ...ESKARA26_LAYER_STYLE },
+  }),
+);
+
 export type BaseLayerId = (typeof BASE_LAYERS)[number]["id"];
 
 /**
@@ -178,11 +214,8 @@ const CHIP_GROUP_BY_LAYER: ReadonlyMap<string, string | null> = new Map<
   string,
   string | null
 >([
-  ...BASE_LAYERS.map(
+  ...[...BASE_LAYERS, ...ESKARA26_LAYER_SPECS].map(
     (layer) => [layer.id, layer.chipGroupId] as [string, string | null],
-  ),
-  ...ESKARA26_LAYERS.map(
-    (layer) => [layer.id, ESKARA26_CHIP_GROUP] as [string, string | null],
   ),
 ]);
 

@@ -135,6 +135,15 @@ export interface MapChip {
    * every language is always present and there is nothing to lose by picking.
    */
   label: string;
+  /**
+   * `null` is declared before it is reachable, on purpose. Every chip served
+   * today carries an emoji, so nothing sends `null` yet — but widening a
+   * non-nullable field LATER breaks every client already narrowed to the
+   * non-null type, and a text-only chip is an ordinary thing to want. Declaring
+   * it now costs one branch in the client and buys the ability to add one
+   * without a coordinated release, which is the same reasoning behind "an
+   * absent `userConfigurable` means true".
+   */
   icon: MapChipIcon | null;
   action: MapChipAction;
 }
