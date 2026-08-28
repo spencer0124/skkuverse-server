@@ -795,7 +795,7 @@ an event-specific variant.
 > can never disagree with the marker it came from. It is **not reachable yet**: the app's
 > `PLACE_ID_RE` rejects the colon and drops such a link silently. ADR 0004 invariant 1 still
 > specifies the bare form and needs amending alongside the app change. See
-> [map-markers-api.md §8.2](map-markers-api.md).
+> [map-markers-api.md §9.2](map-markers-api.md).
 
 ## 9. Status semantics
 

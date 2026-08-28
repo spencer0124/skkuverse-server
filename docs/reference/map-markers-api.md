@@ -10,7 +10,8 @@ audience: internal
 # Map Markers API
 
 > The one marker schema every layer of the campus map draws, the two layer flags that say what is
-> visible and who may change it, and the three endpoints that carry them. Cross-repo ownership is
+> visible and who may change it, the chips that move the camera and swap layer sets, and the three
+> endpoints that carry them. Cross-repo ownership is
 > [umbrella ADR 0004](https://github.com/spencer0124/skkuverse/blob/main/docs/decisions/0004-event-map-layer-ownership.md);
 > the festival's authoring, materialization and snapshot tiers are [eventmap-api.md](eventmap-api.md).
 
@@ -21,9 +22,11 @@ audience: internal
 | Routes | `GET /map/config`, `GET /map/markers/campus`, `GET /map/markers/eskara26` |
 | Auth | none on all three |
 | Rate limit | `BusRateLimitMiddleware`, applied to the `/map` prefixes in `MapModule.configure` |
-| Wire schema | `src/map/map-marker.types.ts` — the SSOT both producers import |
+| Wire schema | `src/map/map-marker.types.ts` (markers), `src/map/map-chip.types.ts` (chips) |
 | Producers | `src/map/map-markers.data.ts` (buildings), `src/map/map-eskara26-markers.data.ts` (festival sessions) |
-| Layer list | `src/map/map-config.data.ts` |
+| Layer catalogue | `src/map/map-layers.data.ts` — ids, `chipGroupId`, geometry |
+| Chips | `src/map/map-chips.data.ts` — specs, boot-time validation |
+| Response builder | `src/map/map-config.data.ts` |
 | Envelope | `{ meta: { lang }, data: { markers: [ … ] } }`, `Vary: Accept-Language`, `X-Response-Time` |
 | Tests | `__tests__/nest/map/` |
 
@@ -138,7 +141,7 @@ combinations are all meaningful:
 | `false` | `true` | Opt-in | 편의시설 — looked up when wanted, not carried on screen all festival |
 | `false` | `false` | Defined but inert — a kill switch | a layer shipped dark, switched on by a config change alone |
 
-### 4.1 Three contract rules
+### 4.1 Four contract rules
 
 1. **An absent `userConfigurable` means `true`. Never fail closed.** This follows GeoServer ("a
    layer is advertised by default") and Esri's `listMode` default of "show". An old client that has
@@ -149,7 +152,10 @@ combinations are all meaningful:
    still deep-linkable, and is still returned by its marker endpoint. Only the control disappears.
    QGIS says it outright about `LayerFlag::Private`: flags are "used for the UI but are not
    preventing any API call." Nothing here is an authorization boundary.
-3. **The client must shadow a stored toggle, not overwrite it.** A user's persisted visibility choice
+3. **A chip may not change it either.** A chip tap is a user-initiated change, so `false` here puts
+   the layer out of a chip's reach as well as out of the sheet's (§8.2). Inert today, since nothing
+   is `false`.
+4. **The client must shadow a stored toggle, not overwrite it.** A user's persisted visibility choice
    survives a layer becoming non-configurable and comes back when it becomes configurable again. The
    resolution is a fallback chain, not an assignment — the same shape the event map's
    `basemapOverride` already uses (`override[id] ?? userToggle[id] ?? defaultVisible`). Writing the
@@ -189,6 +195,8 @@ Response, abridged to one event layer of the six, `lang=ko`, with a window open:
         "centerLat": 37.587241,
         "centerLng": 126.992858,
         "defaultZoom": 15.8,
+        "defaultTilt": 0,
+        "defaultBearing": 0,
         "radiusM": 1000
       },
       {
@@ -197,6 +205,8 @@ Response, abridged to one event layer of the six, `lang=ko`, with a window open:
         "centerLat": 37.29358,
         "centerLng": 126.974942,
         "defaultZoom": 15.8,
+        "defaultTilt": 0,
+        "defaultBearing": 0,
         "radiusM": 1000
       }
     ],
@@ -208,7 +218,9 @@ Response, abridged to one event layer of the six, `lang=ko`, with a window open:
         "label": "건물번호",
         "defaultVisible": true,
         "userConfigurable": true,
-        "endpoint": "/map/markers/campus"
+        "endpoint": "/map/markers/campus",
+        "chipGroupId": null,
+        "style": { "size": 16 }
       },
       {
         "id": "building_labels",
@@ -217,7 +229,9 @@ Response, abridged to one event layer of the six, `lang=ko`, with a window open:
         "label": "건물이름",
         "defaultVisible": true,
         "userConfigurable": true,
-        "endpoint": "/map/markers/campus"
+        "endpoint": "/map/markers/campus",
+        "chipGroupId": null,
+        "style": { "captionTextSize": 7, "zIndex": 100000 }
       },
       {
         "id": "eskara26_stage",
@@ -227,9 +241,42 @@ Response, abridged to one event layer of the six, `lang=ko`, with a window open:
         "defaultVisible": true,
         "userConfigurable": true,
         "endpoint": "/map/markers/eskara26",
-        "style": { "color": "F76CA0" }
+        "chipGroupId": "eskara26",
+        "style": { "color": "F76CA0", "width": 22, "height": 30, "captionTextSize": 9 }
       }
-    ]
+    ],
+    "chips": [
+      {
+        "id": "lost_found",
+        "label": "분실물",
+        "icon": { "kind": "emoji", "emoji": "🧳" },
+        "action": {
+          "kind": "webview",
+          "url": "https://webview.skkuverse.com/skku/lostandfound"
+        }
+      },
+      {
+        "id": "eskara26_view_stage",
+        "label": "공연",
+        "icon": { "kind": "emoji", "emoji": "🎤" },
+        "action": {
+          "kind": "focus",
+          "camera": {
+            "lat": 37.295129,
+            "lng": 126.971234,
+            "zoom": 17.5,
+            "tilt": 0,
+            "bearing": 0,
+            "durationMs": 500
+          },
+          "layerIds": ["eskara26_stage"]
+        }
+      }
+    ],
+    "cameraDefaults": {
+      "markerFocus": { "zoom": 17.5, "tilt": 0, "bearing": 0, "durationMs": 500 },
+      "campusFocus": { "durationMs": 500 }
+    }
   }
 }
 ```
@@ -241,6 +288,28 @@ the envelope varies on `Accept-Language` while the marker data does not.
 
 `campuses[].radiusM` is how far from the centre still counts as being on a campus; it belongs to the
 campus reconciliation feature rather than to markers, and its derivation is in `map-config.data.ts`.
+
+`layers[].style` carries the **marker geometry**, which the app hardcodes: `size` is `DOT_SIZE`,
+`width`/`height` are `PIN_WIDTH`/`PIN_HEIGHT` (the tintable base icon's natural proportions, so a
+client honouring them does not distort the tint), and `zIndex` is the label layer's `globalZIndex`.
+
+> [!WARNING]
+> **The geometry is served and not yet consumed** — see §9.7. `MapMarkerLayer.tsx` still uses its own
+> constants, and `parseLayerStyle` does not read `height` or `zIndex` at all. Only `color` and
+> `captionTextSize` reach a component today, so editing `size` here changes the wire and nothing on
+> screen. Every member is optional, so a server sending none of them renders as before either way.
+
+Colour is deliberately **not** moved for the building layers. Their fill and the placeDot tint fall
+back to `SdsColors.brand`, a design token that resolves per theme; a hex from here cannot. Geometry
+is theme-independent and belongs on the wire, colour that comes from a token does not. The festival
+layers do send `color`, because a category colour is content rather than theme.
+
+`chips` is the chip contract — see §8. `cameraDefaults` holds the camera settings for the moves the
+app makes on its own rather than at a chip's request; `markerFocus` was `zoom: 17.5` and
+`duration: 500` repeated at three call sites in the client, which meant a chip's camera and a
+marker-tap camera were configured in two places that could disagree about how close "close" is.
+`campusFocus` carries only a duration, because a campus's zoom, tilt and bearing already sit on its
+`CampusEntry`.
 
 ### 5.2 `GET /map/markers/campus`
 
@@ -440,11 +509,165 @@ It resolves to `eskara26_etc` rather than vanishing, because **a booth missing f
 is not a failure anyone can see or report**. A booth in the wrong bucket is visible and fixable; a
 booth nobody drew is silent.
 
-## 8. Known gaps
+## 8. Chips
+
+A layer answers *what is drawn*. A chip answers *where should I be looking, and what should be on
+while I look there*. Chips ship inside `GET /map/config`, beside `layers`, and are entirely
+server-decided: the app renders a pill and dispatches on `action.kind` without interpreting it.
+
+They exist because the reorg in this document **orphaned the map's only server-driven chip row**. The
+event map's chips filter snapshot *items*; once booths became ordinary marker layers there were no
+snapshot items on the map screen left to filter, so `<EventMapChipRow />` was removed from
+`CampusScreen` as a control that would visibly do nothing. What remained in that spot was
+`CampusChipRow.tsx`, a hardcoded mock whose own header says the list "is what gets deleted" when an
+endpoint lands. This is that endpoint.
+
+> [!IMPORTANT]
+> `MapChip` is **not** `ChipSpec` / `ChipGroupSpec` / `WireChip` from
+> [eventmap-api.md](eventmap-api.md). Those carry a `Predicate` and filter snapshot items
+> client-side. A map chip carries an **action** and has no predicate at all. The names are close
+> because the UI affordance is the same pill; the contracts are unrelated.
+
+### 8.1 The schema
+
+```ts
+interface CameraMotion { zoom: number; tilt: number; bearing: number; durationMs: number }
+interface MapCamera extends CameraMotion { lat: number; lng: number }
+
+type MapChipAction =
+  | { kind: "webview"; url: string }
+  | { kind: "focus"; camera: MapCamera; layerIds: string[] };
+
+interface MapChip {
+  id: string;
+  label: string;                                  // t(`map.chip.<id>`), resolved server-side
+  icon: { kind: "emoji"; emoji: string } | null;
+  action: MapChipAction;
+}
+```
+
+Discriminated on `kind`, matching `MarkerTap` and `IconSpec` in this same domain rather than the flat
+`actionType` + `actionValue: string` pair the home screen's SDUI uses. That pair cannot carry a
+camera, and encoding one as JSON inside a string would put a second parser on the wire.
+
+`webview` reuses the name **and the validator** of the SDUI action type it corresponds to
+(`src/infra/webview-url.ts`), so there is one rule for what counts as a usable web view URL rather
+than two. Authored values are root-relative and are resolved against `WEBVIEW_ORIGIN` before they
+ship, so a client never receives a relative string to hand to an opener. There is deliberately **no
+`title`**: the client already holds the chip's `label`, and a page a chip opened is titled by that
+chip.
+
+### 8.2 What a chip tap may change — two rules
+
+1. **Only layers sharing the `chipGroupId` of the layers it names.** The chip's `layerIds` resolve to
+   one group; every layer in that group is set (named → on, unnamed sibling → off); every layer
+   outside it is untouched. An **empty** `layerIds` resolves no group, so the chip moves the camera
+   and changes nothing — that is the camera-only chip, and it is why the field is not nullable.
+2. **Never a `userConfigurable: false` layer** — §4.1 rule 3. A chip tap is a user-initiated change,
+   and that flag already answers who may make one. Inert today, since nothing is `false`; stated so
+   it holds when that quadrant gets its first occupant.
+
+Together these are what let a festival chip swap the six festival layers while 건물번호 and 건물이름
+stay visible **and** stay user-toggleable. Neither "exclusive over everything" nor "purely additive"
+does that: the first turns the baseline off, the second cannot give a clean single-purpose view.
+
+### 8.3 Why `chipGroupId` is declared, never inferred
+
+The tempting shortcut is to read the group off `endpoint` — layers sharing a data source already
+share a URL, so today the two agree exactly. It is the wrong key. `endpoint` is a **cache** key: the
+app keys its marker query on that string so two building layers cost one fetch (§6). Merging or
+splitting a route for network reasons would then silently redraw the chip boundaries, and the
+symptom — "tapping 무대 hid 건물번호" — would have no line of code to blame.
+
+Declaring it follows what the GIS tools settled on. Leaflet's grouped layer control takes an explicit
+`exclusiveGroups` option naming which groups behave like radio buttons; ArcGIS service metadata
+carries an `EXCLUSIVE=TRUE` flag on a group description. In both, group membership and exclusivity
+are properties of the layer, kept separate from where the layer's data comes from.
+
+| Layer | `chipGroupId` |
+| --- | --- |
+| `building_numbers`, `building_labels` | `null` — no chip may ever change them |
+| every `eskara26_*` | `"eskara26"` |
+
+`null` is a meaningful value here, not an omission.
+
+### 8.4 Why chips ride inside `/map/config`
+
+A chip's `layerIds` reference layer ids. Serving both in one document means the reference **cannot
+disagree with the layer list on the wire** — there is no window in which the app holds a fresh chip
+list and a stale layer list. The same reasoning drives the single activation read: layers and chips
+ask "is a festival live" once between them, so the window cannot close midway and leave chips
+pointing at layers that are no longer in the response.
+
+It also costs nothing. The app already fetches this document.
+
+### 8.5 The chips served
+
+| Chip id | `ko` label | Action | Live when |
+| --- | --- | --- | --- |
+| `lost_found` | 분실물 | `webview` → `/skku/lostandfound` | always |
+| `eskara26_view_all` | 축제 전체 | `focus`, the five **default-visible** festival layers | activation open |
+| `eskara26_view_stage` | 공연 | `focus`, `eskara26_stage` | activation open |
+| `eskara26_view_bar` | 주점 | `focus`, `eskara26_bar` | activation open |
+| `eskara26_view_food` | 먹거리 | `focus`, `eskara26_food` | activation open |
+| `eskara26_view_booth` | 부스 | `focus`, `eskara26_booth` | activation open |
+| `eskara26_view_facility` | 편의시설 | `focus`, `eskara26_facility` | activation open |
+
+Festival chips are gated by the **same activation window** as the festival layers, so a festival
+starts and ends with no deploy and its chips stop existing rather than lingering as dead buttons.
+
+`eskara26_view_all` is the way back, and it restores the festival's **default** layer set rather than
+literally every layer. That distinction is load-bearing: `eskara26_facility` ships
+`defaultVisible: false`, so a chip naming all six would turn on a layer the user never opted into and
+leave no chip that returns to the ordinary festival view. The list is derived from
+`defaultVisible`, so it cannot drift from the layer definitions.
+
+`eskara26_view_facility` earns its place precisely because 편의시설 is that opt-in layer — a chip is
+how an opt-in layer becomes reachable without a trip through the filter sheet, and it is what lets
+the reset chip leave 편의시설 out and still be a complete way back.
+
+### 8.6 Validation is fail-loud, at boot
+
+`validateChipSpecs` runs at module import in `src/map/map-chips.data.ts`, accumulates every problem
+and throws once with all of them. A bad chip therefore aborts startup instead of reaching a client.
+That is the `miniapps.schema.ts` posture, not the `eventmap.materialize.ts` one: these lists are repo
+config, so a bad value is a bug a PR fixes, not a runtime contingency to render around. Fail loud
+where you can fix it, fail soft where you can only render it.
+
+Four rules are enforced, and one more is enforced by the compiler:
+
+| Rule | Enforced by |
+| --- | --- |
+| `layerIds` names a real layer | **`tsc`** — `MapLayerId` is read off the layer lists |
+| every named layer has a non-null `chipGroupId` | `validateChipSpecs`, throws |
+| a chip's `layerIds` do not straddle two groups | `validateChipSpecs`, throws |
+| a `webview` URL passes `toWebviewUrl` | `validateChipSpecs`, throws |
+| chip ids are unique | `validateChipSpecs`, throws |
+
+The one thing neither catches is a **missing translation**: `t()` returns the key on a miss, silently,
+so a chip with no i18n entry would render `map.chip.foo` as its visible label. That is covered by
+`__tests__/nest/map/map-chips.test.ts`, in all three languages, exactly as the layer suite guards its
+half.
+
+### 8.7 Reserved: the "nearby" chip
+
+The third chip kind — markers within N metres of a position — is written down and **not** built, so
+that adding it stays additive:
+
+```ts
+| { kind: "nearby"; origin: "device" | "camera"; radiusM: number;
+    endpoint: string; layerIds: string[] }
+```
+
+`origin` is on the wire rather than fixed in the client because one chip can reasonably mean "near
+me" and another "near what I am looking at", and only the server knows which. See §9.6 for the client
+constraint it will run into.
+
+## 9. Known gaps
 
 Stated plainly, because each one is a real constraint on the next deploy rather than a nicety.
 
-### 8.1 Deploy order is load-bearing — ship the app first
+### 9.1 Deploy order is load-bearing — ship the app first
 
 The app has **no `layerId` filter, no `tap` handling, and no `placeDot` marker style**. Its
 `RawMarkerData` still reads `skkuId` and `displayNo`, and its `markerStyle` union is
@@ -463,7 +686,7 @@ Nothing in the payload lets the server detect an old client. Order is the whole 
 app release (or OTA) → verify → deploy server
 ```
 
-### 8.2 The `<kind>:<placeId>` deep link is agreed but not reachable
+### 9.2 The `<kind>:<placeId>` deep link is agreed but not reachable
 
 The agreed format makes the link literally the two fields of `tap`, so it can never disagree with the
 marker it came from:
@@ -481,7 +704,7 @@ the shape test and is dropped silently. Widening the pattern is app-side work in
 to match — as does [eventmap-api.md §8.1](eventmap-api.md), which documents the bare form as the
 universal scheme.
 
-### 8.3 `userConfigurable` is served but nothing consumes it
+### 9.3 `userConfigurable` is served but nothing consumes it
 
 Every layer entry carries the flag; no client reads it yet. `MapLayerDef` in
 `packages/shared/src/types/map.ts` has no such member, so it is parsed away. The contract in §4 is
@@ -489,7 +712,7 @@ therefore a **promise about the wire**, not a description of shipped behaviour, 
 means `true`) is what makes that safe in the meantime: today's clients behave exactly as if every
 layer were configurable, which is what every layer currently is.
 
-### 8.4 Next year's festival costs a route, a config entry and a client branch
+### 9.4 Next year's festival costs a route, a config entry and a client branch
 
 `eskara26` appears in three places that are not data: the layer ids, the route path
 (`/map/markers/eskara26`), and the `tap.kind` literal. `eskara27` therefore needs a new route, a new
@@ -498,30 +721,84 @@ layer set in the config, and a client branch that knows the new tap kind.
 That was chosen deliberately, against ADR 0004 invariant 1 — "It must never learn the name of a
 consumer" — and its consequence that "next year's event arrives as data". The price is worth naming:
 
-- The app persists base-map layer visibility permanently, so next year's `eskara27_*` ids leave this
-  year's behind as **dead keys**, and a user who turned 주점 off does not carry that choice forward.
-- Generic `event_*` ids would avoid both costs, at the price of a name that says nothing about which
+- A user who turned 주점 off does not carry that choice into next year's festival, because
+  `eskara27_*` are different ids. Arguably correct anyway — it is a different festival.
+- Generic `event_*` ids would preserve it, at the price of a name that says nothing about which
   festival is live.
+
+> [!NOTE]
+> An earlier revision of this section claimed the ids would also accumulate **dead keys**, because
+> "the app persists base-map layer visibility permanently". That is wrong, and worth recording so
+> the argument is not rebuilt on it: `packages/shared/src/store/map.ts` is explicitly *"ephemeral
+> (not persisted)"* and has no `persist` middleware, so nothing accumulates. The **event** store
+> (`store/eventmap.ts`) is the persisted one, and it already resets when `activeLayerSetId` changes.
+> If the base-map store ever gains persistence, this cost becomes real — and the shadow rule in §4.1
+> has to land in the same change.
 
 Unambiguity won. A generic id in a log line, a deep link or a bug report cannot tell you which
 festival it belonged to, and the festival map is a thing that is debugged in a crowd at 22:00.
 
-## 9. Source of truth (file map)
+### 9.5 A chip camera cannot be honoured in one call
+
+The client's map SDK splits the camera across two mechanisms.
+`NaverMapViewRef.animateCameraTo` takes `{latitude, longitude, zoom, duration, easing, pivot}` and
+**not** `tilt` or `bearing`; the declarative `camera` prop carries `tilt` and `bearing` and has **no
+duration**. So a chip whose `tilt` and `bearing` are both `0` goes through `animateCameraTo` and gets
+its `durationMs`, and any other chip goes through the prop and animates at the SDK's own pace.
+
+Every chip served today is `tilt: 0, bearing: 0`, so nothing is currently lost. The server sends the
+whole `CameraMotion` regardless: this is a client mechanism limit, and trimming the payload to match
+it would bake the limitation into the wire.
+
+### 9.6 A nearby chip will thrash the client's marker cache
+
+`useLayerMarkers` keys its query on the **endpoint string** (`['map','layer','markers',endpoint]`) —
+that is precisely why this reorg stripped `?overlay=` (§6). A nearby URL carrying
+`?lat=&lng=&radiusM=` would mint a fresh cache entry per camera position.
+
+So §8.7's chip kind needs its own client hook with a quantised key, not `useLayerMarkers`. Recorded
+now because the constraint belongs to the design, not to the day it is discovered.
+
+### 9.7 Chips, camera defaults and marker geometry are served but not consumed
+
+The same shape as §9.3, and worth listing separately because §8 says "this is that endpoint" and a
+reader could stop there. As of this deploy the client reads **none** of it:
+
+| Served | Client state |
+| --- | --- |
+| `chips` | `parseMapConfig` builds `{naver, campuses, layers}` only; `MapConfig` has no `chips` member. `CampusChipRow.tsx` still renders its hardcoded `CAMPUS_CHIPS` mock |
+| `cameraDefaults` | not parsed; `CampusScreen` still uses literal `zoom: 17.5` / `duration: 500` at three call sites |
+| `layers[].chipGroupId` | not parsed |
+| `style.height`, `style.zIndex` | not parsed at all by `parseLayerStyle` |
+| `style.size`, `style.width` | parsed, then ignored — `MapMarkerLayer.tsx` uses `DOT_SIZE`, `PIN_WIDTH`, `PIN_HEIGHT` and `globalZIndex={100000}` regardless |
+| `campuses[].defaultTilt` / `defaultBearing` | parsed, then dropped by `focusCampus` |
+
+Only `style.color` and `style.captionTextSize` are honoured today.
+
+That is safe rather than broken — **this is why server-first is the right order here**, unlike §9.1.
+Every field is additive and the client's parsers ignore unknown keys, so nothing regresses while the
+client catches up. But it does mean the wire is a **promise** until it does: changing `size` here
+today changes the response and nothing on screen, with no error on either side.
+
+## 10. Source of truth (file map)
 
 | Concern | File |
 | --- | --- |
 | Wire schema, both producers | `src/map/map-marker.types.ts` |
-| Layer list, campuses, event layer lookup | `src/map/map-config.data.ts` |
+| Layer catalogue, `chipGroupId`, marker geometry | `src/map/map-layers.data.ts` |
+| Chip specs, validation, festival gating | `src/map/map-chips.data.ts` |
+| Chip wire schema | `src/map/map-chip.types.ts` |
+| Response builder, campuses, activation lookup | `src/map/map-config.data.ts` |
 | Buildings → markers, empty-DB fallback | `src/map/map-markers.data.ts` |
 | Event sessions → markers, layer set, category mapping | `src/map/map-eskara26-markers.data.ts` |
 | HTTP + `Cache-Control` | `src/map/controllers/map-config.controller.ts`, `src/map/controllers/map-markers.controller.ts` |
 | Module wiring, rate limit, endpoint inventory | `src/map/map.module.ts` |
-| Layer and campus labels | `src/infra/i18n.ts` (`map.layer.*`, `map.campus.*`) |
+| Layer, campus and chip labels | `src/infra/i18n.ts` (`map.layer.*`, `map.campus.*`, `map.chip.*`) |
 | Building documents | `src/building/building.data.ts` |
 | Event documents + activation window | `src/eventmap/eventmap.data.ts`, `src/eventmap/types.ts` |
 | Tests | `__tests__/nest/map/` |
 
-## 10. Related
+## 11. Related
 
 - [eventmap-api.md](eventmap-api.md) — the festival's storage, materialization, snapshot and ops tiers
 - [ADR 0004 — event map layer ownership](https://github.com/spencer0124/skkuverse/blob/main/docs/decisions/0004-event-map-layer-ownership.md)

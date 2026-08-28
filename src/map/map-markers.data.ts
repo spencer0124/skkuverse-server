@@ -1,5 +1,6 @@
 import { getAllBuildings } from "../building/building.data";
 import type { Campus } from "../building/types";
+import type { BaseLayerId } from "./map-layers.data";
 import type { MapMarker } from "./map-marker.types";
 
 /**
@@ -19,9 +20,18 @@ import type { MapMarker } from "./map-marker.types";
  * a missing name keeps it off 건물이름.
  */
 
-/** Layer ids this module emits. Mirrored in map-config.data's layer list. */
-const LAYER_NUMBERS = "building_numbers";
-const LAYER_LABELS = "building_labels";
+/**
+ * Layer ids this module emits, typed against the catalogue rather than restated
+ * as bare strings.
+ *
+ * The annotation is the whole point. `/map/config` advertises a layer id and
+ * this module stamps one onto each marker, and the app matches them with
+ * `m.layerId === layer.id` — so a rename on one side and not the other yields a
+ * layer that fetches successfully and draws nothing, with no error anywhere. As
+ * `BaseLayerId` that mismatch is a compile error instead of a blank campus.
+ */
+const LAYER_NUMBERS: BaseLayerId = "building_numbers";
+const LAYER_LABELS: BaseLayerId = "building_labels";
 
 /**
  * Static markers for an empty database.
