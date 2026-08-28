@@ -50,7 +50,7 @@ audience: internal
 | --- | --- |
 | [notices-api.md](reference/notices-api.md) | `/notices/*` + `/internal/notices/*` 요청·응답 계약, 에러 코드, 파일 맵 |
 | [eventmap-api.md](reference/eventmap-api.md) | `/eventmap/*` + `/internal/eventmap/*` 계약 — 컬렉션·인덱스, materializer, 스냅샷 엔드포인트, 운영 런북 |
-| [map-markers-api.md](reference/map-markers-api.md) | The one marker schema every map layer draws, the `defaultVisible`/`userConfigurable` layer flags, and `GET /map/config` + `/map/markers/{campus,eskara26}` |
+| [map-markers-api.md](reference/map-markers-api.md) | The one marker schema every map layer draws, the `defaultVisible`/`userConfigurable` layer flags, and `GET /map/config` + `/map/markers/{campus,event}` — with the festival's layers and chips read from its config |
 
 ### explanation (메커니즘·배경)
 

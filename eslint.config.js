@@ -90,6 +90,37 @@ module.exports = [
     },
   },
   {
+    // LEAF modules of the map ⇄ eventmap seam. `src/eventmap/eventmap.config.ts`
+    // runs `CONFIG_FILES.map(loadOne)` in its module body and imports these two
+    // to validate a festival's chips against the served catalogue; if either
+    // ever imported it — or anything that does — back, the half-initialised
+    // module would be the one running loadOne, and `BASE_LAYERS` would be
+    // `undefined` inside the import-time check with a TypeError naming nothing
+    // useful. Their headers say so; this is what makes it fail lint instead.
+    files: ["src/map/map-layers.data.ts", "src/map/map-chips.data.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "**/eventmap.config",
+                "**/eventmap.active",
+                "**/eventmap.materialize",
+                "**/eventmap.data",
+                "**/map-config.data",
+                "**/map-event-markers.data",
+              ],
+              message:
+                "leaf module: this import closes a cycle through eventmap.config (see the file header).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["__tests__/**/*.{js,ts}"],
     languageOptions: {
       globals: jestGlobals,

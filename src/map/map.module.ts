@@ -14,10 +14,10 @@ import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middlewa
  * modules via MapService.
  *
  * Endpoints (all no auth, generalLimiter):
- *  - MapConfigController:   GET /map/config              (i18n campus/layer labels,
- *                                                        eskara26 layers while live)
+ *  - MapConfigController:   GET /map/config              (campus/layer labels,
+ *                                                        festival layers while live)
  *  - MapMarkersController:  GET /map/markers/campus      (both building layers)
- *                           GET /map/markers/eskara26    (festival booths)
+ *                           GET /map/markers/event       (festival booths)
  *  - MapOverlaysController: GET /map/overlays            (ETag/304, 400/404)
  *                           GET /map/overlays/:overlayId (404 NOT_FOUND)
  *

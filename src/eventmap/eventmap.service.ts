@@ -9,6 +9,7 @@ import {
   findSnapshotByVersion,
 } from "./eventmap.data";
 import { getLayerSetConfig } from "./eventmap.config";
+import { EVENTMAP_SCHEMA_VERSION } from "./types";
 import type {
   ActivationDoc,
   EventMapItem,
@@ -30,9 +31,6 @@ import type {
 
 /** Poll cadence advertised when nothing is running. 60 s comes from config during an event. */
 const IDLE_REFRESH_AFTER_SEC = 300;
-
-/** Schema version reported when there is no snapshot to read one from. */
-const SCHEMA_VERSION = 1;
 
 // --- Memos ------------------------------------------------------------------
 //
@@ -84,7 +82,8 @@ function rememberSnapshot(key: string, doc: SnapshotDoc): void {
 
 function inactiveManifest(): EventMapManifest {
   return {
-    schemaVersion: SCHEMA_VERSION,
+    // No snapshot to read one from, so the constant the materializer stamps.
+    schemaVersion: EVENTMAP_SCHEMA_VERSION,
     activeLayerSetId: null,
     version: null,
     snapshotUrl: null,

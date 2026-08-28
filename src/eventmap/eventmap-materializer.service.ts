@@ -2,7 +2,7 @@ import { Injectable, type OnModuleInit } from "@nestjs/common";
 import config from "../infra/config";
 import logger from "../infra/logger";
 import { postToFcmFunction } from "../common/fcm-client";
-import type { SupportedLang } from "../infra/types";
+import { SUPPORTED_LANGS, type SupportedLang } from "../infra/types";
 import { PollerRegistryService } from "../scheduling/poller-registry.service";
 import { getLayerSetConfig } from "./eventmap.config";
 import { canonicalStringify, md5 } from "./eventmap.hash";
@@ -40,7 +40,7 @@ import type { SnapshotDoc } from "./types";
  * ROLE !== "api", so the scheduled pass runs on exactly one process.
  */
 
-const LANGS: readonly SupportedLang[] = ["ko", "en", "zh"];
+const LANGS: readonly SupportedLang[] = SUPPORTED_LANGS;
 const GC_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**

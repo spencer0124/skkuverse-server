@@ -1,16 +1,12 @@
-import { findActiveActivation } from "../eventmap/eventmap.data";
+import { activeEventConfig } from "../eventmap/eventmap.active";
+import type { EventMapConfig } from "../eventmap/types";
 import config from "../infra/config";
-import { t } from "../infra/i18n";
+import { pick, t } from "../infra/i18n";
 import logger from "../infra/logger";
 import type { SupportedLang } from "../infra/types";
 import type { CameraMotion, MapChip } from "./map-chip.types";
 import { getChips } from "./map-chips.data";
-import {
-  BASE_LAYERS,
-  ESKARA26_LAYER_SPECS,
-  type LayerSpec,
-  type MapLayerStyle,
-} from "./map-layers.data";
+import { BASE_LAYERS, eventLayerSpecs, type LayerSpec } from "./map-layers.data";
 
 interface CampusEntry {
   id: "hssc" | "nsc";
@@ -49,49 +45,15 @@ interface CampusEntry {
   radiusM: number;
 }
 
-interface LayerEntry {
-  id: string;
-  type: "marker" | "polyline";
-  markerStyle?: string;
-  label: string;
-  /** Is the layer on to begin with. */
-  defaultVisible: boolean;
-  /**
-   * May the user change it.
-   *
-   * Two independent axes: `defaultVisible` is what the value IS,
-   * `userConfigurable` is who may change it — the shape Firefox ships as
-   * `{Value, Status}` and GeoServer as `enabled`/`advertised`. The four
-   * combinations are: always-on background (true/false), ordinary toggle
-   * (true/true), opt-in (false/true), and defined-but-inert (false/false).
-   *
-   * Four rules the client must hold. They are the same four as
-   * `docs/reference/map-markers-api.md` §4.1 — that document is the contract,
-   * and this list must not disagree with it:
-   *
-   *  - **An ABSENT value means `true`.** Never fail closed — GeoServer's "a
-   *    layer is advertised by default" and Esri's `listMode` default of "show".
-   *    The server's own list is explicit anyway, so a new layer cannot forget
-   *    to decide.
-   *  - **It governs the affordance, not the capability.** A non-configurable
-   *    layer still renders, is still deep-linkable, and is still returned by
-   *    its marker endpoint. Only the control disappears. QGIS says it outright:
-   *    flags are "used for the UI but are not preventing any API call."
-   *  - **Shadow a stored toggle, never overwrite it.** The resolution is a
-   *    fallback chain, not an assignment, so a preference survives the layer
-   *    becoming non-configurable and comes back when it becomes configurable
-   *    again. This is the one that destroys user data if you get it wrong.
-   *  - **A chip may not change it either.** A chip tap is a user-initiated
-   *    change, so `false` here puts the layer out of a chip's reach as well as
-   *    out of the sheet's. Inert today — nothing is `false` — and stated now so
-   *    it holds when the quadrant gets its first occupant.
-   */
-  userConfigurable: boolean;
-  endpoint: string;
-  /** See `map-layers.data.ts`: declared group, never inferred from `endpoint`. */
-  chipGroupId: string | null;
-  style?: MapLayerStyle;
-}
+/**
+ * A layer as served: the spec with its label resolved to the requested
+ * language. DERIVED from `LayerSpec` rather than restated, so a member added
+ * there reaches both the wire (through the `...rest` spread below) and this
+ * declared type in one edit — a hand-copied interface let the spread ship a
+ * field the type did not admit, with tsc green. The contract prose for each
+ * member, the four `userConfigurable` rules included, lives on `LayerSpec`.
+ */
+type LayerEntry = Omit<LayerSpec, "label"> & { label: string };
 
 interface MapConfigResponse {
   naver: { styleId: string | undefined };
@@ -119,28 +81,30 @@ interface MapConfigResponse {
 }
 
 /**
- * Is a festival live right now?
+ * The live festival's config, or `null` for "no festival".
  *
  * Contained on purpose. Until the event layers existed /map/config could not
  * fail — no DB dependency at all — and the app's fallback for a failed config
  * is a bundled default holding no booth layers but also no BUILDING layers.
  * Letting a Mongo hiccup here take 건물번호 down with it would trade a missing
  * festival for a blank campus map, so a failure answers "no festival" and the
- * route keeps the never-fails property it had when it was sync.
+ * route keeps the never-fails property it had when it was sync. A live
+ * activation whose config this build cannot use answers the same way, and
+ * `activeEventConfig` has already said so once in the log.
  *
  * Called ONCE per request and handed to both the layer list and the chip list.
  * Asking separately would be two reads for one answer, and — worse — the two
  * could disagree if the window closed between them, serving chips that point at
  * layers no longer in the same response.
  */
-async function isFestivalLive(): Promise<boolean> {
+async function activeEvent(): Promise<EventMapConfig | null> {
   try {
-    return (await findActiveActivation(new Date())) !== null;
+    return await activeEventConfig(new Date());
   } catch (err) {
     logger.warn(
       `[map] event layer lookup failed, serving base layers only: ${String(err)}`,
     );
-    return false;
+    return null;
   }
 }
 
@@ -149,9 +113,9 @@ async function isFestivalLive(): Promise<boolean> {
  * Text fields are resolved to the requested language via i18n.
  */
 async function getMapConfig(lang: SupportedLang = "ko"): Promise<MapConfigResponse> {
-  const festivalLive = await isFestivalLive();
-  const layerSpecs: readonly LayerSpec[] = festivalLive
-    ? [...BASE_LAYERS, ...ESKARA26_LAYER_SPECS]
+  const event = await activeEvent();
+  const layerSpecs: readonly LayerSpec[] = event
+    ? [...BASE_LAYERS, ...eventLayerSpecs(event)]
     : BASE_LAYERS;
 
   return {
@@ -183,21 +147,22 @@ async function getMapConfig(lang: SupportedLang = "ko"): Promise<MapConfigRespon
       // copy, so a member added to LayerSpec reaches the wire without an edit
       // here. The festival six used to be built separately, which meant a new
       // member shipped on the buildings and was silently missing from the
-      // booths with tsc green. Naming the first three fields only puts `label`
-      // in a readable position.
+      // booths with tsc green.
       //
-      // The catalogue itself lives in map-layers.data so chips can resolve a
-      // layer's group without importing this response builder; labels are
-      // resolved here because they are the only per-request part of a layer.
-      ...layerSpecs.map(({ id, type, markerStyle, ...rest }) => ({
+      // `label` is DESTRUCTURED OUT and re-added resolved: left in `rest` the
+      // `{ko, en, zh}` object would ride to the wire and render as
+      // "[object Object]". Labels are resolved here because they are the only
+      // per-request part of a layer; the `?? id` is unreachable — `ko` is
+      // required on every spec — and keeps the type honest.
+      ...layerSpecs.map(({ id, type, markerStyle, label, ...rest }) => ({
         id,
         type,
         markerStyle,
-        label: t(`map.layer.${id}`, lang),
+        label: pick(label, lang) ?? id,
         ...rest,
       })),
     ],
-    chips: getChips(lang, festivalLive),
+    chips: getChips(lang, event),
     cameraDefaults: {
       markerFocus: { zoom: 17.5, tilt: 0, bearing: 0, durationMs: 500 },
       campusFocus: { durationMs: 500 },

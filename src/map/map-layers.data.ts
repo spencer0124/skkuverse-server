@@ -1,18 +1,30 @@
-import { ESKARA26_LAYERS, type Eskara26LayerId } from "./map-eskara26-markers.data";
+import type { EventMapConfig } from "../eventmap/types";
+import type { I18n } from "../infra/types";
 
 /**
  * The layer catalogue: every layer id this server can serve, and the facts
  * about each that do not depend on a language or on a request.
  *
- * Split out of `map-config.data.ts` for one concrete reason: chips reference
- * layer ids, and `map-chips.data.ts` has to resolve a chip's `layerIds` to a
- * `chipGroupId` to validate it. With the catalogue inside the response builder
- * that would be a runtime import cycle. Here both modules depend on this one
- * and neither depends on the other.
+ * Two sources feed it. `BASE_LAYERS` is repo config — the buildings, on every
+ * day of the year. The festival layers are read from the live layer set's
+ * config (`src/eventmap/config/<layerSetId>.json`) and projected here by
+ * `eventLayerSpecs`, so next year's festival is a JSON file and Mongo content
+ * with no TypeScript to touch. Both reach the wire through ONE mapping in
+ * `map-config.data.ts`.
  *
- * Labels are NOT here. They are `t("map.layer.<id>", lang)`, resolved per
- * request in `map-config.data.ts`, which is the same split
- * `ESKARA26_LAYERS` already uses.
+ * Split out of `map-config.data.ts` for one concrete reason: chips reference
+ * layer ids, and a chip's `layerIds` have to resolve to a `chipGroupId` to be
+ * validated. With the catalogue inside the response builder that would be a
+ * runtime import cycle — worse now that `eventmap.config.ts` validates a
+ * festival's chips at load and so imports this module too. Here nothing
+ * imports back: this file depends only on the event map's TYPES, and
+ * `eslint.config.js` refuses a runtime import that would close the cycle.
+ *
+ * Labels ARE here now, as `{ko, en, zh}`, and resolved per request with the
+ * event map's `pick` — the same resolver the festival layers go through. They
+ * used to be `t("map.layer.<id>")` keys, which meant the base and festival
+ * halves of one list resolved through two mechanisms, and a missing key echoed
+ * itself back as the visible label because `t()` does that silently on a miss.
  */
 
 /**
@@ -33,7 +45,8 @@ import { ESKARA26_LAYERS, type Eskara26LayerId } from "./map-eskara26-markers.da
  * design token that resolves per theme; a hex from here cannot. Geometry is
  * theme-independent and belongs on the wire, colour that comes from a token
  * does not. The festival layers do send `color`, because a category colour
- * (주점 red, 먹거리 amber) is content rather than theme.
+ * (주점 red, 먹거리 amber) is content rather than theme — and it is authored in
+ * the festival's config for exactly that reason.
  */
 export interface MapLayerStyle {
   /** Bare hex, no `#` — the convention `toCssColor` expects. */
@@ -54,12 +67,45 @@ export interface LayerSpec {
   id: string;
   type: "marker" | "polyline";
   markerStyle?: string;
+  /**
+   * Every language we hold, resolved per request in `map-config.data.ts`.
+   *
+   * Inline rather than an i18n key so that the base and festival halves of the
+   * list go through ONE resolver — a `spec.label ? pick() : t()` chain would be
+   * a second one — and so `tsc` refuses a layer with no label at all.
+   */
+  label: I18n;
   /** Is the layer on to begin with. */
   defaultVisible: boolean;
   /**
-   * May the user change it. See `docs/reference/map-markers-api.md` §4 for the
-   * four combinations and the three contract rules; the one that matters to
-   * chips is that this governs the affordance, not the capability.
+   * May the user change it.
+   *
+   * Two independent axes: `defaultVisible` is what the value IS,
+   * `userConfigurable` is who may change it — the shape Firefox ships as
+   * `{Value, Status}` and GeoServer as `enabled`/`advertised`. The four
+   * combinations are: always-on background (true/false), ordinary toggle
+   * (true/true), opt-in (false/true), and defined-but-inert (false/false).
+   *
+   * Four rules the client must hold. They are the same four as
+   * `docs/reference/map-markers-api.md` §4.1 — that document is the contract,
+   * and this list must not disagree with it:
+   *
+   *  - **An ABSENT value means `true`.** Never fail closed — GeoServer's "a
+   *    layer is advertised by default" and Esri's `listMode` default of "show".
+   *    The server's own list is explicit anyway, so a new layer cannot forget
+   *    to decide.
+   *  - **It governs the affordance, not the capability.** A non-configurable
+   *    layer still renders, is still deep-linkable, and is still returned by
+   *    its marker endpoint. Only the control disappears. QGIS says it outright:
+   *    flags are "used for the UI but are not preventing any API call."
+   *  - **Shadow a stored toggle, never overwrite it.** The resolution is a
+   *    fallback chain, not an assignment, so a preference survives the layer
+   *    becoming non-configurable and comes back when it becomes configurable
+   *    again. This is the one that destroys user data if you get it wrong.
+   *  - **A chip may not change it either.** A chip tap is a user-initiated
+   *    change, so `false` here puts the layer out of a chip's reach as well as
+   *    out of the sheet's. Inert today — nothing is `false` — and stated now so
+   *    it holds when the quadrant gets its first occupant.
    */
   userConfigurable: boolean;
   endpoint: string;
@@ -90,28 +136,25 @@ export interface LayerSpec {
   style?: MapLayerStyle;
 }
 
-/** The one festival group. Named here so the chips and the layers cannot drift. */
-export const ESKARA26_CHIP_GROUP = "eskara26";
-
 /**
  * The layers that exist regardless of whether a festival is live.
  *
  * One list, `as const satisfies`, so the id union below is read off it rather
- * than restated — the same reason `ESKARA26_LAYERS` is shaped this way. A chip
- * naming a layer that does not exist is then a compile error.
- *
- * Both point at ONE endpoint. They are the same buildings differing only in
- * which field becomes the visible string, and the app keys its marker cache on
- * the endpoint — so this is two toggles for one fetch.
+ * than restated. Both point at ONE endpoint. They are the same buildings
+ * differing only in which field becomes the visible string, and the app keys
+ * its marker cache on the endpoint — so this is two toggles for one fetch.
  *
  * `chipGroupId: null` on both: 건물번호 and 건물이름 are the map's baseline, and
- * a chip that jumps to a festival stage has no business turning them off.
+ * a chip that jumps to a festival stage has no business turning them off. A
+ * festival config may not reuse these ids either — `eventmap.config.ts`
+ * refuses one that does, because the two lists are served side by side.
  */
 export const BASE_LAYERS = [
   {
     id: "building_numbers",
     type: "marker",
     markerStyle: "numberCircle",
+    label: { ko: "건물번호", en: "Building Numbers", zh: "建筑编号" },
     defaultVisible: true,
     userConfigurable: true,
     endpoint: "/map/markers/campus",
@@ -122,6 +165,7 @@ export const BASE_LAYERS = [
     id: "building_labels",
     type: "marker",
     markerStyle: "textLabel",
+    label: { ko: "건물이름", en: "Building Names", zh: "建筑名称" },
     defaultVisible: true,
     userConfigurable: true,
     endpoint: "/map/markers/campus",
@@ -133,6 +177,7 @@ export const BASE_LAYERS = [
   // {
   //   id: "bus_route_jongro07",
   //   type: "polyline",
+  //   label: { ko: "종로07 노선", en: "Jongro 07 Route", zh: "钟路07路线" },
   //   defaultVisible: true,
   //   userConfigurable: true,
   //   endpoint: "/map/overlays/jongro07",
@@ -142,6 +187,7 @@ export const BASE_LAYERS = [
   // {
   //   id: "bus_route_jongro02",
   //   type: "polyline",
+  //   label: { ko: "종로02 노선", en: "Jongro 02 Route", zh: "钟路02路线" },
   //   defaultVisible: true,
   //   userConfigurable: true,
   //   endpoint: "/map/overlays/jongro02",
@@ -150,82 +196,67 @@ export const BASE_LAYERS = [
   // },
 ] as const satisfies readonly LayerSpec[];
 
-/** Geometry shared by every festival layer; only `color` varies between them. */
-export const ESKARA26_LAYER_STYLE = {
+export type BaseLayerId = (typeof BASE_LAYERS)[number]["id"];
+
+/**
+ * ONE route for every festival layer, whichever festival. The app keys its
+ * marker cache on this string, so six layers cost one fetch and one cache
+ * entry, each rendering the subset carrying its own `layerId`. Named for the
+ * mechanism rather than the event, so next year's config changes no URL.
+ */
+export const EVENT_MARKERS_ENDPOINT = "/map/markers/event";
+
+/**
+ * Geometry shared by every festival layer, whichever festival. This is how a
+ * `placeDot` is drawn — the map's business, not the event's — which is why it
+ * is a constant here and not a field in the config. Only `color` varies, and
+ * that one IS content, so it comes from the config.
+ */
+export const EVENT_LAYER_STYLE = {
   width: 22,
   height: 30,
   captionTextSize: 9,
 } as const satisfies MapLayerStyle;
 
 /**
- * The festival layers as ordinary `LayerSpec`s.
- *
- * Derived here rather than assembled inside the response builder so that BOTH
- * layer sets reach the wire through one mapping. When the festival six were
- * constructed field by field next to a spread of the base two, a member added
- * to `LayerSpec` shipped on the buildings and was silently missing from the
- * booths, with `tsc` green — the asymmetry looked like a formatting difference
- * and behaved like a data loss.
- *
- * All six share ONE endpoint. The app keys its marker cache on the endpoint
- * string, so layers sharing one share a single fetch and a single cache entry
- * and each renders the subset carrying its own `layerId`; six `?category=`
- * endpoints would be six round trips for one small payload.
+ * The live festival's layers as ordinary `LayerSpec`s.
  *
  * Every one is the user's to turn off, 편의시설 included — that one merely
- * starts hidden. Nothing in the festival set is a locked background layer.
+ * starts hidden, per its `defaultVisible`. Nothing in a festival set is a
+ * locked background layer. The chip group is the layer set id, so two festivals
+ * could never share one, and a chip swaps these layers between themselves while
+ * leaving 건물번호 and 건물이름 exactly as the user left them.
+ *
+ * Fresh objects per call. The config is frozen shallowly and shared across
+ * every request, so nothing built from it may hand a config object through to
+ * a response by reference.
  */
-export const ESKARA26_LAYER_SPECS: readonly LayerSpec[] = ESKARA26_LAYERS.map(
-  (layer) => ({
+export function eventLayerSpecs(config: EventMapConfig): LayerSpec[] {
+  return config.layers.map((layer) => ({
     id: layer.id,
     type: "marker",
     markerStyle: "placeDot",
+    label: layer.label,
     defaultVisible: layer.defaultVisible,
     userConfigurable: true,
-    endpoint: "/map/markers/eskara26",
-    // One group, so a festival chip swaps these six between themselves and
-    // leaves 건물번호 and 건물이름 exactly as the user left them.
-    chipGroupId: ESKARA26_CHIP_GROUP,
-    style: { color: layer.color, ...ESKARA26_LAYER_STYLE },
-  }),
-);
-
-export type BaseLayerId = (typeof BASE_LAYERS)[number]["id"];
+    endpoint: EVENT_MARKERS_ENDPOINT,
+    chipGroupId: config.layerSetId,
+    style: { color: layer.color, ...EVENT_LAYER_STYLE },
+  }));
+}
 
 /**
- * Every layer id the server can serve, festival ones included.
- *
- * Festival layers are in the union even though they are absent from
- * `/map/config` outside an activation window. A chip referencing one is
- * correct year-round — it simply is not served alongside the layer it names —
- * so gating the TYPE on the runtime window would make a valid chip
- * unexpressible.
- */
-export type MapLayerId = BaseLayerId | Eskara26LayerId;
-
-/**
- * id → chipGroupId, for every layer, festival ones included.
- *
- * Built from the two lists rather than written out, so a layer cannot be added
- * to a list and forgotten here — which is the failure the "one list" rule in
- * `map-eskara26-markers.data.ts` exists to prevent.
- */
-const CHIP_GROUP_BY_LAYER: ReadonlyMap<string, string | null> = new Map<
-  string,
-  string | null
->([
-  ...[...BASE_LAYERS, ...ESKARA26_LAYER_SPECS].map(
-    (layer) => [layer.id, layer.chipGroupId] as [string, string | null],
-  ),
-]);
-
-/**
- * The group a chip may swap this layer within.
+ * The group a chip may swap this layer within, looked up in the catalogue the
+ * caller is validating against — the served set, base and festival together.
  *
  * Returns `undefined` for an id that is not a layer at all, which is a
  * different failure from `null` ("real layer, no chip may touch it") and is
  * reported differently by the chip validator.
  */
-export function chipGroupOf(layerId: string): string | null | undefined {
-  return CHIP_GROUP_BY_LAYER.get(layerId);
+export function chipGroupOf(
+  catalogue: readonly LayerSpec[],
+  layerId: string,
+): string | null | undefined {
+  const layer = catalogue.find((l) => l.id === layerId);
+  return layer ? layer.chipGroupId : undefined;
 }

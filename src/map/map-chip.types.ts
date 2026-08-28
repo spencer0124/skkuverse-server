@@ -6,12 +6,10 @@
  * there". The server decides both; the app renders a pill and dispatches on
  * `action.kind` without interpreting it.
  *
- * ⚠️ NOT the same thing as `ChipSpec` / `ChipGroupSpec` / `WireChip` in
- * `src/eventmap/types.ts`. Those are predicate filters over snapshot ITEMS,
- * evaluated client-side against a tag vocabulary. A map chip carries an ACTION
- * and has no `Predicate` at all. The names are close because the UI affordance
- * is the same pill; the contracts are unrelated and must not be unified without
- * deciding that on purpose.
+ * The AUTHORED form of a festival chip is `EventChipDef` in
+ * `src/eventmap/types.ts` — id, emoji, the layers it names — and
+ * `map-chips.data.ts` projects it into this shape, adding the camera and the
+ * synthesised reset chip. This is the wire; that is the config.
  *
  * This file exists because the event map's chip row was removed from the map
  * screen when booths became ordinary marker layers — chips filtered snapshot
@@ -56,15 +54,15 @@ export interface MapCamera extends CameraMotion {
 /**
  * Tagged so a second icon kind (a remote image, an SF Symbol) can arrive
  * without the emoji case having to grow a discriminating field of its own —
- * the shape `IconSpec` already uses next door in the event map.
+ * the shape `MarkerTap` uses in this same domain.
  */
 export type MapChipIcon = { kind: "emoji"; emoji: string };
 
 /**
  * What a chip tap resolves to.
  *
- * Discriminated on `kind`, matching `MarkerTap` and `IconSpec` in this same
- * domain, rather than on the flat `actionType` + `actionValue: string` pair the
+ * Discriminated on `kind`, matching `MarkerTap` in this same domain, rather
+ * than on the flat `actionType` + `actionValue: string` pair the
  * home screen's SDUI uses. That pair cannot carry a camera, and encoding one as
  * JSON inside a string would put a second parser on the wire.
  *
@@ -127,12 +125,14 @@ export type MapChipAction =
 export interface MapChip {
   id: string;
   /**
-   * Resolved server-side from `map.chip.<id>`, the way layer labels are.
+   * Resolved server-side from the spec's `{ko, en?, zh?}` with the event map's
+   * `pick`, the way layer labels are.
    *
    * Not shipped as `{ko, en, zh}` like `MapMarker.text`: that field ships every
    * language because its two producers hold different sets and resolving would
-   * discard some. A chip label has one producer — this repo's i18n table — so
-   * every language is always present and there is nothing to lose by picking.
+   * discard some. A chip label has one producer — a festival's config, or this
+   * repo's base list — with the same fallback chain either way, so there is
+   * nothing to lose by picking.
    */
   label: string;
   /**

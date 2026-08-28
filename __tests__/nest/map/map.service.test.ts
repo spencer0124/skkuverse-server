@@ -18,16 +18,35 @@ jest.mock("../../../src/eventmap/eventmap.data", () => ({
   getSessionsCollection: jest.fn(),
 }));
 
+// The config module stays REAL — the file loads with no mock — but one test
+// needs to hand /map/config a layer set whose file failed validation, which
+// the shipped file (rightly) cannot be made to do from here.
+const actualConfigModule = jest.requireActual("../../../src/eventmap/eventmap.config");
+const mockGetLayerSetConfig = jest.fn(actualConfigModule.getLayerSetConfig);
+jest.mock("../../../src/eventmap/eventmap.config", () => ({
+  ...actualConfigModule,
+  getLayerSetConfig: (...args: unknown[]) => mockGetLayerSetConfig(...args),
+}));
+
+import { getLayerSetConfig } from "../../../src/eventmap/eventmap.config";
 import { findActiveActivation } from "../../../src/eventmap/eventmap.data";
-import {
-  BASE_CHIPS,
-  ESKARA26_CHIPS,
-} from "../../../src/map/map-chips.data";
-import { ESKARA26_LAYERS } from "../../../src/map/map-eskara26-markers.data";
+import { pick } from "../../../src/infra/i18n";
+import type { EventMapConfig } from "../../../src/eventmap/types";
+import { BASE_CHIPS } from "../../../src/map/map-chips.data";
 import { MapService } from "../../../src/map/map.service";
 
 /** 건물번호 + 건물이름. The bus polyline layers are commented out upstream. */
 const BASE_LAYER_COUNT = 2;
+
+/**
+ * The REAL shipped config. It loads with no mock — `eventmap.config` reads the
+ * file relative to its own directory — so every expectation below derives from
+ * it rather than restating a count that the next festival would break.
+ */
+const loaded = getLayerSetConfig("eskara-2026");
+if (!loaded?.config) throw new Error(`eskara-2026 failed to load: ${loaded?.error}`);
+const CONFIG: EventMapConfig = loaded.config;
+const EVENT_LAYER_IDS = new Set(CONFIG.layers.map((l) => l.id));
 
 const mockFindActiveActivation = findActiveActivation as jest.MockedFunction<
   typeof findActiveActivation
@@ -39,9 +58,10 @@ describe("MapService", () => {
   beforeEach(() => {
     mockFindActiveActivation.mockReset();
     mockFindActiveActivation.mockResolvedValue(null);
+    mockGetLayerSetConfig.mockImplementation(actualConfigModule.getLayerSetConfig);
   });
 
-  it("getMapConfig delegates to map-config.data (i18n labels)", async () => {
+  it("getMapConfig delegates to map-config.data (campus labels via i18n)", async () => {
     const ko = await svc.getMapConfig("ko");
     expect(ko.campuses).toHaveLength(2);
     // Two BASE layers and nothing else: no activation is live above.
@@ -60,7 +80,7 @@ describe("MapService", () => {
     // Derived, not a magic 8: hardcoding the count couples a test about
     // visibility flags to the two commented-out bus layers staying commented,
     // and uncommenting them would fail here with a misleading diagnosis.
-    expect(ko.layers.length).toBe(BASE_LAYER_COUNT + ESKARA26_LAYERS.length);
+    expect(ko.layers.length).toBe(BASE_LAYER_COUNT + CONFIG.layers.length);
     // Guards the `every` below, which passes vacuously on an empty array.
     expect(ko.layers.length).toBeGreaterThan(0);
 
@@ -71,46 +91,82 @@ describe("MapService", () => {
     expect(ko.layers.every((l) => l.userConfigurable === true)).toBe(true);
   });
 
-  it("has an i18n label for every eskara26 layer", async () => {
+  it.each(["ko", "en", "zh"] as const)(
+    "resolves every layer label in %s as a STRING, through the one I18n resolver",
+    async (lang) => {
+      mockFindActiveActivation.mockResolvedValue({
+        _id: "eskara-2026",
+      } as Awaited<ReturnType<typeof findActiveActivation>>);
+
+      const res = await svc.getMapConfig(lang);
+
+      for (const layer of res.layers) {
+        // A `{ko, en, zh}` object leaking through the `...rest` spread would
+        // serialize as JSON and render "[object Object]" in the filter grid.
+        expect(typeof layer.label).toBe("string");
+        expect(layer.label.length).toBeGreaterThan(0);
+      }
+      for (const def of CONFIG.layers) {
+        expect(res.layers.find((l) => l.id === def.id)!.label).toBe(pick(def.label, lang));
+      }
+    },
+  );
+
+  it("getMapConfig appends the live layer set's layers, as the config declares them", async () => {
     mockFindActiveActivation.mockResolvedValue({
       _id: "eskara-2026",
     } as Awaited<ReturnType<typeof findActiveActivation>>);
 
     const ko = await svc.getMapConfig("ko");
+    const eventLayers = ko.layers.filter((l) => EVENT_LAYER_IDS.has(l.id));
 
-    // `t()` returns the KEY STRING on a miss — no throw, no log — so renaming a
-    // layer id without adding its key ships `map.layer.eskara26_x` as the label
-    // and renders that raw dotted string in the user's filter grid. Every other
-    // gate stays green through that: the compile guard only forces the category
-    // map to follow, and the count assertions above still hold.
-    for (const layer of ko.layers) {
-      expect(layer.label).not.toMatch(/^map\.layer\./);
-      expect(layer.label.length).toBeGreaterThan(0);
+    expect(eventLayers).toHaveLength(CONFIG.layers.length);
+    // All share ONE endpoint, which is what makes six toggles cost one fetch.
+    expect(new Set(eventLayers.map((l) => l.endpoint))).toEqual(
+      new Set(["/map/markers/event"]),
+    );
+    expect(eventLayers.every((l) => l.markerStyle === "placeDot")).toBe(true);
+    // defaultVisible is the config's, layer by layer — 편의시설 ships hidden.
+    for (const def of CONFIG.layers) {
+      expect(eventLayers.find((l) => l.id === def.id)!.defaultVisible).toBe(def.defaultVisible);
     }
+    expect(CONFIG.layers.some((l) => !l.defaultVisible)).toBe(true);
+    expect(eventLayers.find((l) => l.id === "eskara26_bar")!.label).toBe("주점");
   });
 
-  it("getMapConfig appends the eskara26 layers while an activation is live", async () => {
+  it("serves the base layers only when the live layer set has no usable config", async () => {
+    // An activation for a set this build has no file for — a deploy that
+    // forgot CONFIG_FILES, or ops naming a set that does not exist yet. The
+    // buildings must not disappear over it, and no chip may point at a layer
+    // the same response does not carry.
     mockFindActiveActivation.mockResolvedValue({
-      _id: "eskara-2026",
+      _id: "eskara-2099",
     } as Awaited<ReturnType<typeof findActiveActivation>>);
 
     const ko = await svc.getMapConfig("ko");
-    const eskaraLayers = ko.layers.filter((l) => l.id.startsWith("eskara26_"));
+    expect(ko.layers.map((l) => l.id)).toEqual(["building_numbers", "building_labels"]);
+    expect(ko.chips.map((c) => c.id)).toEqual(BASE_CHIPS.map((c) => c.id));
+  });
 
-    expect(eskaraLayers).toHaveLength(6);
-    // All six share ONE endpoint, which is what makes six toggles cost one fetch.
-    expect(new Set(eskaraLayers.map((l) => l.endpoint))).toEqual(
-      new Set(["/map/markers/eskara26"]),
-    );
-    expect(eskaraLayers.every((l) => l.markerStyle === "placeDot")).toBe(true);
-    // 편의시설 is the opt-in tier; everything else is on without a tap.
-    expect(eskaraLayers.find((l) => l.id === "eskara26_facility")!.defaultVisible).toBe(
-      false,
-    );
-    expect(
-      eskaraLayers.filter((l) => l.id !== "eskara26_facility").every((l) => l.defaultVisible),
-    ).toBe(true);
-    expect(eskaraLayers.find((l) => l.id === "eskara26_bar")!.label).toBe("주점");
+  it("serves the base layers only when the live layer set's config was REJECTED", async () => {
+    // The posture, end to end: a config typo freezes the snapshot at its last
+    // good version (the materializer's rule) AND takes the festival off the
+    // campus map — layers, chips and, through the same lookup, markers —
+    // rather than serve layers whose category table it cannot trust. The two
+    // surfaces disagree for as long as the file is broken, which is the price
+    // of never serving a layer set that failed validation.
+    mockFindActiveActivation.mockResolvedValue({
+      _id: "eskara-2026",
+    } as Awaited<ReturnType<typeof findActiveActivation>>);
+    mockGetLayerSetConfig.mockReturnValue({
+      config: null,
+      configHash: null,
+      error: 'config.itemDefaults.fallback.layerId "nope" is not in config.layers',
+    });
+
+    const ko = await svc.getMapConfig("ko");
+    expect(ko.layers.map((l) => l.id)).toEqual(["building_numbers", "building_labels"]);
+    expect(ko.chips.map((c) => c.id)).toEqual(BASE_CHIPS.map((c) => c.id));
   });
 
   it("getMapConfig keeps the base layers when the activation lookup throws", async () => {
@@ -139,8 +195,9 @@ describe("MapService", () => {
     // six festival layers around them.
     expect(groupById.get("building_numbers")).toBeNull();
     expect(groupById.get("building_labels")).toBeNull();
-    for (const layer of ko.layers.filter((l) => l.id.startsWith("eskara26_"))) {
-      expect(layer.chipGroupId).toBe("eskara26");
+    // The group is the layer set id, so two festivals could never share one.
+    for (const layer of ko.layers.filter((l) => EVENT_LAYER_IDS.has(l.id))) {
+      expect(layer.chipGroupId).toBe(CONFIG.layerSetId);
     }
   });
 
@@ -157,7 +214,8 @@ describe("MapService", () => {
     } as Awaited<ReturnType<typeof findActiveActivation>>);
 
     const live = await svc.getMapConfig("ko");
-    expect(live.chips).toHaveLength(BASE_CHIPS.length + ESKARA26_CHIPS.length);
+    // Reset chip plus every authored one.
+    expect(live.chips).toHaveLength(BASE_CHIPS.length + 1 + CONFIG.chips.length);
   });
 
   it("never names a layer the same response does not carry", async () => {
@@ -230,10 +288,11 @@ describe("MapService", () => {
     // a client honouring them does not distort the tint.
     const stage = byId.get("eskara26_stage")!;
     expect(stage.style).toMatchObject({ width: 22, height: 30 });
-    // Colour still ships for the festival layers: a category colour is content.
-    // The building layers deliberately send none — their fill is a design token
-    // that resolves per theme, and a hex from here cannot.
-    expect(stage.style!.color).toBe("F76CA0");
+    // Colour still ships for the festival layers: a category colour is content,
+    // and it comes from the config. The building layers deliberately send none
+    // — their fill is a design token that resolves per theme, and a hex from
+    // here cannot.
+    expect(stage.style!.color).toBe(CONFIG.layers.find((l) => l.id === "eskara26_stage")!.color);
     expect(byId.get("building_numbers")!.style!.color).toBeUndefined();
   });
 

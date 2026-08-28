@@ -1,10 +1,8 @@
-import type { MapMarker } from "./map-marker.types";
-import {
-  findActiveActivation,
-  getPlacesCollection,
-  getSessionsCollection,
-} from "../eventmap/eventmap.data";
+import { activeEventConfig } from "../eventmap/eventmap.active";
+import { getPlacesCollection, getSessionsCollection } from "../eventmap/eventmap.data";
+import { presentationFor } from "../eventmap/types";
 import logger from "../infra/logger";
+import type { MapMarker } from "./map-marker.types";
 
 /**
  * Event sessions projected into the ORDINARY map-marker schema.
@@ -14,6 +12,13 @@ import logger from "../infra/logger";
  * /map/config with an endpoint, drawn by the app's one marker renderer. This
  * module is the projection; the authoring tiers (places/sessions/activations,
  * the CSV and JSON importers, `npm run eventmap`) are untouched.
+ *
+ * Nothing here knows which festival is live. The layer a session belongs to is
+ * read from the live layer set's config through `presentationFor` — the SAME
+ * function the materializer uses to stamp `layerId` on the snapshot item with
+ * the same `id`. One table, one resolver, two producers: a booth's pin and its
+ * list row cannot land on different layers, which is what lets the app show
+ * "what the 주점 chip is showing" without a second vocabulary.
  *
  * Two deliberate departures from the eventmap materializer:
  *
@@ -37,78 +42,6 @@ import logger from "../infra/logger";
  * it.
  */
 
-interface Eskara26LayerSpec {
-  id: string;
-  /**
-   * Bare hex, no `#` — the convention the app's `toCssColor` expects and the
-   * commented-out bus layers already use ("4CAF50").
-   */
-  color: string;
-  /**
-   * 편의시설 is the opt-in tier: toilets and first aid are looked up when
-   * wanted, not carried on screen the whole festival. Everything else is on by
-   * default, so the map is useful with no taps at all.
-   */
-  defaultVisible: boolean;
-}
-
-/**
- * Every event layer, in the order they appear in the app's filter grid.
- *
- * One list rather than an id array beside a colour map beside a hidden set:
- * parallel structures keyed by the same strings drift, and the drift shows up
- * as a layer with no colour rather than as a compile error.
- */
-const ESKARA26_LAYERS = [
-  { id: "eskara26_stage", color: "F76CA0", defaultVisible: true },
-  { id: "eskara26_bar", color: "F04452", defaultVisible: true },
-  { id: "eskara26_food", color: "FFB800", defaultVisible: true },
-  { id: "eskara26_booth", color: "3182F6", defaultVisible: true },
-  { id: "eskara26_facility", color: "4CC9F0", defaultVisible: false },
-  { id: "eskara26_etc", color: "8B95A1", defaultVisible: true },
-] as const satisfies readonly Eskara26LayerSpec[];
-
-/**
- * The closed set of layer ids, read off the list above rather than restated.
- * A category mapped to a layer that does not exist is then a compile error
- * instead of a booth silently belonging to nothing.
- */
-type Eskara26LayerId = (typeof ESKARA26_LAYERS)[number]["id"];
-
-/**
- * Category → layer id.
- *
- * `SessionDoc.category` is an OPEN string on purpose ("전시" next year must be a
- * Mongo edit, not a deploy), while the /map/config layer list is a TypeScript
- * literal. Those two facts collide: an unmapped category has no layer to belong
- * to. It resolves to `eskara26_etc` rather than vanishing, because a booth
- * missing from the festival map is not a failure anyone can see or report.
- *
- * The ids name the festival (`eskara26_*`) deliberately. The price is smaller
- * than it first looks: the app's base-map layer store is EPHEMERAL
- * (`packages/shared/src/store/map.ts` — "not persisted", no `persist`
- * middleware), so next year's `eskara27_*` ids accumulate nothing. The event
- * store is the persisted one, and it already resets on a new `layerSetId`.
- *
- * What is left is that a user who turns 주점 off does not carry that choice into
- * next year's festival — which is arguably the right answer anyway, since it is
- * a different festival. Generic `event_*` ids would preserve it, at the cost of
- * a name that says nothing about which festival is live. Unambiguity won.
- */
-const CATEGORY_TO_LAYER: Readonly<Record<string, Eskara26LayerId>> = {
-  bar: "eskara26_bar",
-  booth: "eskara26_booth",
-  food: "eskara26_food",
-  stage: "eskara26_stage",
-  facility: "eskara26_facility",
-};
-
-const LAYER_FALLBACK: Eskara26LayerId = "eskara26_etc";
-
-function resolveLayerId(category: string): Eskara26LayerId {
-  return CATEGORY_TO_LAYER[category] ?? LAYER_FALLBACK;
-}
-
 /**
  * Every published session of the currently active layer set, as markers.
  *
@@ -116,11 +49,11 @@ function resolveLayerId(category: string): Eskara26LayerId {
  * asks for this endpoint whenever the layer is configured, and "no festival
  * today" is an ordinary answer, not an error.
  */
-async function getEskara26Markers(): Promise<{ markers: MapMarker[] }> {
-  const activation = await findActiveActivation(new Date());
-  if (!activation) return { markers: [] };
+async function getEventMarkers(): Promise<{ markers: MapMarker[] }> {
+  const config = await activeEventConfig(new Date());
+  if (!config) return { markers: [] };
 
-  const layerSetId = activation._id;
+  const { layerSetId } = config;
 
   const [places, sessions] = await Promise.all([
     getPlacesCollection().find({ layerSetId, lifecycle: "active" }).toArray(),
@@ -150,7 +83,10 @@ async function getEskara26Markers(): Promise<{ markers: MapMarker[] }> {
 
     markers.push({
       id: session._id,
-      layerId: resolveLayerId(session.category),
+      // `category` is an OPEN string, so an unmapped value lands on the config's
+      // fallback layer rather than vanishing: a booth missing from the festival
+      // map is not a failure anyone can see or report.
+      layerId: presentationFor(config, session.category).layerId,
       // The PLOT's campus, not the session's denormalized copy. The coordinates
       // come from the plot, so taking the campus from the same document is what
       // guarantees a marker's campus and its position can never disagree — and
@@ -170,7 +106,7 @@ async function getEskara26Markers(): Promise<{ markers: MapMarker[] }> {
       },
       startAt: session.startAt ? session.startAt.toISOString() : null,
       endAt: session.endAt ? session.endAt.toISOString() : null,
-      tap: { kind: "eskara26", placeId: session.placeId },
+      tap: { kind: "event", placeId: session.placeId },
     });
   }
 
@@ -185,5 +121,4 @@ async function getEskara26Markers(): Promise<{ markers: MapMarker[] }> {
   return { markers };
 }
 
-export { ESKARA26_LAYERS, getEskara26Markers };
-export type { Eskara26LayerSpec, Eskara26LayerId };
+export { getEventMarkers };

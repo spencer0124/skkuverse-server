@@ -9,7 +9,7 @@ import { MapService } from "../map.service";
  * One route per DATA SOURCE, not per layer: buildings come from the buildings
  * collection, festival booths from the event map's places and sessions. Layers
  * within a source share a route, because the app keys its marker cache on the
- * endpoint string — so two building layers, or six eskara26 layers, cost one
+ * endpoint string — so two building layers, or six festival layers, cost one
  * fetch between them and each renders the subset carrying its own `layerId`.
  *
  * Both routes take `@Res()` purely to set Cache-Control. A plain return cannot:
@@ -32,7 +32,7 @@ export class MapMarkersController {
    * minutes, so a brief empty read during a re-seed would otherwise pin a
    * 12-building campus into every client and edge cache for 24 hours — a stable
    * URL with no version stamp and no revalidation has nothing to bust it with.
-   * The eskara26 sibling self-heals from the same failure in 60 seconds; this
+   * The event sibling self-heals from the same failure in 60 seconds; this
    * route needs the explicit guard to match.
    */
   @Get("campus")
@@ -47,7 +47,9 @@ export class MapMarkersController {
   }
 
   /**
-   * GET /map/markers/eskara26 — every published session of the live layer set.
+   * GET /map/markers/event — every published session of the live layer set,
+   * whichever festival that is. Named for the mechanism, so next year's
+   * config changes no URL.
    *
    * 60 seconds, not the snapshot tier's `immutable`: this URL is stable rather
    * than version-stamped, so it can never be immutable. A minute is long enough
@@ -63,9 +65,9 @@ export class MapMarkersController {
    * envelope varies, but the header is honest, and stripping it to win edge
    * caching would be a lie about what the response depends on.
    */
-  @Get("eskara26")
-  async eskara26(@Req() req: Request, @Res() res: Response): Promise<void> {
-    const data = await this.map.getEskara26Markers();
+  @Get("event")
+  async event(@Req() req: Request, @Res() res: Response): Promise<void> {
+    const data = await this.map.getEventMarkers();
     res.set("Cache-Control", "public, max-age=60");
     sendSuccess(req, res, data);
   }

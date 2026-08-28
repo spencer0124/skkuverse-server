@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import config from "../infra/config";
-import type { SupportedLang } from "../infra/types";
+import { SUPPORTED_LANGS, type SupportedLang } from "../infra/types";
 import { AppError } from "../common/app-error";
 import { sendSuccess } from "../common/send-success";
 import { canonicalStringify, md5 } from "./eventmap.hash";
@@ -27,7 +27,6 @@ import { EventMapService } from "./eventmap.service";
 const MANIFEST_MAX_AGE_SEC = Math.floor(config.eventmap.manifestCacheTtlMs / 1000);
 const SNAPSHOT_MAX_AGE_SEC = 31536000;
 
-const SUPPORTED_LANGS: readonly SupportedLang[] = ["ko", "en", "zh"];
 const POSITIVE_INT_RE = /^[1-9][0-9]*$/;
 
 @Controller("eventmap")

@@ -1,26 +1,27 @@
-import { t } from "../infra/i18n";
-import type { SupportedLang } from "../infra/types";
+import type { EventMapConfig } from "../eventmap/types";
+import { pick } from "../infra/i18n";
+import type { I18n, SupportedLang } from "../infra/types";
 import { toWebviewUrl } from "../infra/webview-url";
 import type { MapCamera, MapChip, MapChipAction } from "./map-chip.types";
-import { ESKARA26_LAYERS } from "./map-eskara26-markers.data";
-import { chipGroupOf, type MapLayerId } from "./map-layers.data";
+import { BASE_LAYERS, chipGroupOf, type LayerSpec } from "./map-layers.data";
 
 /**
  * The chips `/map/config` advertises, and the rules a chip must satisfy to be
  * served at all.
  *
- * Authored here as TypeScript rather than as ops data in Mongo, for the same
- * reason the layer list is: a chip names layer ids, and a TypeScript literal
- * checked against `MapLayerId` turns a typo into a compile error instead of a
- * button that does nothing. That costs a deploy to change a chip. Festival
- * chips get the deploy-free lever anyway by riding the activation window, which
- * is the part that actually has to move during an event.
+ * Two sources, one validator. `BASE_CHIPS` is repo config, checked at import
+ * against `BASE_LAYERS` so a bad permanent chip fails the boot. A festival's
+ * chips are authored in its config (`EventChipDef`) and projected here by
+ * `eventChipSpecs`; `eventmap.config.ts` runs the SAME validator over them at
+ * load, against the full served catalogue, so a bad festival chip fails the
+ * config — logged, skipped, previous snapshot kept — rather than reaching a
+ * client. That is the `miniapps.schema.ts` posture for the base list and the
+ * `eventmap.materialize.ts` one for the festival list: fail loud where a PR
+ * fixes it, fail soft where the previous good version can keep serving.
  *
- * Everything else is validated at module load and THROWS, so a bad chip fails
- * the boot rather than reaching a client. That is the `miniapps.schema.ts`
- * posture, not the `eventmap.materialize.ts` one: these lists are repo config,
- * so a bad value is a bug a PR fixes, not a runtime contingency to render
- * around. Fail loud where you can fix it.
+ * This module imports only the event map's TYPES. It must never import
+ * `eventmap.config` — that module imports this one — and `eslint.config.js`
+ * enforces exactly that for this file, so the rule is not prose.
  */
 
 /** The authored form of `MapChipAction`, before URL resolution. */
@@ -30,17 +31,20 @@ export type MapChipActionSpec =
       kind: "focus";
       camera: MapCamera;
       /**
-       * Typed as `MapLayerId`, not `string`. This is the whole reason the layer
-       * catalogue was split into its own module: a chip pointing at a layer
-       * that does not exist must not compile.
+       * Plain strings. The compile-time `MapLayerId` union went with the TS
+       * festival catalogue; both lists are now validated at runtime against the
+       * catalogue actually served, which is the only check that can also cover
+       * a config-authored chip.
        */
-      layerIds: readonly MapLayerId[];
+      layerIds: readonly string[];
     };
 
 export interface MapChipSpec {
   id: string;
   /** Tossface emoji, the mark the app's chip primitive already renders. */
   emoji: string;
+  /** Every language we hold, resolved per request with the event map's `pick`. */
+  label: I18n;
   action: MapChipActionSpec;
 }
 
@@ -61,104 +65,24 @@ export interface MapChipSpec {
  * `toWebviewUrl` joins it onto `WEBVIEW_ORIGIN` at serve time, so nobody types
  * a host in this file — which matters because the webview URLs this API emits
  * sat as literals until they all had to move at once.
- *
- * Annotated rather than `as const satisfies` like the list below: there are no
- * literals left to narrow, and `as const` on an empty array types its element
- * as `never`, which makes every `BASE_CHIPS.map((c) => c.id)` in the tests a
- * compile error. The annotation still enforces `MapLayerId` on any `layerIds`
- * added back, because that rule lives on `MapChipSpec`.
  */
 export const BASE_CHIPS: readonly MapChipSpec[] = [];
 
 /**
- * Where a festival chip points the camera.
- *
- * The NSC festival ground, the same point `eskara-2026.json` frames. It is
- * restated rather than imported, because the two are independent by design:
- * that one is where the EVENT MAP surface opens, this is where the CAMPUS map
- * jumps when someone taps 공연. Binding them would make a framing tweak on one
- * surface silently move the other.
- */
-const ESKARA26_CAMERA = {
-  lat: 37.295129,
-  lng: 126.971234,
-  zoom: 17.5,
-  tilt: 0,
-  bearing: 0,
-  durationMs: 500,
-} as const satisfies MapCamera;
-
-/**
- * The festival layers that are on by default — what "축제 전체" restores.
- *
- * Deliberately NOT every festival layer. `eskara26_facility` ships
- * `defaultVisible: false`, so naming it here would make the reset chip turn on
- * a layer the user never opted into, and leave no chip that gets back to the
- * ordinary map. "전체" means the festival as it normally looks; 편의시설 has its
- * own chip for when it is wanted.
- *
- * Derived from the layer list rather than written out. A second hand-written
- * array of the same ids is the parallel structure the layer module warns about:
- * it drifts, and the drift shows up as a reset chip that quietly stops turning
- * one category back on.
- */
-const DEFAULT_ESKARA26_LAYER_IDS: readonly MapLayerId[] = ESKARA26_LAYERS.filter(
-  (layer) => layer.defaultVisible,
-).map((layer) => layer.id);
-
-/**
- * View presets for the festival, present only while one is live.
- *
- * Each is one tap for what otherwise costs opening the filter sheet and
- * toggling six things. `eskara26_view_all` is the way back: it restores the
- * festival's DEFAULT layer set — not literally every layer — without touching
- * 건물번호 or 건물이름.
- *
- * 편의시설 earns a chip precisely because its layer starts hidden — a chip is
- * how an opt-in layer becomes reachable without a trip through the sheet, and
- * why the reset chip can leave it out and still be a complete way back.
- */
-export const ESKARA26_CHIPS = [
-  {
-    id: "eskara26_view_all",
-    emoji: "🎪",
-    action: { kind: "focus", camera: ESKARA26_CAMERA, layerIds: DEFAULT_ESKARA26_LAYER_IDS },
-  },
-  {
-    id: "eskara26_view_stage",
-    emoji: "🎤",
-    action: { kind: "focus", camera: ESKARA26_CAMERA, layerIds: ["eskara26_stage"] },
-  },
-  {
-    id: "eskara26_view_bar",
-    emoji: "🍺",
-    action: { kind: "focus", camera: ESKARA26_CAMERA, layerIds: ["eskara26_bar"] },
-  },
-  {
-    id: "eskara26_view_food",
-    emoji: "🍢",
-    action: { kind: "focus", camera: ESKARA26_CAMERA, layerIds: ["eskara26_food"] },
-  },
-  {
-    id: "eskara26_view_booth",
-    emoji: "🎫",
-    action: { kind: "focus", camera: ESKARA26_CAMERA, layerIds: ["eskara26_booth"] },
-  },
-  {
-    id: "eskara26_view_facility",
-    emoji: "🚻",
-    action: { kind: "focus", camera: ESKARA26_CAMERA, layerIds: ["eskara26_facility"] },
-  },
-] as const satisfies readonly MapChipSpec[];
-
-/**
- * Every rule a chip must satisfy, checked once and reported together.
+ * Every rule a chip must satisfy, checked against the catalogue it will be
+ * served beside, and reported together.
  *
  * Errors accumulate rather than throwing on the first one, so a bad edit is
  * fixed in a single pass instead of one boot per mistake — the shape
- * `tabconfig.service.ts` uses for the same reason.
+ * `tabconfig.service.ts` uses for the same reason. Returned rather than thrown
+ * because the two callers want different failures: the import-time check on
+ * `BASE_CHIPS` is fatal, the config-load check on a festival's chips is a
+ * rejected config with the previous snapshot kept.
  */
-export function validateChipSpecs(specs: readonly MapChipSpec[]): void {
+export function validateChipSpecs(
+  specs: readonly MapChipSpec[],
+  catalogue: readonly LayerSpec[],
+): string[] {
   const errors: string[] = [];
   const seen = new Set<string>();
 
@@ -180,7 +104,7 @@ export function validateChipSpecs(specs: readonly MapChipSpec[]): void {
 
     const groups = new Set<string>();
     for (const layerId of spec.action.layerIds) {
-      const group = chipGroupOf(layerId);
+      const group = chipGroupOf(catalogue, layerId);
       if (group === undefined) {
         errors.push(`chip "${spec.id}": "${layerId}" is not a layer`);
         continue;
@@ -203,6 +127,15 @@ export function validateChipSpecs(specs: readonly MapChipSpec[]): void {
     }
   }
 
+  return errors;
+}
+
+/** The fatal form, for repo config that a PR fixes. */
+export function assertValidChipSpecs(
+  specs: readonly MapChipSpec[],
+  catalogue: readonly LayerSpec[],
+): void {
+  const errors = validateChipSpecs(specs, catalogue);
   if (errors.length > 0) {
     throw new Error(
       `FATAL [map chips]: ${errors.length} invalid chip definition(s):\n  - ${errors.join("\n  - ")}`,
@@ -210,15 +143,71 @@ export function validateChipSpecs(specs: readonly MapChipSpec[]): void {
   }
 }
 
-// Runs at import, so an invalid chip aborts the boot rather than surfacing on
-// the first /map/config request.
-validateChipSpecs([...BASE_CHIPS, ...ESKARA26_CHIPS]);
+// Runs at import, so an invalid base chip aborts the boot rather than surfacing
+// on the first /map/config request. Festival chips are checked at config load.
+assertValidChipSpecs(BASE_CHIPS, BASE_LAYERS);
+
+/**
+ * The way back, synthesised rather than authored.
+ *
+ * It restores the festival's DEFAULT layer set — the layers marked
+ * `defaultVisible`, not literally every layer — without touching 건물번호 or
+ * 건물이름. A layer that ships hidden (편의시설) stays out of it: naming every
+ * layer would make "축제 전체" turn on something the user never opted into and
+ * leave no chip that gets back to the ordinary festival map.
+ *
+ * Deriving it here from the config is what makes drift impossible: a second
+ * hand-written list of the same ids is exactly the parallel structure that
+ * quietly stops turning one category back on. The label is the festival's own
+ * name, so the reset chip reads as the brand rather than as a category.
+ */
+export function resetChip(config: EventMapConfig): MapChipSpec {
+  return {
+    id: `${config.layerSetId}_all`,
+    emoji: config.emoji,
+    label: { ...config.name },
+    action: {
+      kind: "focus",
+      camera: { ...config.camera },
+      layerIds: config.layers.filter((layer) => layer.defaultVisible).map((layer) => layer.id),
+    },
+  };
+}
+
+/**
+ * The live festival's chip row: the reset chip first, then every authored chip.
+ *
+ * Each authored chip is one tap for what otherwise costs opening the filter
+ * sheet and toggling several things. A chip that names exactly one layer and
+ * authored no label reads as that layer does — `eventmap.config.ts` refuses a
+ * wider chip without one. Every chip shares the config's camera.
+ *
+ * Fresh objects per call: the config is frozen shallowly and shared across
+ * every request, so nothing built from it may reach a response by reference.
+ */
+export function eventChipSpecs(config: EventMapConfig): MapChipSpec[] {
+  const layerById = new Map(config.layers.map((layer) => [layer.id, layer]));
+  const authored = config.chips.map((chip): MapChipSpec => ({
+    id: chip.id,
+    emoji: chip.emoji,
+    // The `?? { ko: chip.id }` is unreachable after assertValidConfig — a chip
+    // with no label names exactly one existing layer — and exists to keep the
+    // type honest, the same shape `toWireAction` uses below.
+    label: { ...(chip.label ?? layerById.get(chip.layerIds[0] ?? "")?.label ?? { ko: chip.id }) },
+    action: {
+      kind: "focus",
+      camera: { ...config.camera },
+      layerIds: [...chip.layerIds],
+    },
+  }));
+  return [resetChip(config), ...authored];
+}
 
 function toWireAction(action: MapChipActionSpec): MapChipAction {
   if (action.kind === "webview") {
-    // The `??` is unreachable — validateChipSpecs already ran toWebviewUrl on
-    // this exact value at import — and exists to keep the type honest, the same
-    // shape `resolveActions` uses next door.
+    // The `??` is unreachable — the validator already ran toWebviewUrl on this
+    // exact value — and exists to keep the type honest, the same shape
+    // `resolveActions` uses next door.
     return { kind: "webview", url: toWebviewUrl(action.url) ?? action.url };
   }
   return {
@@ -231,19 +220,21 @@ function toWireAction(action: MapChipActionSpec): MapChipAction {
 /**
  * The chips to serve, with labels resolved.
  *
- * `festivalLive` is passed in rather than looked up here so that one
+ * The live event's config is passed in rather than looked up here so that one
  * `/map/config` request costs one activation read, shared with the layer list.
  * It also keeps this module free of a database dependency, which is what lets
  * the chip tests run without mocking Mongo.
  */
-export function getChips(lang: SupportedLang, festivalLive: boolean): MapChip[] {
-  const specs: readonly MapChipSpec[] = festivalLive
-    ? [...BASE_CHIPS, ...ESKARA26_CHIPS]
+export function getChips(lang: SupportedLang, event: EventMapConfig | null): MapChip[] {
+  const specs: readonly MapChipSpec[] = event
+    ? [...BASE_CHIPS, ...eventChipSpecs(event)]
     : BASE_CHIPS;
 
   return specs.map((spec) => ({
     id: spec.id,
-    label: t(`map.chip.${spec.id}`, lang),
+    // `?? spec.id` is unreachable — `ko` is required and non-blank on every
+    // authored label — and keeps the type honest.
+    label: pick(spec.label, lang) ?? spec.id,
     icon: { kind: "emoji", emoji: spec.emoji },
     action: toWireAction(spec.action),
   }));

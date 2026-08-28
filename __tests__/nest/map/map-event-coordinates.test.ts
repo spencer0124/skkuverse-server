@@ -30,7 +30,7 @@ import {
   getPlacesCollection,
   getSessionsCollection,
 } from "../../../src/eventmap/eventmap.data";
-import { getEskara26Markers } from "../../../src/map/map-eskara26-markers.data";
+import { getEventMarkers } from "../../../src/map/map-event-markers.data";
 
 // scripts/ is excluded from tsconfig (plain CommonJS operator tooling), so this
 // is a require rather than an import — same as eventmap-csv.test.ts.
@@ -83,7 +83,7 @@ function csvCoordsByPlaceId(): Map<string, { lat: number; lng: number }> {
   return out;
 }
 
-describe("eskara26 marker coordinates, end to end from the survey sheet", () => {
+describe("event marker coordinates, end to end from the survey sheet", () => {
   it("emits every plot at the coordinates the CSV recorded", async () => {
     const csv = fs.readFileSync(REAL_CSV, "utf8");
     const { docs, errors } = parsePlacesCsv(csv, { layerSetId: LAYER_SET_ID });
@@ -113,7 +113,7 @@ describe("eskara26 marker coordinates, end to end from the survey sheet", () => 
     mockPlaces.mockReturnValue(collectionOf(docs));
     mockSessions.mockReturnValue(collectionOf(sessions));
 
-    const { markers } = await getEskara26Markers();
+    const { markers } = await getEventMarkers();
     const expected = csvCoordsByPlaceId();
 
     expect(markers).toHaveLength(docs.length);
@@ -149,7 +149,7 @@ describe("eskara26 marker coordinates, end to end from the survey sheet", () => 
     mockPlaces.mockReturnValue(collectionOf(docs));
     mockSessions.mockReturnValue(collectionOf(sessions));
 
-    const { markers } = await getEskara26Markers();
+    const { markers } = await getEventMarkers();
 
     // The blunt version of the same check, and the one that would survive a
     // rewrite of everything above: a swap sends lat to ~126, which is not a

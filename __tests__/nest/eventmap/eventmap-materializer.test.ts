@@ -159,13 +159,13 @@ describe("publish — the paths that must NOT write", () => {
     getLayerSetConfig.mockReturnValue({
       config: null,
       configHash: null,
-      error: 'config.layers["bar"].iconId "nope" is not in config.icons',
+      error: 'config.itemDefaults.byCategory["bar"].layerId "nope" is not in config.layers',
     });
 
     const summary = await buildService().publish({});
 
     expect(summary.reason).toBe("invalid-config");
-    expect(summary.error).toMatch(/iconId "nope"/);
+    expect(summary.error).toMatch(/layerId "nope"/);
     expect(mocked.insertSnapshot).not.toHaveBeenCalled();
     expect(mockLogger.error).toHaveBeenCalled();
   });

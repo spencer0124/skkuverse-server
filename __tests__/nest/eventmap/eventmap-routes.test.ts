@@ -23,7 +23,7 @@ import type { EventMapManifest, SnapshotDoc } from "../../../src/eventmap/types"
 const TOKEN = process.env.INTERNAL_DISPATCH_TOKEN as string;
 
 const ACTIVE_MANIFEST: EventMapManifest = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   activeLayerSetId: "eskara-2026",
   version: 17,
   snapshotUrl: "/eventmap/snapshot/eskara-2026/17?lang=ko",
@@ -33,7 +33,7 @@ const ACTIVE_MANIFEST: EventMapManifest = {
 };
 
 const INACTIVE_MANIFEST: EventMapManifest = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   activeLayerSetId: null,
   version: null,
   snapshotUrl: null,
@@ -42,8 +42,8 @@ const INACTIVE_MANIFEST: EventMapManifest = {
   publishedAt: null,
 };
 
-const KO_PAYLOAD = { schemaVersion: 1, id: "eskara-2026", version: 17, lang: "ko", items: [] };
-const EN_PAYLOAD = { schemaVersion: 1, id: "eskara-2026", version: 17, lang: "en", items: [] };
+const KO_PAYLOAD = { schemaVersion: 2, id: "eskara-2026", version: 17, lang: "ko", items: [] };
+const EN_PAYLOAD = { schemaVersion: 2, id: "eskara-2026", version: 17, lang: "en", items: [] };
 
 const SNAPSHOT = {
   _id: "eskara-2026:17",

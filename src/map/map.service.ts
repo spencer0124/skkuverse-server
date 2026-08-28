@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { SupportedLang } from "../infra/types";
 import { getMapConfig } from "./map-config.data";
-import { getEskara26Markers } from "./map-eskara26-markers.data";
+import { getEventMarkers } from "./map-event-markers.data";
 import { getCampusMarkers } from "./map-markers.data";
 import {
   computeEtag,
@@ -29,7 +29,7 @@ const OVERLAYS: Record<string, OverlayEntry | undefined> = {
 /**
  * MapService — thin @Injectable wrapper over the validated, read-only
  * map/* data modules (map-config.data, map-markers.data,
- * map-eskara26-markers.data, map-overlays.data). Every method delegates 1:1 —
+ * map-event-markers.data, map-overlays.data). Every method delegates 1:1 —
  * no reimplementation, no defensive narrowing.
  *
  * The per-(category:lang) ETag cache and the jongro overlay payloads remain
@@ -59,8 +59,8 @@ export class MapService {
     return getCampusMarkers();
   }
 
-  getEskara26Markers(): ReturnType<typeof getEskara26Markers> {
-    return getEskara26Markers();
+  getEventMarkers(): ReturnType<typeof getEventMarkers> {
+    return getEventMarkers();
   }
 
   getOverlaysByCategory(

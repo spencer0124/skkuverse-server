@@ -280,9 +280,21 @@ describe("materialize — items", () => {
     // config bug — it must degrade rather than block publication.
     const result = materialize(input({ sessions: [session({ category: "전시" })] }));
     const item = result.payloads.ko.items[0]!;
-    expect(item.iconId).toBe(CONFIG.itemDefaults.fallback.iconId);
+    expect(item.layerId).toBe(CONFIG.itemDefaults.fallback.layerId);
     expect(item.cardTemplateId).toBe(CONFIG.itemDefaults.fallback.cardTemplateId);
     expect(result.dropped).toEqual([]);
+  });
+
+  it("treats a category that names an Object.prototype member as unmapped", () => {
+    // `category` is ops-typed and `byCategory` is a plain object: a bare
+    // `byCategory[category] ?? fallback` would hand back `Object` for
+    // "constructor" — truthy, not a presentation — and the booth would ship
+    // with no layer and no card, silently.
+    for (const category of ["constructor", "toString", "__proto__", "hasOwnProperty"]) {
+      const item = materialize(input({ sessions: [session({ category })] })).payloads.ko.items[0]!;
+      expect(item.layerId).toBe(CONFIG.itemDefaults.fallback.layerId);
+      expect(item.cardTemplateId).toBe(CONFIG.itemDefaults.fallback.cardTemplateId);
+    }
   });
 
   it("drops a session whose placeId does not resolve, and keeps the rest", () => {
@@ -488,23 +500,20 @@ describe("materialize — actions", () => {
 });
 
 describe("materialize — tags", () => {
-  it("builds the §6.4 axes, lowercased and deduplicated", () => {
-    const tags = buildTags(session({ tags: ["Featured", "featured"] }), place());
-    expect(tags).toEqual([
-      "cat:bar",
-      "day:1",
-      "slot:night",
-      "tenant:econ-council",
-      "kind:council",
-      "place:nsc-bar-01",
-      "zone:대운동장 동편",
-      "featured",
-    ]);
+  it("carries what ops wrote on the session and the plot, lowercased and deduplicated", () => {
+    const tags = buildTags(
+      session({ tags: ["Featured", "featured", " Vegan "] }),
+      place({ tags: ["vegan", "Indoor"] }),
+    );
+    expect(tags).toEqual(["featured", "vegan", "indoor"]);
   });
 
-  it("never emits status as a tag — the client recomputes it", () => {
+  it("emits NO derived axes — the card renders tags as badges, verbatim", () => {
+    // `cat:`, `day:`, `slot:`, `tenant:`, `kind:`, `place:` and `zone:` existed
+    // for the predicate filters, which are gone; the only reader left is the
+    // card's `tags` slot, which would print `tenant:econ-council` as a badge.
     const tags = buildTags(session(), place());
-    expect(tags.some((t) => t.startsWith("status:"))).toBe(false);
+    expect(tags).toEqual([]);
   });
 });
 
@@ -597,22 +606,26 @@ describe("materialize — payload shape", () => {
       expect(payload.lang).toBe(lang);
       expect(payload.id).toBe("eskara-2026");
       expect(payload.campus).toBe("nsc");
-      expect(payload.layers.length).toBe(CONFIG.layers.length);
-      expect(payload.chipGroups.length).toBe(CONFIG.chipGroups.length);
+      expect(payload.schemaVersion).toBe(CONFIG.schemaVersion);
       expect(payload.sorts.length).toBe(CONFIG.sorts.length);
       expect(payload.cardTemplates.length).toBe(CONFIG.cardTemplates.length);
+      // The map-layer vocabulary rides in /map/config, not here. A snapshot
+      // that still carried its own layers would be a second catalogue to drift.
+      expect(payload).not.toHaveProperty("layers");
+      expect(payload).not.toHaveProperty("chipGroups");
+      expect(payload).not.toHaveProperty("icons");
+      expect(payload).not.toHaveProperty("camera");
     }
   });
 
-  it("resolves structure labels per language while keeping predicates verbatim", () => {
+  it("stamps every item with the layer its category resolves to", () => {
+    // The same table the marker projection reads, so a booth's pin and its list
+    // row cannot land on different layers.
     const result = materialize(input());
-    const koBar = result.payloads.ko.layers.find((l) => l.id === "bar")!;
-    const enBar = result.payloads.en.layers.find((l) => l.id === "bar")!;
-    expect(koBar.label).toBe("주점");
-    expect(enBar.label).toBe("Bars");
-    // Predicates are data the client evaluates, never text — they must not be
-    // touched by i18n resolution.
-    expect(enBar.filter).toEqual(koBar.filter);
+    const item = result.payloads.ko.items[0]!;
+    expect(item.layerId).toBe(CONFIG.itemDefaults.byCategory.bar!.layerId);
+    expect(item).not.toHaveProperty("iconId");
+    expect(item).not.toHaveProperty("iconIdClosed");
   });
 
   it("reports counts covering inputs and surviving items", () => {
