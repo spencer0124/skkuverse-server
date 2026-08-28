@@ -33,10 +33,18 @@ const LANGS = ["ko", "en", "zh"] as const;
 const asSpecs = (specs: unknown): MapChipSpec[] => specs as MapChipSpec[];
 
 describe("chip lists", () => {
-  it("ships at least one chip in each list", () => {
-    // Guards every `for (const chip of ...)` below against vacuous truth.
-    expect(BASE_CHIPS.length).toBeGreaterThan(0);
+  it("ships at least one festival chip", () => {
+    // Guards every `for (const chip of ...)` below against vacuous truth. Only
+    // the festival list is asserted non-empty: every loop below reads
+    // getChips(lang, true), which is the festival-inclusive row.
     expect(ESKARA26_CHIPS.length).toBeGreaterThan(0);
+  });
+
+  it("serves no chip row at all off-season", () => {
+    // BASE_CHIPS being empty is a decision, not an oversight — 분실물 was
+    // removed and the campus SDUI still carries that action. Asserting the
+    // count means putting a permanent chip back has to be deliberate.
+    expect(BASE_CHIPS).toHaveLength(0);
   });
 
   it("has no duplicate chip id across the two lists", () => {
@@ -136,11 +144,16 @@ describe("focus actions", () => {
 });
 
 describe("webview actions", () => {
-  it("ships an absolute URL on our own web view origin", () => {
+  it("resolves every webview URL to an absolute one on our own origin", () => {
     const chips = getChips("ko", true).filter(
       (chip) => chip.action.kind === "webview",
     );
-    expect(chips.length).toBeGreaterThan(0);
+    // None ship today — 분실물 was the only one. The count is asserted rather
+    // than the loop simply left to run empty, so this cannot rot into a
+    // silently vacuous test: adding a webview chip fails here, and the
+    // assertions below are already waiting for it. The rule itself lives in
+    // toWebviewUrl and is unit-tested in __tests__/nest/infra/webview-url.test.ts.
+    expect(chips).toHaveLength(0);
 
     for (const chip of chips) {
       if (chip.action.kind !== "webview") continue;

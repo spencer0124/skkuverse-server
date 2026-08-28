@@ -113,14 +113,16 @@ describe("GET /map/config (real MapService)", () => {
       layerIds: ["eskara26_stage"],
     });
 
-    // The webview chip ships absolute. A relative string reaching a URL opener
-    // is the shape of an open redirect, which is why toWebviewUrl resolves it
-    // server-side rather than leaving the join to the client.
-    const lostFound = res.body.data.chips.find(
-      (c: { id: string }) => c.id === "lost_found",
-    );
-    expect(lostFound.action.url).toBe(
-      "https://webview.skkuverse.com/skku/lostandfound",
-    );
+    // No webview chip ships since 분실물 was removed, so there is no absolute
+    // URL to assert end to end. The rule it used to prove — a relative string
+    // reaching a URL opener is the shape of an open redirect, which is why
+    // toWebviewUrl resolves server-side rather than leaving the join to the
+    // client — is unit-tested in __tests__/nest/infra/webview-url.test.ts, and
+    // map-chips.test.ts is where restoring this assertion gets prompted.
+    expect(
+      res.body.data.chips.filter(
+        (c: { action: { kind: string } }) => c.action.kind === "webview",
+      ),
+    ).toHaveLength(0);
   });
 });

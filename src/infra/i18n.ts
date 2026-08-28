@@ -230,15 +230,14 @@ const translations: Translations = {
   // A chip whose key is missing here renders its own key as its label, because
   // t() returns the key on a miss — __tests__/nest/map/map-chips.test.ts is
   // what stops that shipping.
-  "map.chip.lost_found": {
-    ko: "분실물",
-    en: "Lost & Found",
-    zh: "失物招领",
-  },
+
+  // The festival's own name, so the reset chip reads as the brand rather than
+  // as a category. Identical in all three languages on purpose: it is a proper
+  // noun, and translating it would name a festival that does not exist.
   "map.chip.eskara26_view_all": {
-    ko: "축제 전체",
-    en: "All",
-    zh: "全部",
+    ko: "26ESKARA",
+    en: "26ESKARA",
+    zh: "26ESKARA",
   },
   "map.chip.eskara26_view_stage": {
     ko: "공연",

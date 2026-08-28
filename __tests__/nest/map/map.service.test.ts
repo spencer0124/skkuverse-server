@@ -185,8 +185,9 @@ describe("MapService", () => {
   it("keeps the base chips when the activation lookup throws", async () => {
     mockFindActiveActivation.mockRejectedValue(new Error("mongo down"));
 
-    // Containment covers chips too — a festival lookup failing must not take
-    // 분실물 down with 건물번호.
+    // Containment covers chips too — a festival lookup failing must answer
+    // "no festival" and leave the base row exactly as it is, the same way it
+    // must not take 건물번호 down with the booths.
     const ko = await svc.getMapConfig("ko");
     expect(ko.chips.map((c) => c.id)).toEqual(BASE_CHIPS.map((c) => c.id));
   });
