@@ -1,41 +1,143 @@
 /**
  * Unit test for MapService — confirms each method delegates 1:1 to the
- * features/map/* data modules (no reimplementation). building.data is mocked so
- * getCampusMarkers exercises the FALLBACK_MARKERS path with no DB, matching the
- * existing __tests__/map-config.test.ts approach.
+ * src/map/* data modules (no reimplementation). building.data is mocked so
+ * getCampusMarkers exercises the FALLBACK_MARKERS path with no DB.
  */
 
-// Mock building.data so getCampusMarkers falls back (no DB) — same as the
-// untouched __tests__/map-config.test.ts.
+// Mock building.data so getCampusMarkers falls back (no DB).
 jest.mock("../../../src/building/building.data", () => ({
   getAllBuildings: jest.fn().mockResolvedValue([]),
 }));
 
+// getMapConfig now consults the activation window to decide whether the event
+// marker layers exist. Mocked so "no festival" is stated rather than inferred
+// from an absent DB client — and so the live case can be exercised at all.
+jest.mock("../../../src/eventmap/eventmap.data", () => ({
+  findActiveActivation: jest.fn(),
+  getPlacesCollection: jest.fn(),
+  getSessionsCollection: jest.fn(),
+}));
+
+import { findActiveActivation } from "../../../src/eventmap/eventmap.data";
+import { ESKARA26_LAYERS } from "../../../src/map/map-eskara26-markers.data";
 import { MapService } from "../../../src/map/map.service";
+
+/** 건물번호 + 건물이름. The bus polyline layers are commented out upstream. */
+const BASE_LAYER_COUNT = 2;
+
+const mockFindActiveActivation = findActiveActivation as jest.MockedFunction<
+  typeof findActiveActivation
+>;
 
 describe("MapService", () => {
   const svc = new MapService();
 
-  it("getMapConfig delegates to map-config.data (i18n labels)", () => {
-    const ko = svc.getMapConfig("ko");
+  beforeEach(() => {
+    mockFindActiveActivation.mockReset();
+    mockFindActiveActivation.mockResolvedValue(null);
+  });
+
+  it("getMapConfig delegates to map-config.data (i18n labels)", async () => {
+    const ko = await svc.getMapConfig("ko");
     expect(ko.campuses).toHaveLength(2);
+    // Two BASE layers and nothing else: no activation is live above.
     expect(ko.layers).toHaveLength(2);
     expect(ko.campuses[0]!.label).toBe("인사캠");
-    expect(svc.getMapConfig("en").campuses[0]!.label).toBe("HSSC");
+    expect((await svc.getMapConfig("en")).campuses[0]!.label).toBe("HSSC");
   });
 
-  it("getCampusMarkers delegates to map-markers.data (number fallback)", async () => {
-    const { markers } = await svc.getCampusMarkers("number");
-    expect(markers.length).toBeGreaterThan(0);
-    expect(markers[0]).toHaveProperty("displayNo");
-    expect(markers[0]).not.toHaveProperty("text");
+  it("sends a userConfigurable flag on every layer", async () => {
+    mockFindActiveActivation.mockResolvedValue({
+      _id: "eskara-2026",
+    } as Awaited<ReturnType<typeof findActiveActivation>>);
+
+    const ko = await svc.getMapConfig("ko");
+
+    // Derived, not a magic 8: hardcoding the count couples a test about
+    // visibility flags to the two commented-out bus layers staying commented,
+    // and uncommenting them would fail here with a misleading diagnosis.
+    expect(ko.layers.length).toBe(BASE_LAYER_COUNT + ESKARA26_LAYERS.length);
+    // Guards the `every` below, which passes vacuously on an empty array.
+    expect(ko.layers.length).toBeGreaterThan(0);
+
+    // Nothing is locked today; the capability exists for a future always-on
+    // background layer. `typeof … === "boolean"` would be a tautology here —
+    // the field is required by LayerEntry and tsc is green — so assert the
+    // VALUE instead.
+    expect(ko.layers.every((l) => l.userConfigurable === true)).toBe(true);
   });
 
-  it("getCampusMarkers delegates to map-markers.data (label fallback)", async () => {
-    const { markers } = await svc.getCampusMarkers("label");
+  it("has an i18n label for every eskara26 layer", async () => {
+    mockFindActiveActivation.mockResolvedValue({
+      _id: "eskara-2026",
+    } as Awaited<ReturnType<typeof findActiveActivation>>);
+
+    const ko = await svc.getMapConfig("ko");
+
+    // `t()` returns the KEY STRING on a miss — no throw, no log — so renaming a
+    // layer id without adding its key ships `map.layer.eskara26_x` as the label
+    // and renders that raw dotted string in the user's filter grid. Every other
+    // gate stays green through that: the compile guard only forces the category
+    // map to follow, and the count assertions above still hold.
+    for (const layer of ko.layers) {
+      expect(layer.label).not.toMatch(/^map\.layer\./);
+      expect(layer.label.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("getMapConfig appends the eskara26 layers while an activation is live", async () => {
+    mockFindActiveActivation.mockResolvedValue({
+      _id: "eskara-2026",
+    } as Awaited<ReturnType<typeof findActiveActivation>>);
+
+    const ko = await svc.getMapConfig("ko");
+    const eskaraLayers = ko.layers.filter((l) => l.id.startsWith("eskara26_"));
+
+    expect(eskaraLayers).toHaveLength(6);
+    // All six share ONE endpoint, which is what makes six toggles cost one fetch.
+    expect(new Set(eskaraLayers.map((l) => l.endpoint))).toEqual(
+      new Set(["/map/markers/eskara26"]),
+    );
+    expect(eskaraLayers.every((l) => l.markerStyle === "placeDot")).toBe(true);
+    // 편의시설 is the opt-in tier; everything else is on without a tap.
+    expect(eskaraLayers.find((l) => l.id === "eskara26_facility")!.defaultVisible).toBe(
+      false,
+    );
+    expect(
+      eskaraLayers.filter((l) => l.id !== "eskara26_facility").every((l) => l.defaultVisible),
+    ).toBe(true);
+    expect(eskaraLayers.find((l) => l.id === "eskara26_bar")!.label).toBe("주점");
+  });
+
+  it("getMapConfig keeps the base layers when the activation lookup throws", async () => {
+    mockFindActiveActivation.mockRejectedValue(new Error("mongo down"));
+
+    // The whole point of containing that read: a festival lookup failing must
+    // not take 건물번호 down with it.
+    const ko = await svc.getMapConfig("ko");
+    expect(ko.layers).toHaveLength(2);
+    expect(ko.layers.map((l) => l.id)).toEqual([
+      "building_numbers",
+      "building_labels",
+    ]);
+  });
+
+  it("getCampusMarkers delegates to map-markers.data, both layers in one call", async () => {
+    // No overlay argument any more: one response carries both building layers,
+    // so the app's endpoint-keyed cache serves two toggles from one fetch.
+    const { markers, degraded } = await svc.getCampusMarkers();
+
+    // building.data is mocked to [] above, so this is the fallback path — and it
+    // must say so, or the controller caches 12 hardcoded buildings for a day.
+    expect(degraded).toBe(true);
+
     expect(markers.length).toBeGreaterThan(0);
-    expect(markers[0]).toHaveProperty("text");
+    expect(new Set(markers.map((m) => m.layerId))).toEqual(
+      new Set(["building_numbers", "building_labels"]),
+    );
+    // `displayNo` is gone from the wire — the visible string is always `text`.
     expect(markers[0]).not.toHaveProperty("displayNo");
+    expect(markers[0]).not.toHaveProperty("skkuId");
   });
 
   it("getOverlaysByCategory delegates to map-overlays.data", () => {

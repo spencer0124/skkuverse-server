@@ -9,15 +9,16 @@ import { BuildingModule } from "../building/building.module";
 import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middleware";
 
 /**
- * MapModule — port of the /map feature (4 HTTP endpoints across 3 mount prefixes;
- * NO poller — the feature is purely HTTP per index.ts:139-141). Additive-only;
- * delegates to the validated, read-only map/* data modules via
- * MapService for byte-parity.
+ * MapModule — the /map feature (5 HTTP endpoints across 3 mount prefixes; NO
+ * poller — the feature is purely HTTP). Delegates to the read-only map/* data
+ * modules via MapService.
  *
- * Endpoints (all no auth, generalLimiter — matches index.ts:139-141):
- *  - MapConfigController:   GET /map/config            (i18n campus/layer labels)
- *  - MapMarkersController:  GET /map/markers/campus    (400 INVALID_OVERLAY)
- *  - MapOverlaysController: GET /map/overlays          (ETag/304, 400/404)
+ * Endpoints (all no auth, generalLimiter):
+ *  - MapConfigController:   GET /map/config              (i18n campus/layer labels,
+ *                                                        eskara26 layers while live)
+ *  - MapMarkersController:  GET /map/markers/campus      (both building layers)
+ *                           GET /map/markers/eskara26    (festival booths)
+ *  - MapOverlaysController: GET /map/overlays            (ETag/304, 400/404)
  *                           GET /map/overlays/:overlayId (404 NOT_FOUND)
  *
  * imports BuildingModule because the /map/markers/campus data path resolves

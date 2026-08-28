@@ -24,8 +24,14 @@ audience: internal
 | Rate limit | `BusRateLimitMiddleware` on `eventmap` only |
 | Writes | materializer poller (`ROLE !== "api"`) + force-publish endpoint |
 
-The existing `/map/config` is **not** extended — see ADR 0004. The two map systems are independent
-so a failure in one cannot take down the other.
+> [!IMPORTANT]
+> **Superseded.** `/map/config` **is** now extended: it lists the `eskara26_*` marker layers while
+> an activation window is open, and booth markers are served from `GET /map/markers/eskara26` in
+> the shared marker schema rather than from the snapshot. The independence this section claimed is
+> preserved by containment instead of by separation — the activation lookup in `map-config.data.ts`
+> swallows its own failures and serves the base layers, so a Mongo problem cannot blank the campus
+> map. The manifest and snapshot endpoints below are still described as built; the map no longer
+> reads them.
 
 The map itself is generic: it renders **places**. A booth is a place, addressed exactly like a
 building. Everything event-specific reaches the user through the **action union** (§8) on sheet

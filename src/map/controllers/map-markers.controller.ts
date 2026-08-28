@@ -1,39 +1,72 @@
-import { Controller, Get, Query } from "@nestjs/common";
-import { AppError } from "../../common/app-error";
+import { Controller, Get, Req, Res } from "@nestjs/common";
+import type { Request, Response } from "express";
+import { sendSuccess } from "../../common/send-success";
 import { MapService } from "../map.service";
 
-const VALID_OVERLAYS = ["number", "label"] as const;
-type Overlay = (typeof VALID_OVERLAYS)[number];
-
 /**
- * Port of the /map/markers route (mounted at /map/markers, no auth,
- * generalLimiter). The overlay query param is validated against VALID_OVERLAYS;
- * an absent/invalid value throws AppError("INVALID_OVERLAY", ..., 400) — byte-
- * identical to the route file's res.error(400, "INVALID_OVERLAY", ...). On
- * success the handler returns the marker object and the global ResponseInterceptor
- * wraps it in {meta:{lang},data} (the route used a plain res.success(data), no
- * extra meta), so the envelope matches.
+ * Marker data for the layers `/map/config` advertises.
+ *
+ * One route per DATA SOURCE, not per layer: buildings come from the buildings
+ * collection, festival booths from the event map's places and sessions. Layers
+ * within a source share a route, because the app keys its marker cache on the
+ * endpoint string — so two building layers, or six eskara26 layers, cost one
+ * fetch between them and each renders the subset carrying its own `layerId`.
+ *
+ * Both routes take `@Res()` purely to set Cache-Control. A plain return cannot:
+ * it goes through the global ResponseInterceptor, which is how the campus route
+ * shipped with no caching headers at all for as long as it existed.
  */
 @Controller("map/markers")
 export class MapMarkersController {
   constructor(private readonly map: MapService) {}
 
-  // GET /map/markers/campus?overlay=number|label
+  /**
+   * GET /map/markers/campus — every building, in both building layers.
+   *
+   * A day, because the buildings collection changes when the university renames
+   * or renumbers something, which is not a thing that happens during a user's
+   * session.
+   *
+   * UNLESS the projection fell back to its 12 hardcoded buildings, in which case
+   * nothing may cache it. `getAllBuildings` caches an empty result for five
+   * minutes, so a brief empty read during a re-seed would otherwise pin a
+   * 12-building campus into every client and edge cache for 24 hours — a stable
+   * URL with no version stamp and no revalidation has nothing to bust it with.
+   * The eskara26 sibling self-heals from the same failure in 60 seconds; this
+   * route needs the explicit guard to match.
+   */
   @Get("campus")
-  campus(
-    @Query("overlay") overlayQuery: string | undefined,
-  ): ReturnType<MapService["getCampusMarkers"]> {
-    const overlay = overlayQuery;
-    if (
-      !overlay ||
-      !(VALID_OVERLAYS as readonly string[]).includes(overlay)
-    ) {
-      throw new AppError(
-        "INVALID_OVERLAY",
-        `overlay must be one of: ${VALID_OVERLAYS.join(", ")}`,
-        400,
-      );
-    }
-    return this.map.getCampusMarkers(overlay as Overlay);
+  async campus(@Req() req: Request, @Res() res: Response): Promise<void> {
+    const { markers, degraded } = await this.map.getCampusMarkers();
+    res.set(
+      "Cache-Control",
+      degraded ? "no-store" : "public, max-age=86400",
+    );
+    // `degraded` is a server-side signal, not part of the wire contract.
+    sendSuccess(req, res, { markers });
+  }
+
+  /**
+   * GET /map/markers/eskara26 — every published session of the live layer set.
+   *
+   * 60 seconds, not the snapshot tier's `immutable`: this URL is stable rather
+   * than version-stamped, so it can never be immutable. A minute is long enough
+   * for the edge to absorb a festival-day burst and short enough that an ops
+   * correction — a booth moved, a set cancelled — is live before anyone walks
+   * there. The window arithmetic does NOT need a short TTL: opening and closing
+   * times ride in the payload, so a booth changes state on the device's clock
+   * without a refetch.
+   *
+   * Note both responses still carry `Vary: Accept-Language` from LangMiddleware,
+   * because sendSuccess puts `meta.lang` in the envelope. The marker DATA is
+   * language-independent — `text` carries every language we hold — so only the
+   * envelope varies, but the header is honest, and stripping it to win edge
+   * caching would be a lie about what the response depends on.
+   */
+  @Get("eskara26")
+  async eskara26(@Req() req: Request, @Res() res: Response): Promise<void> {
+    const data = await this.map.getEskara26Markers();
+    res.set("Cache-Control", "public, max-age=60");
+    sendSuccess(req, res, data);
   }
 }
