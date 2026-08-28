@@ -157,10 +157,9 @@ combinations are all meaningful:
    is `false`.
 4. **The client must shadow a stored toggle, not overwrite it.** A user's persisted visibility choice
    survives a layer becoming non-configurable and comes back when it becomes configurable again. The
-   resolution is a fallback chain, not an assignment — the same shape the event map's
-   `basemapOverride` already uses (`override[id] ?? userToggle[id] ?? defaultVisible`). Writing the
-   forced value into storage would destroy a preference the user cannot re-express while the control
-   is hidden.
+   resolution is a fallback chain, not an assignment — `forced[id] ?? userToggle[id] ??
+   defaultVisible`. Writing the forced value into storage would destroy a preference the user cannot
+   re-express while the control is hidden.
 
 ## 5. Endpoints
 

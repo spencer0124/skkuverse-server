@@ -362,22 +362,6 @@ export interface EventMapConfig {
    * to `zone` if a plaza is too dense — a server edit, no data change, no release.
    */
   stackKeyBy: "placeId" | "zone";
-  /**
-   * Base-map layer ids this event forces to a visibility while it is active,
-   * keyed by the ids `GET /map/config` serves — `building_numbers` and
-   * `building_labels`. ESKARA hides the numbers so pins stay legible and leaves
-   * the names up for orientation, which works only because the two have been
-   * separate layers for a while.
-   *
-   * The client applies it as `override[id] ?? userToggle[id] ?? defaultVisible`
-   * and never persists it, so it disappears with the event rather than leaving a
-   * layer switched off with nothing on screen to explain why. That also means it
-   * is not a hard promise: it only bites while at least one event stack is
-   * visible on the selected campus.
-   *
-   * An id matching no layer is inert — parsed, stored, and matched by nothing.
-   */
-  basemapOverride: Record<string, boolean>;
   icons: Record<string, IconSpec>;
   layers: LayerSpec[];
   chipGroups: ChipGroupSpec[];
@@ -488,8 +472,6 @@ export interface EventMapSnapshot {
   timezone: string;
   campus: Campus;
   camera: { lat: number; lng: number; zoom: number };
-  /** See EventMapConfig.basemapOverride. Always present; `{}` means "no override". */
-  basemapOverride: Record<string, boolean>;
   icons: Record<string, IconSpec>;
   layers: WireLayer[];
   chipGroups: WireChipGroup[];

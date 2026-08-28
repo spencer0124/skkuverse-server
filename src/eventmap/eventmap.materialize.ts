@@ -591,7 +591,6 @@ export function materialize(input: MaterializeInput): MaterializeResult {
     timezone: config.timezone,
     campus: config.campus,
     camera: config.camera,
-    basemapOverride: config.basemapOverride,
     icons: config.icons,
   };
 

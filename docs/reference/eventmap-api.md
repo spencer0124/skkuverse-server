@@ -66,7 +66,6 @@ silently absent event map — which is indistinguishable from a finished festiva
 | `campus`, `camera`, `timezone` | Copied to the wire. `camera.lat` is range-checked against ±90 |
 | `refreshAfterSec` | Manifest poll cadence while active. `300` is served when nothing runs |
 | `stackKeyBy` | `"placeId"` \| `"zone"` — the density lever of §7.2 |
-| `basemapOverride` | Copied to the wire. Base-map layer ids this event forces to a visibility while active, keyed by the ids `GET /map/config` serves — a set that now includes this event's own `eskara26_*` marker layers whenever the window is open, so a key can name a layer this same event contributes. Optional; absent means `{}`. Values must be booleans — a non-boolean is a load error, because truthiness would force a layer **on**, and revealing a layer the event meant to hide is the one direction the client cannot undo. Keys are **not** validated, for the same reason `byCategory` keys are not: they belong to another endpoint, so a list here would be a second source of truth. An unmatched key is inert |
 | `icons` | `{kind:"symbol", symbol}` or `{kind:"remote", uri, width, height}`. `symbol` is checked against a hand-mirrored copy of `@mj-studio/react-native-naver-map`'s closed `MarkerSymbol` union (verified byte-for-byte at 2.7.0; a drift fails loud with the offending path). `remote` requires `https://` |
 | `layers[]` | `id · render · label · filter · defaultVisible · minZoom? · maxZoom? · iconId · sortId` |
 | `chipGroups[]` | `id · label? · selection · chips[]`. Chip ids are the client's selection keys and must be unique **across all groups**, not per group |
@@ -83,18 +82,6 @@ Mongo (§4.2), so an unmapped value is *content*, and content falls back to `ite
 and logs. Compare the references *inside* each presentation — `iconId`, `cardTemplateId` — which are
 structure→structure and block publication outright. The line is drawn by who can fix it: a PR, or an
 ops person at 22:00 (ADR 0004 invariant 2).
-
-ESKARA 2026 sets `basemapOverride` to `{"building_numbers": false}`. That hides 건물번호 so pins stay
-legible while leaving 건물이름 (`building_labels`) up for orientation, which works only because
-`/map/config` has served the two as separate layers for a while — they now share one marker
-endpoint, but they are still two layers with two toggles. The client applies it as
-`override[id] ?? userToggle[id] ?? defaultVisible` and never persists it, so it disappears with the
-event instead of leaving a layer switched off with nothing on screen to explain why. It is therefore
-not a hard promise: it only bites while at least one event stack is visible on the selected campus.
-
-That fallback chain is now the general rule rather than this feature's own trick: `/map/config` ships
-`userConfigurable` beside `defaultVisible`, and a forced value shadows a stored toggle instead of
-overwriting it. See [map-markers-api.md §4](map-markers-api.md).
 
 ESKARA 2026 ships **symbol** icons. No pin art exists yet, and a `remote` icon whose URI 404s renders
 a blank marker — the client's tolerant parser catches an unknown `kind`, not a dead URL. Swapping in
@@ -564,8 +551,6 @@ Payload (abridged; structure and items travel together so a layer toggle costs z
   "materializedAt": "…", "nextChangeAt": "…", "timezone": "Asia/Seoul",
   "campus": "nsc", "camera": { "lat": 37.29412, "lng": 126.97633, "zoom": 17.2 },
 
-  "basemapOverride": { "building_numbers": false },
-
   "icons": {
     "bar":     { "kind": "remote", "uri": "https://skkuverse.com/eventmap/eskara-2026/bar.png", "width": 32, "height": 40 },
     "generic": { "kind": "symbol", "symbol": "green" }
@@ -620,7 +605,7 @@ blank card rather than an error.
 
 | Member | Notes |
 | --- | --- |
-| top level | `schemaVersion · id · version · lang · materializedAt · nextChangeAt · timezone · campus · camera · **basemapOverride** · icons · layers · chipGroups · sorts · **cardTemplates** · items` |
+| top level | `schemaVersion · id · version · lang · materializedAt · nextChangeAt · timezone · campus · camera · icons · layers · chipGroups · sorts · **cardTemplates** · items` |
 | `items[]` | `id · placeId · stackKey · lat · lng · title · subtitle · tags · status · startAt · endAt · hoursLabel · iconId · iconIdClosed · pinPriority · cardTemplateId · **order** · **media** · **fields** · actions` |
 
 The four easiest to forget, and what each is for:
