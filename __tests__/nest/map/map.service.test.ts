@@ -19,6 +19,10 @@ jest.mock("../../../src/eventmap/eventmap.data", () => ({
 }));
 
 import { findActiveActivation } from "../../../src/eventmap/eventmap.data";
+import {
+  BASE_CHIPS,
+  ESKARA26_CHIPS,
+} from "../../../src/map/map-chips.data";
 import { ESKARA26_LAYERS } from "../../../src/map/map-eskara26-markers.data";
 import { MapService } from "../../../src/map/map.service";
 
@@ -120,6 +124,116 @@ describe("MapService", () => {
       "building_numbers",
       "building_labels",
     ]);
+  });
+
+  it("declares a chipGroupId on every layer, null on the building layers", async () => {
+    mockFindActiveActivation.mockResolvedValue({
+      _id: "eskara-2026",
+    } as Awaited<ReturnType<typeof findActiveActivation>>);
+
+    const ko = await svc.getMapConfig("ko");
+    const groupById = new Map(ko.layers.map((l) => [l.id, l.chipGroupId]));
+
+    // null is the load-bearing value, not an omission: it is what keeps 건물번호
+    // and 건물이름 visible and user-toggleable while a festival chip swaps the
+    // six festival layers around them.
+    expect(groupById.get("building_numbers")).toBeNull();
+    expect(groupById.get("building_labels")).toBeNull();
+    for (const layer of ko.layers.filter((l) => l.id.startsWith("eskara26_"))) {
+      expect(layer.chipGroupId).toBe("eskara26");
+    }
+  });
+
+  it("gates the chips on the same activation read as the layers", async () => {
+    const dark = await svc.getMapConfig("ko");
+    expect(dark.chips.map((c) => c.id)).toEqual(BASE_CHIPS.map((c) => c.id));
+    // One request, one activation read. Two lookups could also disagree if the
+    // window closed between them, serving chips that point at layers no longer
+    // in the same response.
+    expect(mockFindActiveActivation).toHaveBeenCalledTimes(1);
+
+    mockFindActiveActivation.mockResolvedValue({
+      _id: "eskara-2026",
+    } as Awaited<ReturnType<typeof findActiveActivation>>);
+
+    const live = await svc.getMapConfig("ko");
+    expect(live.chips).toHaveLength(BASE_CHIPS.length + ESKARA26_CHIPS.length);
+  });
+
+  it("never names a layer the same response does not carry", async () => {
+    mockFindActiveActivation.mockResolvedValue({
+      _id: "eskara-2026",
+    } as Awaited<ReturnType<typeof findActiveActivation>>);
+
+    const ko = await svc.getMapConfig("ko");
+    const served = new Set(ko.layers.map((l) => l.id));
+    const focusChips = ko.chips.filter((c) => c.action.kind === "focus");
+
+    expect(focusChips.length).toBeGreaterThan(0);
+    for (const chip of focusChips) {
+      if (chip.action.kind !== "focus") continue;
+      expect(chip.action.layerIds.length).toBeGreaterThan(0);
+      for (const layerId of chip.action.layerIds) {
+        // The reason chips ride inside /map/config rather than beside it: a
+        // reference and its target cannot be fetched a minute apart, so they
+        // cannot disagree on the wire.
+        expect(served.has(layerId)).toBe(true);
+      }
+    }
+  });
+
+  it("keeps the base chips when the activation lookup throws", async () => {
+    mockFindActiveActivation.mockRejectedValue(new Error("mongo down"));
+
+    // Containment covers chips too — a festival lookup failing must not take
+    // 분실물 down with 건물번호.
+    const ko = await svc.getMapConfig("ko");
+    expect(ko.chips.map((c) => c.id)).toEqual(BASE_CHIPS.map((c) => c.id));
+  });
+
+  it("serves the camera settings the app used to hardcode", async () => {
+    const ko = await svc.getMapConfig("ko");
+
+    // `zoom: 17.5` and `duration: 500` were literals at three call sites in
+    // CampusScreen, so a chip's camera and a marker-tap camera were configured
+    // in two places that could disagree about how close "close" is.
+    expect(ko.cameraDefaults.markerFocus).toEqual({
+      zoom: 17.5,
+      tilt: 0,
+      bearing: 0,
+      durationMs: 500,
+    });
+    expect(ko.cameraDefaults.campusFocus.durationMs).toBeGreaterThan(0);
+
+    // Parsed by the client since before this deploy, never sent until it —
+    // defaultTilt could only ever hold its own fallback.
+    for (const campus of ko.campuses) {
+      expect(campus.defaultTilt).toBe(0);
+      expect(campus.defaultBearing).toBe(0);
+    }
+  });
+
+  it("serves the marker geometry the app used to hardcode", async () => {
+    mockFindActiveActivation.mockResolvedValue({
+      _id: "eskara-2026",
+    } as Awaited<ReturnType<typeof findActiveActivation>>);
+
+    const ko = await svc.getMapConfig("ko");
+    const byId = new Map(ko.layers.map((l) => [l.id, l]));
+
+    // DOT_SIZE, and the label layer's globalZIndex.
+    expect(byId.get("building_numbers")!.style).toMatchObject({ size: 16 });
+    expect(byId.get("building_labels")!.style).toMatchObject({ zIndex: 100000 });
+
+    // PIN_WIDTH x PIN_HEIGHT — the tintable base icon's natural proportions, so
+    // a client honouring them does not distort the tint.
+    const stage = byId.get("eskara26_stage")!;
+    expect(stage.style).toMatchObject({ width: 22, height: 30 });
+    // Colour still ships for the festival layers: a category colour is content.
+    // The building layers deliberately send none — their fill is a design token
+    // that resolves per theme, and a hex from here cannot.
+    expect(stage.style!.color).toBe("F76CA0");
+    expect(byId.get("building_numbers")!.style!.color).toBeUndefined();
   });
 
   it("getCampusMarkers delegates to map-markers.data, both layers in one call", async () => {
