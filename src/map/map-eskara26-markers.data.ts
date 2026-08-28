@@ -84,12 +84,16 @@ type Eskara26LayerId = (typeof ESKARA26_LAYERS)[number]["id"];
  * to. It resolves to `eskara26_etc` rather than vanishing, because a booth
  * missing from the festival map is not a failure anyone can see or report.
  *
- * The ids name the festival (`eskara26_*`) deliberately, and that has a price
- * worth stating: the app persists base-map layer visibility permanently, so
- * next year's `eskara27_*` ids leave this year's behind as dead keys, and a
- * user who turned 주점 off does not carry that choice forward. Generic `event_*`
- * ids would avoid both, at the cost of a name that says nothing about which
- * festival is live. Unambiguity won.
+ * The ids name the festival (`eskara26_*`) deliberately. The price is smaller
+ * than it first looks: the app's base-map layer store is EPHEMERAL
+ * (`packages/shared/src/store/map.ts` — "not persisted", no `persist`
+ * middleware), so next year's `eskara27_*` ids accumulate nothing. The event
+ * store is the persisted one, and it already resets on a new `layerSetId`.
+ *
+ * What is left is that a user who turns 주점 off does not carry that choice into
+ * next year's festival — which is arguably the right answer anyway, since it is
+ * a different festival. Generic `event_*` ids would preserve it, at the cost of
+ * a name that says nothing about which festival is live. Unambiguity won.
  */
 const CATEGORY_TO_LAYER: Readonly<Record<string, Eskara26LayerId>> = {
   bar: "eskara26_bar",

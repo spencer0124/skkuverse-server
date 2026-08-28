@@ -498,10 +498,19 @@ layer set in the config, and a client branch that knows the new tap kind.
 That was chosen deliberately, against ADR 0004 invariant 1 — "It must never learn the name of a
 consumer" — and its consequence that "next year's event arrives as data". The price is worth naming:
 
-- The app persists base-map layer visibility permanently, so next year's `eskara27_*` ids leave this
-  year's behind as **dead keys**, and a user who turned 주점 off does not carry that choice forward.
-- Generic `event_*` ids would avoid both costs, at the price of a name that says nothing about which
+- A user who turned 주점 off does not carry that choice into next year's festival, because
+  `eskara27_*` are different ids. Arguably correct anyway — it is a different festival.
+- Generic `event_*` ids would preserve it, at the price of a name that says nothing about which
   festival is live.
+
+> [!NOTE]
+> An earlier revision of this section claimed the ids would also accumulate **dead keys**, because
+> "the app persists base-map layer visibility permanently". That is wrong, and worth recording so
+> the argument is not rebuilt on it: `packages/shared/src/store/map.ts` is explicitly *"ephemeral
+> (not persisted)"* and has no `persist` middleware, so nothing accumulates. The **event** store
+> (`store/eventmap.ts`) is the persisted one, and it already resets when `activeLayerSetId` changes.
+> If the base-map store ever gains persistence, this cost becomes real — and the shadow rule in §4.1
+> has to land in the same change.
 
 Unambiguity won. A generic id in a log line, a deep link or a bug report cannot tell you which
 festival it belonged to, and the festival map is a thing that is debugged in a crowd at 22:00.
