@@ -3,7 +3,7 @@ title: Event Map API Reference
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-08-27
+last-updated: 2026-08-28
 audience: internal
 ---
 
@@ -31,7 +31,8 @@ audience: internal
 > preserved by containment instead of by separation — the activation lookup in `map-config.data.ts`
 > swallows its own failures and serves the base layers, so a Mongo problem cannot blank the campus
 > map. The manifest and snapshot endpoints below are still described as built; the map no longer
-> reads them.
+> reads them. That contract — the shared marker schema, the layer flags, the three routes — is
+> [map-markers-api.md](map-markers-api.md).
 
 The map itself is generic: it renders **places**. A booth is a place, addressed exactly like a
 building. Everything event-specific reaches the user through the **action union** (§8) on sheet
@@ -65,7 +66,7 @@ silently absent event map — which is indistinguishable from a finished festiva
 | `campus`, `camera`, `timezone` | Copied to the wire. `camera.lat` is range-checked against ±90 |
 | `refreshAfterSec` | Manifest poll cadence while active. `300` is served when nothing runs |
 | `stackKeyBy` | `"placeId"` \| `"zone"` — the density lever of §7.2 |
-| `basemapOverride` | Copied to the wire. Base-map layer ids this event forces to a visibility while active, keyed by the ids `GET /map/config` serves. Optional; absent means `{}`. Values must be booleans — a non-boolean is a load error, because truthiness would force a layer **on**, and revealing a layer the event meant to hide is the one direction the client cannot undo. Keys are **not** validated, for the same reason `byCategory` keys are not: they belong to another endpoint, so a list here would be a second source of truth. An unmatched key is inert |
+| `basemapOverride` | Copied to the wire. Base-map layer ids this event forces to a visibility while active, keyed by the ids `GET /map/config` serves — a set that now includes this event's own `eskara26_*` marker layers whenever the window is open, so a key can name a layer this same event contributes. Optional; absent means `{}`. Values must be booleans — a non-boolean is a load error, because truthiness would force a layer **on**, and revealing a layer the event meant to hide is the one direction the client cannot undo. Keys are **not** validated, for the same reason `byCategory` keys are not: they belong to another endpoint, so a list here would be a second source of truth. An unmatched key is inert |
 | `icons` | `{kind:"symbol", symbol}` or `{kind:"remote", uri, width, height}`. `symbol` is checked against a hand-mirrored copy of `@mj-studio/react-native-naver-map`'s closed `MarkerSymbol` union (verified byte-for-byte at 2.7.0; a drift fails loud with the offending path). `remote` requires `https://` |
 | `layers[]` | `id · render · label · filter · defaultVisible · minZoom? · maxZoom? · iconId · sortId` |
 | `chipGroups[]` | `id · label? · selection · chips[]`. Chip ids are the client's selection keys and must be unique **across all groups**, not per group |
@@ -85,10 +86,15 @@ ops person at 22:00 (ADR 0004 invariant 2).
 
 ESKARA 2026 sets `basemapOverride` to `{"building_numbers": false}`. That hides 건물번호 so pins stay
 legible while leaving 건물이름 (`building_labels`) up for orientation, which works only because
-`/map/config` has served the two as separate layers for a while. The client applies it as
+`/map/config` has served the two as separate layers for a while — they now share one marker
+endpoint, but they are still two layers with two toggles. The client applies it as
 `override[id] ?? userToggle[id] ?? defaultVisible` and never persists it, so it disappears with the
 event instead of leaving a layer switched off with nothing on screen to explain why. It is therefore
 not a hard promise: it only bites while at least one event stack is visible on the selected campus.
+
+That fallback chain is now the general rule rather than this feature's own trick: `/map/config` ships
+`userConfigurable` beside `defaultVisible`, and a forced value shadows a stored toggle instead of
+overwriting it. See [map-markers-api.md §4](map-markers-api.md).
 
 ESKARA 2026 ships **symbol** icons. No pin art exists yet, and a `remote` icon whose URI 404s renders
 a blank marker — the client's tolerant parser catches an unknown `kind`, not a dead URL. Swapping in
@@ -782,6 +788,15 @@ A booth and a building are addressed identically, because both are places. Emit 
 that means "show this on the map" — a notification, a mini-app page, another sheet. Do **not** invent
 an event-specific variant.
 
+> [!IMPORTANT]
+> **The bare form above is what ships; it is no longer what is agreed.** Map markers now carry
+> `tap: { kind, placeId }`, and the agreed link is literally those two fields —
+> `skkuverse://map?place=eskara26:nsc-truck-05`, `skkuverse://map?place=skku_building:2` — so a link
+> can never disagree with the marker it came from. It is **not reachable yet**: the app's
+> `PLACE_ID_RE` rejects the colon and drops such a link silently. ADR 0004 invariant 1 still
+> specifies the bare form and needs amending alongside the app change. See
+> [map-markers-api.md §8.2](map-markers-api.md).
+
 ## 9. Status semantics
 
 Immutable snapshots and live status are mutually exclusive — re-materializing whenever a booth opens
@@ -800,6 +815,13 @@ condition.
 That last fallback is why §6.2 step 6b nulls a cancelled session's bounds: it is the only lever the
 server has to say "do not recompute this one". Anything whose status must not move on the device —
 today that is `cancelled`, tomorrow it could be something else — has to ship without bounds.
+
+**All of this is the snapshot's contract, not the map's.** `GET /map/markers/eskara26` carries no
+`status` field at all: it ships the window alone, and a cancelled session is simply not served, which
+frees both-bounds-null to mean "always" and nothing else. The consequence is that the map pin for a
+cancelled booth disappears rather than showing as cancelled — the opposite of what `SessionDoc`'s own
+comment asks for, and a trade made knowingly. Reasoning in
+[map-markers-api.md §3](map-markers-api.md).
 
 ## 10. Authoring order
 
@@ -1058,6 +1080,7 @@ the source IP, not a client TLS fault. Two causes, and they look identical:
 | Authored content | `scripts/data/eskara-2026-{places.csv,sessions.json}` |
 | Window + kill switch | `scripts/eventmap-window.js` |
 | Local demo dataset | `scripts/seed-eventmap-demo.js` |
+| Sessions → map markers (the `/map` surface) | `src/map/map-eskara26-markers.data.ts` — see [map-markers-api.md](map-markers-api.md) |
 | Layer/chip/filter structure | `src/eventmap/config/*.json` (+ `CONFIG_FILES` and `copy-build-assets.js`) |
 | DB + collection names | `src/infra/config.ts` `eventmap` block |
 | Tests | `__tests__/nest/eventmap/`, helper `__tests__/helpers/nest/build-eventmap-app.ts` |
@@ -1068,6 +1091,7 @@ app alone and the contract stays `status: "planned"` — registered, dormant, no
 
 ## 15. Related
 
+- [map-markers-api.md](map-markers-api.md) — the shared marker schema and the `/map/*` routes that draw booths beside buildings
 - [ADR 0004 — event map layer ownership](https://github.com/spencer0124/skkuverse/blob/main/docs/decisions/0004-event-map-layer-ownership.md)
 - [Umbrella ADR 0002 — pull-based config contracts](https://github.com/spencer0124/skkuverse/blob/main/docs/decisions/0002-pull-based-config-contracts.md) — the shared-artifact mechanism
 - [skkuverse-app `docs/eventmap-rendering.md`](https://github.com/spencer0124/skkuverse-app/blob/main/docs/eventmap-rendering.md)
