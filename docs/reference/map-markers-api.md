@@ -157,10 +157,9 @@ combinations are all meaningful:
    is `false`.
 4. **The client must shadow a stored toggle, not overwrite it.** A user's persisted visibility choice
    survives a layer becoming non-configurable and comes back when it becomes configurable again. The
-   resolution is a fallback chain, not an assignment — the same shape the event map's
-   `basemapOverride` already uses (`override[id] ?? userToggle[id] ?? defaultVisible`). Writing the
-   forced value into storage would destroy a preference the user cannot re-express while the control
-   is hidden.
+   resolution is a fallback chain, not an assignment — `forced[id] ?? userToggle[id] ??
+   defaultVisible`. Writing the forced value into storage would destroy a preference the user cannot
+   re-express while the control is hidden.
 
 ## 5. Endpoints
 
@@ -246,15 +245,6 @@ Response, abridged to one event layer of the six, `lang=ko`, with a window open:
       }
     ],
     "chips": [
-      {
-        "id": "lost_found",
-        "label": "분실물",
-        "icon": { "kind": "emoji", "emoji": "🧳" },
-        "action": {
-          "kind": "webview",
-          "url": "https://webview.skkuverse.com/skku/lostandfound"
-        }
-      },
       {
         "id": "eskara26_view_stage",
         "label": "공연",
@@ -555,7 +545,8 @@ camera, and encoding one as JSON inside a string would put a second parser on th
 than two. Authored values are root-relative and are resolved against `WEBVIEW_ORIGIN` before they
 ship, so a client never receives a relative string to hand to an opener. There is deliberately **no
 `title`**: the client already holds the chip's `label`, and a page a chip opened is titled by that
-chip.
+chip. No chip uses this variant today (§8.5) — it is documented as part of the schema, and its rules
+are enforced whenever one returns.
 
 ### 8.2 What a chip tap may change — two rules
 
@@ -605,13 +596,17 @@ It also costs nothing. The app already fetches this document.
 
 | Chip id | `ko` label | Action | Live when |
 | --- | --- | --- | --- |
-| `lost_found` | 분실물 | `webview` → `/skku/lostandfound` | always |
-| `eskara26_view_all` | 축제 전체 | `focus`, the five **default-visible** festival layers | activation open |
+| `eskara26_view_all` | 26ESKARA | `focus`, the five **default-visible** festival layers | activation open |
 | `eskara26_view_stage` | 공연 | `focus`, `eskara26_stage` | activation open |
 | `eskara26_view_bar` | 주점 | `focus`, `eskara26_bar` | activation open |
 | `eskara26_view_food` | 먹거리 | `focus`, `eskara26_food` | activation open |
 | `eskara26_view_booth` | 부스 | `focus`, `eskara26_booth` | activation open |
 | `eskara26_view_facility` | 편의시설 | `focus`, `eskara26_facility` | activation open |
+
+**Every chip served today is a festival chip.** `BASE_CHIPS` is empty — 분실물 lived there and was
+removed, and that action is still reachable from the campus SDUI (`src/ui/ui/ui.campus.ts`). So
+outside an activation window `chips` is `[]`, and a client must render nothing rather than an empty
+row. It stays a list because a permanent chip is an ordinary thing to want back.
 
 Festival chips are gated by the **same activation window** as the festival layers, so a festival
 starts and ends with no deploy and its chips stop existing rather than lingering as dead buttons.

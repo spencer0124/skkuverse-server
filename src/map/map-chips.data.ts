@@ -47,18 +47,28 @@ export interface MapChipSpec {
 /**
  * Chips that exist whether or not a festival is live.
  *
- * The URL is root-relative on purpose. `toWebviewUrl` joins it onto
- * `WEBVIEW_ORIGIN` at serve time, so nobody types a host here — which matters
- * because the four webview URLs this API emits sat as literals until they all
- * had to move at once.
+ * EMPTY on purpose, so off-season the map serves no chip row at all — the
+ * client renders nothing rather than an empty scroller. It is a list and not a
+ * deleted concept because a permanent chip is an ordinary thing to want back,
+ * and `getChips` already concatenates it.
+ *
+ * 분실물 lived here and was removed. The feature is not gone with it: the
+ * campus SDUI still carries a `lost_found` quick action
+ * (`src/ui/ui/ui.campus.ts`) pointing at the same page, so the chip was a
+ * second door to a room that still has one.
+ *
+ * Whatever lands here next, a webview URL is authored ROOT-RELATIVE.
+ * `toWebviewUrl` joins it onto `WEBVIEW_ORIGIN` at serve time, so nobody types
+ * a host in this file — which matters because the webview URLs this API emits
+ * sat as literals until they all had to move at once.
+ *
+ * Annotated rather than `as const satisfies` like the list below: there are no
+ * literals left to narrow, and `as const` on an empty array types its element
+ * as `never`, which makes every `BASE_CHIPS.map((c) => c.id)` in the tests a
+ * compile error. The annotation still enforces `MapLayerId` on any `layerIds`
+ * added back, because that rule lives on `MapChipSpec`.
  */
-export const BASE_CHIPS = [
-  {
-    id: "lost_found",
-    emoji: "🧳",
-    action: { kind: "webview", url: "/skku/lostandfound" },
-  },
-] as const satisfies readonly MapChipSpec[];
+export const BASE_CHIPS: readonly MapChipSpec[] = [];
 
 /**
  * Where a festival chip points the camera.
