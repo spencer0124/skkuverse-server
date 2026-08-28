@@ -111,7 +111,7 @@ Architecture doc: `docs/notices-api-architecture.md`.
 - **Auth middleware** (`lib/authMiddleware.js`): Verifies Firebase `Bearer <idToken>` when present, sets `req.uid`. Pass-through when no token or Firebase is not configured. 5-min token cache, capped at 10k entries.
 - **i18n** (`lib/i18n.js`): Translation map `t(key, lang)` for server-generated text (SDUI titles, subtitles). Korean is default.
 - **Observability**: pino-http generates `X-Request-Id` (UUID) per request, logs `appVersion` and `platform` from client headers. `X-Response-Time` header set by `responseHelper`.
-- **Timezone**: All date/time logic uses `moment-timezone` with `Asia/Seoul`.
+- **Timezone**: Bus and notices date/time logic uses `moment-timezone` with `Asia/Seoul`. **eventmap is deliberately timezone-free** — session bounds are absolute instants, and `SessionDoc.date` stores the civil festival day precisely so no server-side KST conversion is ever needed (rationale in `src/eventmap/types.ts`). Don't "fix" it by adding one.
 
 ### Ad System
 

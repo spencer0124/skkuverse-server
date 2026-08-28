@@ -208,7 +208,8 @@ Every successful response uses the envelope `{ meta: { lang, ... }, data: ... }`
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/map/config` | — | Map style + tile config |
-| GET | `/map/markers` | — | Static building/spot markers |
+| GET | `/map/markers/campus` | — | Building markers, both layers |
+| GET | `/map/markers/eskara26` | — | Festival booth markers, while the window is open |
 | GET | `/map/overlays` | — | Polygon/route overlays |
 | GET | `/building/search` | — | Ranked building + room search (`?q=`, optional `?campus=`) — see [ADR 0006](docs/decisions/0006-building-search-relevance-ranking.md) |
 | GET | `/building/*` | — | Building detail + list |

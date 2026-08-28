@@ -1,19 +1,19 @@
 /**
  * Nest port of the /map HTTP surface — integration over MapConfigController,
- * MapMarkersController, MapOverlaysController (4 endpoints, validation branches,
+ * MapMarkersController, MapOverlaysController (5 endpoints, validation branches,
  * i18n labels, ETag/304, jongro overlay lookup).
  *
  * MapService is overridden with a stub so the controllers' envelope/meta/ETag
  * wiring is exercised without the real data modules (no DB, no config coupling).
  * BuildingService is overridden too because MapModule imports BuildingModule,
- * whose real onModuleInit would hit lib/db. The features/map/*.data modules are
- * covered by the untouched __tests__/map-*.test.ts unit tests.
+ * whose real onModuleInit would hit lib/db. The src/map/*.data modules are
+ * covered by map-markers.test.ts and map-eskara26-markers.test.ts alongside.
  *
  * Envelope parity:
- *  - /map/config + /map/markers/campus → plain return → ResponseInterceptor wraps
- *    in { meta: { lang }, data } with X-Response-Time.
- *  - /map/overlays + /:overlayId → @Res() + sendSuccess → same envelope, plus
- *    ETag / Cache-Control / 304.
+ *  - /map/config → plain return → ResponseInterceptor wraps in
+ *    { meta: { lang }, data } with X-Response-Time.
+ *  - /map/markers/* and /map/overlays* → @Res() + sendSuccess → same envelope,
+ *    plus Cache-Control (and ETag / 304 on the overlays root).
  */
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
@@ -26,6 +26,7 @@ let httpServer: import("http").Server;
 let svc: {
   getMapConfig: jest.Mock;
   getCampusMarkers: jest.Mock;
+  getEskara26Markers: jest.Mock;
   getOverlaysByCategory: jest.Mock;
   computeEtag: jest.Mock;
   getOverlayById: jest.Mock;
@@ -35,6 +36,7 @@ beforeAll(async () => {
   svc = {
     getMapConfig: jest.fn(),
     getCampusMarkers: jest.fn(),
+    getEskara26Markers: jest.fn(),
     getOverlaysByCategory: jest.fn(),
     computeEtag: jest.fn(),
     getOverlayById: jest.fn(),
@@ -79,48 +81,109 @@ describe("GET /map/config", () => {
 });
 
 describe("GET /map/markers/campus", () => {
-  it("returns markers for overlay=number", async () => {
-    const data = { markers: [{ id: "hssc_1", displayNo: "1" }] };
-    svc.getCampusMarkers.mockResolvedValue(data);
+  const data = {
+    markers: [
+      {
+        id: "2",
+        layerId: "building_numbers",
+        campus: "hssc",
+        lat: 37.587361,
+        lng: 126.994479,
+        text: { ko: "1", en: "1" },
+        startAt: null,
+        endAt: null,
+        tap: { kind: "skku_building", placeId: "2" },
+      },
+    ],
+  };
 
-    const res = await request(httpServer).get(
-      "/map/markers/campus?overlay=number",
-    );
+  it("takes no parameters and returns every building layer at once", async () => {
+    svc.getCampusMarkers.mockResolvedValue({ ...data, degraded: false });
+
+    const res = await request(httpServer).get("/map/markers/campus");
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ meta: { lang: "ko" }, data });
-    expect(svc.getCampusMarkers).toHaveBeenCalledWith("number");
+    // The `overlay` query param is gone: one response carries both layers, and
+    // the service takes no argument to select between them.
+    expect(svc.getCampusMarkers).toHaveBeenCalledWith();
   });
 
-  it("returns markers for overlay=label", async () => {
-    const data = { markers: [{ id: "hssc_1", text: "수선관" }] };
-    svc.getCampusMarkers.mockResolvedValue(data);
-    const res = await request(httpServer).get(
-      "/map/markers/campus?overlay=label",
-    );
-    expect(res.status).toBe(200);
-    expect(res.body.data).toEqual(data);
-    expect(svc.getCampusMarkers).toHaveBeenCalledWith("label");
-  });
+  it("sets Cache-Control, which this route never had", async () => {
+    svc.getCampusMarkers.mockResolvedValue({ ...data, degraded: false });
 
-  it("400 INVALID_OVERLAY when overlay is missing", async () => {
     const res = await request(httpServer).get("/map/markers/campus");
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({
-      error: {
-        code: "INVALID_OVERLAY",
-        message: "overlay must be one of: number, label",
-      },
-    });
-    expect(svc.getCampusMarkers).not.toHaveBeenCalled();
+
+    expect(res.headers["cache-control"]).toBe("public, max-age=86400");
+    expect(res.headers["x-response-time"]).toMatch(/ms$/);
   });
 
-  it("400 INVALID_OVERLAY when overlay is invalid", async () => {
-    const res = await request(httpServer).get(
-      "/map/markers/campus?overlay=bogus",
-    );
-    expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe("INVALID_OVERLAY");
+  it("ignores a leftover overlay parameter instead of rejecting it", async () => {
+    svc.getCampusMarkers.mockResolvedValue({ ...data, degraded: false });
+
+    // An old client still appending ?overlay=number gets the full response
+    // rather than a 400. Nothing validates the param any more because nothing
+    // reads it.
+    const res = await request(httpServer).get("/map/markers/campus?overlay=number");
+
+    expect(res.status).toBe(200);
+    expect(svc.getCampusMarkers).toHaveBeenCalledWith();
+  });
+
+  it("refuses to let the degraded fallback be cached", async () => {
+    svc.getCampusMarkers.mockResolvedValue({ ...data, degraded: true });
+
+    const res = await request(httpServer).get("/map/markers/campus");
+
+    // Otherwise a momentary empty collection pins 12 hardcoded buildings into
+    // every client and edge cache for a day, on a URL with nothing to bust it.
+    expect(res.headers["cache-control"]).toBe("no-store");
+    // `degraded` is a server-side signal and must not reach the wire.
+    expect(res.body.data).toEqual(data);
+    expect(res.body.data).not.toHaveProperty("degraded");
+  });
+});
+
+describe("GET /map/markers/eskara26", () => {
+  it("wraps the markers in the envelope and sets Cache-Control", async () => {
+    const data = {
+      markers: [
+        {
+          id: "s-1",
+          layerId: "eskara26_booth",
+          campus: "nsc",
+          lat: 37.294452,
+          lng: 126.971747,
+          text: { ko: "우끼끼친", en: "Ukkikki" },
+          startAt: null,
+          endAt: null,
+          tap: { kind: "eskara26", placeId: "nsc-plaza-a3" },
+        },
+      ],
+    };
+    svc.getEskara26Markers.mockResolvedValue(data);
+
+    const res = await request(httpServer).get("/map/markers/eskara26");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ meta: { lang: "ko" }, data });
+    // A minute, against the campus route's day: this data changes when ops
+    // edits a booth mid-festival, that data changes when the university renames
+    // a building.
+    expect(res.headers["cache-control"]).toBe("public, max-age=60");
+    expect(res.headers["x-response-time"]).toMatch(/ms$/);
+  });
+
+  it("does not fall through to its sibling route", async () => {
+    // Both live on @Controller("map/markers"), so a literal path must reach its
+    // own handler and leave the other untouched.
+    svc.getEskara26Markers.mockResolvedValue({ markers: [] });
+
+    const res = await request(httpServer).get("/map/markers/eskara26");
+
+    expect(res.status).toBe(200);
+    // Both halves: its own handler ran, and the sibling's did not.
+    expect(svc.getEskara26Markers).toHaveBeenCalled();
     expect(svc.getCampusMarkers).not.toHaveBeenCalled();
   });
 });

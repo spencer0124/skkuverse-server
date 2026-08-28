@@ -3,7 +3,7 @@ title: Event Map API Reference
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-08-07
+last-updated: 2026-08-28
 audience: internal
 ---
 
@@ -24,8 +24,15 @@ audience: internal
 | Rate limit | `BusRateLimitMiddleware` on `eventmap` only |
 | Writes | materializer poller (`ROLE !== "api"`) + force-publish endpoint |
 
-The existing `/map/config` is **not** extended — see ADR 0004. The two map systems are independent
-so a failure in one cannot take down the other.
+> [!IMPORTANT]
+> **Superseded.** `/map/config` **is** now extended: it lists the `eskara26_*` marker layers while
+> an activation window is open, and booth markers are served from `GET /map/markers/eskara26` in
+> the shared marker schema rather than from the snapshot. The independence this section claimed is
+> preserved by containment instead of by separation — the activation lookup in `map-config.data.ts`
+> swallows its own failures and serves the base layers, so a Mongo problem cannot blank the campus
+> map. The manifest and snapshot endpoints below are still described as built; the map no longer
+> reads them. That contract — the shared marker schema, the layer flags, the three routes — is
+> [map-markers-api.md](map-markers-api.md).
 
 The map itself is generic: it renders **places**. A booth is a place, addressed exactly like a
 building. Everything event-specific reaches the user through the **action union** (§8) on sheet
@@ -59,7 +66,7 @@ silently absent event map — which is indistinguishable from a finished festiva
 | `campus`, `camera`, `timezone` | Copied to the wire. `camera.lat` is range-checked against ±90 |
 | `refreshAfterSec` | Manifest poll cadence while active. `300` is served when nothing runs |
 | `stackKeyBy` | `"placeId"` \| `"zone"` — the density lever of §7.2 |
-| `basemapOverride` | Copied to the wire. Base-map layer ids this event forces to a visibility while active, keyed by the ids `GET /map/config` serves. Optional; absent means `{}`. Values must be booleans — a non-boolean is a load error, because truthiness would force a layer **on**, and revealing a layer the event meant to hide is the one direction the client cannot undo. Keys are **not** validated, for the same reason `byCategory` keys are not: they belong to another endpoint, so a list here would be a second source of truth. An unmatched key is inert |
+| `basemapOverride` | Copied to the wire. Base-map layer ids this event forces to a visibility while active, keyed by the ids `GET /map/config` serves — a set that now includes this event's own `eskara26_*` marker layers whenever the window is open, so a key can name a layer this same event contributes. Optional; absent means `{}`. Values must be booleans — a non-boolean is a load error, because truthiness would force a layer **on**, and revealing a layer the event meant to hide is the one direction the client cannot undo. Keys are **not** validated, for the same reason `byCategory` keys are not: they belong to another endpoint, so a list here would be a second source of truth. An unmatched key is inert |
 | `icons` | `{kind:"symbol", symbol}` or `{kind:"remote", uri, width, height}`. `symbol` is checked against a hand-mirrored copy of `@mj-studio/react-native-naver-map`'s closed `MarkerSymbol` union (verified byte-for-byte at 2.7.0; a drift fails loud with the offending path). `remote` requires `https://` |
 | `layers[]` | `id · render · label · filter · defaultVisible · minZoom? · maxZoom? · iconId · sortId` |
 | `chipGroups[]` | `id · label? · selection · chips[]`. Chip ids are the client's selection keys and must be unique **across all groups**, not per group |
@@ -79,10 +86,15 @@ ops person at 22:00 (ADR 0004 invariant 2).
 
 ESKARA 2026 sets `basemapOverride` to `{"building_numbers": false}`. That hides 건물번호 so pins stay
 legible while leaving 건물이름 (`building_labels`) up for orientation, which works only because
-`/map/config` has served the two as separate layers for a while. The client applies it as
+`/map/config` has served the two as separate layers for a while — they now share one marker
+endpoint, but they are still two layers with two toggles. The client applies it as
 `override[id] ?? userToggle[id] ?? defaultVisible` and never persists it, so it disappears with the
 event instead of leaving a layer switched off with nothing on screen to explain why. It is therefore
 not a hard promise: it only bites while at least one event stack is visible on the selected campus.
+
+That fallback chain is now the general rule rather than this feature's own trick: `/map/config` ships
+`userConfigurable` beside `defaultVisible`, and a forced value shadows a stored toggle instead of
+overwriting it. See [map-markers-api.md §4](map-markers-api.md).
 
 ESKARA 2026 ships **symbol** icons. No pin art exists yet, and a `remote` icon whose URI 404s renders
 a blank marker — the client's tolerant parser catches an unknown `kind`, not a dead URL. Swapping in
@@ -451,7 +463,7 @@ survive an ops edit identically on both.
 ### 7.1 `GET /eventmap/manifest`
 
 `ETag` · `Cache-Control: public, max-age=15` · `Vary: Accept-Language` ·
-`Access-Control-Expose-Headers: Date, ETag, Age`
+`Access-Control-Expose-Headers: ETag`
 
 ```json
 {
@@ -482,13 +494,15 @@ the next poll. The derivation is a scan of the memoized items, so it costs no DB
 **`Access-Control-Expose-Headers` is set app-wide, in `src/common/expose-headers.ts`, not per route.**
 Both endpoints answer a matching `If-None-Match` with `res.status(304).end()`, which returns before
 setting a header of its own, and the degraded branch above sets only `Cache-Control` — so a per-route
-`res.set` would miss exactly the responses that need it. `Date` and `Age` are what §9's on-device
-clock correction reads, and neither is CORS-safelisted.
+`res.set` would miss exactly the responses that need it — a 304 is precisely the response whose
+`ETag` a client still needs to read, and `ETag` is not CORS-safelisted.
 
-It is inert today and shipped anyway: this API sends no `Access-Control-Allow-Origin` on any route and
-answers `OPTIONS` with 404, so a cross-origin fetch fails before it could read anything the header
-exposes. That makes it correct for the day CORS exists and a no-op until then — **it does not on its
-own make a browser target's clock correction work.** Native clients read these headers regardless.
+`Date` and `Age` were exposed here too, for the client's clock-offset measurement. That layer was
+removed: §9's derivation now runs against the device clock unadjusted, so neither header has a
+reader.
+
+CORS was enabled in skkuverse#17 for the first-party origins in `infra/origins.ts`, so this header
+does something for those origins. Native clients read it regardless of CORS.
 
 This handler must **never throw**; any DB error degrades to `activeLayerSetId: null`.
 
@@ -512,7 +526,7 @@ boundaries are identical across ko/en/zh, and only `snapshotUrl`'s `?lang=` diff
 ### 7.2 `GET /eventmap/snapshot/:layerSetId/:version?lang=ko`
 
 `ETag` · `Cache-Control: public, max-age=31536000, immutable` · `Vary: Accept-Language` ·
-`Access-Control-Expose-Headers: Date, ETag, Age`
+`Access-Control-Expose-Headers: ETag`
 
 Validation order is the repo rule — **400 → 404 → 304**:
 
@@ -774,6 +788,15 @@ A booth and a building are addressed identically, because both are places. Emit 
 that means "show this on the map" — a notification, a mini-app page, another sheet. Do **not** invent
 an event-specific variant.
 
+> [!IMPORTANT]
+> **The bare form above is what ships; it is no longer what is agreed.** Map markers now carry
+> `tap: { kind, placeId }`, and the agreed link is literally those two fields —
+> `skkuverse://map?place=eskara26:nsc-truck-05`, `skkuverse://map?place=skku_building:2` — so a link
+> can never disagree with the marker it came from. It is **not reachable yet**: the app's
+> `PLACE_ID_RE` rejects the colon and drops such a link silently. ADR 0004 invariant 1 still
+> specifies the bare form and needs amending alongside the app change. See
+> [map-markers-api.md §8.2](map-markers-api.md).
+
 ## 9. Status semantics
 
 Immutable snapshots and live status are mutually exclusive — re-materializing whenever a booth opens
@@ -781,13 +804,24 @@ would bump the version several times an hour and defeat the caching design.
 
 So the snapshot ships **facts**: `startAt`, `endAt`, `status` as of `materializedAt`, and
 `nextChangeAt`. The client recomputes against its own clock, falling back to the shipped status when
-device time is more than an hour off the response `Date` header, or when **both bounds are null**.
+**both bounds are null**. Because the bounds are absolute instants rather than wall-clock strings, a
+device in the wrong timezone still derives correctly; a device whose clock is genuinely wrong does
+not, and that is accepted rather than corrected. The planned mitigation, not yet implemented, is an
+app-side warning when the device timezone is not `Asia/Seoul` — the one misconfiguration the client
+can still detect on its own, now that it no longer compares its clock against the server's.
 Side benefit: the map keeps telling the truth on a dead network, which is the actual festival
 condition.
 
 That last fallback is why §6.2 step 6b nulls a cancelled session's bounds: it is the only lever the
 server has to say "do not recompute this one". Anything whose status must not move on the device —
 today that is `cancelled`, tomorrow it could be something else — has to ship without bounds.
+
+**All of this is the snapshot's contract, not the map's.** `GET /map/markers/eskara26` carries no
+`status` field at all: it ships the window alone, and a cancelled session is simply not served, which
+frees both-bounds-null to mean "always" and nothing else. The consequence is that the map pin for a
+cancelled booth disappears rather than showing as cancelled — the opposite of what `SessionDoc`'s own
+comment asks for, and a trade made knowingly. Reasoning in
+[map-markers-api.md §3](map-markers-api.md).
 
 ## 10. Authoring order
 
@@ -805,14 +839,46 @@ The CSV importer **rejects** rows with missing or non-numeric coordinates rather
 partial document — and rejects the whole file if any single row is bad, because a half-imported map
 hides its own gaps.
 
-Two scripts do this, over one shared reader:
+Four scripts do this, over two pure readers and one shared writer module:
 
 | Script | Role |
 | --- | --- |
 | `scripts/lib/eventmap-csv.js` | pure CSV → `PlaceDoc` reader + validation. No DB, no clock — hence unit-tested |
-| `scripts/lib/eventmap-db.js` | the Mongo writers both scripts share |
+| `scripts/lib/eventmap-sessions.js` | pure JSON → `SessionDoc` reader + validation. No DB; takes `now` as a parameter rather than reading a clock, so it stays deterministic |
+| `scripts/lib/eventmap-db.js` | the Mongo writers every script shares |
 | `scripts/import-eventmap-csv.js` | ops sheet → `places`. `--dry-run`, `--retire-missing` |
+| `scripts/import-eventmap-sessions.js` | authored line-up → `sessions`. `--dry-run`, `--delete-missing` |
 | `scripts/seed-eventmap-demo.js` | demo `sessions` over the real places, times relative to `now`. `_dev` only |
+
+### 10.1 Why sessions are JSON and places are CSV
+
+A place is flat — an id, a name, two coordinates — so a spreadsheet is the right editor and
+`csv-parse` the right reader. A session is not: `actions[]`, `media.images[]`, `fields{}` and every
+I18n value are nested, and a spreadsheet can only carry those as embedded JSON inside a cell, which
+is strictly worse than JSON throughout. Spreadsheet authoring for sessions is what skkuverse#19's
+dashboard is for; until it exists the JSON file is the ops surface and `--dry-run` is the safety net.
+
+**`timeBase` is a file-level, mutually exclusive choice.** `"absolute"` carries ISO instants and is
+what real festival content uses; the reader rejects a bare date or a zone-less datetime, because
+`Date.parse("2026-09-16")` is UTC midnight and a Seoul-authored time would silently move nine hours
+with nothing downstream noticing. `"relative"` carries minute offsets from the import instant, which
+is what a pipeline verification run wants — it puts closed, open, upcoming and unknown on the map at
+once and crosses status boundaries while someone is watching.
+
+A relative file is **not** idempotent: it resolves to new instants on every run, so every document is
+rewritten and the next publish mints a version. That is correct — it genuinely is a new dataset each
+time — but it is the one case the diff discipline below cannot deliver, so the importer says so on
+stdout rather than letting the numbers imply otherwise.
+
+**`days: [1, 2]` expands into one document per day**, suffixing `-d1` / `-d2` onto the id. A
+`SessionDoc` is ONE occupancy interval, so a 양일주점 running both nights is two documents; authoring
+it twice is how the two copies drift apart. Omit `days` entirely for an always-on facility.
+
+**A `placeId` is a soft reference** — no FK, and §4.2 explains why there is no tenants collection to
+give it one. A dangling reference therefore fails silently at materialize time, dropping the booth
+with nothing on the map to say so, which is why `import-eventmap-sessions.js` resolves every
+`placeId` against `places` before writing and hard-fails on a miss, on a campus that disagrees with
+the plot's, and on a plot that is not `lifecycle: "active"`.
 
 Parsing is `csv-parse` (a devDependency — scripts never ship in the runtime image). The ops sheet is
 edited in a spreadsheet, so quoted commas, doubled quotes and a UTF-8 BOM all occur; `bom: true` is
@@ -829,10 +895,17 @@ documents, which reverses the dependency — an unchanged document serializes id
 not its `updatedAt` moved, so the importer's discipline is correct but no longer the thing holding
 the caching design up. Keep it anyway: it is still the cheapest way to keep a re-import a no-op.
 
-**Only the demo seed ever flips `enabled`.** The importer's activation write is `$setOnInsert`, so it
-can create the document but never modify it. That is what makes the two scripts' run order
-irrelevant, and more importantly it means re-importing a corrected sheet **during** the festival
-cannot take the live map down.
+**Only the demo seed ever flips `enabled`.** The places importer's activation write is
+`$setOnInsert`, so it can create the document but never modify it, and the sessions importer does not
+touch `activations` at all. That is what makes the scripts' run order irrelevant, and more
+importantly it means re-importing a corrected sheet or line-up **during** the festival cannot take
+the live map down — nor can importing one early bring the map up before its window.
+
+The same asymmetry is what makes a pre-flight publish safe. `POST /internal/eventmap/publish` with an
+explicit `layerSetId` looks the activation up by id, without the window or `enabled` check (§7.3), so
+a snapshot can be materialized, published and fetched at its own URL while `GET /eventmap/manifest`
+still reports `activeLayerSetId: null` to every client. Content can therefore be staged and verified
+end to end on production before anyone can see it.
 
 ## 11. Error codes
 
@@ -856,6 +929,28 @@ the propagation window.
 
 ## 13. Operations
 
+### 13.1 Loading content
+
+The scripts resolve the database the same way `infra/config.ts` does, so **production needs
+`NODE_ENV=production` stated explicitly** — without it they write to `<base>_dev`. That default is
+deliberate: the dangerous direction should be the one you have to type.
+
+```bash
+# 1. Plots. Creates the activation if absent, DISABLED, and can never re-enable one.
+NODE_ENV=production node scripts/import-eventmap-csv.js --dry-run
+NODE_ENV=production node scripts/import-eventmap-csv.js
+
+# 2. Line-up. Every placeId is resolved against `places` before anything is written.
+NODE_ENV=production node scripts/import-eventmap-sessions.js --dry-run
+NODE_ENV=production node scripts/import-eventmap-sessions.js
+```
+
+Read the dry run's `categories` line against `config/<layerSetId>.json`: a category no layer filter
+matches still materializes, falling back through `itemDefaults.fallback`, but no layer draws it — so
+the pins are simply absent and nothing reports an error.
+
+### 13.2 Publishing
+
 ```bash
 # Validate without publishing
 curl -s -X POST https://api.skkuverse.com/internal/eventmap/publish \
@@ -871,13 +966,102 @@ curl -s -X POST https://api.skkuverse.com/internal/eventmap/publish \
 curl -s https://api.skkuverse.com/eventmap/manifest | jq '.data'
 ```
 
-**Kill switch** — rain cancellation or anything going wrong:
+Read the dry run's `dropped` and `rejectedActions` before publishing for real. A dropped session
+leaves no trace on the map, and a rejected action leaves the booth with one fewer button — neither
+looks like a failure to anyone reading the result.
 
-```js
-db.activations.updateOne({ _id: "eskara-2026" }, { $set: { enabled: false } })
+### 13.3 Staging on production before the window opens
+
+An explicit `layerSetId` publishes without requiring the window (§7.3, §10), so a snapshot can be
+staged and verified against the real CDN while the manifest still advertises nothing:
+
+```bash
+# The manifest must still be all-null after this — that is the proof of no exposure.
+curl -s https://api.skkuverse.com/eventmap/manifest | jq '.data'
+
+# The snapshot is reachable at its own URL regardless, so caching can be checked now.
+curl -sI "https://api.skkuverse.com/eventmap/snapshot/eskara-2026/1?lang=ko"
 ```
 
-Clients fall back to the base campus map within ~75 s. **Rehearse before the festival.**
+Worth checking here rather than during the event: `Cache-Control: immutable, max-age=1y` on the
+snapshot, a matching `If-None-Match` returning 304, and a distinct ETag per `lang`.
+
+### 13.4 The window — and the kill switch
+
+`scripts/eventmap-window.js` is the only lever that decides whether anybody sees the event map.
+
+```bash
+npm run eventmap -- status --prod
+npm run eventmap -- open --prod --minutes 10
+npm run eventmap -- close --prod
+```
+
+**`--prod`, not `NODE_ENV`.** Every other script here resolves its database from `NODE_ENV`, which is
+right for an importer: the dangerous direction is the one you have to type. It is the wrong mechanism
+here, because an env var is silently lost the moment a command is pasted across two lines, and the
+failure is invisible — a cheerful success against a database nobody meant to touch. That happened on
+the first real run. Omit the flag and the target is `<name>_dev`, printed on its own line either way.
+
+`open` defaults to **15 minutes**, not open-ended: a rehearsal is the common case and a forgotten
+`enabled: true` is the expensive mistake, so `activeUntil` is a dead man's switch. A real festival
+states its length once, deliberately. The script never creates an activation — an unknown id is an
+error rather than an upsert, so a typo cannot look like a success.
+
+`--no-expiry` writes `activeUntil: null` and gives up that switch. It is right in exactly two
+situations, and "I do not want to pick a number" is neither:
+
+1. **Nothing that can render the layer set is deployed.** Before the client ships in a release or an
+   OTA, no user's app carries the code to fetch the manifest at all, so the window's audience is
+   whoever runs a dev build. Check the shipped tree, not the branch — `main` containing the code
+   proves nothing about what users have:
+
+   ```bash
+   git ls-tree -r --name-only ota/prod/<tag> | grep eventmap
+   ```
+
+2. **A long event whose end is genuinely unknown**, where a wrong `activeUntil` would drop the map
+   mid-festival — a worse failure than a forgotten one.
+
+`status` prints `NO EXPIRY — stays up until somebody runs close` on every read in that state, which
+is the only thing standing between "we meant to leave it up" and "nobody remembered it was up".
+
+The npm script carries `--dns-result-order=ipv4first` (§13.5) so the incident path does not depend on
+remembering it.
+
+`refreshAfterSec` flipping from 300 to the config's value is what confirms the window is genuinely
+open: 300 is `IDLE_REFRESH_AFTER_SEC`, served whenever nothing is active, and is not a value anyone
+edits.
+
+`close` is the **kill switch** for a rain cancellation or anything else going wrong. Clients fall
+back to the base campus map within ~75 s (§12) — the delay applies to closing exactly as it does to
+opening. **Rehearse before the festival**, not during one.
+
+### 13.5 When Atlas refuses with `SSL alert number 80`
+
+A TCP connection that is accepted and then dropped before the handshake completes is Atlas rejecting
+the source IP, not a client TLS fault. Two causes, and they look identical:
+
+1. The machine's IP is not in Network Access. Check the current one and add it.
+2. **The traffic is leaving over NAT64.** If `openssl s_client` to the shard host succeeds while the
+   Node driver still fails, this is the one. `dig AAAA` shows nothing because it queries DNS
+   directly; the synthesis happens in `getaddrinfo`:
+
+   ```bash
+   node -e 'require("dns").lookup("<shard-host>",{all:true,verbatim:true},(e,a)=>console.log(a))'
+   ```
+
+   A `64:ff9b::/96` address in that list is the RFC 6052 well-known prefix — the resolver has
+   synthesized an IPv6 address for an IPv4-only host. Node 18+ defaults to `verbatim` order and picks
+   it first, so the connection exits through the NAT64 gateway and Atlas sees *its* address rather
+   than the allowlisted one. Prefix the command:
+
+   ```bash
+   NODE_OPTIONS=--dns-result-order=ipv4first node scripts/import-eventmap-sessions.js --dry-run
+   ```
+
+   This is a property of the network the script is run from, which is why it stays an environment
+   variable rather than a hardcoded `family: 4` in the driver options. `npm run eventmap` already
+   carries it, since that is the one command somebody runs while something is going wrong.
 
 ## 14. Source of truth (file map)
 
@@ -892,7 +1076,11 @@ Clients fall back to the base campus map within ~75 s. **Rehearse before the fes
 | Shared internal-token check | `src/common/internal-token.ts` |
 | I/O + indexes | `src/eventmap/eventmap.data.ts` (no `seedIfEmpty` — there is no sensible default event) |
 | Ops sheet → places | `scripts/import-eventmap-csv.js` + `scripts/lib/eventmap-{csv,db}.js` |
+| Line-up → sessions | `scripts/import-eventmap-sessions.js` + `scripts/lib/eventmap-{sessions,db}.js` |
+| Authored content | `scripts/data/eskara-2026-{places.csv,sessions.json}` |
+| Window + kill switch | `scripts/eventmap-window.js` |
 | Local demo dataset | `scripts/seed-eventmap-demo.js` |
+| Sessions → map markers (the `/map` surface) | `src/map/map-eskara26-markers.data.ts` — see [map-markers-api.md](map-markers-api.md) |
 | Layer/chip/filter structure | `src/eventmap/config/*.json` (+ `CONFIG_FILES` and `copy-build-assets.js`) |
 | DB + collection names | `src/infra/config.ts` `eventmap` block |
 | Tests | `__tests__/nest/eventmap/`, helper `__tests__/helpers/nest/build-eventmap-app.ts` |
@@ -903,6 +1091,7 @@ app alone and the contract stays `status: "planned"` — registered, dormant, no
 
 ## 15. Related
 
+- [map-markers-api.md](map-markers-api.md) — the shared marker schema and the `/map/*` routes that draw booths beside buildings
 - [ADR 0004 — event map layer ownership](https://github.com/spencer0124/skkuverse/blob/main/docs/decisions/0004-event-map-layer-ownership.md)
 - [Umbrella ADR 0002 — pull-based config contracts](https://github.com/spencer0124/skkuverse/blob/main/docs/decisions/0002-pull-based-config-contracts.md) — the shared-artifact mechanism
 - [skkuverse-app `docs/eventmap-rendering.md`](https://github.com/spencer0124/skkuverse-app/blob/main/docs/eventmap-rendering.md)

@@ -193,6 +193,39 @@ const translations: Translations = {
     zh: "钟路02路线",
   },
 
+  // Map config: event marker layers. Present only while an activation window is
+  // open; the wording matches the layer set config so the two never disagree.
+  "map.layer.eskara26_stage": {
+    ko: "공연",
+    en: "Stages",
+    zh: "演出",
+  },
+  "map.layer.eskara26_bar": {
+    ko: "주점",
+    en: "Bars",
+    zh: "酒馆",
+  },
+  "map.layer.eskara26_food": {
+    ko: "먹거리",
+    en: "Food",
+    zh: "美食",
+  },
+  "map.layer.eskara26_booth": {
+    ko: "부스",
+    en: "Booths",
+    zh: "摊位",
+  },
+  "map.layer.eskara26_facility": {
+    ko: "편의시설",
+    en: "Facilities",
+    zh: "便利设施",
+  },
+  "map.layer.eskara26_etc": {
+    ko: "기타",
+    en: "Other",
+    zh: "其他",
+  },
+
   // SDUI: campus tab
   "campus.title": {
     ko: "캠퍼스 서비스",

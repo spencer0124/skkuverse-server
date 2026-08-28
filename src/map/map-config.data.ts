@@ -1,6 +1,9 @@
-import { t } from "../infra/i18n";
+import { findActiveActivation } from "../eventmap/eventmap.data";
 import config from "../infra/config";
+import { t } from "../infra/i18n";
+import logger from "../infra/logger";
 import type { SupportedLang } from "../infra/types";
+import { ESKARA26_LAYERS } from "./map-eskara26-markers.data";
 
 interface CampusEntry {
   id: "hssc" | "nsc";
@@ -33,7 +36,29 @@ interface LayerEntry {
   type: "marker" | "polyline";
   markerStyle?: string;
   label: string;
+  /** Is the layer on to begin with. */
   defaultVisible: boolean;
+  /**
+   * May the user change it.
+   *
+   * Two independent axes: `defaultVisible` is what the value IS,
+   * `userConfigurable` is who may change it — the shape Firefox ships as
+   * `{Value, Status}` and GeoServer as `enabled`/`advertised`. The four
+   * combinations are: always-on background (true/false), ordinary toggle
+   * (true/true), opt-in (false/true), and defined-but-inert (false/false).
+   *
+   * Two rules the client must hold, stated here because this is the contract:
+   *
+   *  - **An ABSENT value means `true`.** Never fail closed — GeoServer's "a
+   *    layer is advertised by default" and Esri's `listMode` default of "show".
+   *    The server's own list is explicit anyway, so a new layer cannot forget
+   *    to decide.
+   *  - **It governs the affordance, not the capability.** A non-configurable
+   *    layer still renders, is still deep-linkable, and is still returned by
+   *    its marker endpoint. Only the control disappears. QGIS says it outright:
+   *    flags are "used for the UI but are not preventing any API call."
+   */
+  userConfigurable: boolean;
   endpoint: string;
   style?: { color: string };
 }
@@ -45,10 +70,54 @@ interface MapConfigResponse {
 }
 
 /**
+ * The event's marker layers, or nothing when no festival is live.
+ *
+ * The activation window is the on/off lever — `npm run eventmap open|close`
+ * — so a festival starts and ends with no deploy, and the layers simply stop
+ * existing afterwards rather than lingering as dead toggles.
+ *
+ * Every failure returns `[]`. Until this layer existed /map/config could not
+ * fail — no DB dependency at all — and the app's fallback for a failed config
+ * is a bundled default holding no booth layers but also no BUILDING layers.
+ * Letting a Mongo hiccup here take 건물번호 down with it would trade a missing
+ * festival for a blank campus map, so the lookup is contained and the route
+ * keeps the never-fails property it had when it was sync.
+ */
+async function getEskara26Layers(lang: SupportedLang): Promise<LayerEntry[]> {
+  let isLive: boolean;
+  try {
+    isLive = (await findActiveActivation(new Date())) !== null;
+  } catch (err) {
+    logger.warn(
+      `[map] event layer lookup failed, serving base layers only: ${String(err)}`,
+    );
+    return [];
+  }
+  if (!isLive) return [];
+
+  // All six point at ONE endpoint. The app keys its marker cache on the endpoint
+  // string, so layers sharing one share a single fetch and a single cache entry,
+  // and each renders the subset carrying its own `layerId`. Six `?category=`
+  // endpoints would be six round trips for one small payload.
+  return ESKARA26_LAYERS.map((layer) => ({
+    id: layer.id,
+    type: "marker" as const,
+    markerStyle: "placeDot",
+    label: t(`map.layer.${layer.id}`, lang),
+    defaultVisible: layer.defaultVisible,
+    // Every festival layer is the user's to turn off, 편의시설 included — that
+    // one merely starts hidden. Nothing here is a locked background layer.
+    userConfigurable: true,
+    endpoint: "/map/markers/eskara26",
+    style: { color: layer.color },
+  }));
+}
+
+/**
  * Returns map layer configuration with campus definitions.
  * Text fields are resolved to the requested language via i18n.
  */
-function getMapConfig(lang: SupportedLang = "ko"): MapConfigResponse {
+async function getMapConfig(lang: SupportedLang = "ko"): Promise<MapConfigResponse> {
   return {
     naver: { styleId: config.naver.styleId },
     campuses: [
@@ -70,13 +139,19 @@ function getMapConfig(lang: SupportedLang = "ko"): MapConfigResponse {
       },
     ],
     layers: [
+      // Both building layers point at ONE endpoint, exactly as the eskara26
+      // layers do. They are the same buildings differing only in which field
+      // becomes the visible string, and the app keys its marker cache on the
+      // endpoint — so this is two toggles for one fetch where it used to be two
+      // requests for the same 59 documents.
       {
         id: "building_numbers",
         type: "marker",
         markerStyle: "numberCircle",
         label: t("map.layer.building_numbers", lang),
         defaultVisible: true,
-        endpoint: "/map/markers/campus?overlay=number",
+        userConfigurable: true,
+        endpoint: "/map/markers/campus",
       },
       {
         id: "building_labels",
@@ -84,7 +159,8 @@ function getMapConfig(lang: SupportedLang = "ko"): MapConfigResponse {
         markerStyle: "textLabel",
         label: t("map.layer.building_labels", lang),
         defaultVisible: true,
-        endpoint: "/map/markers/campus?overlay=label",
+        userConfigurable: true,
+        endpoint: "/map/markers/campus",
       },
       // {
       //   id: "bus_route_jongro07",
@@ -102,6 +178,7 @@ function getMapConfig(lang: SupportedLang = "ko"): MapConfigResponse {
       //   endpoint: "/map/overlays/jongro02",
       //   style: { color: "4CAF50" },
       // },
+      ...(await getEskara26Layers(lang)),
     ],
   };
 }
