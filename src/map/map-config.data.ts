@@ -3,7 +3,15 @@ import config from "../infra/config";
 import { t } from "../infra/i18n";
 import logger from "../infra/logger";
 import type { SupportedLang } from "../infra/types";
+import type { CameraMotion, MapChip } from "./map-chip.types";
+import { getChips } from "./map-chips.data";
 import { ESKARA26_LAYERS } from "./map-eskara26-markers.data";
+import {
+  BASE_LAYERS,
+  ESKARA26_CHIP_GROUP,
+  ESKARA26_LAYER_STYLE,
+  type MapLayerStyle,
+} from "./map-layers.data";
 
 interface CampusEntry {
   id: "hssc" | "nsc";
@@ -11,6 +19,17 @@ interface CampusEntry {
   centerLat: number;
   centerLng: number;
   defaultZoom: number;
+  /**
+   * Camera attitude for this campus.
+   *
+   * Both are 0 — straight down, north up — which is what the map already shows.
+   * They are on the wire because the client has always PARSED them and the
+   * server has never SENT them, so `CampusDef.defaultTilt` has been a field
+   * that could only ever hold its own fallback. Sending them makes the campus
+   * camera configurable from here, the same way a chip's is.
+   */
+  defaultTilt: number;
+  defaultBearing: number;
   /**
    * How far from the centre still counts as being on this campus, in metres.
    *
@@ -47,7 +66,7 @@ interface LayerEntry {
    * combinations are: always-on background (true/false), ordinary toggle
    * (true/true), opt-in (false/true), and defined-but-inert (false/false).
    *
-   * Two rules the client must hold, stated here because this is the contract:
+   * Three rules the client must hold, stated here because this is the contract:
    *
    *  - **An ABSENT value means `true`.** Never fail closed — GeoServer's "a
    *    layer is advertised by default" and Esri's `listMode` default of "show".
@@ -57,16 +76,67 @@ interface LayerEntry {
    *    layer still renders, is still deep-linkable, and is still returned by
    *    its marker endpoint. Only the control disappears. QGIS says it outright:
    *    flags are "used for the UI but are not preventing any API call."
+   *  - **A chip may not change it either.** A chip tap is a user-initiated
+   *    change, so `false` here puts the layer out of a chip's reach as well as
+   *    out of the sheet's. Inert today — nothing is `false` — and stated now so
+   *    it holds when the quadrant gets its first occupant.
    */
   userConfigurable: boolean;
   endpoint: string;
-  style?: { color: string };
+  /** See `map-layers.data.ts`: declared group, never inferred from `endpoint`. */
+  chipGroupId: string | null;
+  style?: MapLayerStyle;
 }
 
 interface MapConfigResponse {
   naver: { styleId: string | undefined };
   campuses: CampusEntry[];
   layers: LayerEntry[];
+  chips: MapChip[];
+  /**
+   * Camera settings for the moves the app makes on its own, as opposed to the
+   * ones a chip asks for.
+   *
+   * These were constants in the app — `zoom: 17.5` and `duration: 500`,
+   * repeated at three call sites — which meant a chip's camera and a marker-tap
+   * camera were configured in two different places and could disagree about how
+   * close "close" is.
+   */
+  cameraDefaults: {
+    /** Focusing a tapped marker, a search result, or a deep link. */
+    markerFocus: CameraMotion;
+    /**
+     * Switching campus. Only the duration lives here: the zoom, tilt and
+     * bearing are per-campus and already sit on the `CampusEntry`.
+     */
+    campusFocus: { durationMs: number };
+  };
+}
+
+/**
+ * Is a festival live right now?
+ *
+ * Contained on purpose. Until the event layers existed /map/config could not
+ * fail — no DB dependency at all — and the app's fallback for a failed config
+ * is a bundled default holding no booth layers but also no BUILDING layers.
+ * Letting a Mongo hiccup here take 건물번호 down with it would trade a missing
+ * festival for a blank campus map, so a failure answers "no festival" and the
+ * route keeps the never-fails property it had when it was sync.
+ *
+ * Called ONCE per request and handed to both builders below. Layers and chips
+ * asking separately would be two reads for one answer, and — worse — could
+ * disagree if the window closed between them, serving chips that point at
+ * layers no longer in the list.
+ */
+async function isFestivalLive(): Promise<boolean> {
+  try {
+    return (await findActiveActivation(new Date())) !== null;
+  } catch (err) {
+    logger.warn(
+      `[map] event layer lookup failed, serving base layers only: ${String(err)}`,
+    );
+    return false;
+  }
 }
 
 /**
@@ -75,25 +145,9 @@ interface MapConfigResponse {
  * The activation window is the on/off lever — `npm run eventmap open|close`
  * — so a festival starts and ends with no deploy, and the layers simply stop
  * existing afterwards rather than lingering as dead toggles.
- *
- * Every failure returns `[]`. Until this layer existed /map/config could not
- * fail — no DB dependency at all — and the app's fallback for a failed config
- * is a bundled default holding no booth layers but also no BUILDING layers.
- * Letting a Mongo hiccup here take 건물번호 down with it would trade a missing
- * festival for a blank campus map, so the lookup is contained and the route
- * keeps the never-fails property it had when it was sync.
  */
-async function getEskara26Layers(lang: SupportedLang): Promise<LayerEntry[]> {
-  let isLive: boolean;
-  try {
-    isLive = (await findActiveActivation(new Date())) !== null;
-  } catch (err) {
-    logger.warn(
-      `[map] event layer lookup failed, serving base layers only: ${String(err)}`,
-    );
-    return [];
-  }
-  if (!isLive) return [];
+function getEskara26Layers(lang: SupportedLang, festivalLive: boolean): LayerEntry[] {
+  if (!festivalLive) return [];
 
   // All six point at ONE endpoint. The app keys its marker cache on the endpoint
   // string, so layers sharing one share a single fetch and a single cache entry,
@@ -109,7 +163,10 @@ async function getEskara26Layers(lang: SupportedLang): Promise<LayerEntry[]> {
     // one merely starts hidden. Nothing here is a locked background layer.
     userConfigurable: true,
     endpoint: "/map/markers/eskara26",
-    style: { color: layer.color },
+    // One group, so a festival chip swaps these six between themselves and
+    // leaves 건물번호 and 건물이름 exactly as the user left them.
+    chipGroupId: ESKARA26_CHIP_GROUP,
+    style: { color: layer.color, ...ESKARA26_LAYER_STYLE },
   }));
 }
 
@@ -118,6 +175,8 @@ async function getEskara26Layers(lang: SupportedLang): Promise<LayerEntry[]> {
  * Text fields are resolved to the requested language via i18n.
  */
 async function getMapConfig(lang: SupportedLang = "ko"): Promise<MapConfigResponse> {
+  const festivalLive = await isFestivalLive();
+
   return {
     naver: { styleId: config.naver.styleId },
     campuses: [
@@ -127,6 +186,8 @@ async function getMapConfig(lang: SupportedLang = "ko"): Promise<MapConfigRespon
         centerLat: 37.587241,
         centerLng: 126.992858,
         defaultZoom: 15.8,
+        defaultTilt: 0,
+        defaultBearing: 0,
         radiusM: 1000,
       },
       {
@@ -135,51 +196,32 @@ async function getMapConfig(lang: SupportedLang = "ko"): Promise<MapConfigRespon
         centerLat: 37.29358,
         centerLng: 126.974942,
         defaultZoom: 15.8,
+        defaultTilt: 0,
+        defaultBearing: 0,
         radiusM: 1000,
       },
     ],
     layers: [
-      // Both building layers point at ONE endpoint, exactly as the eskara26
-      // layers do. They are the same buildings differing only in which field
-      // becomes the visible string, and the app keys its marker cache on the
-      // endpoint — so this is two toggles for one fetch where it used to be two
-      // requests for the same 59 documents.
-      {
-        id: "building_numbers",
-        type: "marker",
-        markerStyle: "numberCircle",
-        label: t("map.layer.building_numbers", lang),
-        defaultVisible: true,
-        userConfigurable: true,
-        endpoint: "/map/markers/campus",
-      },
-      {
-        id: "building_labels",
-        type: "marker",
-        markerStyle: "textLabel",
-        label: t("map.layer.building_labels", lang),
-        defaultVisible: true,
-        userConfigurable: true,
-        endpoint: "/map/markers/campus",
-      },
-      // {
-      //   id: "bus_route_jongro07",
-      //   type: "polyline",
-      //   label: t("map.layer.bus_route_jongro07", lang),
-      //   defaultVisible: true,
-      //   endpoint: "/map/overlays/jongro07",
-      //   style: { color: "4CAF50" },
-      // },
-      // {
-      //   id: "bus_route_jongro02",
-      //   type: "polyline",
-      //   label: t("map.layer.bus_route_jongro02", lang),
-      //   defaultVisible: true,
-      //   endpoint: "/map/overlays/jongro02",
-      //   style: { color: "4CAF50" },
-      // },
-      ...(await getEskara26Layers(lang)),
+      // The catalogue lives in map-layers.data so chips can resolve a layer's
+      // group without importing this response builder. Labels are resolved
+      // here because they are the only per-request part of a layer.
+      // `...rest` rather than a field-by-field copy, so a member added to
+      // LayerSpec reaches the wire without an edit here; naming the first three
+      // only puts `label` where the festival layers below also put it.
+      ...BASE_LAYERS.map(({ id, type, markerStyle, ...rest }) => ({
+        id,
+        type,
+        markerStyle,
+        label: t(`map.layer.${id}`, lang),
+        ...rest,
+      })),
+      ...getEskara26Layers(lang, festivalLive),
     ],
+    chips: getChips(lang, festivalLive),
+    cameraDefaults: {
+      markerFocus: { zoom: 17.5, tilt: 0, bearing: 0, durationMs: 500 },
+      campusFocus: { durationMs: 500 },
+    },
   };
 }
 

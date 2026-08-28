@@ -186,4 +186,4 @@ async function getEskara26Markers(): Promise<{ markers: MapMarker[] }> {
 }
 
 export { ESKARA26_LAYERS, getEskara26Markers };
-export type { Eskara26LayerSpec };
+export type { Eskara26LayerSpec, Eskara26LayerId };

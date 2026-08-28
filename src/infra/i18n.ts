@@ -226,6 +226,46 @@ const translations: Translations = {
     zh: "其他",
   },
 
+  // Map: chip labels. Keyed `map.chip.<chipId>`, resolved in map-chips.data.
+  // A chip whose key is missing here renders its own key as its label, because
+  // t() returns the key on a miss — __tests__/nest/map/map-chips.test.ts is
+  // what stops that shipping.
+  "map.chip.lost_found": {
+    ko: "분실물",
+    en: "Lost & Found",
+    zh: "失物招领",
+  },
+  "map.chip.eskara26_view_all": {
+    ko: "축제 전체",
+    en: "All",
+    zh: "全部",
+  },
+  "map.chip.eskara26_view_stage": {
+    ko: "공연",
+    en: "Stage",
+    zh: "演出",
+  },
+  "map.chip.eskara26_view_bar": {
+    ko: "주점",
+    en: "Bar",
+    zh: "酒吧",
+  },
+  "map.chip.eskara26_view_food": {
+    ko: "먹거리",
+    en: "Food",
+    zh: "美食",
+  },
+  "map.chip.eskara26_view_booth": {
+    ko: "부스",
+    en: "Booth",
+    zh: "摊位",
+  },
+  "map.chip.eskara26_view_facility": {
+    ko: "편의시설",
+    en: "Facilities",
+    zh: "便利设施",
+  },
+
   // SDUI: campus tab
   "campus.title": {
     ko: "캠퍼스 서비스",
