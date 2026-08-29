@@ -7,8 +7,8 @@ import { MapService } from "../map.service";
  * Marker data for the layers `/map/config` advertises.
  *
  * One route per DATA SOURCE, not per layer: buildings come from the buildings
- * collection, festival booths from the event map's places and sessions. Layers
- * within a source share a route, because the app keys its marker cache on the
+ * collection, festival booths from the event map's `places`. Layers within a
+ * source share a route, because the app keys its marker cache on the
  * endpoint string — so two building layers, or six festival layers, cost one
  * fetch between them and each renders the subset carrying its own `layerId`.
  *

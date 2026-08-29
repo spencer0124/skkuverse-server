@@ -115,7 +115,6 @@ const config = {
     collections: {
       activations: "activations",
       places: "places",
-      sessions: "sessions",
     },
   },
 
