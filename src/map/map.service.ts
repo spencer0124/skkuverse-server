@@ -1,4 +1,6 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, type OnModuleInit } from "@nestjs/common";
+import { ensureIndexes } from "../eventmap/eventmap.data";
+import logger from "../infra/logger";
 import type { SupportedLang } from "../infra/types";
 import { getMapConfig } from "./map-config.data";
 import { getEventMarkers } from "./map-event-markers.data";
@@ -46,11 +48,30 @@ const OVERLAYS: Record<string, OverlayEntry | undefined> = {
  * ensureIndexes runs once), but the marker enrichment data path is the shared
  * building module, exactly as Express wired it — no logic duplicated.
  *
- * No poller + no onModuleInit: the /map feature is purely HTTP (index.ts:139-141,
- * no ensureIndexes/seed), so there is no non-fatal startup hook to reproduce.
+ * No poller. There IS an onModuleInit, and it is inherited rather than native:
+ * `ensureIndexes` used to hang off EventMapService, which existed to publish
+ * snapshots. When the snapshot tier was deleted the indexes needed a home on a
+ * module that still reads those collections, and this is it — /map is now their
+ * only reader.
  */
 @Injectable()
-export class MapService {
+export class MapService implements OnModuleInit {
+  /**
+   * ensureIndexes() inside ONE non-fatal try/catch, following AdDataService.
+   * Index creation is a startup nicety, not a serving prerequisite: an Atlas
+   * hiccup during boot must not take the API down, and every index is
+   * idempotent so the next boot retries it. This runs on every process (poller
+   * + both api replicas); createIndex is idempotent, so the duplication is
+   * free, exactly as in ad/ and building/.
+   */
+  async onModuleInit(): Promise<void> {
+    try {
+      await ensureIndexes();
+    } catch (err) {
+      logger.warn({ err }, "[map] ensureIndexes failed — continuing without them");
+    }
+  }
+
   getMapConfig(lang: SupportedLang): ReturnType<typeof getMapConfig> {
     return getMapConfig(lang);
   }

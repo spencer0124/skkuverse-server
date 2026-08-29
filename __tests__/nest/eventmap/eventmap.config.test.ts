@@ -18,13 +18,7 @@
  */
 import fs from "fs";
 import path from "path";
-import {
-  assertValidConfig,
-  computeConfigHash,
-  getLayerSetConfig,
-} from "../../../src/eventmap/eventmap.config";
-import { canonicalStringify } from "../../../src/eventmap/eventmap.hash";
-import { EVENTMAP_SCHEMA_VERSION } from "../../../src/eventmap/types";
+import { assertValidConfig, getLayerSetConfig } from "../../../src/eventmap/eventmap.config";
 
 const CONFIG_PATH = path.join(
   __dirname,
@@ -48,21 +42,14 @@ describe("the shipped eskara-2026 config", () => {
     expect(getLayerSetConfig("eskara-2099")).toBeNull();
   });
 
-  it("is stamped with the schema version this server materializes", () => {
-    expect(raw()).not.toHaveProperty("schemaVersion");
-    expect(assertValidConfig(raw()).schemaVersion).toBe(EVENTMAP_SCHEMA_VERSION);
-  });
-
   it("keeps every itemDefaults reference resolvable", () => {
     const config = assertValidConfig(raw());
     const layerIds = new Set(config.layers.map((l) => l.id));
-    const templateIds = new Set(config.cardTemplates.map((t) => t.id));
     for (const p of [
       config.itemDefaults.fallback,
       ...Object.values(config.itemDefaults.byCategory),
     ]) {
       expect(layerIds.has(p.layerId)).toBe(true);
-      expect(templateIds.has(p.cardTemplateId)).toBe(true);
     }
   });
 
@@ -97,14 +84,6 @@ describe("assertValidConfig — structure→structure references block publicati
     config.itemDefaults.fallback.layerId = "nope";
     expect(() => assertValidConfig(config)).toThrow(
       /fallback\.layerId "nope" is not in config.layers/,
-    );
-  });
-
-  it("rejects an itemDefaults entry pointing at a card template that does not exist", () => {
-    const config = raw();
-    config.itemDefaults.byCategory.bar.cardTemplateId = "nope";
-    expect(() => assertValidConfig(config)).toThrow(
-      /cardTemplateId "nope" is not in config.cardTemplates/,
     );
   });
 
@@ -155,15 +134,6 @@ describe("assertValidConfig — the festival is served BESIDE the base map", () 
 });
 
 describe("assertValidConfig — identity and shape", () => {
-  it("refuses a file that carries its own schemaVersion", () => {
-    // The version is a fact about this server's materializer, stamped on every
-    // payload. A copy in the file is redundant at best and, left behind after a
-    // bump, tells every client the OLD shape while shipping the new one.
-    const config = raw();
-    config.schemaVersion = EVENTMAP_SCHEMA_VERSION;
-    expect(() => assertValidConfig(config)).toThrow(/schemaVersion is stamped by the server/);
-  });
-
   it("requires the event's name — it is the reset chip's label", () => {
     const config = raw();
     delete config.name;
@@ -248,12 +218,6 @@ describe("assertValidConfig — identity and shape", () => {
     );
   });
 
-  it("rejects a card field slot with no fieldKey", () => {
-    const config = raw();
-    config.cardTemplates[0].slots.push({ kind: "field", label: { ko: "x" } });
-    expect(() => assertValidConfig(config)).toThrow(/fieldKey must be a non-empty string/);
-  });
-
   it("rejects an I18n object with no ko", () => {
     const config = raw();
     config.layers[0].label = { en: "Bars" };
@@ -261,101 +225,3 @@ describe("assertValidConfig — identity and shape", () => {
   });
 });
 
-describe("canonicalStringify + configHash — reacts to meaning, not formatting", () => {
-  it("is insensitive to key order", () => {
-    expect(canonicalStringify({ b: 1, a: 2 })).toBe(canonicalStringify({ a: 2, b: 1 }));
-  });
-
-  it("is sensitive to array order, which is meaningful", () => {
-    expect(canonicalStringify([1, 2])).not.toBe(canonicalStringify([2, 1]));
-  });
-
-  it("serializes Dates as ISO strings so two replicas agree", () => {
-    expect(canonicalStringify({ at: new Date("2026-09-16T09:00:00.000Z") })).toBe(
-      '{"at":"2026-09-16T09:00:00.000Z"}',
-    );
-  });
-
-  it("does not change when the file is reformatted or keys reordered", () => {
-    // Hashing the raw TEXT would fail this — and a prettier run would then throw
-    // away every client's one-year snapshot cache for a no-op change.
-    //
-    // Reverses object key order at EVERY depth. Array order is left alone: it is
-    // meaningful (layer order in the filter grid, chip order in the row) and the
-    // hash must react to it, which the previous test pins.
-    const reverseKeys = (value: unknown): unknown => {
-      if (Array.isArray(value)) return value.map(reverseKeys);
-      if (value === null || typeof value !== "object") return value;
-      return Object.fromEntries(
-        Object.entries(value as Record<string, unknown>)
-          .reverse()
-          .map(([k, v]) => [k, reverseKeys(v)]),
-      );
-    };
-
-    const base = assertValidConfig(raw());
-    const reordered = assertValidConfig(reverseKeys(raw()));
-    expect(JSON.stringify(reordered)).not.toBe(JSON.stringify(base));
-    expect(computeConfigHash(reordered)).toBe(computeConfigHash(base));
-  });
-
-  it("does not change when configVersion is bumped", () => {
-    // configVersion is a human label that never reaches the wire. If it entered
-    // the hash, bumping it out of habit would republish an identical payload.
-    const base = assertValidConfig(raw());
-    const bumped = raw();
-    bumped.configVersion = base.configVersion + 41;
-    expect(computeConfigHash(assertValidConfig(bumped))).toBe(computeConfigHash(base));
-  });
-
-  it("does NOT change for a field only /map/config or the manifest serves", () => {
-    // These never enter a snapshot payload. Hashing them would republish a
-    // byte-identical snapshot for a chip-emoji edit and throw away every
-    // client's one-year cache for a change they already see live.
-    const base = computeConfigHash(assertValidConfig(raw()));
-    const edits: Array<(c: Record<string, any>) => void> = [
-      (c) => (c.layers[0].label.ko = "술집"),
-      (c) => (c.layers[0].color = "000000"),
-      (c) => (c.layers[0].defaultVisible = !c.layers[0].defaultVisible),
-      (c) => (c.chips[0].emoji = "🎸"),
-      (c) => (c.chips[0].label = { ko: "다른 이름" }),
-      (c) => (c.name.ko = "27ESKARA"),
-      (c) => (c.emoji = "🎡"),
-      (c) => (c.camera.zoom = 16),
-      (c) => (c.refreshAfterSec = 30),
-    ];
-    for (const edit of edits) {
-      const edited = raw();
-      edit(edited);
-      expect(computeConfigHash(assertValidConfig(edited))).toBe(base);
-    }
-  });
-
-  it("DOES change for every field the snapshot is built from", () => {
-    const base = computeConfigHash(assertValidConfig(raw()));
-    const edits: Array<(c: Record<string, any>) => void> = [
-      (c) => (c.timezone = "Asia/Tokyo"),
-      (c) => (c.stackKeyBy = "zone"),
-      (c) => (c.sorts[0].label.ko = "다른 정렬"),
-      (c) => c.cardTemplates[0].slots.push({ kind: "hours" }),
-      (c) => (c.itemDefaults.fallback.pinPriority = 99),
-      (c) => (c.itemDefaults.byCategory.bar.cardTemplateId = "booth"),
-    ];
-    for (const edit of edits) {
-      const edited = raw();
-      edit(edited);
-      expect(computeConfigHash(assertValidConfig(edited))).not.toBe(base);
-    }
-  });
-
-  it("DOES change when a category moves to another layer", () => {
-    // This is the edit that moves pins between layers on every phone; it must
-    // mint a version.
-    const base = assertValidConfig(raw());
-    const edited = raw();
-    edited.itemDefaults.byCategory.food.layerId = edited.itemDefaults.byCategory.bar.layerId;
-    expect(computeConfigHash(assertValidConfig(edited))).not.toBe(
-      computeConfigHash(base),
-    );
-  });
-});

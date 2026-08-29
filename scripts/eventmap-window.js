@@ -54,16 +54,13 @@
  * an error here rather than an upsert, because the failure this prevents is
  * enabling a typo'd id and wondering why nothing appeared.
  *
- * It never touches `notifyMiniAppId`. Setting that field costs one snapshot
- * version and one silent push to every subscribed device (see ActivationDoc), so
- * it stays a deliberate, separate act.
- *
  * ## Propagation
  *
- * Neither direction is instant. `manifestCacheTtlMs` is 15 s per api replica and
- * the client's own poll is `refreshAfterSec`, so §12's budget applies to closing
- * exactly as it does to opening: about 75 s worst case before every device is
- * back on the base campus map. Rehearse it before the festival rather than
+ * Neither direction is instant. `/map/config` reads the activation per request,
+ * so the layer list and the chip row turn over immediately; `/map/markers/event`
+ * is `public, max-age=60`, so a booth already fetched can linger on a device for
+ * up to a minute. About a minute worst case, then, before every device is back
+ * on the base campus map. Rehearse it before the festival rather than
  * discovering the delay during one.
  */
 const path = require("path");
@@ -149,7 +146,6 @@ function describe(doc, now) {
     `  enabled      ${doc.enabled}`,
     `  activeFrom   ${doc.activeFrom ? doc.activeFrom.toISOString() : "null"}`,
     `  activeUntil  ${doc.activeUntil ? doc.activeUntil.toISOString() : "null (open-ended)"}`,
-    `  notifyMiniAppId ${doc.notifyMiniAppId ?? "(absent — no push on publish)"}`,
   ];
   const live = isLive(doc, now);
   lines.push(`  → clients see ${live ? "THE EVENT MAP" : "the base campus map"}`);

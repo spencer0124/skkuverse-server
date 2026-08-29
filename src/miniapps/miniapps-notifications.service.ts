@@ -62,7 +62,7 @@ function asText(value: unknown, max = MAX_TEXT): string | null {
 @Injectable()
 export class MiniAppNotificationsService implements OnModuleInit {
   /**
-   * Index creation is non-fatal, following AdDataService and EventMapService: a
+   * Index creation is non-fatal, following AdDataService and MapService: a
    * Mongo hiccup at boot must not take the whole API down, and the feed query
    * still returns correct results without the index — just slower.
    */

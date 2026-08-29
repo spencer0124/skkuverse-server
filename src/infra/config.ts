@@ -116,14 +116,7 @@ const config = {
       activations: "activations",
       places: "places",
       sessions: "sessions",
-      snapshots: "snapshots",
     },
-    // Consumed by the Phase 2 materializer poller / manifest memo. Declared with
-    // the rest of the block because docs/reference/eventmap-api.md §3 specifies
-    // one block — splitting it across phases is how the doc and code drift.
-    materializeIntervalMs:
-      parseInt(process.env.EVENTMAP_MATERIALIZE_INTERVAL_MS || "", 10) || 60_000,
-    manifestCacheTtlMs: 15_000,
   },
 
   miniapps: {

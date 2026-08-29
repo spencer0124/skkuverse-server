@@ -1,19 +1,18 @@
 /**
  * Structure-tier loader and validator (skkuverse#14).
  *
- * Contract: docs/reference/eventmap-api.md §2. Map layers, chips, sorts, card
- * templates and the category → layer table are DEVELOPER-owned and ship in the
- * repo; activation and content are ops-owned and live in Mongo. This module
- * owns the first tier.
+ * Contract: docs/reference/eventmap-api.md §2. Map layers, chips and the
+ * category → layer table are DEVELOPER-owned and ship in the repo; activation
+ * and content are ops-owned and live in Mongo. This module owns the first tier.
  *
  * Two things distinguish it from src/miniapps/miniapps.ts, which is otherwise
  * the same shape (readFileSync + __dirname + validate + freeze):
  *
  *  1. It NEVER throws at import — for a CONFIG FILE. miniapps throws at boot
- *     because there the registry IS the feature; here a previously published
- *     snapshot is already being served, and eventmap-api.md §6.2 step 3 is
- *     explicit — an invalid config is logged and skipped, leaving the previous
- *     snapshot live. A config typo must not take the whole API down. (The one
+ *     because there the registry IS the feature; here the base map is already
+ *     being served, and an invalid config is logged and skipped, taking the
+ *     festival off the map and leaving 건물번호 alone. A config typo must not
+ *     take the whole API down. (The one
  *     caveat: this module imports `map-chips.data`, which does throw at import
  *     for a bad BASE chip. That is repo TypeScript, not a config file, and a
  *     PR fixes it — the miniapps posture, applied where it belongs.)
@@ -28,7 +27,6 @@ import fs from "fs";
 import path from "path";
 import { isHex6 } from "../infra/color";
 import logger from "../infra/logger";
-import { canonicalStringify, md5 } from "./eventmap.hash";
 import type { MapCamera } from "../map/map-chip.types";
 // Runtime imports INTO the map domain, and the reason the layer catalogue and
 // the chip validator live in leaf modules: a festival's layers and chips are
@@ -37,17 +35,13 @@ import type { MapCamera } from "../map/map-chip.types";
 import { BASE_CHIPS, eventChipSpecs, validateChipSpecs } from "../map/map-chips.data";
 import { BASE_LAYERS, eventLayerSpecs } from "../map/map-layers.data";
 import type {
-  CardSlot,
-  CardTemplateSpec,
   EventChipDef,
   EventLayerDef,
   EventMapConfig,
   I18n,
   ItemDefaults,
   ItemPresentation,
-  SortSpec,
 } from "./types";
-import { EVENTMAP_SCHEMA_VERSION, SORT_KEYS } from "./types";
 
 /**
  * The layer sets that exist, listed explicitly rather than discovered with
@@ -65,8 +59,8 @@ const CONFIG_FILES = ["eskara-2026.json"] as const;
 
 
 export type LoadedConfig =
-  | { config: EventMapConfig; configHash: string; error: null }
-  | { config: null; configHash: null; error: string };
+  | { config: EventMapConfig; error: null }
+  | { config: null; error: string };
 
 // --- Primitive validators ---------------------------------------------------
 
@@ -200,47 +194,11 @@ function asCamera(value: unknown, where: string): MapCamera {
   };
 }
 
-function asSort(value: unknown, where: string): SortSpec {
-  const raw = asRecord(value, where);
-  return {
-    id: asString(raw.id, `${where}.id`),
-    label: asI18n(raw.label, `${where}.label`),
-    by: asOneOf(raw.by, SORT_KEYS, `${where}.by`),
-  };
-}
-
-function asCardSlot(value: unknown, where: string): CardSlot {
-  const raw = asRecord(value, where);
-  const kind = asOneOf(
-    raw.kind,
-    ["title", "subtitle", "hours", "thumbnail", "tags", "field"] as const,
-    `${where}.kind`,
-  );
-  if (kind === "field") {
-    return {
-      kind,
-      fieldKey: asString(raw.fieldKey, `${where}.fieldKey`),
-      label: asI18n(raw.label, `${where}.label`),
-    };
-  }
-  return { kind };
-}
-
-function asCardTemplate(value: unknown, where: string): CardTemplateSpec {
-  const raw = asRecord(value, where);
-  const slots = asArray(raw.slots, `${where}.slots`).map((s, i) =>
-    asCardSlot(s, `${where}.slots[${i}]`),
-  );
-  if (slots.length === 0) fail(`${where}.slots must not be empty`);
-  return { id: asString(raw.id, `${where}.id`), slots };
-}
-
 function asItemPresentation(value: unknown, where: string): ItemPresentation {
   const raw = asRecord(value, where);
   return {
     layerId: asString(raw.layerId, `${where}.layerId`),
     pinPriority: asFiniteNumber(raw.pinPriority, `${where}.pinPriority`),
-    cardTemplateId: asString(raw.cardTemplateId, `${where}.cardTemplateId`),
   };
 }
 
@@ -266,16 +224,6 @@ function asItemDefaults(value: unknown, where: string): ItemDefaults {
  */
 export function assertValidConfig(raw: unknown): EventMapConfig {
   const root = asRecord(raw, "config");
-
-  // The schema version is a fact about THIS SERVER's materializer, stamped on
-  // every payload — not a fact about the file. A file that carries its own
-  // copy is either redundant or, left behind after a bump, a lie to every
-  // client about the shape it is about to receive. Refused rather than ignored.
-  if (root.schemaVersion !== undefined) {
-    fail(
-      `config.schemaVersion is stamped by the server (${EVENTMAP_SCHEMA_VERSION}) — remove it from the file`,
-    );
-  }
 
   const camera = asCamera(root.camera, "config.camera");
 
@@ -309,29 +257,10 @@ export function assertValidConfig(raw: unknown): EventMapConfig {
     asChip(c, `config.chips[${i}]`),
   );
 
-  const sorts = asArray(root.sorts, "config.sorts").map((s, i) =>
-    asSort(s, `config.sorts[${i}]`),
-  );
-  if (sorts.length === 0) fail("config.sorts must not be empty");
-  assertUnique(
-    sorts.map((s) => s.id),
-    "config.sorts",
-  );
-
-  const cardTemplates = asArray(root.cardTemplates, "config.cardTemplates").map((t, i) =>
-    asCardTemplate(t, `config.cardTemplates[${i}]`),
-  );
-  if (cardTemplates.length === 0) fail("config.cardTemplates must not be empty");
-  assertUnique(
-    cardTemplates.map((t) => t.id),
-    "config.cardTemplates",
-  );
-
   const itemDefaults = asItemDefaults(root.itemDefaults, "config.itemDefaults");
 
   // Referential integrity, structure → structure only.
   const layerIds = new Set(layers.map((l) => l.id));
-  const templateIds = new Set(cardTemplates.map((t) => t.id));
 
   const presentations: Array<[string, ItemPresentation]> = [
     ["config.itemDefaults.fallback", itemDefaults.fallback],
@@ -348,32 +277,17 @@ export function assertValidConfig(raw: unknown): EventMapConfig {
       // booth that is never drawn, with nothing anywhere saying why.
       fail(`${where}.layerId "${presentation.layerId}" is not in config.layers`);
     }
-    if (!templateIds.has(presentation.cardTemplateId)) {
-      fail(
-        `${where}.cardTemplateId "${presentation.cardTemplateId}" is not in config.cardTemplates`,
-      );
-    }
   }
 
   const config: EventMapConfig = {
-    schemaVersion: EVENTMAP_SCHEMA_VERSION,
-    configVersion: asFiniteNumber(root.configVersion, "config.configVersion"),
     layerSetId: asString(root.layerSetId, "config.layerSetId"),
     campus: asOneOf(root.campus, ["hssc", "nsc"] as const, "config.campus"),
     name: asI18n(root.name, "config.name"),
     emoji: asString(root.emoji, "config.emoji"),
     camera,
     timezone: asString(root.timezone, "config.timezone"),
-    refreshAfterSec: asFiniteNumber(root.refreshAfterSec, "config.refreshAfterSec"),
-    stackKeyBy: asOneOf(
-      root.stackKeyBy,
-      ["placeId", "zone"] as const,
-      "config.stackKeyBy",
-    ),
     layers,
     chips,
-    sorts,
-    cardTemplates,
     itemDefaults,
   };
 
@@ -392,50 +306,6 @@ export function assertValidConfig(raw: unknown): EventMapConfig {
   return config;
 }
 
-/**
- * The slice of the config the SNAPSHOT is built from — and therefore the only
- * slice `configHash` may cover.
- *
- * The file now feeds two routes. `/map/config` serves `layers`, `chips`,
- * `name`, `emoji` and `camera` live, per request; the manifest reads
- * `refreshAfterSec` live. None of those enters a payload, so an edit to any
- * of them must NOT mint a snapshot version: it would republish a byte-identical
- * snapshot and throw away every client's one-year `immutable` cache for a
- * change they already see through the other route. `configVersion` is a human
- * label, out for the same reason it always was.
- *
- * The rule, both directions: anything in the payload is in the hash, and
- * nothing else is. `Pick<EventMapConfig, …>` is what keeps a field added to the
- * config from silently joining the hash — it has to be named here, and the test
- * that pins each member's effect has to move with it.
- */
-type SnapshotInputs = Pick<
-  EventMapConfig,
-  | "schemaVersion"
-  | "layerSetId"
-  | "campus"
-  | "timezone"
-  | "stackKeyBy"
-  | "sorts"
-  | "cardTemplates"
-  | "itemDefaults"
->;
-
-/** Hash of what the config MEANS to the snapshot. */
-export function computeConfigHash(config: EventMapConfig): string {
-  const hashable: SnapshotInputs = {
-    schemaVersion: config.schemaVersion,
-    layerSetId: config.layerSetId,
-    campus: config.campus,
-    timezone: config.timezone,
-    stackKeyBy: config.stackKeyBy,
-    sorts: config.sorts,
-    cardTemplates: config.cardTemplates,
-    itemDefaults: config.itemDefaults,
-  };
-  return md5(canonicalStringify(hashable));
-}
-
 // --- Load -------------------------------------------------------------------
 
 function loadOne(fileName: string): [string, LoadedConfig] {
@@ -450,14 +320,14 @@ function loadOne(fileName: string): [string, LoadedConfig] {
     }
     return [
       config.layerSetId,
-      { config: Object.freeze(config), configHash: computeConfigHash(config), error: null },
+      { config: Object.freeze(config), error: null },
     ];
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     // Loud, but not fatal: a live snapshot keeps serving and the manifest keeps
     // answering. Silence here would look exactly like "the festival is over".
     logger.error({ err: message, fileName }, "[eventmap] Config rejected");
-    return [layerSetIdFromFile, { config: null, configHash: null, error: message }];
+    return [layerSetIdFromFile, { config: null, error: message }];
   }
 }
 

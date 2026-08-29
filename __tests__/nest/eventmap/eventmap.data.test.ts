@@ -44,12 +44,8 @@ jest.mock("../../../src/infra/logger", () => ({
 }));
 
 import {
-  expireSupersededVersions,
   findActivationById,
   findActiveActivation,
-  findLatestSnapshot,
-  findSnapshotByVersion,
-  insertSnapshot,
   loadPlaces,
   loadSessions,
 } from "../../../src/eventmap/eventmap.data";
@@ -126,43 +122,5 @@ describe("loadSessions", () => {
       lifecycle: { $in: ["published", "cancelled"] },
       deletedAt: null,
     });
-  });
-});
-
-describe("snapshots", () => {
-  it("finds the latest version by sorting descending, with no lang in the key", async () => {
-    await findLatestSnapshot("eskara-2026");
-    expect(findOne).toHaveBeenCalledWith(
-      { layerSetId: "eskara-2026" },
-      { sort: { version: -1 } },
-    );
-  });
-
-  it("finds an exact version", async () => {
-    await findSnapshotByVersion("eskara-2026", 17);
-    expect(findOne).toHaveBeenCalledWith({ layerSetId: "eskara-2026", version: 17 });
-  });
-
-  it("writes a version as ONE document", async () => {
-    // All three languages in one insert. insertMany is not atomic across
-    // documents, so a per-language split let two writers interleave into a
-    // single version — see types.ts SnapshotDoc.
-    const doc = { _id: "eskara-2026:1" } as never;
-    await insertSnapshot(doc);
-    expect(insertOne).toHaveBeenCalledWith(doc);
-    expect(insertMany).not.toHaveBeenCalled();
-  });
-
-  it("expires only older versions that are not already scheduled", async () => {
-    const gcAt = new Date("2026-09-23T09:00:00.000Z");
-    await expireSupersededVersions("eskara-2026", 17, gcAt);
-
-    // `gcAt: null` in the FILTER stops this from repeatedly pushing back the
-    // clock on versions already condemned; the active version keeps gcAt null so
-    // Mongo's TTL monitor ignores it entirely.
-    expect(updateMany).toHaveBeenCalledWith(
-      { layerSetId: "eskara-2026", version: { $lt: 17 }, gcAt: null },
-      { $set: { gcAt } },
-    );
   });
 });

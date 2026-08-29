@@ -21,14 +21,12 @@ import {
   getSessionsCollection,
 } from "../../../src/eventmap/eventmap.data";
 import { getLayerSetConfig } from "../../../src/eventmap/eventmap.config";
-import { materialize } from "../../../src/eventmap/eventmap.materialize";
-import type { PlaceDoc, SessionDoc } from "../../../src/eventmap/types";
+import { presentationFor } from "../../../src/eventmap/types";
 import { getEventMarkers } from "../../../src/map/map-event-markers.data";
 
 const loaded = getLayerSetConfig("eskara-2026");
 if (!loaded?.config) throw new Error(`eskara-2026 failed to load: ${loaded?.error}`);
 const CONFIG = loaded.config;
-const CONFIG_HASH = loaded.configHash;
 
 const mockFindActiveActivation = findActiveActivation as jest.MockedFunction<
   typeof findActiveActivation
@@ -185,12 +183,12 @@ describe("getEventMarkers", () => {
     expect(mockSessions).not.toHaveBeenCalled();
   });
 
-  it("files every session on the SAME layer the snapshot item lands on", async () => {
-    // The whole reason `layerId` exists on both: the app joins a marker to its
-    // snapshot item by `id` and lists items by the layers the map is showing.
-    // Two resolvers would let a 주점 pin sit on the map while its row is missing
-    // from the 주점 list. One table, one function, so this cannot happen — and
-    // this is the test that says so, across mapped and unmapped categories.
+  it("files every session on the layer its category resolves to", async () => {
+    // `presentationFor` is the ONE table from a category to a layer. The
+    // projection must go through it rather than reimplementing the mapping,
+    // which is what keeps a 주점 pin on the same layer the 주점 chip shows —
+    // and what makes an unmapped category land on the fallback layer instead
+    // of vanishing with nothing anywhere saying why.
     const sessions = [
       session({ _id: "bar-1", category: "bar" }),
       session({ _id: "stage-1", category: "stage" }),
@@ -199,21 +197,17 @@ describe("getEventMarkers", () => {
     arrange(sessions);
 
     const { markers } = await getEventMarkers();
-    const items = materialize({
-      config: CONFIG,
-      configHash: CONFIG_HASH,
-      activation: { _id: "eskara-2026", activeFrom: null, activeUntil: null, enabled: true, updatedAt: new Date() },
-      places: [PLACE as unknown as PlaceDoc],
-      sessions: sessions as unknown as SessionDoc[],
-      now: new Date("2026-09-16T09:00:00.000Z"),
-    }).payloads.ko.items;
 
-    expect(markers.map((m) => m.id).sort()).toEqual(items.map((i) => i.id).sort());
+    expect(markers.map((m) => m.id).sort()).toEqual(["bar-1", "stage-1", "unmapped-1"]);
     for (const marker of markers) {
-      const item = items.find((i) => i.id === marker.id)!;
-      expect(marker.layerId).toBe(item.layerId);
+      const category = sessions.find((x) => x._id === marker.id)!.category;
+      expect(marker.layerId).toBe(presentationFor(CONFIG, category).layerId);
       expect(CONFIG.layers.some((l) => l.id === marker.layerId)).toBe(true);
     }
+    // The unmapped one is on the fallback, not simply absent.
+    expect(markers.find((m) => m.id === "unmapped-1")!.layerId).toBe(
+      CONFIG.itemDefaults.fallback.layerId,
+    );
   });
 
   it("takes campus from the plot, not the session's denormalized copy", async () => {
