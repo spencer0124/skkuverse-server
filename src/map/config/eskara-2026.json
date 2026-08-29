@@ -1,5 +1,4 @@
 {
-  "configVersion": 2,
   "layerSetId": "eskara-2026",
   "campus": "nsc",
   "name": {
@@ -15,8 +14,6 @@
     "durationMs": 500
   },
   "timezone": "Asia/Seoul",
-  "refreshAfterSec": 60,
-  "stackKeyBy": "placeId",
   "layers": [
     {
       "id": "eskara26_stage",
@@ -141,156 +138,32 @@
       }
     }
   ],
-  "sorts": [
-    {
-      "id": "manual",
-      "label": {
-        "ko": "추천순",
-        "en": "Recommended",
-        "zh": "推荐"
-      },
-      "by": "order"
-    },
-    {
-      "id": "title",
-      "label": {
-        "ko": "이름순",
-        "en": "Name",
-        "zh": "名称"
-      },
-      "by": "title"
-    },
-    {
-      "id": "soon",
-      "label": {
-        "ko": "시작 임박순",
-        "en": "Starting soon",
-        "zh": "即将开始"
-      },
-      "by": "startAt"
-    }
-  ],
-  "cardTemplates": [
-    {
-      "id": "booth",
-      "slots": [
-        {
-          "kind": "thumbnail"
-        },
-        {
-          "kind": "title"
-        },
-        {
-          "kind": "field",
-          "fieldKey": "cancelled",
-          "label": {
-            "ko": "안내",
-            "en": "Notice",
-            "zh": "通知"
-          }
-        },
-        {
-          "kind": "subtitle"
-        },
-        {
-          "kind": "hours"
-        },
-        {
-          "kind": "tags"
-        }
-      ]
-    },
-    {
-      "id": "bar",
-      "slots": [
-        {
-          "kind": "thumbnail"
-        },
-        {
-          "kind": "title"
-        },
-        {
-          "kind": "field",
-          "fieldKey": "cancelled",
-          "label": {
-            "ko": "안내",
-            "en": "Notice",
-            "zh": "通知"
-          }
-        },
-        {
-          "kind": "subtitle"
-        },
-        {
-          "kind": "hours"
-        },
-        {
-          "kind": "field",
-          "fieldKey": "menu",
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          }
-        },
-        {
-          "kind": "tags"
-        }
-      ]
-    },
-    {
-      "id": "facility",
-      "slots": [
-        {
-          "kind": "title"
-        },
-        {
-          "kind": "field",
-          "fieldKey": "cancelled",
-          "label": {
-            "ko": "안내",
-            "en": "Notice",
-            "zh": "通知"
-          }
-        },
-        {
-          "kind": "hours"
-        }
-      ]
-    }
-  ],
   "itemDefaults": {
     "byCategory": {
       "bar": {
         "layerId": "eskara26_bar",
-        "pinPriority": 30,
-        "cardTemplateId": "bar"
+        "pinPriority": 30
       },
       "booth": {
         "layerId": "eskara26_booth",
-        "pinPriority": 20,
-        "cardTemplateId": "booth"
+        "pinPriority": 20
       },
       "food": {
         "layerId": "eskara26_food",
-        "pinPriority": 20,
-        "cardTemplateId": "booth"
+        "pinPriority": 20
       },
       "stage": {
         "layerId": "eskara26_stage",
-        "pinPriority": 40,
-        "cardTemplateId": "booth"
+        "pinPriority": 40
       },
       "facility": {
         "layerId": "eskara26_facility",
-        "pinPriority": 10,
-        "cardTemplateId": "facility"
+        "pinPriority": 10
       }
     },
     "fallback": {
       "layerId": "eskara26_etc",
-      "pinPriority": 0,
-      "cardTemplateId": "booth"
+      "pinPriority": 0
     }
   }
 }

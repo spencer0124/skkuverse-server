@@ -82,15 +82,32 @@ describe("getCampusMarkers", () => {
     expect(typeof markers[0]!.tap!.placeId).toBe("string");
   });
 
-  it("gives every building an unbounded, always-visible window", async () => {
+  it("gives every building an empty window list, meaning always open", async () => {
     mockGetAllBuildings.mockResolvedValue([building()]);
 
     const { markers } = await getCampusMarkers();
 
-    // Present and null, not absent: the field is part of the common schema, and
-    // both bounds null is what "no window" means.
-    expect(markers.every((m) => m.startAt === null)).toBe(true);
-    expect(markers.every((m) => m.endAt === null)).toBe(true);
+    // Present and empty, not absent: the field is part of the shared schema, and
+    // `[]` is the ONE spelling of "no opening-hours concept applies". A building
+    // must never be hidden by an open-now filter.
+    expect(markers.every((m) => m.hours.length === 0)).toBe(true);
+  });
+
+  it("fills the booth-shaped half of the shared schema with stated emptiness", async () => {
+    mockGetAllBuildings.mockResolvedValue([building()]);
+
+    const { markers } = await getCampusMarkers();
+
+    // Stated rather than omitted: one producer leaving a shared field undefined
+    // is exactly what ADR 0004 invariant 1 exists to prevent, and an optional
+    // field would be a second thing for the app to branch on.
+    for (const m of markers) {
+      expect(m.subtitle).toBeNull();
+      expect(m.fields).toEqual([]);
+      expect(m.actions).toEqual([]);
+      expect(m.order).toBe(0);
+      expect(m.pinPriority).toBe(0);
+    }
   });
 
   it("omits a building with no number from the numbers layer only", async () => {
@@ -197,8 +214,7 @@ describe("getCampusMarkers", () => {
       // open a sheet that fails. Inert is the same outcome the broken shape had
       // by accident — now it is stated.
       expect(m.tap).toBeNull();
-      expect(m.startAt).toBeNull();
-      expect(m.endAt).toBeNull();
+      expect(m.hours).toEqual([]);
       expect(Math.abs(m.lat)).toBeLessThanOrEqual(90);
       expect(Math.abs(m.lng)).toBeLessThanOrEqual(180);
     }

@@ -30,8 +30,8 @@ const assets = [
   // explicitly rather than readdir'ing precisely so a miss shows up as a named
   // ENOENT in the logs instead of a silently absent event map.
   [
-    "src/eventmap/config/eskara-2026.json",
-    "dist/src/eventmap/config/eskara-2026.json",
+    "src/map/config/eskara-2026.json",
+    "dist/src/map/config/eskara-2026.json",
   ],
 ];
 

@@ -12,7 +12,7 @@ jest.mock("../../../src/building/building.data", () => ({
 // getMapConfig now consults the activation window to decide whether the event
 // marker layers exist. Mocked so "no festival" is stated rather than inferred
 // from an absent DB client — and so the live case can be exercised at all.
-jest.mock("../../../src/eventmap/eventmap.data", () => ({
+jest.mock("../../../src/map/map-places.data", () => ({
   findActiveActivation: jest.fn(),
   getPlacesCollection: jest.fn(),
   getSessionsCollection: jest.fn(),
@@ -21,17 +21,17 @@ jest.mock("../../../src/eventmap/eventmap.data", () => ({
 // The config module stays REAL — the file loads with no mock — but one test
 // needs to hand /map/config a layer set whose file failed validation, which
 // the shipped file (rightly) cannot be made to do from here.
-const actualConfigModule = jest.requireActual("../../../src/eventmap/eventmap.config");
+const actualConfigModule = jest.requireActual("../../../src/map/map-layerset.config");
 const mockGetLayerSetConfig = jest.fn(actualConfigModule.getLayerSetConfig);
-jest.mock("../../../src/eventmap/eventmap.config", () => ({
+jest.mock("../../../src/map/map-layerset.config", () => ({
   ...actualConfigModule,
   getLayerSetConfig: (...args: unknown[]) => mockGetLayerSetConfig(...args),
 }));
 
-import { getLayerSetConfig } from "../../../src/eventmap/eventmap.config";
-import { findActiveActivation } from "../../../src/eventmap/eventmap.data";
+import { getLayerSetConfig } from "../../../src/map/map-layerset.config";
+import { findActiveActivation } from "../../../src/map/map-places.data";
 import { pick } from "../../../src/infra/i18n";
-import type { EventMapConfig } from "../../../src/eventmap/types";
+import type { EventMapConfig } from "../../../src/map/map-layerset.types";
 import { BASE_CHIPS } from "../../../src/map/map-chips.data";
 import { MapService } from "../../../src/map/map.service";
 
@@ -39,7 +39,7 @@ import { MapService } from "../../../src/map/map.service";
 const BASE_LAYER_COUNT = 2;
 
 /**
- * The REAL shipped config. It loads with no mock — `eventmap.config` reads the
+ * The REAL shipped config. It loads with no mock — `map-layerset.config` reads the
  * file relative to its own directory — so every expectation below derives from
  * it rather than restating a count that the next festival would break.
  */

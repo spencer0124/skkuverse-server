@@ -1,5 +1,5 @@
 /**
- * Importer → projection round trip, against the REAL surveyed coordinate sheet.
+ * Importer → projection round trip, against the REAL surveyed sheet.
  *
  * Every other test in this directory mocks the collections, which means the
  * Mongo query shapes are asserted but the DOCUMENTS are invented — and an
@@ -7,38 +7,37 @@
  * the fixture was written in is the order the assertion expects.
  *
  * This one closes that gap without a database. It parses
- * `scripts/data/eskara-2026-places.csv` with the same reader the ops importer
- * uses, feeds the resulting PlaceDocs straight into the marker projection, and
- * checks the emitted `lat`/`lng` against the CSV's own columns. A swap on
- * either side of that seam fails here.
+ * `scripts/data/eskara-2026-places.json` with the same reader the ops importer
+ * uses, feeds the resulting documents straight into the marker projection, and
+ * checks the emitted `lat`/`lng` against the sheet's own columns. A swap on
+ * either side of that seam fails here — and there are now TWO conversions to
+ * catch, named lat/lng → GeoJSON on the way in and back again on the way out.
  *
  * It matters because a swap is otherwise invisible: it raises no error, passes
- * every type check, and simply puts 62 booths in the Gulf of Guinea.
+ * every type check, and simply puts 61 booths in the Gulf of Guinea.
  */
 
 import fs from "fs";
 import path from "path";
 
-jest.mock("../../../src/eventmap/eventmap.data", () => ({
+jest.mock("../../../src/map/map-places.data", () => ({
   findActiveActivation: jest.fn(),
   getPlacesCollection: jest.fn(),
-  getSessionsCollection: jest.fn(),
 }));
 
 import {
   findActiveActivation,
   getPlacesCollection,
-  getSessionsCollection,
-} from "../../../src/eventmap/eventmap.data";
+} from "../../../src/map/map-places.data";
 import { getEventMarkers } from "../../../src/map/map-event-markers.data";
 
 // scripts/ is excluded from tsconfig (plain CommonJS operator tooling), so this
-// is a require rather than an import — same as eventmap-csv.test.ts.
-const { parsePlacesCsv } = require("../../../scripts/lib/eventmap-csv");
+// is a require rather than an import — same as map-places-import.test.ts.
+const { parsePlacesFile } = require("../../../scripts/lib/map-places-file");
 
-const REAL_CSV = path.join(
+const REAL_FILE = path.join(
   __dirname,
-  "../../../scripts/data/eskara-2026-places.csv",
+  "../../../scripts/data/eskara-2026-places.json",
 );
 
 const LAYER_SET_ID = "eskara-2026";
@@ -49,9 +48,16 @@ const mockFindActiveActivation = findActiveActivation as jest.MockedFunction<
 const mockPlaces = getPlacesCollection as jest.MockedFunction<
   typeof getPlacesCollection
 >;
-const mockSessions = getSessionsCollection as jest.MockedFunction<
-  typeof getSessionsCollection
->;
+
+/** The sheet's own lat/lng, keyed by the id the projection will tap through. */
+function sheetCoordsById(): Map<string, { lat: number; lng: number }> {
+  const raw = JSON.parse(fs.readFileSync(REAL_FILE, "utf8"));
+  const out = new Map<string, { lat: number; lng: number }>();
+  for (const place of raw.places) {
+    out.set(`${LAYER_SET_ID}-${place.id}`, { lat: place.lat, lng: place.lng });
+  }
+  return out;
+}
 
 function collectionOf(docs: unknown[]) {
   return {
@@ -61,60 +67,23 @@ function collectionOf(docs: unknown[]) {
   } as never;
 }
 
-/** The CSV's own lat/lng columns, keyed by placeId — the reference values. */
-function csvCoordsByPlaceId(): Map<string, { lat: number; lng: number }> {
-  const raw = fs.readFileSync(REAL_CSV, "utf8");
-  const lines = raw.trim().split("\n");
-  const header = lines[0]!.split(",");
-  const latCol = header.indexOf("lat");
-  const lngCol = header.indexOf("lng");
-  const idCol = header.indexOf("placeId");
-
-  const out = new Map<string, { lat: number; lng: number }>();
-  for (const line of lines.slice(1)) {
-    // note_ko is the last column and may contain commas; every column we read
-    // sits before it, so a plain split is safe here.
-    const cells = line.split(",");
-    out.set(cells[idCol]!, {
-      lat: Number(cells[latCol]),
-      lng: Number(cells[lngCol]),
-    });
-  }
-  return out;
-}
-
 describe("event marker coordinates, end to end from the survey sheet", () => {
-  it("emits every plot at the coordinates the CSV recorded", async () => {
-    const csv = fs.readFileSync(REAL_CSV, "utf8");
-    const { docs, errors } = parsePlacesCsv(csv, { layerSetId: LAYER_SET_ID });
+  it("emits every place at the coordinates the sheet recorded", async () => {
+    const raw = fs.readFileSync(REAL_FILE, "utf8");
+    const { docs, errors } = parsePlacesFile(raw, { layerSetId: LAYER_SET_ID });
 
     // If the committed sheet stops parsing, that is its own bug — fail loudly
     // rather than silently testing zero rows.
     expect(errors).toEqual([]);
     expect(docs.length).toBeGreaterThan(50);
 
-    // One session per plot, so every surveyed coordinate reaches a marker.
-    const sessions = docs.map((place: { _id: string; campus: string }, i: number) => ({
-      _id: `s-${i}`,
-      layerSetId: LAYER_SET_ID,
-      placeId: place._id,
-      campus: place.campus,
-      title: { ko: `부스 ${i}` },
-      category: "booth",
-      startAt: null,
-      endAt: null,
-      lifecycle: "published",
-      deletedAt: null,
-    }));
-
     mockFindActiveActivation.mockResolvedValue({ _id: LAYER_SET_ID } as Awaited<
       ReturnType<typeof findActiveActivation>
     >);
     mockPlaces.mockReturnValue(collectionOf(docs));
-    mockSessions.mockReturnValue(collectionOf(sessions));
 
     const { markers } = await getEventMarkers();
-    const expected = csvCoordsByPlaceId();
+    const expected = sheetCoordsById();
 
     expect(markers).toHaveLength(docs.length);
 
@@ -127,27 +96,13 @@ describe("event marker coordinates, end to end from the survey sheet", () => {
   });
 
   it("puts every marker on the Korean peninsula, not in the ocean", async () => {
-    const csv = fs.readFileSync(REAL_CSV, "utf8");
-    const { docs } = parsePlacesCsv(csv, { layerSetId: LAYER_SET_ID });
-
-    const sessions = docs.map((place: { _id: string; campus: string }, i: number) => ({
-      _id: `s-${i}`,
-      layerSetId: LAYER_SET_ID,
-      placeId: place._id,
-      campus: place.campus,
-      title: { ko: "부스" },
-      category: "booth",
-      startAt: null,
-      endAt: null,
-      lifecycle: "published",
-      deletedAt: null,
-    }));
+    const raw = fs.readFileSync(REAL_FILE, "utf8");
+    const { docs } = parsePlacesFile(raw, { layerSetId: LAYER_SET_ID });
 
     mockFindActiveActivation.mockResolvedValue({ _id: LAYER_SET_ID } as Awaited<
       ReturnType<typeof findActiveActivation>
     >);
     mockPlaces.mockReturnValue(collectionOf(docs));
-    mockSessions.mockReturnValue(collectionOf(sessions));
 
     const { markers } = await getEventMarkers();
 

@@ -16,9 +16,9 @@
  * marked `defaultVisible`, so it cannot drift from the layer list.
  */
 
-import { getLayerSetConfig } from "../../../src/eventmap/eventmap.config";
+import { getLayerSetConfig } from "../../../src/map/map-layerset.config";
 import { pick } from "../../../src/infra/i18n";
-import type { EventMapConfig } from "../../../src/eventmap/types";
+import type { EventMapConfig } from "../../../src/map/map-layerset.types";
 import { WEBVIEW_ORIGIN } from "../../../src/infra/origins";
 import {
   BASE_LAYERS,

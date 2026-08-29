@@ -11,19 +11,19 @@
 const mockLogger = { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() };
 jest.mock("../../../src/infra/logger", () => mockLogger);
 
-jest.mock("../../../src/eventmap/eventmap.data", () => ({
+jest.mock("../../../src/map/map-places.data", () => ({
   findActiveActivation: jest.fn(),
 }));
 
-const actualConfigModule = jest.requireActual("../../../src/eventmap/eventmap.config");
+const actualConfigModule = jest.requireActual("../../../src/map/map-layerset.config");
 const getLayerSetConfig = jest.fn(actualConfigModule.getLayerSetConfig);
-jest.mock("../../../src/eventmap/eventmap.config", () => ({
+jest.mock("../../../src/map/map-layerset.config", () => ({
   ...actualConfigModule,
   getLayerSetConfig: (...args: unknown[]) => getLayerSetConfig(...args),
 }));
 
-import { activeEventConfig } from "../../../src/eventmap/eventmap.active";
-import { findActiveActivation } from "../../../src/eventmap/eventmap.data";
+import { activeEventConfig } from "../../../src/map/map-active-layerset";
+import { findActiveActivation } from "../../../src/map/map-places.data";
 
 const NOW = new Date("2026-09-16T09:00:00.000Z");
 const mockFindActiveActivation = findActiveActivation as jest.MockedFunction<

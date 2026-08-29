@@ -1,4 +1,4 @@
-import type { EventMapConfig } from "../eventmap/types";
+import type { EventMapConfig } from "./map-layerset.types";
 import { pick } from "../infra/i18n";
 import type { I18n, SupportedLang } from "../infra/types";
 import { toWebviewUrl } from "../infra/webview-url";
@@ -12,15 +12,15 @@ import { BASE_LAYERS, chipGroupOf, type LayerSpec } from "./map-layers.data";
  * Two sources, one validator. `BASE_CHIPS` is repo config, checked at import
  * against `BASE_LAYERS` so a bad permanent chip fails the boot. A festival's
  * chips are authored in its config (`EventChipDef`) and projected here by
- * `eventChipSpecs`; `eventmap.config.ts` runs the SAME validator over them at
+ * `eventChipSpecs`; `map-layerset.config.ts` runs the SAME validator over them at
  * load, against the full served catalogue, so a bad festival chip fails the
- * config — logged, skipped, previous snapshot kept — rather than reaching a
- * client. That is the `miniapps.schema.ts` posture for the base list and the
- * `eventmap.materialize.ts` one for the festival list: fail loud where a PR
- * fixes it, fail soft where the previous good version can keep serving.
+ * config — logged and skipped, taking the festival off the campus map — rather
+ * than reaching a client. That is the `miniapps.schema.ts` posture for the base
+ * list and the marker projection's for the festival list: fail loud where a PR
+ * fixes it, fail soft where 건물번호 can keep serving without it.
  *
  * This module imports only the event map's TYPES. It must never import
- * `eventmap.config` — that module imports this one — and `eslint.config.js`
+ * `map-layerset.config` — that module imports this one — and `eslint.config.js`
  * enforces exactly that for this file, so the rule is not prose.
  */
 
@@ -76,8 +76,8 @@ export const BASE_CHIPS: readonly MapChipSpec[] = [];
  * fixed in a single pass instead of one boot per mistake — the shape
  * `tabconfig.service.ts` uses for the same reason. Returned rather than thrown
  * because the two callers want different failures: the import-time check on
- * `BASE_CHIPS` is fatal, the config-load check on a festival's chips is a
- * rejected config with the previous snapshot kept.
+ * `BASE_CHIPS` is fatal, the config-load check on a festival's chips rejects the
+ * config and leaves the base map serving.
  */
 export function validateChipSpecs(
   specs: readonly MapChipSpec[],
@@ -179,7 +179,7 @@ export function resetChip(config: EventMapConfig): MapChipSpec {
  *
  * Each authored chip is one tap for what otherwise costs opening the filter
  * sheet and toggling several things. A chip that names exactly one layer and
- * authored no label reads as that layer does — `eventmap.config.ts` refuses a
+ * authored no label reads as that layer does — `map-layerset.config.ts` refuses a
  * wider chip without one. Every chip shares the config's camera.
  *
  * Fresh objects per call: the config is frozen shallowly and shared across

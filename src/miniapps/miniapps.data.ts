@@ -13,7 +13,7 @@ import type { SentNotificationDoc } from "./types";
  *
  * dbName is guaranteed a string by the startup validation in infra/config.ts
  * (required[] carries miniapps.dbName → a missing env var is process.exit(1)),
- * which is what justifies the non-null assertion. Same pattern as eventmap.data.ts.
+ * which is what justifies the non-null assertion. Same pattern as map-places.data.ts.
  */
 
 export function getSentNotificationsCollection(): Collection<SentNotificationDoc> {

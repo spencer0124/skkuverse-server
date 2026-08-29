@@ -295,15 +295,6 @@ const translations: Translations = {
     zh: "自然科学校区",
   },
 
-  // Event map: materializer-generated badges (skkuverse#14).
-  // Server-GENERATED text belongs here; ops-AUTHORED text arrives as I18n
-  // objects on the Mongo documents and is resolved by the materializer instead.
-  "eventmap.status.cancelled": {
-    ko: "운영 취소",
-    en: "Cancelled",
-    zh: "已取消",
-  },
-
   // Schedule: empty-state messages
   "schedule.suspended": {
     ko: "운휴 기간입니다",

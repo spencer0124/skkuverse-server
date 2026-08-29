@@ -3,7 +3,7 @@
  * Open, close and inspect a layer set's activation window (skkuverse#16).
  *
  * This is the one lever that decides whether anybody sees the event map, and
- * until now docs/reference/eventmap-api.md §13 asked an operator to hand-type a
+ * until now docs/reference/event-places.md §6.2 asked an operator to hand-type a
  * mongosh `updateOne` for it — at 22:00, during a festival, against production.
  * That is the same hazard the CSV importer exists to remove for coordinates.
  *
@@ -54,16 +54,13 @@
  * an error here rather than an upsert, because the failure this prevents is
  * enabling a typo'd id and wondering why nothing appeared.
  *
- * It never touches `notifyMiniAppId`. Setting that field costs one snapshot
- * version and one silent push to every subscribed device (see ActivationDoc), so
- * it stays a deliberate, separate act.
- *
  * ## Propagation
  *
- * Neither direction is instant. `manifestCacheTtlMs` is 15 s per api replica and
- * the client's own poll is `refreshAfterSec`, so §12's budget applies to closing
- * exactly as it does to opening: about 75 s worst case before every device is
- * back on the base campus map. Rehearse it before the festival rather than
+ * Neither direction is instant. `/map/config` reads the activation per request,
+ * so the layer list and the chip row turn over immediately; `/map/markers/event`
+ * is `public, max-age=60`, so a booth already fetched can linger on a device for
+ * up to a minute. About a minute worst case, then, before every device is back
+ * on the base campus map. Rehearse it before the festival rather than
  * discovering the delay during one.
  */
 const path = require("path");
@@ -149,7 +146,6 @@ function describe(doc, now) {
     `  enabled      ${doc.enabled}`,
     `  activeFrom   ${doc.activeFrom ? doc.activeFrom.toISOString() : "null"}`,
     `  activeUntil  ${doc.activeUntil ? doc.activeUntil.toISOString() : "null (open-ended)"}`,
-    `  notifyMiniAppId ${doc.notifyMiniAppId ?? "(absent — no push on publish)"}`,
   ];
   const live = isLive(doc, now);
   lines.push(`  → clients see ${live ? "THE EVENT MAP" : "the base campus map"}`);
@@ -233,8 +229,8 @@ async function main() {
 
     console.log(describe(await activations.findOne({ _id: args.layerSetId }), now));
     console.log(
-      "\nPropagation is not instant: ~15 s api-replica memo plus the client's own\n" +
-        "refreshAfterSec poll (§12). Allow about 75 s before every device agrees.",
+      "\nPropagation is not instant: /map/config turns over on the next request,\n" +
+        "but /map/markers/event is cached 60 s at the edge. Allow about a minute.",
     );
   } finally {
     await client.close();

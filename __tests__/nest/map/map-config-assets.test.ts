@@ -16,15 +16,15 @@ import fs from "fs";
 import path from "path";
 
 const ROOT = path.join(__dirname, "../../..");
-const CONFIG_DIR = path.join(ROOT, "src/eventmap/config");
+const CONFIG_DIR = path.join(ROOT, "src/map/config");
 const ASSET_SCRIPT = path.join(ROOT, "scripts/copy-build-assets.js");
-const CONFIG_MODULE = path.join(ROOT, "src/eventmap/eventmap.config.ts");
+const CONFIG_MODULE = path.join(ROOT, "src/map/map-layerset.config.ts");
 
-/** The filenames listed in eventmap.config.ts's CONFIG_FILES. */
+/** The filenames listed in map-layerset.config.ts's CONFIG_FILES. */
 function declaredConfigFiles(): string[] {
   const source = fs.readFileSync(CONFIG_MODULE, "utf8");
   const block = /const CONFIG_FILES = \[([\s\S]*?)\] as const;/.exec(source);
-  if (!block) throw new Error("CONFIG_FILES not found in eventmap.config.ts");
+  if (!block) throw new Error("CONFIG_FILES not found in map-layerset.config.ts");
   return [...block[1]!.matchAll(/"([^"]+\.json)"/g)].map((m) => m[1]!);
 }
 
@@ -32,8 +32,8 @@ describe("event map structure configs", () => {
   it("registers every declared config in copy-build-assets.js", () => {
     const assetScript = fs.readFileSync(ASSET_SCRIPT, "utf8");
     for (const fileName of declaredConfigFiles()) {
-      expect(assetScript).toContain(`src/eventmap/config/${fileName}`);
-      expect(assetScript).toContain(`dist/src/eventmap/config/${fileName}`);
+      expect(assetScript).toContain(`src/map/config/${fileName}`);
+      expect(assetScript).toContain(`dist/src/map/config/${fileName}`);
     }
   });
 
