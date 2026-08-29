@@ -83,8 +83,12 @@ function formatFallback(): { markers: MapMarker[]; degraded: true } {
       campus: m.campus,
       lat: m.lat,
       lng: m.lng,
-      startAt: null,
-      endAt: null,
+      hours: [],
+      subtitle: null,
+      fields: [],
+      actions: [],
+      order: 0,
+      pinPriority: 0,
       tap: null,
     } satisfies Partial<MapMarker>;
 
@@ -135,8 +139,22 @@ async function getCampusMarkers(): Promise<{
       campus: b.campus,
       lat,
       lng,
-      startAt: null,
-      endAt: null,
+      // A building has no opening-hours concept, which is exactly what an empty
+      // window list means — never hidden, never filtered out by an open-now
+      // control. The old `startAt: null, endAt: null` said the same thing in a
+      // spelling that ALSO had to mean "cancelled" on the booth side.
+      hours: [],
+      // Nothing to say beyond the name. A building is drawn, not carded: the
+      // sheet it opens is /building/:id, which fetches its own detail.
+      subtitle: null,
+      fields: [],
+      actions: [],
+      // Buildings never collide with each other — a campus has one building per
+      // spot — so neither number is doing work here. They are stated rather than
+      // omitted because the schema is shared, and an optional field is a second
+      // thing for the app to branch on.
+      order: 0,
+      pinPriority: 0,
       // A building is addressed exactly as a booth is. String, not number: one
       // scheme for both kinds, narrowed back to a number by the app.
       tap: { kind: "skku_building" as const, placeId: String(b._id) },

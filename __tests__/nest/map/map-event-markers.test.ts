@@ -1,24 +1,26 @@
 /**
- * Unit tests for the event → map-marker projection.
+ * Unit tests for the place → map-marker projection.
  *
- * The assertions worth having here are the ones that fail silently in
- * production: a [lng,lat] swap puts the booth in the ocean, a campus the app
- * does not recognise makes the marker vanish inside the client parser with no
- * error, an unmapped category would drop a real booth off the festival map —
- * and a marker filed on a different layer from its snapshot item would let the
- * map and the list disagree about what the 주점 chip is showing.
+ * One document in, one marker out. There is no join any more: a booth that runs
+ * on both festival days is ONE document carrying two opening windows, which is
+ * the whole point of the collapse — the old model made it two `sessions`, and
+ * the list rendered the same place twice with nothing to tell the rows apart.
+ *
+ * The assertions worth having are the ones that fail silently in production: a
+ * [lng,lat] swap puts the booth in the ocean, a campus the app does not
+ * recognise makes the marker vanish inside the client parser with no error, an
+ * unmapped category would drop a real booth off the festival map, and a lost
+ * `zh` leaves a map whose layer labels are Chinese and whose booths are not.
  */
 
 jest.mock("../../../src/map/map-places.data", () => ({
   findActiveActivation: jest.fn(),
   getPlacesCollection: jest.fn(),
-  getSessionsCollection: jest.fn(),
 }));
 
 import {
   findActiveActivation,
   getPlacesCollection,
-  getSessionsCollection,
 } from "../../../src/map/map-places.data";
 import { getLayerSetConfig } from "../../../src/map/map-layerset.config";
 import { presentationFor } from "../../../src/map/map-layerset.types";
@@ -31,12 +33,7 @@ const CONFIG = loaded.config;
 const mockFindActiveActivation = findActiveActivation as jest.MockedFunction<
   typeof findActiveActivation
 >;
-const mockPlaces = getPlacesCollection as jest.MockedFunction<
-  typeof getPlacesCollection
->;
-const mockSessions = getSessionsCollection as jest.MockedFunction<
-  typeof getSessionsCollection
->;
+const mockPlaces = getPlacesCollection as jest.MockedFunction<typeof getPlacesCollection>;
 
 /** A collection stub whose `find()` records its filter and yields `docs`. */
 function collectionOf(docs: unknown[]) {
@@ -46,49 +43,38 @@ function collectionOf(docs: unknown[]) {
   return { stub: { find } as never, find };
 }
 
-const PLACE = {
-  _id: "nsc-plaza-a3",
-  layerSetId: "eskara-2026",
-  campus: "nsc",
-  name: { ko: "A-3 구역" },
-  // GeoJSON order: [lng, lat].
-  location: { type: "Point", coordinates: [126.971747, 37.294452] },
-  tags: [],
-  lifecycle: "active",
-  updatedAt: new Date(),
+const DAY_1 = {
+  startAt: new Date("2026-08-27T09:00:00.000Z"),
+  endAt: new Date("2026-08-27T15:00:00.000Z"),
+};
+const DAY_2 = {
+  startAt: new Date("2026-08-28T09:00:00.000Z"),
+  endAt: new Date("2026-08-28T15:00:00.000Z"),
 };
 
-function session(over: Record<string, unknown> = {}) {
+function place(over: Record<string, unknown> = {}) {
   return {
-    _id: "s-1",
+    _id: "eskara-2026-booth-01",
     layerSetId: "eskara-2026",
-    placeId: "nsc-plaza-a3",
     campus: "nsc",
-    tenant: { id: null, name: { ko: "동아리" }, kind: "club" },
-    title: { ko: "우끼끼친", en: "Ukkikki" },
     category: "booth",
-    tags: [],
-    dayIndex: 1,
-    date: "2026-09-16",
-    slot: "day",
-    startAt: new Date("2026-09-16T07:00:00.000Z"),
-    endAt: new Date("2026-09-16T11:00:00.000Z"),
-    media: { thumbnailUrl: null, images: [] },
+    // GeoJSON order: [lng, lat].
+    location: { type: "Point", coordinates: [126.971747, 37.294452] },
+    title: { ko: "우끼끼친", en: "Ukkikki" },
+    subtitle: { ko: "생명공학대학 학생회" },
+    hours: [DAY_1, DAY_2],
+    fields: [],
     actions: [],
-    order: 0,
-    lifecycle: "published",
-    deletedAt: null,
+    order: 10,
     updatedAt: new Date(),
     ...over,
   };
 }
 
-function arrange(sessions: unknown[], places: unknown[] = [PLACE]) {
-  const p = collectionOf(places);
-  const s = collectionOf(sessions);
+function arrange(docs: unknown[]) {
+  const p = collectionOf(docs);
   mockPlaces.mockReturnValue(p.stub);
-  mockSessions.mockReturnValue(s.stub);
-  return { placesFind: p.find, sessionsFind: s.find };
+  return { placesFind: p.find };
 }
 
 describe("getEventMarkers", () => {
@@ -106,69 +92,6 @@ describe("getEventMarkers", () => {
     // touch Mongo at all.
     await expect(getEventMarkers()).resolves.toEqual({ markers: [] });
     expect(mockPlaces).not.toHaveBeenCalled();
-    expect(mockSessions).not.toHaveBeenCalled();
-  });
-
-  it("projects a session onto its plot's coordinates", async () => {
-    arrange([session()]);
-
-    const { markers } = await getEventMarkers();
-
-    expect(markers).toHaveLength(1);
-    expect(markers[0]).toEqual({
-      id: "s-1",
-      layerId: "eskara26_booth",
-      campus: "nsc",
-      // Un-swapped from GeoJSON. Latitude is the ~37 one; if these ever trade
-      // places the booth lands off the coast of Africa.
-      lat: 37.294452,
-      lng: 126.971747,
-      text: { ko: "우끼끼친", en: "Ukkikki" },
-      startAt: "2026-09-16T07:00:00.000Z",
-      endAt: "2026-09-16T11:00:00.000Z",
-      tap: { kind: "event", placeId: "nsc-plaza-a3" },
-    });
-  });
-
-  it("asks only for published, undeleted sessions of the live set", async () => {
-    const { placesFind, sessionsFind } = arrange([session()]);
-
-    await getEventMarkers();
-
-    // `cancelled` is deliberately absent: a cancellation is expressed by the
-    // marker not existing, which is what lets both-null mean "always".
-    expect(sessionsFind).toHaveBeenCalledWith({
-      layerSetId: "eskara-2026",
-      lifecycle: "published",
-      deletedAt: null,
-    });
-    expect(placesFind).toHaveBeenCalledWith({
-      layerSetId: "eskara-2026",
-      lifecycle: "active",
-    });
-  });
-
-  it("carries an unbounded window through as null on both sides", async () => {
-    arrange([session({ _id: "toilet", startAt: null, endAt: null, category: "facility" })]);
-
-    const { markers } = await getEventMarkers();
-
-    // Always-on: the device reads null/null as "no bound", so 화장실 never
-    // leaves the map.
-    expect(markers[0]!.startAt).toBeNull();
-    expect(markers[0]!.endAt).toBeNull();
-    expect(markers[0]!.layerId).toBe("eskara26_facility");
-  });
-
-  it("files an unmapped category under the config's fallback layer rather than dropping it", async () => {
-    // `category` is an open string so next year's 전시 is a Mongo edit. A booth
-    // nobody can see is not a reportable bug, so it lands somewhere visible.
-    arrange([session({ category: "전시" })]);
-
-    const { markers } = await getEventMarkers();
-
-    expect(markers).toHaveLength(1);
-    expect(markers[0]!.layerId).toBe(CONFIG.itemDefaults.fallback.layerId);
   });
 
   it("returns nothing when the live layer set has no config this build knows", async () => {
@@ -180,90 +103,221 @@ describe("getEventMarkers", () => {
     // and without it there is nothing correct to serve. Mongo is not consulted.
     await expect(getEventMarkers()).resolves.toEqual({ markers: [] });
     expect(mockPlaces).not.toHaveBeenCalled();
-    expect(mockSessions).not.toHaveBeenCalled();
   });
 
-  it("files every session on the layer its category resolves to", async () => {
-    // `presentationFor` is the ONE table from a category to a layer. The
-    // projection must go through it rather than reimplementing the mapping,
-    // which is what keeps a 주점 pin on the same layer the 주점 chip shows —
-    // and what makes an unmapped category land on the fallback layer instead
-    // of vanishing with nothing anywhere saying why.
-    const sessions = [
-      session({ _id: "bar-1", category: "bar" }),
-      session({ _id: "stage-1", category: "stage" }),
-      session({ _id: "unmapped-1", category: "전시" }),
+  it("projects one document to one marker", async () => {
+    arrange([place()]);
+
+    const { markers } = await getEventMarkers();
+
+    expect(markers).toHaveLength(1);
+    expect(markers[0]).toEqual({
+      id: "eskara-2026-booth-01",
+      layerId: "eskara26_booth",
+      campus: "nsc",
+      // Un-swapped from GeoJSON. Latitude is the ~37 one; if these ever trade
+      // places the booth lands off the coast of Africa.
+      lat: 37.294452,
+      lng: 126.971747,
+      text: { ko: "우끼끼친", en: "Ukkikki" },
+      subtitle: { ko: "생명공학대학 학생회", en: "생명공학대학 학생회" },
+      hours: [
+        { startAt: "2026-08-27T09:00:00.000Z", endAt: "2026-08-27T15:00:00.000Z" },
+        { startAt: "2026-08-28T09:00:00.000Z", endAt: "2026-08-28T15:00:00.000Z" },
+      ],
+      fields: [],
+      actions: [],
+      order: 10,
+      pinPriority: presentationFor(CONFIG, "booth").pinPriority,
+      tap: { kind: "event", placeId: "eskara-2026-booth-01" },
+    });
+  });
+
+  it("scans the live layer set and nothing else — one cursor, no join", async () => {
+    const { placesFind } = arrange([place()]);
+
+    await getEventMarkers();
+
+    // No lifecycle filter: a cancelled booth is DELETED, not flagged, so there
+    // is no state left for a filter to exclude.
+    expect(placesFind).toHaveBeenCalledTimes(1);
+    expect(placesFind).toHaveBeenCalledWith({ layerSetId: "eskara-2026" });
+  });
+
+  it("keeps every opening window, in the order it was authored", async () => {
+    // The reason the whole collapse happened: two days is two windows on ONE
+    // document, not two documents. A projection that flattened this back to a
+    // single window would re-introduce the duplicate rows it exists to remove.
+    arrange([place()]);
+
+    const { markers } = await getEventMarkers();
+
+    expect(markers[0]!.hours).toEqual([
+      { startAt: "2026-08-27T09:00:00.000Z", endAt: "2026-08-27T15:00:00.000Z" },
+      { startAt: "2026-08-28T09:00:00.000Z", endAt: "2026-08-28T15:00:00.000Z" },
+    ]);
+  });
+
+  it("carries an always-open place through as an empty window list", async () => {
+    arrange([place({ _id: "toilet", category: "facility", hours: [] })]);
+
+    const { markers } = await getEventMarkers();
+
+    // `[]` has exactly ONE meaning — always open — which the old
+    // `startAt: null, endAt: null` could not manage: it meant both an always-on
+    // 화장실 and a rain-cancelled bar, and `status` existed to tell them apart.
+    expect(markers[0]!.hours).toEqual([]);
+    expect(markers[0]!.layerId).toBe("eskara26_facility");
+  });
+
+  it("files every place on the layer its category resolves to", async () => {
+    // `presentationFor` is the ONE table from a category to a layer. Going
+    // through it rather than reimplementing the mapping is what keeps a 주점 pin
+    // on the same layer the 주점 chip shows.
+    const docs = [
+      place({ _id: "bar-1", category: "bar" }),
+      place({ _id: "stage-1", category: "stage" }),
+      place({ _id: "unmapped-1", category: "전시" }),
     ];
-    arrange(sessions);
+    arrange(docs);
 
     const { markers } = await getEventMarkers();
 
     expect(markers.map((m) => m.id).sort()).toEqual(["bar-1", "stage-1", "unmapped-1"]);
     for (const marker of markers) {
-      const category = sessions.find((x) => x._id === marker.id)!.category;
-      expect(marker.layerId).toBe(presentationFor(CONFIG, category).layerId);
+      const category = docs.find((d) => d._id === marker.id)!.category;
+      const presentation = presentationFor(CONFIG, category);
+      expect(marker.layerId).toBe(presentation.layerId);
+      expect(marker.pinPriority).toBe(presentation.pinPriority);
       expect(CONFIG.layers.some((l) => l.id === marker.layerId)).toBe(true);
     }
-    // The unmapped one is on the fallback, not simply absent.
-    expect(markers.find((m) => m.id === "unmapped-1")!.layerId).toBe(
-      CONFIG.itemDefaults.fallback.layerId,
-    );
   });
 
-  it("takes campus from the plot, not the session's denormalized copy", async () => {
-    // If they disagree the plot wins: coordinates come from the plot, and a
-    // marker whose campus contradicts its position is dropped by the app parser.
-    arrange([session({ campus: "hssc" })]);
+  it("files an unmapped category under the fallback layer rather than dropping it", async () => {
+    // `category` is an open string so next year's 전시 is a Mongo edit. A booth
+    // nobody can see is not a reportable bug, so it lands somewhere visible.
+    arrange([place({ category: "전시" })]);
 
     const { markers } = await getEventMarkers();
 
-    expect(markers[0]!.campus).toBe("nsc");
+    expect(markers).toHaveLength(1);
+    expect(markers[0]!.layerId).toBe(CONFIG.itemDefaults.fallback.layerId);
   });
 
-  it("skips a session whose place is missing or retired", async () => {
-    arrange([session(), session({ _id: "orphan", placeId: "nsc-gone" })]);
+  it("taps through to the place itself, not to a plot", async () => {
+    // Two booths sharing one plot used to resolve to one `placeId` and one
+    // stack. They are two documents now, so a tap names exactly one of them.
+    arrange([place({ _id: "nightbar-nareun" }), place({ _id: "nightbar-f1" })]);
 
     const { markers } = await getEventMarkers();
 
-    // One typo in the session sheet must not take the festival down.
-    expect(markers.map((m) => m.id)).toEqual(["s-1"]);
+    expect(markers.map((m) => m.tap)).toEqual([
+      { kind: "event", placeId: "nightbar-nareun" },
+      { kind: "event", placeId: "nightbar-f1" },
+    ]);
+  });
+
+  it("takes campus from the document that holds the coordinates", async () => {
+    arrange([place({ campus: "hssc" })]);
+
+    const { markers } = await getEventMarkers();
+
+    // One document now, so campus and position cannot disagree — which is what
+    // the old "take the plot's campus, not the session's copy" rule was for.
+    expect(markers[0]!.campus).toBe("hssc");
   });
 
   it("falls back to Korean when a title has no English", async () => {
-    arrange([session({ title: { ko: "에라의 불시착" } })]);
+    arrange([place({ title: { ko: "에라의 불시착" } })]);
 
     const { markers } = await getEventMarkers();
 
-    expect(markers[0]!.text).toEqual({
-      ko: "에라의 불시착",
-      en: "에라의 불시착",
-    });
+    expect(markers[0]!.text).toEqual({ ko: "에라의 불시착", en: "에라의 불시착" });
+    expect("zh" in markers[0]!.text).toBe(false);
   });
 
   it("carries an ops-authored Chinese title through to the wire", async () => {
-    arrange([session({ title: { ko: "우끼끼친", en: "Ukkikki", zh: "乌key" } })]);
+    arrange([place({ title: { ko: "우끼끼친", en: "Ukkikki", zh: "乌key" } })]);
 
     const { markers } = await getEventMarkers();
 
-    // The old snapshot path resolved titles across ko/en/zh server-side.
-    // Flattening to {ko, en} here would lose Chinese booth names on a map whose
-    // layer labels ARE translated to Chinese.
-    expect(markers[0]!.text).toEqual({
-      ko: "우끼끼친",
-      en: "Ukkikki",
-      zh: "乌key",
-    });
+    // Resolving server-side would lose Chinese booth names on a map whose layer
+    // labels ARE translated to Chinese.
+    expect(markers[0]!.text).toEqual({ ko: "우끼끼친", en: "Ukkikki", zh: "乌key" });
   });
 
-  it("omits zh entirely when ops authored none", async () => {
-    arrange([session({ title: { ko: "에라의 불시착" } })]);
+  it("serves a null subtitle when ops authored none", async () => {
+    arrange([place({ subtitle: null })]);
 
     const { markers } = await getEventMarkers();
 
-    expect(markers[0]!.text).toEqual({
-      ko: "에라의 불시착",
-      en: "에라의 불시착",
-    });
-    expect("zh" in markers[0]!.text).toBe(false);
+    expect(markers[0]!.subtitle).toBeNull();
+  });
+
+  it("keeps card fields in their authored order, with their labels", async () => {
+    // Ordering and the human label "메뉴" are the only two things the deleted
+    // cardTemplates bought. As data they cost nothing and survive a release.
+    arrange([
+      place({
+        fields: [
+          { label: { ko: "메뉴", en: "Menu" }, value: { ko: "골뱅이소면 · 감자튀김" } },
+          { label: { ko: "안내" }, value: { ko: "현금만 받아요", zh: "只收现金" } },
+        ],
+      }),
+    ]);
+
+    const { markers } = await getEventMarkers();
+
+    expect(markers[0]!.fields).toEqual([
+      { label: { ko: "메뉴", en: "Menu" }, value: { ko: "골뱅이소면 · 감자튀김", en: "골뱅이소면 · 감자튀김" } },
+      { label: { ko: "안내", en: "안내" }, value: { ko: "현금만 받아요", en: "현금만 받아요", zh: "只收现金" } },
+    ]);
+  });
+
+  it("carries sheet actions through untouched apart from their labels", async () => {
+    arrange([
+      place({
+        actions: [
+          {
+            id: "timetable",
+            label: { ko: "타임테이블 보기", en: "Timetable" },
+            actionType: "webview",
+            actionValue: "https://web.skkuverse.com/eskara/timetable",
+            style: "primary",
+          },
+        ],
+      }),
+    ]);
+
+    const { markers } = await getEventMarkers();
+
+    expect(markers[0]!.actions).toEqual([
+      {
+        id: "timetable",
+        label: { ko: "타임테이블 보기", en: "Timetable" },
+        actionType: "webview",
+        actionValue: "https://web.skkuverse.com/eskara/timetable",
+        style: "primary",
+      },
+    ]);
+  });
+
+  it("omits an absent action style rather than inventing one", async () => {
+    arrange([
+      place({
+        actions: [
+          {
+            id: "reward",
+            label: { ko: "리워드 안내" },
+            actionType: "content",
+            actionValue: "도장을 모아 오세요.",
+          },
+        ],
+      }),
+    ]);
+
+    const { markers } = await getEventMarkers();
+
+    expect("style" in markers[0]!.actions[0]!).toBe(false);
   });
 });

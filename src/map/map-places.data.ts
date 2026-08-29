@@ -2,7 +2,7 @@ import type { Collection } from "mongodb";
 import { getClient } from "../infra/db";
 import config from "../infra/config";
 import logger from "../infra/logger";
-import type { ActivationDoc, PlaceDoc, SessionDoc } from "./map-places.types";
+import type { ActivationDoc, MapPlaceDoc } from "./map-places.types";
 
 // Raw-driver I/O for the event map (skkuverse#11).
 // Index rationale: docs/reference/eventmap-api.md §5.
@@ -15,6 +15,9 @@ import type { ActivationDoc, PlaceDoc, SessionDoc } from "./map-places.types";
 // There is deliberately NO seedIfEmpty(), unlike src/ad/ad.data.ts. Ads have a
 // sensible default; an event does not. An auto-seeded phantom booth on a
 // production map is a worse failure than an empty map.
+//
+// There is also no loadPlaces() wrapper. One caller reads this collection —
+// map-event-markers.data.ts — and it needs the cursor, not a named scan.
 
 // --- Collection helpers ---
 //
@@ -22,16 +25,10 @@ import type { ActivationDoc, PlaceDoc, SessionDoc } from "./map-places.types";
 // (required[] has an eventmap.dbName entry → missing env var is process.exit(1)),
 // which is what justifies the non-null assertion. Same pattern as ad.data.ts.
 
-function getPlacesCollection(): Collection<PlaceDoc> {
+function getPlacesCollection(): Collection<MapPlaceDoc> {
   return getClient()
     .db(config.eventmap.dbName!)
-    .collection<PlaceDoc>(config.eventmap.collections.places);
-}
-
-function getSessionsCollection(): Collection<SessionDoc> {
-  return getClient()
-    .db(config.eventmap.dbName!)
-    .collection<SessionDoc>(config.eventmap.collections.sessions);
+    .collection<MapPlaceDoc>(config.eventmap.collections.places);
 }
 
 function getActivationsCollection(): Collection<ActivationDoc> {
@@ -44,26 +41,18 @@ function getActivationsCollection(): Collection<ActivationDoc> {
 
 async function ensureIndexes(): Promise<void> {
   const places = getPlacesCollection();
-  const sessions = getSessionsCollection();
   const activations = getActivationsCollection();
 
   await Promise.all([
-    // The marker projection's primary scan: every active plot in one layer set.
-    places.createIndex({ layerSetId: 1, lifecycle: 1 }),
+    // The marker projection's ONE scan: every place in one layer set. No
+    // lifecycle key — a cancelled booth is deleted, so there is no state left
+    // to filter on.
+    places.createIndex({ layerSetId: 1 }),
     // NOT for $near — we never run a geo query. 2dsphere makes Mongo reject a
     // malformed coordinate pair at insert, which is the cheapest available
     // guard against the [lng,lat] swap (ADR 0004 invariant 3). The index is
     // validation infrastructure that happens to also be an index.
     places.createIndex({ location: "2dsphere" }),
-
-    // The session scan: published/cancelled, not soft-deleted.
-    sessions.createIndex({ layerSetId: 1, lifecycle: 1, deletedAt: 1 }),
-    // Join side: which sessions sit on this plot.
-    sessions.createIndex({ layerSetId: 1, placeId: 1 }),
-    // The axis query, and the shape ops type into Atlas by hand during the event.
-    sessions.createIndex({ layerSetId: 1, dayIndex: 1, slot: 1 }),
-    // The next opening/closing boundary, in ops query order.
-    sessions.createIndex({ layerSetId: 1, startAt: 1 }),
 
     // Liveness read path: find the enabled layer set.
     activations.createIndex({ enabled: 1 }),
@@ -112,35 +101,10 @@ async function findActivationById(layerSetId: string): Promise<ActivationDoc | n
   return getActivationsCollection().findOne({ _id: layerSetId });
 }
 
-/** Materializer scan — index {layerSetId, lifecycle}. */
-async function loadPlaces(layerSetId: string): Promise<PlaceDoc[]> {
-  return getPlacesCollection().find({ layerSetId, lifecycle: "active" }).toArray();
-}
-
-/**
- * Materializer scan — index {layerSetId, lifecycle, deletedAt}.
- *
- * `cancelled` is included on purpose: it materializes as visibly closed rather
- * than vanishing, because people walk to a booth that is silently absent.
- * `draft` and `hidden` are excluded and must stay that way.
- */
-async function loadSessions(layerSetId: string): Promise<SessionDoc[]> {
-  return getSessionsCollection()
-    .find({
-      layerSetId,
-      lifecycle: { $in: ["published", "cancelled"] },
-      deletedAt: null,
-    })
-    .toArray();
-}
-
 export {
   ensureIndexes,
   findActivationById,
   findActiveActivation,
   getActivationsCollection,
   getPlacesCollection,
-  getSessionsCollection,
-  loadPlaces,
-  loadSessions,
 };

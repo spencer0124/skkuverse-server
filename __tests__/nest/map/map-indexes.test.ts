@@ -55,7 +55,7 @@ describe("MapService.onModuleInit", () => {
   it("creates every index the contract lists", async () => {
     await new MapService().onModuleInit();
 
-    expect(createIndex).toHaveBeenCalledTimes(7);
+    expect(createIndex).toHaveBeenCalledTimes(3);
     expect(mockLogger.warn).not.toHaveBeenCalled();
   });
 
@@ -63,20 +63,25 @@ describe("MapService.onModuleInit", () => {
     await ensureIndexes();
     const specs = indexSpecs();
 
-    expect(specs).toContain(JSON.stringify([{ layerSetId: 1, lifecycle: 1 }]));
+    // No lifecycle key: a cancelled booth is deleted, not flagged, so the one
+    // scan this collection serves filters on layerSetId alone.
+    expect(specs).toContain(JSON.stringify([{ layerSetId: 1 }]));
     // Not a query index. This is what makes Mongo reject a malformed pair at
     // insert, which is the only automatic guard against the [lng,lat] swap.
     expect(specs).toContain(JSON.stringify([{ location: "2dsphere" }]));
   });
 
-  it("indexes the four session access paths", async () => {
+  it("creates no session index, because there are no sessions", async () => {
     await ensureIndexes();
-    const specs = indexSpecs();
+    const specs = indexSpecs().join("|");
 
-    expect(specs).toContain(JSON.stringify([{ layerSetId: 1, lifecycle: 1, deletedAt: 1 }]));
-    expect(specs).toContain(JSON.stringify([{ layerSetId: 1, placeId: 1 }]));
-    expect(specs).toContain(JSON.stringify([{ layerSetId: 1, dayIndex: 1, slot: 1 }]));
-    expect(specs).toContain(JSON.stringify([{ layerSetId: 1, startAt: 1 }]));
+    // The four session access paths went with the collection. A booth's days are
+    // `hours` on one document now, so there is nothing left to join or to scan
+    // by dayIndex.
+    expect(specs).not.toContain("deletedAt");
+    expect(specs).not.toContain("placeId");
+    expect(specs).not.toContain("dayIndex");
+    expect(specs).not.toContain("startAt");
   });
 
   it("indexes activations on the liveness read path", async () => {

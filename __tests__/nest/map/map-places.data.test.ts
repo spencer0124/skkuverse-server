@@ -46,8 +46,6 @@ jest.mock("../../../src/infra/logger", () => ({
 import {
   findActivationById,
   findActiveActivation,
-  loadPlaces,
-  loadSessions,
 } from "../../../src/map/map-places.data";
 
 const NOW = new Date("2026-09-16T09:00:00.000Z");
@@ -88,39 +86,5 @@ describe("findActivationById", () => {
     // point, and impossible if the lookup demands a live window.
     await findActivationById("eskara-2026");
     expect(findOne).toHaveBeenCalledWith({ _id: "eskara-2026" });
-  });
-});
-
-describe("loadPlaces", () => {
-  it("scans active places for one layer set — index {layerSetId, lifecycle}", async () => {
-    await loadPlaces("eskara-2026");
-    expect(find).toHaveBeenCalledWith({
-      layerSetId: "eskara-2026",
-      lifecycle: "active",
-    });
-  });
-});
-
-describe("loadSessions", () => {
-  it("includes published AND cancelled, excludes draft and hidden", async () => {
-    await loadSessions("eskara-2026");
-
-    const filter = find.mock.calls[0]![0] as unknown as {
-      lifecycle: { $in: string[] };
-    };
-    // cancelled materializes as visibly closed rather than vanishing — people
-    // walk to a booth that is silently absent.
-    expect(filter.lifecycle.$in).toEqual(["published", "cancelled"]);
-    expect(filter.lifecycle.$in).not.toContain("draft");
-    expect(filter.lifecycle.$in).not.toContain("hidden");
-  });
-
-  it("excludes soft-deleted sessions — index {layerSetId, lifecycle, deletedAt}", async () => {
-    await loadSessions("eskara-2026");
-    expect(find).toHaveBeenCalledWith({
-      layerSetId: "eskara-2026",
-      lifecycle: { $in: ["published", "cancelled"] },
-      deletedAt: null,
-    });
   });
 });

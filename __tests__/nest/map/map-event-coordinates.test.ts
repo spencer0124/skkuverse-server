@@ -8,8 +8,8 @@
  *
  * This one closes that gap without a database. It parses
  * `scripts/data/eskara-2026-places.csv` with the same reader the ops importer
- * uses, feeds the resulting PlaceDocs straight into the marker projection, and
- * checks the emitted `lat`/`lng` against the CSV's own columns. A swap on
+ * uses, feeds the resulting coordinates straight into the marker projection,
+ * and checks the emitted `lat`/`lng` against the CSV's own columns. A swap on
  * either side of that seam fails here.
  *
  * It matters because a swap is otherwise invisible: it raises no error, passes
@@ -22,13 +22,11 @@ import path from "path";
 jest.mock("../../../src/map/map-places.data", () => ({
   findActiveActivation: jest.fn(),
   getPlacesCollection: jest.fn(),
-  getSessionsCollection: jest.fn(),
 }));
 
 import {
   findActiveActivation,
   getPlacesCollection,
-  getSessionsCollection,
 } from "../../../src/map/map-places.data";
 import { getEventMarkers } from "../../../src/map/map-event-markers.data";
 
@@ -49,9 +47,29 @@ const mockFindActiveActivation = findActiveActivation as jest.MockedFunction<
 const mockPlaces = getPlacesCollection as jest.MockedFunction<
   typeof getPlacesCollection
 >;
-const mockSessions = getSessionsCollection as jest.MockedFunction<
-  typeof getSessionsCollection
->;
+
+/**
+ * The surveyed rows, wearing the rest of the place document.
+ *
+ * Only `location` comes from the CSV, and that is the point: everything else is
+ * filler, so a failure here can only be about coordinates.
+ */
+function asPlaces(docs: { _id: string; campus: string; location: unknown }[]) {
+  return docs.map((d, i) => ({
+    _id: d._id,
+    layerSetId: LAYER_SET_ID,
+    campus: d.campus,
+    category: "booth",
+    location: d.location,
+    title: { ko: `부스 ${i}` },
+    subtitle: null,
+    hours: [],
+    fields: [],
+    actions: [],
+    order: i,
+    updatedAt: new Date(),
+  }));
+}
 
 function collectionOf(docs: unknown[]) {
   return {
@@ -93,25 +111,10 @@ describe("event marker coordinates, end to end from the survey sheet", () => {
     expect(errors).toEqual([]);
     expect(docs.length).toBeGreaterThan(50);
 
-    // One session per plot, so every surveyed coordinate reaches a marker.
-    const sessions = docs.map((place: { _id: string; campus: string }, i: number) => ({
-      _id: `s-${i}`,
-      layerSetId: LAYER_SET_ID,
-      placeId: place._id,
-      campus: place.campus,
-      title: { ko: `부스 ${i}` },
-      category: "booth",
-      startAt: null,
-      endAt: null,
-      lifecycle: "published",
-      deletedAt: null,
-    }));
-
     mockFindActiveActivation.mockResolvedValue({ _id: LAYER_SET_ID } as Awaited<
       ReturnType<typeof findActiveActivation>
     >);
-    mockPlaces.mockReturnValue(collectionOf(docs));
-    mockSessions.mockReturnValue(collectionOf(sessions));
+    mockPlaces.mockReturnValue(collectionOf(asPlaces(docs)));
 
     const { markers } = await getEventMarkers();
     const expected = csvCoordsByPlaceId();
@@ -130,24 +133,10 @@ describe("event marker coordinates, end to end from the survey sheet", () => {
     const csv = fs.readFileSync(REAL_CSV, "utf8");
     const { docs } = parsePlacesCsv(csv, { layerSetId: LAYER_SET_ID });
 
-    const sessions = docs.map((place: { _id: string; campus: string }, i: number) => ({
-      _id: `s-${i}`,
-      layerSetId: LAYER_SET_ID,
-      placeId: place._id,
-      campus: place.campus,
-      title: { ko: "부스" },
-      category: "booth",
-      startAt: null,
-      endAt: null,
-      lifecycle: "published",
-      deletedAt: null,
-    }));
-
     mockFindActiveActivation.mockResolvedValue({ _id: LAYER_SET_ID } as Awaited<
       ReturnType<typeof findActiveActivation>
     >);
-    mockPlaces.mockReturnValue(collectionOf(docs));
-    mockSessions.mockReturnValue(collectionOf(sessions));
+    mockPlaces.mockReturnValue(collectionOf(asPlaces(docs)));
 
     const { markers } = await getEventMarkers();
 

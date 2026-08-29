@@ -26,13 +26,57 @@ import type { Campus } from "../building/types";
  * ADR 0004 invariant 1 still writes the bare form and needs amending to match.
  *
  * `event`, not the festival's name. A booth from ANY layer set resolves the
- * same way — through the snapshot's `stacksByPlaceId` — so the kind names the
- * mechanism, and next year's festival changes no client branch. That is the
- * "must never learn the name of a consumer" half of ADR 0004 invariant 1.
+ * same way, so the kind names the mechanism and next year's festival changes no
+ * client branch. That is the "must never learn the name of a consumer" half of
+ * ADR 0004 invariant 1.
+ *
+ * For an event marker `placeId` is the PLACE's own id, so two booths sharing one
+ * plot are two taps. They used to be two sessions collapsing onto one plot id,
+ * which is what made a tap ambiguous and needed a stack to resolve.
  */
 export type MarkerTap =
   | { kind: "skku_building"; placeId: string }
   | { kind: "event"; placeId: string };
+
+/**
+ * A string in every language the producer holds.
+ *
+ * `ko` is the source language and always present; `en` falls back to it rather
+ * than being absent, so the client never has to; `zh` ships only when authored.
+ * Shared by every text-bearing field below for one reason: resolving
+ * server-side would make `/map/markers/event` vary by language and split its
+ * 60-second edge cache three ways during exactly the burst that TTL absorbs.
+ */
+export interface I18nWire {
+  ko: string;
+  en: string;
+  zh?: string;
+}
+
+/**
+ * One opening interval. BOTH bounds are real instants.
+ *
+ * Half-bounded is not expressible on purpose: with an array you write two
+ * windows, or none. That is what leaves `hours: []` — see below — as the single
+ * spelling of "always".
+ */
+export interface TimeWindow {
+  startAt: string;
+  endAt: string;
+}
+
+/** A sheet button. The server picks the type; the app renders and never interprets. */
+export interface MarkerAction {
+  id: string;
+  label: I18nWire;
+  actionType: "content" | "route" | "webview" | "external" | "miniapp";
+  /**
+   * ALWAYS a complete URL, except for `content` where it is the body itself.
+   * A relative string handed to a URL opener is the shape of an open redirect.
+   */
+  actionValue: string;
+  style?: "primary" | "secondary";
+}
 
 export interface MapMarker {
   /**
@@ -63,18 +107,58 @@ export interface MapMarker {
    * for buildings — dropping it here would silently lose Chinese booth titles
    * that the old snapshot path served.
    */
-  text: { ko: string; en: string; zh?: string };
+  text: I18nWire;
   /**
-   * ISO instant, or `null` for unbounded on that side. Both null means always
-   * visible, and visibility is then a pure function of the device clock:
-   * `(startAt == null || now >= startAt) && (endAt == null || now < endAt)`.
+   * What this marker is, under its name — a tenant, a category, a department.
+   * `null` where the producer has nothing to say: every building, and a booth
+   * whose author left it blank.
+   */
+  subtitle: I18nWire | null;
+  /**
+   * Every interval this place is open, in authored order. EMPTY means always
+   * open — a building, a 화장실 — and it is the ONLY spelling of that.
+   *
+   * An array rather than the old `startAt`/`endAt` pair because a booth running
+   * both festival days is one place with two windows. Modelling it as one window
+   * forced two documents, and two documents is what made the list render every
+   * place twice, identically, with no field left to tell the rows apart.
    *
    * There is deliberately no `status`. It was only ever a cache of this
    * arithmetic, and it forced both-bounds-null to mean two opposite things — an
-   * always-on facility and a cancelled booth. A cancellation is now expressed
-   * by not serving the marker at all, which frees null/null to mean one thing.
+   * always-on facility and a cancelled booth. A cancellation is expressed by not
+   * serving the marker at all, which frees `[]` to mean one thing.
+   *
+   * Note the client does NOT hide a marker outside its windows. Opening hours
+   * are here to be filtered on and displayed, not to decide what is drawn; the
+   * pin filtering they used to drive is what the collapse removed.
    */
-  startAt: string | null;
-  endAt: string | null;
+  hours: TimeWindow[];
+  /**
+   * Card rows, in authored order, each carrying its own label. Empty for a
+   * building.
+   *
+   * Ordering and a human label are the only two things the deleted card
+   * templates bought, and as data they cost nothing and need no release. The
+   * label is authored rather than derived from a key, so a festival can add a
+   * row without a deploy on either side.
+   */
+  fields: { label: I18nWire; value: I18nWire }[];
+  /** Sheet buttons, in authored order. Empty for a building. */
+  actions: MarkerAction[];
+  /**
+   * Author's sort position, and the LAST tiebreak when two markers land on the
+   * same coordinate. Lower wins on both.
+   */
+  order: number;
+  /**
+   * The first step of the client's collision ladder, resolved from the layer
+   * set's category table. Higher wins.
+   *
+   * Per-CATEGORY, so it cannot separate two bars sharing a plot — both are 30.
+   * That is deliberate: the steps after it (open now, next opening soonest,
+   * `order`) are what resolve a same-category collision, and they resolve it
+   * differently on each festival day, which a static number could never do.
+   */
+  pinPriority: number;
   tap: MarkerTap | null;
 }
