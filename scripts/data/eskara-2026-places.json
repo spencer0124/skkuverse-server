@@ -1,0 +1,1323 @@
+{
+  "layerSetId": "eskara-2026",
+  "campus": "nsc",
+  "_readme": [
+    "VERIFICATION DATASET, not authored 2026 content. Every name is the real 2025",
+    "ESKARA line-up, mapped onto the surveyed plots; the 2026 line-up replaces this",
+    "file wholesale and the importer is unchanged.",
+    "",
+    "ONE ENTRY PER PLACE. A booth open on both festival days is one entry with two",
+    "windows in `hours` — never two entries. The previous format had a `days: [1,2]`",
+    "key that the importer expanded into `-d1` and `-d2` documents, which is what",
+    "made the app list every place twice; the reader now REJECTS that key by name.",
+    "",
+    "`hours` is a list of absolute intervals, both bounds required. An empty list",
+    "means always open (화장실, 의무실, 배리어프리존) and means only that. A window",
+    "crossing midnight is written with the next day's date, which is why the 주점",
+    "entries end at 00:00 on the following morning.",
+    "",
+    "`lat`/`lng` are named here and become GeoJSON [lng, lat] in the reader — one",
+    "conversion site on the write path, mirroring the projection on the read path",
+    "(umbrella ADR 0004 invariant 3)."
+  ],
+  "places": [
+    {
+      "id": "main-stage",
+      "category": "stage",
+      "lat": 37.294452,
+      "lng": 126.971747,
+      "title": "응원제 '1398'",
+      "subtitle": "메인 스테이지",
+      "hours": [
+        {
+          "startAt": "2026-08-27T10:00:00+09:00",
+          "endAt": "2026-08-27T22:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T10:00:00+09:00",
+          "endAt": "2026-08-28T22:00:00+09:00"
+        }
+      ],
+      "actions": [
+        {
+          "id": "timetable",
+          "label": "타임테이블 보기",
+          "actionType": "webview",
+          "actionValue": "/eskara/timetable",
+          "style": "primary"
+        },
+        {
+          "id": "entry",
+          "label": "입장 안내",
+          "actionType": "webview",
+          "actionValue": "/eskara/entry",
+          "style": "secondary"
+        }
+      ],
+      "order": 0
+    },
+    {
+      "id": "eatzone-01",
+      "category": "food",
+      "lat": 37.295428,
+      "lng": 126.971411,
+      "title": "취식존 (북측)",
+      "hours": [
+        {
+          "startAt": "2026-08-27T10:00:00+09:00",
+          "endAt": "2026-08-27T22:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T10:00:00+09:00",
+          "endAt": "2026-08-28T22:00:00+09:00"
+        }
+      ],
+      "order": 10
+    },
+    {
+      "id": "eatzone-02",
+      "category": "food",
+      "lat": 37.29538,
+      "lng": 126.971401,
+      "title": "취식존 (동측)",
+      "hours": [
+        {
+          "startAt": "2026-08-27T10:00:00+09:00",
+          "endAt": "2026-08-27T22:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T10:00:00+09:00",
+          "endAt": "2026-08-28T22:00:00+09:00"
+        }
+      ],
+      "order": 11
+    },
+    {
+      "id": "delivery-zone",
+      "category": "food",
+      "lat": 37.295688,
+      "lng": 126.970752,
+      "title": "배달존",
+      "subtitle": "후문 앞 외부 구역",
+      "hours": [
+        {
+          "startAt": "2026-08-27T10:00:00+09:00",
+          "endAt": "2026-08-27T22:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T10:00:00+09:00",
+          "endAt": "2026-08-28T22:00:00+09:00"
+        }
+      ],
+      "order": 12
+    },
+    {
+      "id": "truck-01",
+      "category": "food",
+      "lat": 37.29542,
+      "lng": 126.971501,
+      "title": "인사이더",
+      "subtitle": "푸드트럭 1",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 20
+    },
+    {
+      "id": "truck-02",
+      "category": "food",
+      "lat": 37.29538,
+      "lng": 126.971492,
+      "title": "더머거",
+      "subtitle": "푸드트럭 2",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 21
+    },
+    {
+      "id": "truck-03",
+      "category": "food",
+      "lat": 37.29534,
+      "lng": 126.971484,
+      "title": "천하제일관",
+      "subtitle": "푸드트럭 3",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 22
+    },
+    {
+      "id": "truck-04",
+      "category": "food",
+      "lat": 37.2953,
+      "lng": 126.971476,
+      "title": "러키비키",
+      "subtitle": "푸드트럭 4",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 23
+    },
+    {
+      "id": "truck-06",
+      "category": "food",
+      "lat": 37.295221,
+      "lng": 126.971459,
+      "title": "밀키웨이",
+      "subtitle": "푸드트럭 6",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 25
+    },
+    {
+      "id": "truck-07",
+      "category": "food",
+      "lat": 37.295181,
+      "lng": 126.971451,
+      "title": "택이네",
+      "subtitle": "푸드트럭 7",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 26
+    },
+    {
+      "id": "truck-08",
+      "category": "food",
+      "lat": 37.295141,
+      "lng": 126.971442,
+      "title": "만수무강",
+      "subtitle": "푸드트럭 8",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 27
+    },
+    {
+      "id": "truck-09",
+      "category": "food",
+      "lat": 37.295101,
+      "lng": 126.971434,
+      "title": "미식유랑단",
+      "subtitle": "푸드트럭 9",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 28
+    },
+    {
+      "id": "truck-10",
+      "category": "food",
+      "lat": 37.295061,
+      "lng": 126.971426,
+      "title": "러브디아",
+      "subtitle": "푸드트럭 10",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 29
+    },
+    {
+      "id": "truck-11",
+      "category": "food",
+      "lat": 37.295021,
+      "lng": 126.971418,
+      "title": "브레이브푸드",
+      "subtitle": "푸드트럭 11",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 30
+    },
+    {
+      "id": "truck-12",
+      "category": "food",
+      "lat": 37.294981,
+      "lng": 126.971409,
+      "title": "홀리몰리",
+      "subtitle": "푸드트럭 12",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 31
+    },
+    {
+      "id": "truck-13",
+      "category": "food",
+      "lat": 37.294941,
+      "lng": 126.971401,
+      "title": "푸드시스터즈",
+      "subtitle": "푸드트럭 13",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 32
+    },
+    {
+      "id": "truck-14",
+      "category": "food",
+      "lat": 37.294902,
+      "lng": 126.971393,
+      "title": "장이당",
+      "subtitle": "푸드트럭 14",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 33
+    },
+    {
+      "id": "truck-15",
+      "category": "food",
+      "lat": 37.294862,
+      "lng": 126.971384,
+      "title": "웅이네푸드트럭",
+      "subtitle": "푸드트럭 15",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 34
+    },
+    {
+      "id": "truck-16",
+      "category": "food",
+      "lat": 37.294822,
+      "lng": 126.971376,
+      "title": "최쉐푸드",
+      "subtitle": "푸드트럭 16",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 35
+    },
+    {
+      "id": "truck-17",
+      "category": "food",
+      "lat": 37.294782,
+      "lng": 126.971367,
+      "title": "팔붕이쿡",
+      "subtitle": "푸드트럭 17",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 36
+    },
+    {
+      "id": "truck-18",
+      "category": "food",
+      "lat": 37.294742,
+      "lng": 126.971359,
+      "title": "파라다이스",
+      "subtitle": "푸드트럭 18",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T23:00:00+09:00"
+        }
+      ],
+      "order": 37
+    },
+    {
+      "id": "promo-01",
+      "category": "booth",
+      "lat": 37.295332,
+      "lng": 126.971391,
+      "title": "프로모션 부스 (북측)",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T18:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T18:00:00+09:00"
+        }
+      ],
+      "actions": [
+        {
+          "id": "sponsor",
+          "label": "후원사 안내",
+          "actionType": "external",
+          "actionValue": "https://www.skku.edu/",
+          "style": "secondary"
+        }
+      ],
+      "order": 40
+    },
+    {
+      "id": "daybooth-01",
+      "category": "booth",
+      "lat": 37.295473,
+      "lng": 126.971096,
+      "title": "ESKARA 부스전 운영 본부",
+      "subtitle": "도장판 교환 · 리워드",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T18:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T18:00:00+09:00"
+        }
+      ],
+      "actions": [
+        {
+          "id": "entry",
+          "label": "입장 안내",
+          "actionType": "webview",
+          "actionValue": "/eskara/entry",
+          "style": "primary"
+        },
+        {
+          "id": "reward",
+          "label": "리워드 안내",
+          "actionType": "content",
+          "actionValue": "부스 체험 후 도장을 모아 오세요.\n\n도장 4개 — 추첨 볼 1개\n도장 5개 — 추첨 볼 1개 + ESKARA 한정판 키링\n도장 6개 이상 — 추첨 볼 1개 + 키링 + 룰렛 기회",
+          "style": "secondary"
+        }
+      ],
+      "order": 50
+    },
+    {
+      "id": "daybooth-02a",
+      "category": "booth",
+      "lat": 37.295501,
+      "lng": 126.97084,
+      "title": "캠퍼스는 다르지만 응원은 하고싶어",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T18:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T18:00:00+09:00"
+        }
+      ],
+      "order": 51
+    },
+    {
+      "id": "daybooth-02b",
+      "category": "booth",
+      "lat": 37.295501,
+      "lng": 126.97084,
+      "title": "인생은 랜덤, 향기는 커스텀",
+      "subtitle": "같은 자리에서 함께 운영",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T18:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T18:00:00+09:00"
+        }
+      ],
+      "order": 52
+    },
+    {
+      "id": "daybooth-03",
+      "category": "booth",
+      "lat": 37.295495,
+      "lng": 126.970897,
+      "title": "수제로켓전문점 아레스",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T18:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T18:00:00+09:00"
+        }
+      ],
+      "order": 53
+    },
+    {
+      "id": "daybooth-04a",
+      "category": "booth",
+      "lat": 37.295489,
+      "lng": 126.970954,
+      "title": "실험실 탈출",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T18:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T18:00:00+09:00"
+        }
+      ],
+      "order": 54
+    },
+    {
+      "id": "daybooth-04b",
+      "category": "booth",
+      "lat": 37.295489,
+      "lng": 126.970954,
+      "title": "S-LINK",
+      "subtitle": "같은 자리에서 함께 운영",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T18:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T18:00:00+09:00"
+        }
+      ],
+      "order": 55
+    },
+    {
+      "id": "daybooth-05",
+      "category": "booth",
+      "lat": 37.295483,
+      "lng": 126.971011,
+      "title": "ROTC 부트캠프",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T18:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T18:00:00+09:00"
+        }
+      ],
+      "order": 56
+    },
+    {
+      "id": "daybooth-06",
+      "category": "booth",
+      "lat": 37.295464,
+      "lng": 126.971182,
+      "title": "잡았S:CATCH",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T18:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T18:00:00+09:00"
+        }
+      ],
+      "order": 57
+    },
+    {
+      "id": "daybooth-07",
+      "category": "booth",
+      "lat": 37.295458,
+      "lng": 126.971239,
+      "title": "[ESKARA 정복 미션] 코드네임: TYPE-S",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T18:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T18:00:00+09:00"
+        }
+      ],
+      "order": 58
+    },
+    {
+      "id": "daybooth-08",
+      "category": "booth",
+      "lat": 37.295452,
+      "lng": 126.971296,
+      "title": "돌잔치",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T18:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T18:00:00+09:00"
+        }
+      ],
+      "order": 59
+    },
+    {
+      "id": "bar-01",
+      "category": "bar",
+      "lat": 37.294749,
+      "lng": 126.97076,
+      "title": "슈퍼 정통 X 경영 브라더스",
+      "subtitle": "연합 주점",
+      "hours": [
+        {
+          "startAt": "2026-08-27T18:00:00+09:00",
+          "endAt": "2026-08-28T00:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "골뱅이소면 · 감자튀김 · 하이볼"
+        }
+      ],
+      "actions": [
+        {
+          "id": "entry",
+          "label": "입장 안내",
+          "actionType": "webview",
+          "actionValue": "/eskara/entry",
+          "style": "primary"
+        }
+      ],
+      "order": 70
+    },
+    {
+      "id": "bar-02",
+      "category": "bar",
+      "lat": 37.294747,
+      "lng": 126.9709,
+      "title": "불가마 24시 스파동 숙/취/전/문",
+      "subtitle": "연합 주점",
+      "hours": [
+        {
+          "startAt": "2026-08-27T18:00:00+09:00",
+          "endAt": "2026-08-28T00:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "계란찜 · 미역국 · 식혜"
+        }
+      ],
+      "order": 71
+    },
+    {
+      "id": "bar-03",
+      "category": "bar",
+      "lat": 37.294744,
+      "lng": 126.971039,
+      "title": "솦융이랑 유대랑 싸우나",
+      "subtitle": "연합 주점",
+      "hours": [
+        {
+          "startAt": "2026-08-27T18:00:00+09:00",
+          "endAt": "2026-08-28T00:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "제육볶음 · 오뎅탕"
+        }
+      ],
+      "order": 72
+    },
+    {
+      "id": "bar-04",
+      "category": "bar",
+      "lat": 37.294742,
+      "lng": 126.971178,
+      "title": "인어공酒(주)",
+      "subtitle": "연합 주점",
+      "hours": [
+        {
+          "startAt": "2026-08-27T18:00:00+09:00",
+          "endAt": "2026-08-28T00:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "해물파전 · 조개탕"
+        }
+      ],
+      "order": 73
+    },
+    {
+      "id": "bar-05",
+      "category": "bar",
+      "lat": 37.294675,
+      "lng": 126.970705,
+      "title": "'예스(yes), 크리스마스!'",
+      "subtitle": "연합 주점",
+      "hours": [
+        {
+          "startAt": "2026-08-27T18:00:00+09:00",
+          "endAt": "2026-08-28T00:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "치킨 · 감바스 · 와인"
+        }
+      ],
+      "order": 74
+    },
+    {
+      "id": "bar-06",
+      "category": "bar",
+      "lat": 37.294669,
+      "lng": 126.970799,
+      "title": "골 때리는 킥 호프",
+      "subtitle": "연합 · 단일 공통",
+      "hours": [
+        {
+          "startAt": "2026-08-27T18:00:00+09:00",
+          "endAt": "2026-08-28T00:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "닭발 · 나초 · 생맥주"
+        }
+      ],
+      "order": 75
+    },
+    {
+      "id": "bar-07",
+      "category": "bar",
+      "lat": 37.294663,
+      "lng": 126.970893,
+      "title": "이자카藥 (IZAKAYAK)",
+      "subtitle": "단일 주점",
+      "hours": [
+        {
+          "startAt": "2026-08-27T18:00:00+09:00",
+          "endAt": "2026-08-28T00:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "야키토리 · 사케"
+        }
+      ],
+      "order": 76
+    },
+    {
+      "id": "bar-08",
+      "category": "bar",
+      "lat": 37.294657,
+      "lng": 126.970987,
+      "title": "만병통취약",
+      "subtitle": "단일 주점",
+      "hours": [
+        {
+          "startAt": "2026-08-27T18:00:00+09:00",
+          "endAt": "2026-08-28T00:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "닭곰탕 · 약초주"
+        }
+      ],
+      "order": 77
+    },
+    {
+      "id": "bar-09",
+      "category": "bar",
+      "lat": 37.294651,
+      "lng": 126.971081,
+      "title": "컴comm온! 산리오",
+      "subtitle": "단일 주점",
+      "hours": [
+        {
+          "startAt": "2026-08-27T18:00:00+09:00",
+          "endAt": "2026-08-28T00:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "타코야끼 · 딸기에이드"
+        }
+      ],
+      "order": 78
+    },
+    {
+      "id": "bar-10",
+      "category": "bar",
+      "lat": 37.294645,
+      "lng": 126.971175,
+      "title": "부추전, 김치전, 인자전, let's go",
+      "subtitle": "연합 주점",
+      "hours": [
+        {
+          "startAt": "2026-08-27T18:00:00+09:00",
+          "endAt": "2026-08-28T00:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "부추전 · 김치전 · 막걸리"
+        }
+      ],
+      "order": 79
+    },
+    {
+      "id": "nightbar-d1-01",
+      "category": "bar",
+      "lat": 37.295494,
+      "lng": 126.970907,
+      "title": "헤라의 불시착",
+      "subtitle": "1일차 야간주점",
+      "hours": [
+        {
+          "startAt": "2026-08-27T18:00:00+09:00",
+          "endAt": "2026-08-28T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "치즈볼 · 하이볼"
+        }
+      ],
+      "order": 80
+    },
+    {
+      "id": "nightbar-d1-02",
+      "category": "bar",
+      "lat": 37.295473,
+      "lng": 126.971096,
+      "title": "ㄴr는… ㄱr끔… 술을 흘린ㄷㅏ…",
+      "subtitle": "1일차 야간주점",
+      "hours": [
+        {
+          "startAt": "2026-08-27T18:00:00+09:00",
+          "endAt": "2026-08-28T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "떡볶이 · 소주"
+        }
+      ],
+      "order": 81
+    },
+    {
+      "id": "nightbar-d1-03",
+      "category": "bar",
+      "lat": 37.295453,
+      "lng": 126.971286,
+      "title": "우끼끼친",
+      "subtitle": "1일차 야간주점",
+      "hours": [
+        {
+          "startAt": "2026-08-27T18:00:00+09:00",
+          "endAt": "2026-08-28T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "바나나튀김 · 몽키스파클"
+        }
+      ],
+      "order": 82
+    },
+    {
+      "id": "nightbar-d2-01",
+      "category": "bar",
+      "lat": 37.295498,
+      "lng": 126.970869,
+      "title": "엔젤항공",
+      "subtitle": "2일차 야간주점",
+      "hours": [
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "기내식 플레이트 · 클라우드 하이볼"
+        }
+      ],
+      "order": 83
+    },
+    {
+      "id": "nightbar-d2-02",
+      "category": "bar",
+      "lat": 37.295486,
+      "lng": 126.970983,
+      "title": "가면酒도회",
+      "subtitle": "2일차 야간주점",
+      "hours": [
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "가면 칵테일 · 핑거푸드"
+        }
+      ],
+      "order": 84
+    },
+    {
+      "id": "nightbar-d2-03",
+      "category": "bar",
+      "lat": 37.295473,
+      "lng": 126.971096,
+      "title": "F1: AIimi Pit Stop",
+      "subtitle": "2일차 야간주점",
+      "hours": [
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "피트스톱 버거 · 에너지드링크"
+        }
+      ],
+      "order": 85
+    },
+    {
+      "id": "nightbar-d2-04",
+      "category": "bar",
+      "lat": 37.295461,
+      "lng": 126.97121,
+      "title": "1루수가 누구야",
+      "subtitle": "2일차 야간주점",
+      "hours": [
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "야구장 핫도그 · 생맥주"
+        }
+      ],
+      "order": 86
+    },
+    {
+      "id": "nightbar-d2-05",
+      "category": "bar",
+      "lat": 37.295449,
+      "lng": 126.971324,
+      "title": "술과 취히로의 행방불명",
+      "subtitle": "2일차 야간주점",
+      "hours": [
+        {
+          "startAt": "2026-08-28T18:00:00+09:00",
+          "endAt": "2026-08-29T00:00:00+09:00"
+        }
+      ],
+      "fields": [
+        {
+          "label": {
+            "ko": "메뉴",
+            "en": "Menu",
+            "zh": "菜单"
+          },
+          "value": "가마솥 오뎅 · 유즈사와"
+        }
+      ],
+      "order": 87
+    },
+    {
+      "id": "goods-shop",
+      "category": "booth",
+      "lat": 37.295093,
+      "lng": 126.971341,
+      "title": "총학생회 굿즈샵",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T20:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T20:00:00+09:00"
+        }
+      ],
+      "actions": [
+        {
+          "id": "goods",
+          "label": "굿즈 안내",
+          "actionType": "webview",
+          "actionValue": "/eskara/goods",
+          "style": "primary"
+        }
+      ],
+      "order": 90
+    },
+    {
+      "id": "preorder",
+      "category": "booth",
+      "lat": 37.295189,
+      "lng": 126.971361,
+      "title": "프리오더 현장 수령",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T18:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T18:00:00+09:00"
+        }
+      ],
+      "actions": [
+        {
+          "id": "goods",
+          "label": "굿즈 안내",
+          "actionType": "webview",
+          "actionValue": "/eskara/goods",
+          "style": "secondary"
+        }
+      ],
+      "order": 91
+    },
+    {
+      "id": "tshirt",
+      "category": "booth",
+      "lat": 37.295236,
+      "lng": 126.971371,
+      "title": "드레스코드 티셔츠 배부",
+      "subtitle": "소진 시 종료",
+      "hours": [
+        {
+          "startAt": "2026-08-27T12:00:00+09:00",
+          "endAt": "2026-08-27T18:00:00+09:00"
+        }
+      ],
+      "order": 92
+    },
+    {
+      "id": "photo-event",
+      "category": "booth",
+      "lat": 37.295141,
+      "lng": 126.971351,
+      "title": "총학생회 포토 이벤트 부스",
+      "hours": [
+        {
+          "startAt": "2026-08-27T11:00:00+09:00",
+          "endAt": "2026-08-27T18:00:00+09:00"
+        },
+        {
+          "startAt": "2026-08-28T11:00:00+09:00",
+          "endAt": "2026-08-28T18:00:00+09:00"
+        }
+      ],
+      "order": 93
+    },
+    {
+      "id": "selfie-booth",
+      "category": "facility",
+      "lat": 37.294853,
+      "lng": 126.971291,
+      "title": "셀프 촬영 부스",
+      "subtitle": "학생회관",
+      "hours": [],
+      "order": 100
+    },
+    {
+      "id": "toilet-bioeng",
+      "category": "facility",
+      "lat": 37.295045,
+      "lng": 126.971331,
+      "title": "화장실 (생명공학관)",
+      "hours": [],
+      "order": 101
+    },
+    {
+      "id": "toilet-welfare",
+      "category": "facility",
+      "lat": 37.294997,
+      "lng": 126.971321,
+      "title": "화장실 (복지회관)",
+      "hours": [],
+      "order": 102
+    },
+    {
+      "id": "toilet-rotc",
+      "category": "facility",
+      "lat": 37.294949,
+      "lng": 126.971311,
+      "title": "화장실 (학군단 1층)",
+      "hours": [],
+      "order": 103
+    },
+    {
+      "id": "toilet-field",
+      "category": "facility",
+      "lat": 37.294901,
+      "lng": 126.971301,
+      "title": "화장실 (대운동장 남서)",
+      "hours": [],
+      "order": 104
+    },
+    {
+      "id": "medical",
+      "category": "facility",
+      "lat": 37.294806,
+      "lng": 126.971281,
+      "title": "의무실 / 응급 부스",
+      "hours": [],
+      "order": 105
+    },
+    {
+      "id": "barrierfree",
+      "category": "facility",
+      "lat": 37.294758,
+      "lng": 126.971271,
+      "title": "배리어프리존",
+      "hours": [],
+      "actions": [
+        {
+          "id": "shuttle",
+          "label": "셔틀 증차 안내",
+          "actionType": "webview",
+          "actionValue": "/eskara/shuttle",
+          "style": "secondary"
+        }
+      ],
+      "order": 106
+    }
+  ]
+}

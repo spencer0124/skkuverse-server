@@ -21,7 +21,8 @@
     "depcheck": "depcheck --ignores='@logtail/pino,pino-pretty,node-cron,nodemon,@types/node,@types/jest,@types/express,@types/supertest,@typescript-eslint/eslint-plugin,@typescript-eslint/parser'",
     "verify:serve": "docker compose -f docker-compose.yml -f docker-compose.local-verify.yml up -d --build",
     "verify:serve:down": "docker compose -f docker-compose.yml -f docker-compose.local-verify.yml down",
-    "eventmap": "NODE_OPTIONS=--dns-result-order=ipv4first node scripts/eventmap-window.js"
+    "eventmap": "NODE_OPTIONS=--dns-result-order=ipv4first node scripts/eventmap-window.js",
+    "eventmap:import": "NODE_OPTIONS=--dns-result-order=ipv4first node scripts/import-eventmap-places.js"
   },
   "author": "",
   "license": "Apache-2.0",
@@ -59,7 +60,6 @@
     "@typescript-eslint/eslint-plugin": "8.59.4",
     "@typescript-eslint/parser": "8.59.4",
     "concurrently": "9.2.1",
-    "csv-parse": "7.0.2",
     "depcheck": "1.4.7",
     "eslint": "10.4.0",
     "jest": "30.4.2",

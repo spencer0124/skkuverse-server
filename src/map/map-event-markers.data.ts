@@ -1,5 +1,8 @@
+import { hasAnyText } from "../infra/i18n";
+import { ROOT_RELATIVE_PATH_RE, toWebviewUrl } from "../infra/webview-url";
 import { activeEventConfig } from "./map-active-layerset";
 import { presentationFor } from "./map-layerset.types";
+import type { PlaceAction } from "./map-places.types";
 import { getPlacesCollection } from "./map-places.data";
 import type { I18n } from "../infra/types";
 import type { I18nWire, MapMarker, MarkerAction } from "./map-marker.types";
@@ -52,23 +55,86 @@ function toWire(text: I18n): I18nWire {
   };
 }
 
-function toWireAction(action: {
-  id: string;
-  label: I18n;
-  actionType: MarkerAction["actionType"];
-  actionValue: string;
-  style?: "primary" | "secondary";
-}): MarkerAction {
-  return {
-    id: action.id,
-    label: toWire(action.label),
-    actionType: action.actionType,
-    actionValue: action.actionValue,
-    // Spread rather than `style: action.style`, so an unstyled button ships
-    // without the key instead of with an explicit `undefined` that the app
-    // would have to tell apart from "secondary".
-    ...(action.style ? { style: action.style } : {}),
-  };
+// --- Actions ----------------------------------------------------------------
+
+const ABSOLUTE_HTTPS_RE = /^https:\/\/[^\s/][^\s]*$/;
+const WHITESPACE_RE = /\s/;
+
+/**
+ * Anchors alone are not sufficient here.
+ *
+ * `$` without the `m` flag still matches BEFORE a final newline, so
+ * `"https://evil.com\n"` satisfies an otherwise correct `^...$` pattern. A
+ * spreadsheet paste is exactly how a trailing newline gets into Mongo, so the
+ * whitespace check is explicit rather than encoded in the regex.
+ */
+function isCleanValue(value: string): boolean {
+  return value.length > 0 && !WHITESPACE_RE.test(value);
+}
+
+/**
+ * `actionValue` shape rules, per eventmap-api.md §8 plus the one case the prose
+ * glosses over.
+ *
+ * The doc says "always a complete URL" and then gives `route` the example
+ * `/(tabs)/transit`, which is not one. Both statements are right about their own
+ * type: a URL OPENER must never be handed a relative string (that is the shape
+ * of an open redirect), while `route` never reaches an opener — it reaches the
+ * app's own navigator, where an absolute URL would be the wrong thing.
+ */
+function isValidActionValue(action: PlaceAction): boolean {
+  const value = action.actionValue;
+  if (typeof value !== "string") return false;
+  // `content` is prose, so it may legitimately contain spaces and newlines.
+  if (action.actionType === "content") return value.trim() !== "";
+  if (!isCleanValue(value)) return false;
+
+  switch (action.actionType) {
+    case "route":
+      return ROOT_RELATIVE_PATH_RE.test(value);
+    case "webview":
+      return toWebviewUrl(value) !== null;
+    case "external":
+    case "miniapp":
+      return ABSOLUTE_HTTPS_RE.test(value);
+    default:
+      return false;
+  }
+}
+
+/**
+ * The buttons worth shipping, resolved.
+ *
+ * Validated HERE rather than at import because the rule depends on
+ * `WEBVIEW_ORIGIN`, which is server config — an importer that hard-coded the
+ * origin would silently disagree with the server after an origin change. Fail
+ * SOFT, per the split webview-url.ts states: ops authored the value, the booth
+ * still appears, and losing one button is recoverable in a way that dropping the
+ * booth is not.
+ */
+function toWireActions(actions: PlaceAction[]): MarkerAction[] {
+  const out: MarkerAction[] = [];
+  for (const action of actions ?? []) {
+    if (!hasAnyText(action.label)) continue;
+    if (!isValidActionValue(action)) continue;
+    out.push({
+      id: action.id,
+      label: toWire(action.label),
+      actionType: action.actionType,
+      // A relative `webview` value becomes absolute here, so the client only
+      // ever sees a complete URL. The `??` is unreachable — isValidActionValue
+      // already ran toWebviewUrl on this value — and keeps the type honest.
+      actionValue:
+        action.actionType === "webview"
+          ? (toWebviewUrl(action.actionValue) ?? action.actionValue)
+          : action.actionValue,
+      // Spread rather than `style: action.style`, so an unstyled button ships
+      // without the key instead of with an explicit `undefined` that the app
+      // would have to tell apart from "secondary".
+      ...(action.style ? { style: action.style } : {}),
+    });
+  }
+  return out;
 }
 
 /**
@@ -115,7 +181,7 @@ async function getEventMarkers(): Promise<{ markers: MapMarker[] }> {
           label: toWire(f.label),
           value: toWire(f.value),
         })),
-        actions: doc.actions.map(toWireAction),
+        actions: toWireActions(doc.actions),
         order: doc.order,
         pinPriority: presentation.pinPriority,
         // The PLACE's own id. Two booths sharing a plot are two taps — they were

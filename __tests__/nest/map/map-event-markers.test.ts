@@ -274,7 +274,7 @@ describe("getEventMarkers", () => {
     ]);
   });
 
-  it("carries sheet actions through untouched apart from their labels", async () => {
+  it("carries sheet actions through, resolving a webview path to a complete URL", async () => {
     arrange([
       place({
         actions: [
@@ -282,7 +282,10 @@ describe("getEventMarkers", () => {
             id: "timetable",
             label: { ko: "타임테이블 보기", en: "Timetable" },
             actionType: "webview",
-            actionValue: "https://web.skkuverse.com/eskara/timetable",
+            // Root-relative is the PREFERRED authoring spelling. It must never
+            // reach the client that way: a relative string handed to a URL
+            // opener is the shape of an open redirect.
+            actionValue: "/eskara/timetable",
             style: "primary",
           },
         ],
@@ -291,15 +294,114 @@ describe("getEventMarkers", () => {
 
     const { markers } = await getEventMarkers();
 
-    expect(markers[0]!.actions).toEqual([
-      {
-        id: "timetable",
-        label: { ko: "타임테이블 보기", en: "Timetable" },
-        actionType: "webview",
-        actionValue: "https://web.skkuverse.com/eskara/timetable",
-        style: "primary",
-      },
-    ]);
+    expect(markers[0]!.actions).toHaveLength(1);
+    const action = markers[0]!.actions[0]!;
+    expect(action.label).toEqual({ ko: "타임테이블 보기", en: "Timetable" });
+    expect(action.style).toBe("primary");
+    expect(action.actionValue).toMatch(/^https:\/\/[^/]+\/eskara\/timetable$/);
+  });
+
+  describe("action validation — one bad button, not one lost booth", () => {
+    async function actionsFor(action: Record<string, unknown>) {
+      arrange([place({ actions: [action] })]);
+      const { markers } = await getEventMarkers();
+      return markers[0]!.actions;
+    }
+
+    const label = { ko: "안내" };
+
+    it("drops a webview pointing off the webview origin", async () => {
+      expect(
+        await actionsFor({
+          id: "evil",
+          label,
+          actionType: "webview",
+          actionValue: "https://evil.example.com/steal",
+        }),
+      ).toEqual([]);
+    });
+
+    it("drops a value carrying whitespace, which a spreadsheet paste supplies", async () => {
+      // `$` without the `m` flag matches before a trailing newline, so anchors
+      // alone would let "https://evil.com\n" through.
+      expect(
+        await actionsFor({
+          id: "sponsor",
+          label,
+          actionType: "external",
+          actionValue: "https://www.skku.edu/\n",
+        }),
+      ).toEqual([]);
+    });
+
+    it("requires a route to be root-relative", async () => {
+      expect(
+        await actionsFor({
+          id: "r",
+          label,
+          actionType: "route",
+          actionValue: "//evil.example.com",
+        }),
+      ).toEqual([]);
+      expect(
+        await actionsFor({
+          id: "r",
+          label,
+          actionType: "route",
+          actionValue: "/(tabs)/transit",
+        }),
+      ).toHaveLength(1);
+    });
+
+    it("keeps content prose, which may hold spaces and newlines", async () => {
+      const kept = await actionsFor({
+        id: "reward",
+        label,
+        actionType: "content",
+        actionValue: "도장 4개 — 추첨 볼 1개\n도장 5개 — 키링",
+      });
+
+      expect(kept).toHaveLength(1);
+      expect(kept[0]!.actionValue).toContain("\n");
+    });
+
+    it("drops a button whose label is blank in every language", async () => {
+      expect(
+        await actionsFor({
+          id: "blank",
+          label: { ko: "" },
+          actionType: "content",
+          actionValue: "본문",
+        }),
+      ).toEqual([]);
+    });
+
+    it("drops an unknown action type rather than shipping it", async () => {
+      expect(
+        await actionsFor({
+          id: "future",
+          label,
+          actionType: "teleport",
+          actionValue: "https://example.com",
+        }),
+      ).toEqual([]);
+    });
+
+    it("keeps the good buttons when one is bad", async () => {
+      arrange([
+        place({
+          actions: [
+            { id: "ok", label, actionType: "content", actionValue: "본문" },
+            { id: "bad", label, actionType: "webview", actionValue: "https://evil.example.com" },
+          ],
+        }),
+      ]);
+
+      const { markers } = await getEventMarkers();
+
+      // Losing one button is recoverable; losing the booth is not.
+      expect(markers[0]!.actions.map((a) => a.id)).toEqual(["ok"]);
+    });
   });
 
   it("omits an absent action style rather than inventing one", async () => {
