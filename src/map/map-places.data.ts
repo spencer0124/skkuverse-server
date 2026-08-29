@@ -2,7 +2,7 @@ import type { Collection } from "mongodb";
 import { getClient } from "../infra/db";
 import config from "../infra/config";
 import logger from "../infra/logger";
-import type { ActivationDoc, PlaceDoc, SessionDoc } from "./types";
+import type { ActivationDoc, PlaceDoc, SessionDoc } from "./map-places.types";
 
 // Raw-driver I/O for the event map (skkuverse#11).
 // Index rationale: docs/reference/eventmap-api.md §5.

@@ -1,5 +1,5 @@
-import { activeEventConfig } from "../eventmap/eventmap.active";
-import type { EventMapConfig } from "../eventmap/types";
+import { activeEventConfig } from "./map-active-layerset";
+import type { EventMapConfig } from "./map-layerset.types";
 import config from "../infra/config";
 import { pick, t } from "../infra/i18n";
 import logger from "../infra/logger";

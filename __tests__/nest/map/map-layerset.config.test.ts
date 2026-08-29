@@ -18,11 +18,11 @@
  */
 import fs from "fs";
 import path from "path";
-import { assertValidConfig, getLayerSetConfig } from "../../../src/eventmap/eventmap.config";
+import { assertValidConfig, getLayerSetConfig } from "../../../src/map/map-layerset.config";
 
 const CONFIG_PATH = path.join(
   __dirname,
-  "../../../src/eventmap/config/eskara-2026.json",
+  "../../../src/map/config/eskara-2026.json",
 );
 const RAW = fs.readFileSync(CONFIG_PATH, "utf8");
 

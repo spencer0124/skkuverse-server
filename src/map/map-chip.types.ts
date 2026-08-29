@@ -7,7 +7,7 @@
  * `action.kind` without interpreting it.
  *
  * The AUTHORED form of a festival chip is `EventChipDef` in
- * `src/eventmap/types.ts` — id, emoji, the layers it names — and
+ * `map-layerset.types.ts` — id, emoji, the layers it names — and
  * `map-chips.data.ts` projects it into this shape, adding the camera and the
  * synthesised reset chip. This is the wire; that is the config.
  *

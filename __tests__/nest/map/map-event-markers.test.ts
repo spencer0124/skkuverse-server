@@ -9,7 +9,7 @@
  * map and the list disagree about what the 주점 chip is showing.
  */
 
-jest.mock("../../../src/eventmap/eventmap.data", () => ({
+jest.mock("../../../src/map/map-places.data", () => ({
   findActiveActivation: jest.fn(),
   getPlacesCollection: jest.fn(),
   getSessionsCollection: jest.fn(),
@@ -19,9 +19,9 @@ import {
   findActiveActivation,
   getPlacesCollection,
   getSessionsCollection,
-} from "../../../src/eventmap/eventmap.data";
-import { getLayerSetConfig } from "../../../src/eventmap/eventmap.config";
-import { presentationFor } from "../../../src/eventmap/types";
+} from "../../../src/map/map-places.data";
+import { getLayerSetConfig } from "../../../src/map/map-layerset.config";
+import { presentationFor } from "../../../src/map/map-layerset.types";
 import { getEventMarkers } from "../../../src/map/map-event-markers.data";
 
 const loaded = getLayerSetConfig("eskara-2026");

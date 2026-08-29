@@ -11,7 +11,7 @@
  *     turns a covered lookup into a collection scan would only show up during
  *     the one week of the year the collection is being read constantly.
  *
- * lib/db + lib/logger are mocked as __tests__/nest/eventmap/eventmap.service.test.ts does.
+ * lib/db + lib/logger are mocked as __tests__/nest/map/map-indexes.test.ts does.
  */
 const findOne = jest.fn();
 const toArray = jest.fn();
@@ -48,7 +48,7 @@ import {
   findActiveActivation,
   loadPlaces,
   loadSessions,
-} from "../../../src/eventmap/eventmap.data";
+} from "../../../src/map/map-places.data";
 
 const NOW = new Date("2026-09-16T09:00:00.000Z");
 

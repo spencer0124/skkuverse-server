@@ -111,7 +111,7 @@ describe("parseSessionsJson — the committed line-up", () => {
   it("covers every category the layer config draws", () => {
     const categories = new Set(real().docs.map((d) => d.category));
 
-    // src/eventmap/config/eskara-2026.json itemDefaults.byCategory — a category with
+    // src/map/config/eskara-2026.json itemDefaults.byCategory — a category with
     // no entry lands on the fallback layer, so a missing one is easy to miss.
     expect([...categories].sort()).toEqual(["bar", "booth", "facility", "food", "stage"]);
   });

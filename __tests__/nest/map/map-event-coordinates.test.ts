@@ -19,7 +19,7 @@
 import fs from "fs";
 import path from "path";
 
-jest.mock("../../../src/eventmap/eventmap.data", () => ({
+jest.mock("../../../src/map/map-places.data", () => ({
   findActiveActivation: jest.fn(),
   getPlacesCollection: jest.fn(),
   getSessionsCollection: jest.fn(),
@@ -29,7 +29,7 @@ import {
   findActiveActivation,
   getPlacesCollection,
   getSessionsCollection,
-} from "../../../src/eventmap/eventmap.data";
+} from "../../../src/map/map-places.data";
 import { getEventMarkers } from "../../../src/map/map-event-markers.data";
 
 // scripts/ is excluded from tsconfig (plain CommonJS operator tooling), so this

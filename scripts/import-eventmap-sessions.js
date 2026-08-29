@@ -23,7 +23,7 @@
  * the live map down, and importing one BEFORE the window opens cannot bring it
  * up early. Publishing a snapshot for a not-yet-active layer set is likewise
  * harmless — the manifest keeps reporting activeLayerSetId: null until the
- * window opens (src/eventmap/eventmap.data.ts findActivationById).
+ * window opens (src/map/map-places.data.ts findActivationById).
  *
  * The authoring order the schema forces is:
  *

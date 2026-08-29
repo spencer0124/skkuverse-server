@@ -90,13 +90,16 @@ module.exports = [
     },
   },
   {
-    // LEAF modules of the map ⇄ eventmap seam. `src/eventmap/eventmap.config.ts`
+    // LEAF modules of the catalogue ⇄ layer-set seam. `map-layerset.config.ts`
     // runs `CONFIG_FILES.map(loadOne)` in its module body and imports these two
     // to validate a festival's chips against the served catalogue; if either
     // ever imported it — or anything that does — back, the half-initialised
     // module would be the one running loadOne, and `BASE_LAYERS` would be
     // `undefined` inside the import-time check with a TypeError naming nothing
     // useful. Their headers say so; this is what makes it fail lint instead.
+    //
+    // Living in one directory now does not make the cycle less real: these two
+    // are imported BY the loader, so nothing they import may reach it again.
     files: ["src/map/map-layers.data.ts", "src/map/map-chips.data.ts"],
     rules: {
       "no-restricted-imports": [
@@ -104,16 +107,23 @@ module.exports = [
         {
           patterns: [
             {
+              // Both spellings: these modules are siblings now, so the import
+              // that would close the cycle is written "./map-layerset.config",
+              // which a "**/"-only glob does not reliably match.
               group: [
-                "**/eventmap.config",
-                "**/eventmap.active",
-                "**/eventmap.materialize",
-                "**/eventmap.data",
+                "**/map-layerset.config",
+                "./map-layerset.config",
+                "**/map-active-layerset",
+                "./map-active-layerset",
+                "**/map-places.data",
+                "./map-places.data",
                 "**/map-config.data",
+                "./map-config.data",
                 "**/map-event-markers.data",
+                "./map-event-markers.data",
               ],
               message:
-                "leaf module: this import closes a cycle through eventmap.config (see the file header).",
+                "leaf module: this import closes a cycle through map-layerset.config (see the file header).",
             },
           ],
         },

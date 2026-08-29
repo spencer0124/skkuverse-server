@@ -14,8 +14,9 @@ import { WEBVIEW_ORIGIN } from "./origins";
  * Two callers, deliberately different in what they do with the verdict, which is
  * why this exports a predicate rather than a validator that throws:
  *
- *  - `eventmap.materialize.ts` drops one sheet button and reports it in
- *    `rejectedActions`. Ops authored the value; losing a button is recoverable.
+ *  - `map-chips.data.ts` accumulates the reason and drops one chip. A festival's
+ *    chips are ops-adjacent config; losing one narrowing is recoverable, and the
+ *    rest of the map still serves.
  *  - `miniapps.schema.ts` throws at boot. That registry is our own repo config,
  *    so a bad value is a bug, not a runtime contingency.
  *

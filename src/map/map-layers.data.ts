@@ -1,4 +1,4 @@
-import type { EventMapConfig } from "../eventmap/types";
+import type { EventMapConfig } from "./map-layerset.types";
 import type { I18n } from "../infra/types";
 
 /**
@@ -7,7 +7,7 @@ import type { I18n } from "../infra/types";
  *
  * Two sources feed it. `BASE_LAYERS` is repo config — the buildings, on every
  * day of the year. The festival layers are read from the live layer set's
- * config (`src/eventmap/config/<layerSetId>.json`) and projected here by
+ * config (`src/map/config/<layerSetId>.json`) and projected here by
  * `eventLayerSpecs`, so next year's festival is a JSON file and Mongo content
  * with no TypeScript to touch. Both reach the wire through ONE mapping in
  * `map-config.data.ts`.
@@ -15,7 +15,7 @@ import type { I18n } from "../infra/types";
  * Split out of `map-config.data.ts` for one concrete reason: chips reference
  * layer ids, and a chip's `layerIds` have to resolve to a `chipGroupId` to be
  * validated. With the catalogue inside the response builder that would be a
- * runtime import cycle — worse now that `eventmap.config.ts` validates a
+ * runtime import cycle — worse now that `map-layerset.config.ts` validates a
  * festival's chips at load and so imports this module too. Here nothing
  * imports back: this file depends only on the event map's TYPES, and
  * `eslint.config.js` refuses a runtime import that would close the cycle.
@@ -146,7 +146,7 @@ export interface LayerSpec {
  *
  * `chipGroupId: null` on both: 건물번호 and 건물이름 are the map's baseline, and
  * a chip that jumps to a festival stage has no business turning them off. A
- * festival config may not reuse these ids either — `eventmap.config.ts`
+ * festival config may not reuse these ids either — `map-layerset.config.ts`
  * refuses one that does, because the two lists are served side by side.
  */
 export const BASE_LAYERS = [

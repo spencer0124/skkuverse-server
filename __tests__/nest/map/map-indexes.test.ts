@@ -38,7 +38,7 @@ const mockLogger = {
 };
 jest.mock("../../../src/infra/logger", () => mockLogger);
 
-import { ensureIndexes } from "../../../src/eventmap/eventmap.data";
+import { ensureIndexes } from "../../../src/map/map-places.data";
 import { MapService } from "../../../src/map/map.service";
 
 /** Every (keys, options) pair createIndex was called with, as JSON for comparison. */

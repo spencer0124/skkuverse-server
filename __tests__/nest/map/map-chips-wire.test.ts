@@ -14,7 +14,7 @@ jest.mock("../../../src/building/building.data", () => ({
   getAllBuildings: jest.fn().mockResolvedValue([]),
 }));
 
-jest.mock("../../../src/eventmap/eventmap.data", () => ({
+jest.mock("../../../src/map/map-places.data", () => ({
   findActiveActivation: jest.fn(),
   getPlacesCollection: jest.fn(),
   getSessionsCollection: jest.fn(),
@@ -23,8 +23,8 @@ jest.mock("../../../src/eventmap/eventmap.data", () => ({
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
 
-import { getLayerSetConfig } from "../../../src/eventmap/eventmap.config";
-import { findActiveActivation } from "../../../src/eventmap/eventmap.data";
+import { getLayerSetConfig } from "../../../src/map/map-layerset.config";
+import { findActiveActivation } from "../../../src/map/map-places.data";
 import { BuildingService } from "../../../src/building/building.service";
 import { BASE_CHIPS } from "../../../src/map/map-chips.data";
 import { buildMapApp } from "../../helpers/nest/build-map-app";

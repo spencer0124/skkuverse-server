@@ -1,6 +1,6 @@
-import { activeEventConfig } from "../eventmap/eventmap.active";
-import { getPlacesCollection, getSessionsCollection } from "../eventmap/eventmap.data";
-import { presentationFor } from "../eventmap/types";
+import { activeEventConfig } from "./map-active-layerset";
+import { getPlacesCollection, getSessionsCollection } from "./map-places.data";
+import { presentationFor } from "./map-layerset.types";
 import logger from "../infra/logger";
 import type { MapMarker } from "./map-marker.types";
 

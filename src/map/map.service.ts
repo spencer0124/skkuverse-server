@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
-import { ensureIndexes } from "../eventmap/eventmap.data";
+import { ensureIndexes } from "./map-places.data";
 import logger from "../infra/logger";
 import type { SupportedLang } from "../infra/types";
 import { getMapConfig } from "./map-config.data";

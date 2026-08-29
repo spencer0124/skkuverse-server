@@ -27,27 +27,27 @@ import fs from "fs";
 import path from "path";
 import { isHex6 } from "../infra/color";
 import logger from "../infra/logger";
-import type { MapCamera } from "../map/map-chip.types";
+import type { MapCamera } from "./map-chip.types";
 // Runtime imports INTO the map domain, and the reason the layer catalogue and
 // the chip validator live in leaf modules: a festival's layers and chips are
 // served beside the base map's, so they are validated against the full served
 // set here, at load. Neither module imports this one back.
-import { BASE_CHIPS, eventChipSpecs, validateChipSpecs } from "../map/map-chips.data";
-import { BASE_LAYERS, eventLayerSpecs } from "../map/map-layers.data";
+import { BASE_CHIPS, eventChipSpecs, validateChipSpecs } from "./map-chips.data";
+import { BASE_LAYERS, eventLayerSpecs } from "./map-layers.data";
+import type { I18n } from "../infra/types";
 import type {
   EventChipDef,
   EventLayerDef,
   EventMapConfig,
-  I18n,
   ItemDefaults,
   ItemPresentation,
-} from "./types";
+} from "./map-layerset.types";
 
 /**
  * The layer sets that exist, listed explicitly rather than discovered with
  * readdirSync.
  *
- * At runtime __dirname is dist/src/eventmap/, populated by
+ * At runtime __dirname is dist/src/map/, populated by
  * scripts/copy-build-assets.js — so a readdir would report "no layer sets" when
  * someone forgets to register a new file there, and a silently absent event map
  * is indistinguishable from a finished festival. An explicit list turns the same
@@ -179,7 +179,7 @@ function asCamera(value: unknown, where: string): MapCamera {
   const lng = asFiniteNumber(raw.lng, `${where}.lng`);
   // Cheap swap detector. Not a general guarantee — it only catches a flip
   // because SKKU's longitude (126) exceeds latitude's ±90 range. The real
-  // defence is the single conversion site in eventmap.materialize.ts.
+  // defence is the single conversion site in map-event-markers.data.ts.
   if (Math.abs(lat) > 90) {
     fail(`${where}.lat ${lat} is outside ±90 — lat and lng may be swapped`);
   }
