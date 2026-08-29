@@ -23,7 +23,14 @@
     "",
     "`lat`/`lng` are named here and become GeoJSON [lng, lat] in the reader — one",
     "conversion site on the write path, mirroring the projection on the read path",
-    "(umbrella ADR 0004 invariant 3)."
+    "(umbrella ADR 0004 invariant 3).",
+    "",
+    "daybooth-02a/02b and 04a/04b are TWO stalls each, because the 2025 부스전 sheet",
+    "numbered two booths 2 and two booths 4. They were surveyed as one interpolated",
+    "point apiece; the `b` of each pair now sits a quarter of the strip's own step",
+    "(~1.3 m) along it. Two places may share a coordinate only when their windows are",
+    "disjoint — the strip really is re-striped from day booths to night bars — and a",
+    "test enforces exactly that."
   ],
   "places": [
     {
@@ -522,8 +529,8 @@
     {
       "id": "daybooth-02b",
       "category": "booth",
-      "lat": 37.295501,
-      "lng": 126.97084,
+      "lat": 37.295499,
+      "lng": 126.970854,
       "title": "인생은 랜덤, 향기는 커스텀",
       "subtitle": "같은 자리에서 함께 운영",
       "hours": [
@@ -577,8 +584,8 @@
     {
       "id": "daybooth-04b",
       "category": "booth",
-      "lat": 37.295489,
-      "lng": 126.970954,
+      "lat": 37.295488,
+      "lng": 126.970968,
       "title": "S-LINK",
       "subtitle": "같은 자리에서 함께 운영",
       "hours": [

@@ -87,6 +87,45 @@ describe("parsePlacesFile — the committed sheet", () => {
     expect(always.length).toBeGreaterThan(0);
   });
 
+  it("never puts two places with overlapping hours on one coordinate", () => {
+    // The one collision the client cannot resolve. Two places may share a
+    // coordinate — the west strip is re-striped between the day booths and the
+    // night bars, and that IS one spot — but only if their windows are
+    // disjoint, because openness is what picks between them. Two stalls open at
+    // the same moment on the same point leave the tiebreak to `order`, which
+    // means one of them is simply never on the map.
+    //
+    // The 2025 sheet numbered two booths "2" and two booths "4", which is
+    // exactly this case and why the rule is enforced rather than assumed.
+    const overlaps = (
+      a: { startAt: Date; endAt: Date }[],
+      b: { startAt: Date; endAt: Date }[],
+    ) =>
+      // An empty list is "always open", so it overlaps anything that exists.
+      a.length === 0 || b.length === 0
+        ? true
+        : a.some((x) => b.some((y) => x.startAt < y.endAt && y.startAt < x.endAt));
+
+    const byCoord = new Map<string, typeof docs>();
+    for (const d of docs) {
+      const key = d.location.coordinates.join(",");
+      byCoord.set(key, [...(byCoord.get(key) ?? []), d]);
+    }
+
+    const clashes: string[] = [];
+    for (const [key, group] of byCoord) {
+      for (let i = 0; i < group.length; i++) {
+        for (let j = i + 1; j < group.length; j++) {
+          if (overlaps(group[i].hours, group[j].hours)) {
+            clashes.push(`${group[i]._id} vs ${group[j]._id} @ ${key}`);
+          }
+        }
+      }
+    }
+
+    expect(clashes).toEqual([]);
+  });
+
   it("puts every place on the Korean peninsula, not in the ocean", () => {
     for (const d of docs) {
       const [lng, lat] = d.location.coordinates;

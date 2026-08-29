@@ -170,28 +170,36 @@ telling the truth on a dead network.
 The server drops, merges and clock-filters nothing; it ships every place of the live set with
 everything the client needs to disambiguate. The client keeps one pin per coordinate, choosing by:
 
-1. highest `pinPriority`
-2. tie → open right now
+1. **open right now** — `hours.length === 0 || hours.some(w => now >= w.startAt && now < w.endAt)`
+2. tie → highest `pinPriority`
 3. tie → next opening soonest
 4. tie → lowest `order`, then `id`
 
-Step 1 cannot separate two bars sharing a plot — both are `category: bar`, both priority 30 — which
-is precisely why the later steps exist. They resolve it **differently on each festival day**, so the
-8/27 tenant wins the spot on 8/27 and the 8/28 tenant wins it on 8/28. A static number could never do
-that. A suppressed marker keeps its list row.
+**Openness comes first, and the ordering is load-bearing rather than arbitrary.** A coordinate is
+shared for exactly one reason on this map: a spot is used by different occupants at different times.
+The west strip is booths from 11:00 and bars from 18:00, and `daybooth-01` shares
+`126.971096, 37.295473` with two bars precisely because it is the same stall re-striped at dusk. Only
+step 1 knows that. With `pinPriority` first, the operations desk would spend its entire 11:00–18:00
+window hidden behind a bar that is shut, because `bar` outranks `booth` on a number that cannot see
+the clock.
+
+`pinPriority` still decides between two places that are open at once — a stage over a 화장실 — which
+is the question it was always answering. Step 3 then covers the hours when nothing on that spot is
+open: the pin becomes whichever occupant is next, so an overnight map still points at the right
+stall. A suppressed marker keeps its list row.
+
+Step 2 cannot separate two bars sharing a plot — both are `category: bar`, both priority 30 — and it
+does not need to, because their windows are one night apart and step 1 has already answered.
 
 > [!IMPORTANT]
-> **Priority outranks openness, and the committed sheet has a live instance of the consequence.**
-> `daybooth-01` (부스전 운영 본부, `booth`, priority 20, open 11:00–18:00) shares
-> `126.971096, 37.295473` with two `bar` places at priority 30 that open at 18:00. Between 11:00 and
-> 18:00 the operations desk is therefore hidden behind a bar that is shut.
+> **The ladder can only resolve a collision the clock can see.** Two places open at the *same*
+> moment on the *same* point fall through to `order`, and the loser is then never on the map at any
+> time. That is a data error, not a rendering one, so it is caught at import instead: a test over the
+> committed sheet rejects any two places whose windows overlap on one coordinate.
 >
-> This ordering is deliberate — priority is what expresses "a stage matters more than a 화장실" — but
-> it was chosen for the same-category case and the cross-category one falls out of it. Two ways to
-> avoid it, neither needing a code change: give the colliding places distinct coordinates (they are
-> distinct stalls on the ground), or narrow with a chip, since 부스 and 주점 share a `chipGroupId` and
-> are mutually exclusive the moment either is tapped. Swapping steps 1 and 2 is the third option and
-> a client change.
+> It has fired for real. The 2025 부스전 sheet numbered two booths "2" and two booths "4", and both
+> pairs were surveyed as a single interpolated point with identical hours — genuinely two stalls, so
+> the fix was two coordinates, a quarter of the strip's own step (~1.3 m) apart.
 
 ## 4. Layer flags — `defaultVisible` and `userConfigurable`
 
