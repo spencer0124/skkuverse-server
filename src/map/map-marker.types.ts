@@ -151,13 +151,15 @@ export interface MapMarker {
    */
   order: number;
   /**
-   * The first step of the client's collision ladder, resolved from the layer
+   * The SECOND step of the client's collision ladder, resolved from the layer
    * set's category table. Higher wins.
    *
-   * Per-CATEGORY, so it cannot separate two bars sharing a plot — both are 30.
-   * That is deliberate: the steps after it (open now, next opening soonest,
-   * `order`) are what resolve a same-category collision, and they resolve it
-   * differently on each festival day, which a static number could never do.
+   * Second, not first: a coordinate is shared on this map because a spot has
+   * different occupants at different times, so openness is the only step that
+   * can see what the collision actually is. Priority ranks two places that are
+   * open at once — a stage over a 화장실 — which is the question it answers.
+   * Ordering it first would hide a booth behind a bar that is shut. Contract:
+   * docs/reference/map-markers-api.md §3.4.
    */
   pinPriority: number;
   tap: MarkerTap | null;
