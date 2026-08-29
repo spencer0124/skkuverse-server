@@ -3,7 +3,7 @@ title: Map Markers API Reference
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-08-28
+last-updated: 2026-08-29
 audience: internal
 ---
 
@@ -13,7 +13,7 @@ audience: internal
 > visible and who may change it, the chips that move the camera and swap layer sets, and the three
 > endpoints that carry them. Cross-repo ownership is
 > [umbrella ADR 0004](https://github.com/spencer0124/skkuverse/blob/main/docs/decisions/0004-event-map-layer-ownership.md);
-> the festival's authoring, materialization and snapshot tiers are [eventmap-api.md](eventmap-api.md).
+> the festival's storage, authoring and ops tiers are [event-places.md](event-places.md).
 
 ## 1. Summary
 
@@ -23,7 +23,7 @@ audience: internal
 | Auth | none on all three |
 | Rate limit | `BusRateLimitMiddleware`, applied to the `/map` prefixes in `MapModule.configure` |
 | Wire schema | `src/map/map-marker.types.ts` (markers), `src/map/map-chip.types.ts` (chips) |
-| Producers | `src/map/map-markers.data.ts` (buildings), `src/map/map-event-markers.data.ts` (festival sessions) |
+| Producers | `src/map/map-markers.data.ts` (buildings), `src/map/map-event-markers.data.ts` (event places) |
 | Layer catalogue | `src/map/map-layers.data.ts` — the base layers, and the projection of a festival's `layers[]` from its config |
 | Chips | `src/map/map-chips.data.ts` — the base chips, the projection of a festival's `chips[]`, the synthesised reset chip, and the one validator both go through |
 | Response builder | `src/map/map-config.data.ts` |
@@ -37,33 +37,67 @@ picture. Both producers now import the types in `map-marker.types.ts`, so a fiel
 added to one and forgotten in the other.
 
 > [!NOTE]
-> The event map's own tiers — `places`, `sessions`, `activations`, the CSV and JSON importers,
-> `npm run eventmap` — are untouched and still documented in [eventmap-api.md](eventmap-api.md).
-> What changed is only how a booth reaches the **map**: as a layer in `/map/config` with an
-> endpoint, rather than as a snapshot the app renders separately.
+> This is now the **only** wire the festival travels on. The snapshot tier that used to carry the
+> list and card content — `/eventmap/manifest`, `/eventmap/snapshot`, the materializer, the
+> `snapshots` collection — is deleted, and the marker carries `subtitle`, `hours`, `fields` and
+> `actions` in its place. Storage, authoring and the kill switch are
+> [event-places.md](event-places.md).
 
 ## 2. The marker schema
 
 Every marker on every layer, from either producer, is exactly this object. Nothing is optional
-except `text.zh`.
+except `text.zh` — a building fills the booth-shaped half with stated emptiness rather than omitting
+it, because an absent field is a second thing for the client to branch on.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `id` | `string` | Unique **within its layer** — a building id, or a session id. NOT unique across layers: one building is drawn once per building layer and both markers carry the same value, so the client's key has to be layer id plus this |
+| `id` | `string` | Unique **within its layer** — a building id, or a place id. NOT unique across layers: one building is drawn once per building layer and both markers carry the same value, so the client's key has to be layer id plus this |
 | `layerId` | `string` | Which layer draws this marker. The server decides membership; the client filters on it. Always one of the ids `GET /map/config` advertises |
-| `campus` | `"hssc" \| "nsc"` | The `Campus` literal from `src/building/types.ts`. For a booth this is the **plot's** campus, never the session's denormalized copy, so a marker's campus and its position cannot disagree |
+| `campus` | `"hssc" \| "nsc"` | The `Campus` literal from `src/building/types.ts` |
 | `lat` | `number` | Latitude. Un-swapped from Mongo's GeoJSON `[lng, lat]` by the server, which is the only converter (ADR 0004 invariant 3) |
 | `lng` | `number` | Longitude |
-| `text` | `{ ko: string; en: string; zh?: string }` | The string this marker **displays** — a building number, a building name, a booth title. The layer's `markerStyle` decides how it is drawn |
-| `startAt` | `string \| null` | ISO instant, or `null` for unbounded on that side |
-| `endAt` | `string \| null` | ISO instant, or `null` for unbounded on that side |
+| `text` | `I18nWire` | The string this marker **displays** — a building number, a building name, a booth title. The layer's `markerStyle` decides how it is drawn |
+| `subtitle` | `I18nWire \| null` | What this marker is, under its name — a tenant, a department. `null` for every building |
+| `hours` | `TimeWindow[]` | Every interval this place is open, in authored order. **Empty means always open** |
+| `fields` | `{ label: I18nWire; value: I18nWire }[]` | Card rows in authored order, each carrying its own label. Empty for a building |
+| `actions` | `MarkerAction[]` | Sheet buttons in authored order. Empty for a building |
+| `order` | `number` | Author's sort position, and the last tiebreak in a coordinate collision. Lower wins |
+| `pinPriority` | `number` | First step of the collision ladder, from the layer set's category table. Higher wins. `0` for a building |
 | `tap` | `MarkerTap \| null` | What a tap resolves to, or `null` for a marker that is not interactive |
 
 ```ts
+interface I18nWire { ko: string; en: string; zh?: string }
+
+/** Both bounds real. Half-bounded is not expressible — see §3. */
+interface TimeWindow { startAt: string; endAt: string }
+
+interface MarkerAction {
+  id: string;
+  label: I18nWire;
+  actionType: "content" | "route" | "webview" | "external" | "miniapp";
+  actionValue: string;
+  style?: "primary" | "secondary";
+}
+
 type MarkerTap =
   | { kind: "skku_building"; placeId: string }
   | { kind: "event"; placeId: string };
 ```
+
+For an event marker `placeId` is the **place's own id**, so two booths sharing one plot are two taps.
+They used to be two sessions collapsing onto one plot id, which is what made a tap ambiguous and
+needed a stack to resolve.
+
+### 2.0 `actionValue` is always complete by the time it ships
+
+A `webview` value is authored root-relative (`/eskara/entry`) and resolved against `WEBVIEW_ORIGIN`
+at serve time, so the client only ever sees an absolute URL — a relative string handed to a URL
+opener is the shape of an open redirect. `route` is the exception and stays root-relative, because it
+reaches the app's own navigator rather than an opener.
+
+A button whose label is blank in every language, or whose value is wrong for its type, is **dropped**
+and the booth is served without it. Ops authored the value; losing a button is recoverable in a way
+that dropping the booth is not.
 
 ### 2.1 `text` ships every language, and is not resolved server-side
 
@@ -89,38 +123,62 @@ Two fields left the wire when the schema was unified:
   whose id is numeric in Mongo. One addressing scheme is the whole point; the client narrows it back
   to a number inside its building branch, where `/building/:id` needs one.
 
-## 3. Why there is no `status`
+## 3. Why `hours` is an array, and why there is no `status`
 
-Visibility is a pure function of the device clock and the two bounds:
+Openness is a pure function of the device clock and the windows:
 
 ```text
-(startAt == null || now >= startAt) && (endAt == null || now < endAt)
+hours.length === 0 || hours.some(w => now >= w.startAt && now < w.endAt)
 ```
 
-Both `null` therefore means **always visible**, and it means only that.
+An **empty list means always open**, and it means only that.
 
-`status` was only ever a cache of that arithmetic, and caching it forced both-bounds-null to mean two
-opposite things depending on a sibling field: an always-on 화장실, and a rain-cancelled truck. That
-ambiguity is what made the field load-bearing rather than redundant.
+### 3.1 An array, because a place is not a day
 
-A **cancellation is now expressed by not serving the marker at all**. That is what frees null/null to
-mean one thing, and it turns "a closed booth draws no pin" into the definition rather than a rule
-somebody has to remember. `/map/markers/event` therefore queries `lifecycle: "published"` alone:
-`draft` and `hidden` were never materialized either, and `cancelled` is absent.
+`hours` replaced a scalar `startAt`/`endAt` pair. With one window per document, a booth open on both
+festival days had to be **two documents** — and the app's list, which renders one row per document,
+showed every place twice with nothing on the card to tell the rows apart. In prod that was 28 `bar`
+documents over 18 real bars.
 
-> [!IMPORTANT]
-> This is a deliberate divergence from the materializer, and it costs something. `SessionDoc`'s own
-> comment says a cancelled booth must be **visibly** cancelled — "people walk there otherwise" — and
-> the snapshot tier still ships one, closed and badged. On the **map** surface a cancelled booth is
-> now silently absent instead. The trade was made knowingly: with no status field to disambiguate
-> it, a served marker means "this is real", which is the property the whole schema rests on. Ops
-> wanting a visibly-cancelled pin has to say so through the snapshot's card, not the map pin.
+Both bounds inside a window are required. Half-bounded is not expressible on purpose: you write two
+windows, or none. Allowing one open end would give the field a second way to say "no limit", which is
+exactly the ambiguity §3.2 describes.
+
+### 3.2 No `status`
+
+`status` was only ever a cache of the arithmetic above, and caching it forced the old
+both-bounds-null to mean two opposite things depending on a sibling field: an always-on 화장실, and a
+rain-cancelled truck. That ambiguity is what made the field load-bearing rather than redundant.
+
+A **cancellation is expressed by not serving the marker at all** — a cancelled place is deleted from
+the sheet, not flagged. That is what frees `[]` to mean one thing.
+
+### 3.3 Hours do not decide what is drawn
+
+The client does **not** hide a marker outside its windows. Opening hours are here to be filtered on
+and displayed; the pin filtering they used to drive was how the old map coped with a crowded field,
+which was a workaround for the day-split rather than a feature. Layers and chips do that job now, and
+a genuine coordinate collision is resolved with `pinPriority` and `hours` — see §3.4.
 
 Because the bounds are absolute instants rather than wall-clock strings, a device in the wrong
 timezone still derives correctly. A device whose clock is genuinely wrong does not, and that is
-accepted rather than corrected — the same position [eventmap-api.md §9](eventmap-api.md) takes.
-The side benefit is the one that matters on the day: the map keeps telling the truth on a dead
-network.
+accepted rather than corrected. The side benefit is the one that matters on the day: the map keeps
+telling the truth on a dead network.
+
+### 3.4 Two markers on one coordinate
+
+The server drops, merges and clock-filters nothing; it ships every place of the live set with
+everything the client needs to disambiguate. The client keeps one pin per coordinate, choosing by:
+
+1. highest `pinPriority`
+2. tie → open right now
+3. tie → next opening soonest
+4. tie → lowest `order`, then `id`
+
+Step 1 cannot separate two bars sharing a plot — both are `category: bar`, both priority 30 — which
+is precisely why the later steps exist. They resolve it **differently on each festival day**, so the
+8/27 tenant wins the spot on 8/27 and the 8/28 tenant wins it on 8/28. A static number could never do
+that. A suppressed marker keeps its list row.
 
 ## 4. Layer flags — `defaultVisible` and `userConfigurable`
 
@@ -164,7 +222,7 @@ combinations are all meaningful:
 ## 5. Endpoints
 
 One route per **data source**, not per layer: buildings come from the buildings collection, festival
-booths from the event map's `places` and `sessions`. See §6 for why layers within a source share one.
+booths from the event map's `places`. See §6 for why layers within a source share one.
 
 ### 5.1 `GET /map/config`
 
@@ -376,8 +434,7 @@ only open a sheet that fails.
 
 `Cache-Control: public, max-age=60`.
 
-Every **published** session of the currently active layer set, projected onto its plot's coordinates.
-An empty list rather than an error when no festival is live — the app asks for this endpoint whenever
+Every place of the currently active layer set. An empty list rather than an error when no festival is live — the app asks for this endpoint whenever
 the layer is configured, and "no festival today" is an ordinary answer. When nothing is active it does
 not touch Mongo at all. The same answer, with one warning per process, when an activation names a
 layer set this build has no usable config for (§8.6): a category table the server cannot trust is not
@@ -387,26 +444,22 @@ Named for the **mechanism**, not the festival. Whichever layer set is live is se
 app never sees the URL except as `layers[].endpoint` in `/map/config` — so next year's festival
 changes no route and no client.
 
-Each marker's `layerId` is the session's `category` resolved through the layer set's
-`itemDefaults` — the **same table and the same function** (`presentationFor`) the materializer uses
-to stamp `layerId` on the snapshot item with the same `id`. That is the join the app relies on to
-list "what the 주점 chip is showing": a booth's pin and its list row cannot land on different layers,
-because there is exactly one resolver.
+Each marker's `layerId` is the place's `category` resolved through the layer set's `itemDefaults` by
+`presentationFor` — **one table, one resolver** — which is what keeps a 주점 pin on the layer the
+주점 chip shows.
 
-A minute rather than the snapshot tier's `immutable`: this URL is **stable rather than
-version-stamped**, so it can never be immutable. A minute is long enough for the edge to absorb a
-festival-day burst, and short enough that an ops correction — a booth moved, a set cancelled — is live
-before anyone walks there. The **window arithmetic does not need a short TTL**: opening and closing
-times ride in the payload, so a booth changes state on the device's clock with no refetch.
+A minute, because this URL is **stable rather than version-stamped** and so can never be immutable. A
+minute is long enough for the edge to absorb a festival-day burst, and short enough that an ops
+correction — a booth moved, a set cancelled — is live before anyone walks there. The **window
+arithmetic does not need a short TTL**: opening and closing times ride in the payload, so a booth
+changes state on the device's clock with no refetch.
 
-One marker per **session**, not per plot. Two occupants of one plot — a daytime booth and a night
-stall — are two markers whose windows do not overlap, so the density problem the snapshot answered
-with `stackKey` collapsing is answered here by the clock. Where windows genuinely do overlap the
-markers sit on the same coordinate, and both carry the same `tap`, so either opens the plot.
-
-A session pointing at a missing or retired plot is **skipped and counted**, not thrown: one dangling
-`placeId` is a typo in the session sheet, and dropping the festival over it would be worse. The count
-is logged.
+**One document, one marker, one cursor.** There is no join and no lifecycle filter. This used to read
+`places` and `sessions` and emit a marker per session — one occupancy interval each — so a booth open
+on both festival days produced two markers with identical everything. The days are `hours` on a
+single document now, so the join, the orphan counter and the whole notion of a plot separate from its
+occupant are gone. Two booths genuinely sharing a coordinate are two documents with two taps, and the
+client picks a pin between them (§3.4).
 
 Response:
 
@@ -475,7 +528,7 @@ documents twice.
 
 ## 7. The festival layer set
 
-A festival's layers are **authored in its config** — `src/eventmap/config/<layerSetId>.json`,
+A festival's layers are **authored in its config** — `src/map/config/<layerSetId>.json`,
 `layers[]` — and present in `GET /map/config` only while that layer set's activation window is open.
 The window is the on/off lever (`npm run eventmap open|close`), so a festival starts and ends with no
 deploy and the layers simply stop existing afterwards rather than lingering as dead toggles.
@@ -491,7 +544,7 @@ a chip group.
 Which category lands on which layer is `itemDefaults.byCategory[<category>].layerId` in the same
 file, with `itemDefaults.fallback.layerId` for anything unmapped. That table is the **only** place
 the mapping exists; the materializer and this route both resolve through it
-([eventmap-api.md §2.1](eventmap-api.md)). A layer id that collides with a base layer, a
+([event-places.md](event-places.md)). A layer id that collides with a base layer, a
 `layerId` that names no layer, or a set with nothing `defaultVisible` is a rejected config (§8.6).
 
 The values as served for ESKARA 2026 are the file itself — read it rather than a copy here.
@@ -518,8 +571,8 @@ while I look there*. Chips ship inside `GET /map/config`, beside `layers`, and a
 server-decided: the app renders a pill and dispatches on `action.kind` without interpreting it.
 
 They exist because the reorg in this document **orphaned the map's only server-driven chip row**. The
-event map's chips filter snapshot *items*; once booths became ordinary marker layers there were no
-snapshot items on the map screen left to filter, so `<EventMapChipRow />` was removed from
+event map's chips used to filter snapshot *items*; once booths became ordinary marker layers there
+were no snapshot items on the map screen left to filter, so `<EventMapChipRow />` was removed from
 `CampusScreen` as a control that would visibly do nothing. What remained in that spot was
 `CampusChipRow.tsx`, a hardcoded mock whose own header says the list "is what gets deleted" when an
 endpoint lands. This is that endpoint.
@@ -527,8 +580,8 @@ endpoint lands. This is that endpoint.
 > [!NOTE]
 > `MapChip` is the **wire**. The **authored** form of a festival chip is `EventChipDef` in the layer
 > set's config — `{ id, emoji, layerIds, label? }` — and `src/map/map-chips.data.ts` projects it into
-> this shape, adding the camera and the synthesised reset chip (§8.5). The snapshot no longer carries
-> a chip vocabulary of its own; the predicate chips it used to ship are gone with the pins they
+> this shape, adding the camera and the synthesised reset chip (§8.5). This is the only chip
+> vocabulary there is — the predicate chips the deleted snapshot used to ship went with the pins they
 > filtered.
 
 ### 8.1 The schema
@@ -633,7 +686,7 @@ layer toggles read plural (`Bars`) — copy that a deploy must not quietly chang
 Festival chips are gated by the **same activation window** as the festival layers, so a festival
 starts and ends with no deploy and its chips stop existing rather than lingering as dead buttons.
 
-### 8.6 Validation is fail-loud where a PR fixes it, fail-soft where a snapshot can keep serving
+### 8.6 Validation is fail-loud where a PR fixes it, fail-soft where the base map can keep serving
 
 One validator, `validateChipSpecs(specs, catalogue)`, checks a chip row against the catalogue it will
 be served beside and **returns** every problem it finds, accumulated. Two callers, two consequences:
@@ -641,12 +694,11 @@ be served beside and **returns** every problem it finds, accumulated. Two caller
 | Row | When | On failure |
 | --- | --- | --- |
 | `BASE_CHIPS` against `BASE_LAYERS` | module import, `src/map/map-chips.data.ts` | throws `FATAL [map chips]` — repo TypeScript, a PR fixes it, the boot must not proceed |
-| the festival row (reset chip + authored chips) against **the full served catalogue** (base + festival layers) | config load, `assertValidConfig` in `src/eventmap/eventmap.config.ts` | the layer set is **rejected**: logged once with the path, the previous snapshot stays live, and `/map/config` serves the base layers only — the festival is off the campus map until the file is fixed |
+| the festival row (reset chip + authored chips) against **the full served catalogue** (base + festival layers) | config load, `assertValidConfig` in `src/map/map-layerset.config.ts` | the layer set is **rejected**: logged once with the path, and `/map/config` serves the base layers only — the festival is off the campus map until the file is fixed |
 
-The second row is a deliberate posture, and it has a cost worth naming: while a config is broken the
-manifest still advertises the last good snapshot (the materializer's rule), so the list sheet knows
-booths the map does not draw. That is preferred to drawing from a category table the server could
-not validate.
+The second row is a deliberate posture with a cost worth naming: a config typo takes the whole
+festival off the map rather than degrading part of it. That is preferred to drawing from a category
+table the server could not validate, and 건물번호 keeps serving throughout.
 
 The rules:
 
@@ -696,16 +748,17 @@ release. What an app built before its half sees against this server:
 
 | Surface | Shipped app + this server |
 | --- | --- |
-| Festival pins | drawn — the app reads `layers[].endpoint` from `/map/config`, so `/map/markers/event` is found |
+| Festival pins | drawn — the app reads `layers[].endpoint` from `/map/config`, so `/map/markers/event` is found. It reads absent `startAt`/`endAt` as `null`, which its own rule calls "always visible", so every pin draws unconditionally — which is the new intent anyway |
 | Chips | work — server-driven, dispatched on `action.kind` |
 | Tapping a pin | **inert** — `tap.kind: "event"` is not in the app's `TAP_KINDS` allowlist, and an unknown kind leaves the marker drawn but untappable |
-| List / peek sheet | **gone** — the snapshot's `schemaVersion` is 2, the app's parser drops any snapshot newer than its own `EVENTMAP_SCHEMA_VERSION = 1` |
+| List / peek sheet | **gone** — `/eventmap/manifest` 404s, the app catches it and reports "inactive" |
 | `skkuverse://map?place=event:…` | dropped — `PLACE_KINDS` does not carry `event` |
 
-The app-side change is: `TAP_KINDS` / `PLACE_KINDS` / the `CampusScreen` switch learn `event`;
-`EVENTMAP_SCHEMA_VERSION` becomes 2; the snapshot parser stops reading `layers`, `chipGroups`,
-`icons`, `camera`, `iconId` and reads `items[].layerId`. Until it ships, the festival map is a
-picture with no taps.
+Every intermediate state degrades correctly rather than blanking the campus map, which is what let
+the server land in five commits without the app blocking any of them. The app-side change is:
+`TAP_KINDS` / `PLACE_KINDS` / the `CampusScreen` switch learn `event`; the whole snapshot client is
+deleted; the list, card and peek sheet render from markers; and one pure function resolves a
+coordinate collision (§3.4). Until it ships, the festival map is a picture with no taps.
 
 ### 9.2 The `<kind>:<placeId>` deep link
 
@@ -721,10 +774,10 @@ the bare `?place=<placeId>` form already; what it lacks is `event` in its `PLACE
 which is part of the app half above. An earlier revision of this section said the colon was rejected
 — it is not, and has not been for some time.
 
-**Umbrella ADR 0004 invariant 1 still specifies the bare form and needs amending** to match, as does
-[eventmap-api.md §8.1](eventmap-api.md). The same amendment retires invariant 2's "unrecognised
-predicate node evaluates `false`" — there is no predicate on the wire — in favour of the item-level
-rule: an item whose `layerId` the app cannot resolve is dropped and counted.
+**Umbrella ADR 0004 invariant 1 still specifies the bare form and needs amending** to match. The same
+amendment retires invariant 2's "unrecognised predicate node evaluates `false`" — there is no
+predicate on the wire — in favour of the marker-level rule: a marker whose `layerId` the app cannot
+resolve is dropped and counted.
 
 ### 9.3 `userConfigurable` is served but nothing consumes it
 
@@ -738,7 +791,7 @@ layer were configurable, which is what every layer currently is.
 
 Nothing that is not data names the festival any more: the route is `/map/markers/event`, the tap
 kind is `event`, the chip group is the layer set id, and the layers, chips, labels, colours, camera,
-name and emoji are all in `src/eventmap/config/<layerSetId>.json`. `eskara27` is a new file, a
+name and emoji are all in `src/map/config/<layerSetId>.json`. `eskara27` is a new file, a
 `CONFIG_FILES` entry, a `copy-build-assets.js` line, and Mongo content. That is ADR 0004 invariant 1
 — "next year's event arrives as data" — honoured, after an earlier revision of this section chose to
 violate it for unambiguity.
@@ -802,20 +855,21 @@ today changes the response and nothing on screen, with no error on either side.
 | Chip wire schema | `src/map/map-chip.types.ts` |
 | Response builder, campuses, activation lookup | `src/map/map-config.data.ts` |
 | Buildings → markers, empty-DB fallback | `src/map/map-markers.data.ts` |
-| Event sessions → markers | `src/map/map-event-markers.data.ts` |
-| "Which layer set is live, and is its config usable" | `src/eventmap/eventmap.active.ts` |
-| Festival layers, chips, labels, colours, camera, category → layer table | `src/eventmap/config/<layerSetId>.json` |
-| Category → presentation resolver (both producers) | `presentationFor` in `src/eventmap/types.ts` |
+| Event places → markers | `src/map/map-event-markers.data.ts` |
+| "Which layer set is live, and is its config usable" | `src/map/map-active-layerset.ts` |
+| Festival layers, chips, labels, colours, camera, category → layer table | `src/map/config/<layerSetId>.json` |
+| Category → presentation resolver (both producers) | `presentationFor` in `src/map/map-layerset.types.ts` |
 | HTTP + `Cache-Control` | `src/map/controllers/map-config.controller.ts`, `src/map/controllers/map-markers.controller.ts` |
 | Module wiring, rate limit, endpoint inventory | `src/map/map.module.ts` |
 | Campus labels | `src/infra/i18n.ts` (`map.campus.*`) — layer and chip labels are inline `{ko, en?, zh?}` on their specs, resolved with `pick()` from the same module |
 | Building documents | `src/building/building.data.ts` |
-| Event documents + activation window | `src/eventmap/eventmap.data.ts`, `src/eventmap/types.ts` |
+| Event documents + activation window | `src/map/map-places.data.ts`, `src/map/map-places.types.ts` |
+| Sheet → documents, and the importer | `scripts/lib/map-places-file.js`, `scripts/import-eventmap-places.js` |
 | Tests | `__tests__/nest/map/` |
 
 ## 11. Related
 
-- [eventmap-api.md](eventmap-api.md) — the festival's storage, materialization, snapshot and ops tiers
+- [event-places.md](event-places.md) — the festival's storage, authoring and ops tiers
 - [ADR 0004 — event map layer ownership](https://github.com/spencer0124/skkuverse/blob/main/docs/decisions/0004-event-map-layer-ownership.md)
 - [skkuverse-app `docs/eventmap-rendering.md`](https://github.com/spencer0124/skkuverse-app/blob/main/docs/eventmap-rendering.md) — the client side
 - [docs/README.md](../README.md) — writing rules

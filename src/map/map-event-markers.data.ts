@@ -73,7 +73,7 @@ function isCleanValue(value: string): boolean {
 }
 
 /**
- * `actionValue` shape rules, per eventmap-api.md §8 plus the one case the prose
+ * `actionValue` shape rules, per event-places.md §5 plus the one case the prose
  * glosses over.
  *
  * The doc says "always a complete URL" and then gives `route` the example

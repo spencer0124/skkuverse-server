@@ -5,7 +5,7 @@ import logger from "../infra/logger";
 import type { ActivationDoc, MapPlaceDoc } from "./map-places.types";
 
 // Raw-driver I/O for the event map (skkuverse#11).
-// Index rationale: docs/reference/eventmap-api.md §5.
+// Index rationale: docs/reference/event-places.md §4.
 //
 // Every query below is shaped to hit an index created in Phase 1 — that is what
 // the index list was for, so changing a filter here without checking §5 quietly

@@ -1,6 +1,6 @@
 /**
  * Structure-tier validation (skkuverse#14). Contract:
- * docs/reference/eventmap-api.md §2, §6.2 step 3.
+ * docs/reference/event-places.md §1.
  *
  * Two separable jobs are tested here:
  *

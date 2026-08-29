@@ -3,7 +3,7 @@
  * Open, close and inspect a layer set's activation window (skkuverse#16).
  *
  * This is the one lever that decides whether anybody sees the event map, and
- * until now docs/reference/eventmap-api.md §13 asked an operator to hand-type a
+ * until now docs/reference/event-places.md §6.2 asked an operator to hand-type a
  * mongosh `updateOne` for it — at 22:00, during a festival, against production.
  * That is the same hazard the CSV importer exists to remove for coordinates.
  *

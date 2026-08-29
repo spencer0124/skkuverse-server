@@ -1,7 +1,7 @@
 /**
  * Structure-tier loader and validator (skkuverse#14).
  *
- * Contract: docs/reference/eventmap-api.md §2. Map layers, chips and the
+ * Contract: docs/reference/event-places.md §1. Map layers, chips and the
  * category → layer table are DEVELOPER-owned and ship in the repo; activation
  * and content are ops-owned and live in Mongo. This module owns the first tier.
  *

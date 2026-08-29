@@ -1,5 +1,5 @@
 // Mongo documents for the map's event places (skkuverse#11).
-// Contract: docs/reference/eventmap-api.md §4. Cross-repo ownership: umbrella ADR 0004.
+// Contract: docs/reference/event-places.md §2. Cross-repo ownership: umbrella ADR 0004.
 //
 // Nothing here is a wire type. These are the stored documents; what the client
 // sees is a `MapMarker` (`map-marker.types.ts`), projected by
