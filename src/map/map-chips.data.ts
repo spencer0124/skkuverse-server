@@ -14,10 +14,10 @@ import { BASE_LAYERS, chipGroupOf, type LayerSpec } from "./map-layers.data";
  * chips are authored in its config (`EventChipDef`) and projected here by
  * `eventChipSpecs`; `map-layerset.config.ts` runs the SAME validator over them at
  * load, against the full served catalogue, so a bad festival chip fails the
- * config — logged, skipped, previous snapshot kept — rather than reaching a
- * client. That is the `miniapps.schema.ts` posture for the base list and the
- * the marker projection one for the festival list: fail loud where a PR
- * fixes it, fail soft where the previous good version can keep serving.
+ * config — logged and skipped, taking the festival off the campus map — rather
+ * than reaching a client. That is the `miniapps.schema.ts` posture for the base
+ * list and the marker projection's for the festival list: fail loud where a PR
+ * fixes it, fail soft where 건물번호 can keep serving without it.
  *
  * This module imports only the event map's TYPES. It must never import
  * `map-layerset.config` — that module imports this one — and `eslint.config.js`
@@ -76,8 +76,8 @@ export const BASE_CHIPS: readonly MapChipSpec[] = [];
  * fixed in a single pass instead of one boot per mistake — the shape
  * `tabconfig.service.ts` uses for the same reason. Returned rather than thrown
  * because the two callers want different failures: the import-time check on
- * `BASE_CHIPS` is fatal, the config-load check on a festival's chips is a
- * rejected config with the previous snapshot kept.
+ * `BASE_CHIPS` is fatal, the config-load check on a festival's chips rejects the
+ * config and leaves the base map serving.
  */
 export function validateChipSpecs(
   specs: readonly MapChipSpec[],

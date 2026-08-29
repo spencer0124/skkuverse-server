@@ -180,6 +180,19 @@ is precisely why the later steps exist. They resolve it **differently on each fe
 8/27 tenant wins the spot on 8/27 and the 8/28 tenant wins it on 8/28. A static number could never do
 that. A suppressed marker keeps its list row.
 
+> [!IMPORTANT]
+> **Priority outranks openness, and the committed sheet has a live instance of the consequence.**
+> `daybooth-01` (부스전 운영 본부, `booth`, priority 20, open 11:00–18:00) shares
+> `126.971096, 37.295473` with two `bar` places at priority 30 that open at 18:00. Between 11:00 and
+> 18:00 the operations desk is therefore hidden behind a bar that is shut.
+>
+> This ordering is deliberate — priority is what expresses "a stage matters more than a 화장실" — but
+> it was chosen for the same-category case and the cross-category one falls out of it. Two ways to
+> avoid it, neither needing a code change: give the colliding places distinct coordinates (they are
+> distinct stalls on the ground), or narrow with a chip, since 부스 and 주점 share a `chipGroupId` and
+> are mutually exclusive the moment either is tapped. Swapping steps 1 and 2 is the third option and
+> a client change.
+
 ## 4. Layer flags — `defaultVisible` and `userConfigurable`
 
 Two independent axes on every layer entry in `GET /map/config`:

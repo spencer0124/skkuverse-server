@@ -43,10 +43,7 @@ jest.mock("../../../src/infra/logger", () => ({
   debug: jest.fn(),
 }));
 
-import {
-  findActivationById,
-  findActiveActivation,
-} from "../../../src/map/map-places.data";
+import { findActiveActivation } from "../../../src/map/map-places.data";
 
 const NOW = new Date("2026-09-16T09:00:00.000Z");
 
@@ -77,14 +74,5 @@ describe("findActiveActivation", () => {
     // the advertised activeLayerSetId between requests.
     await findActiveActivation(NOW);
     expect(findOne.mock.calls[0]![1]).toEqual({ sort: { activeFrom: -1, _id: 1 } });
-  });
-});
-
-describe("findActivationById", () => {
-  it("looks up by id with NO window check", async () => {
-    // The ops pre-flight path: dryRun against next week's festival is the whole
-    // point, and impossible if the lookup demands a live window.
-    await findActivationById("eskara-2026");
-    expect(findOne).toHaveBeenCalledWith({ _id: "eskara-2026" });
   });
 });

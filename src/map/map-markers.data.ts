@@ -181,7 +181,7 @@ async function getCampusMarkers(): Promise<{
 
     // A building with no name at all would draw an invisible marker that still
     // occupies a tap target and a collision slot. The booth producer already
-    // refuses this case (the projection's hasAnyText check); the two are
+    // refuses this case (`isRenderable`'s hasAnyText check); the two are
     // meant to be the same kind of thing, so this one refuses it too.
     if (nameKo) {
       markers.push({

@@ -18,6 +18,9 @@ jest.mock("../../../src/map/map-places.data", () => ({
   getPlacesCollection: jest.fn(),
 }));
 
+const mockLogger = { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() };
+jest.mock("../../../src/infra/logger", () => mockLogger);
+
 import {
   findActiveActivation,
   getPlacesCollection,
@@ -401,6 +404,84 @@ describe("getEventMarkers", () => {
 
       // Losing one button is recoverable; losing the booth is not.
       expect(markers[0]!.actions.map((a) => a.id)).toEqual(["ok"]);
+    });
+  });
+
+  describe("an unusable document must not take the festival down", () => {
+    // The posture the old join had for a dangling placeId, restored: skip it,
+    // count it, log once. A projection with no per-document tolerance turns one
+    // bad row into a 500 for all 61 markers, for the whole festival.
+
+    it("skips a legacy document from the pre-collapse schema", async () => {
+      // The real hazard. Prod holds 62 of these — `_id: "nsc-daybooth-01"`,
+      // `name` instead of `title`, no `hours` — and the new ids are layer-set
+      // prefixed, so the importer never overwrites them. They come back from
+      // `find({layerSetId})` and would throw on `doc.title.ko`.
+      const legacy = {
+        _id: "nsc-daybooth-01",
+        layerSetId: "eskara-2026",
+        campus: "nsc",
+        name: { ko: "주간부스 1번" },
+        location: { type: "Point", coordinates: [126.971096, 37.295473] },
+        lifecycle: "active",
+      };
+      arrange([legacy, place()]);
+
+      const { markers } = await getEventMarkers();
+
+      expect(markers.map((m) => m.id)).toEqual(["eskara-2026-booth-01"]);
+      expect(mockLogger.warn).toHaveBeenCalledTimes(1);
+      expect(String(mockLogger.warn.mock.calls[0])).toMatch(/1/);
+    });
+
+    it("skips a document whose hours or fields are not arrays", async () => {
+      arrange([place({ _id: "no-hours", hours: undefined }), place()]);
+
+      const { markers } = await getEventMarkers();
+
+      expect(markers.map((m) => m.id)).toEqual(["eskara-2026-booth-01"]);
+    });
+
+    it("skips a blank title rather than drawing an invisible pin", async () => {
+      // An empty label still occupies a tap target and a client collision slot.
+      // The buildings producer refuses the same case and cites this one.
+      arrange([place({ _id: "blank", title: { ko: "" } }), place()]);
+
+      const { markers } = await getEventMarkers();
+
+      expect(markers.map((m) => m.id)).toEqual(["eskara-2026-booth-01"]);
+    });
+
+    it("keeps a title that exists only in a language the reader does not use", async () => {
+      // `ko` is declared required on the wire, so it has to be filled from
+      // whatever the author DID write rather than shipped as undefined.
+      arrange([place({ title: { ko: "", zh: "乌key" } })]);
+
+      const { markers } = await getEventMarkers();
+
+      expect(markers[0]!.text.ko).toBe("乌key");
+      expect(markers[0]!.text.en).toBe("乌key");
+    });
+
+    it("logs a dropped button instead of losing it silently", async () => {
+      arrange([
+        place({
+          actions: [
+            {
+              id: "bad",
+              label: { ko: "안내" },
+              actionType: "webview",
+              actionValue: "https://evil.example.com",
+            },
+          ],
+        }),
+      ]);
+
+      const { markers } = await getEventMarkers();
+
+      // Failing soft is only recoverable if somebody can find out it happened.
+      expect(markers[0]!.actions).toEqual([]);
+      expect(mockLogger.warn).toHaveBeenCalled();
     });
   });
 

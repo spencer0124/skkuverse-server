@@ -11,6 +11,11 @@
     "key that the importer expanded into `-d1` and `-d2` documents, which is what",
     "made the app list every place twice; the reader now REJECTS that key by name.",
     "",
+    "No id encodes a festival day. The night bars were `nightbar-d1-02` and",
+    "`nightbar-d2-03` — two different tenants on one plot, on different nights —",
+    "and a day in the id is now redundant with `hours` and reads like the split",
+    "that caused the bug. A test rejects `-d<n>` anywhere in an id.",
+    "",
     "`hours` is a list of absolute intervals, both bounds required. An empty list",
     "means always open (화장실, 의무실, 배리어프리존) and means only that. A window",
     "crossing midnight is written with the next day's date, which is why the 주점",
@@ -960,7 +965,7 @@
       "order": 79
     },
     {
-      "id": "nightbar-d1-01",
+      "id": "nightbar-01",
       "category": "bar",
       "lat": 37.295494,
       "lng": 126.970907,
@@ -985,7 +990,7 @@
       "order": 80
     },
     {
-      "id": "nightbar-d1-02",
+      "id": "nightbar-02",
       "category": "bar",
       "lat": 37.295473,
       "lng": 126.971096,
@@ -1010,7 +1015,7 @@
       "order": 81
     },
     {
-      "id": "nightbar-d1-03",
+      "id": "nightbar-03",
       "category": "bar",
       "lat": 37.295453,
       "lng": 126.971286,
@@ -1035,7 +1040,7 @@
       "order": 82
     },
     {
-      "id": "nightbar-d2-01",
+      "id": "nightbar-04",
       "category": "bar",
       "lat": 37.295498,
       "lng": 126.970869,
@@ -1060,7 +1065,7 @@
       "order": 83
     },
     {
-      "id": "nightbar-d2-02",
+      "id": "nightbar-05",
       "category": "bar",
       "lat": 37.295486,
       "lng": 126.970983,
@@ -1085,7 +1090,7 @@
       "order": 84
     },
     {
-      "id": "nightbar-d2-03",
+      "id": "nightbar-06",
       "category": "bar",
       "lat": 37.295473,
       "lng": 126.971096,
@@ -1110,7 +1115,7 @@
       "order": 85
     },
     {
-      "id": "nightbar-d2-04",
+      "id": "nightbar-07",
       "category": "bar",
       "lat": 37.295461,
       "lng": 126.97121,
@@ -1135,7 +1140,7 @@
       "order": 86
     },
     {
-      "id": "nightbar-d2-05",
+      "id": "nightbar-08",
       "category": "bar",
       "lat": 37.295449,
       "lng": 126.971324,

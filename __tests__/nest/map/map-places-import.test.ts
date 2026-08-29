@@ -59,11 +59,15 @@ describe("parsePlacesFile — the committed sheet", () => {
     expect(docs.length).toBeGreaterThan(50);
   });
 
-  it("emits one document per place, with no day suffix anywhere", () => {
+  it("emits one document per place, with no day marker anywhere in the id", () => {
     // The regression this file exists to prevent. `-d1`/`-d2` ids were how a
     // two-day booth became two documents and two identical list rows.
+    //
+    // NOT anchored to the end. The sheet's own night bars were
+    // `nightbar-d1-02` and `nightbar-d2-03`, which an `$`-anchored pattern
+    // passes vacuously — the day sits in the middle.
     for (const d of docs) {
-      expect(d._id).not.toMatch(/-d\d+$/);
+      expect(d._id).not.toMatch(/-d\d+(-|$)/);
     }
     expect(new Set(docs.map((d: { _id: string }) => d._id)).size).toBe(docs.length);
   });
@@ -140,6 +144,17 @@ describe("parsePlacesFile — identity and shape", () => {
 
   it("rejects a blank title", () => {
     expect(soleError(parse({}, { title: "   " }))).toMatch(/title/);
+  });
+
+  it("returns no document for a place with any problem, so the count means places", () => {
+    // The importer prints `docs.length` beside `errors.length`. If a bad place
+    // still produced a document, two errors on one row would read as two
+    // rejected rows against a sheet that has one — arithmetic an operator has
+    // to reconcile while something is going wrong.
+    const { docs, errors } = parse({}, { lat: 999, order: "seventy" });
+
+    expect(docs).toEqual([]);
+    expect(errors.length).toBeGreaterThan(1);
   });
 
   it("requires an explicit order rather than inventing one", () => {

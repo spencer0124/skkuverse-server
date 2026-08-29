@@ -1,8 +1,9 @@
 import { hasAnyText } from "../infra/i18n";
+import logger from "../infra/logger";
 import { ROOT_RELATIVE_PATH_RE, toWebviewUrl } from "../infra/webview-url";
 import { activeEventConfig } from "./map-active-layerset";
 import { presentationFor } from "./map-layerset.types";
-import type { PlaceAction } from "./map-places.types";
+import type { MapPlaceDoc, PlaceAction } from "./map-places.types";
 import { getPlacesCollection } from "./map-places.data";
 import type { I18n } from "../infra/types";
 import type { I18nWire, MapMarker, MarkerAction } from "./map-marker.types";
@@ -46,11 +47,17 @@ import type { I18nWire, MapMarker, MarkerAction } from "./map-marker.types";
  * least as often as it omits the key, and an empty English label renders as a
  * blank line rather than as the Korean the reader can at least act on. The
  * buildings producer coalesces the same way, for the same reason.
+ *
+ * TOTAL, and it has to be: `I18nWire.ko` is declared required, while the gate in
+ * front of this (`hasAnyText`) deliberately passes a value written only in `zh`.
+ * Without the chain below such a value would serialize to an object missing the
+ * one field the app dereferences.
  */
 function toWire(text: I18n): I18nWire {
+  const ko = text.ko || text.en || text.zh || "";
   return {
-    ko: text.ko,
-    en: text.en || text.ko,
+    ko,
+    en: text.en || ko,
     ...(text.zh ? { zh: text.zh } : {}),
   };
 }
@@ -112,11 +119,27 @@ function isValidActionValue(action: PlaceAction): boolean {
  * still appears, and losing one button is recoverable in a way that dropping the
  * booth is not.
  */
-function toWireActions(actions: PlaceAction[]): MarkerAction[] {
+function toWireActions(
+  actions: PlaceAction[],
+  dropped: string[],
+): MarkerAction[] {
   const out: MarkerAction[] = [];
-  for (const action of actions ?? []) {
-    if (!hasAnyText(action.label)) continue;
-    if (!isValidActionValue(action)) continue;
+  for (const action of actions) {
+    // Reported, not merely skipped. The whole justification for failing soft is
+    // that losing one button is recoverable — and it is only recoverable if
+    // somebody can find out it happened. The deleted materializer returned these
+    // as `rejectedActions`; with no publish result left to carry them, the log
+    // is the only channel there is.
+    if (!hasAnyText(action.label)) {
+      dropped.push(`${action.id}: label is blank in every language`);
+      continue;
+    }
+    if (!isValidActionValue(action)) {
+      dropped.push(
+        `${action.id}: actionValue "${action.actionValue}" is not valid for actionType "${action.actionType}"`,
+      );
+      continue;
+    }
     out.push({
       id: action.id,
       label: toWire(action.label),
@@ -138,6 +161,36 @@ function toWireActions(actions: PlaceAction[]): MarkerAction[] {
 }
 
 /**
+ * Is this document one this build can draw?
+ *
+ * Not defensive narrowing — this is the posture the deleted join already had for
+ * a dangling `placeId` ("one typo in the sheet, and dropping the festival over
+ * it would be worse"), restored now that the join is gone. Two things reach this
+ * collection that the type does not describe:
+ *
+ *  - **Pre-collapse documents.** The ids are layer-set prefixed now, so an
+ *    import does not overwrite the old `nsc-*` plots, and they still carry the
+ *    matching `layerSetId`. `--delete-missing` removes them; a cutover that
+ *    forgets it would otherwise 500 every marker for the whole festival.
+ *  - **A hand-typed Mongo edit**, which is the ops workflow this repo blesses
+ *    elsewhere and the reason the content hash used to cover whole documents.
+ *
+ * A blank title is refused for the reason the buildings producer refuses one: an
+ * empty label still occupies a tap target and a client collision slot.
+ */
+function isRenderable(doc: MapPlaceDoc): boolean {
+  return (
+    hasAnyText(doc.title) &&
+    Array.isArray(doc.hours) &&
+    Array.isArray(doc.fields) &&
+    Array.isArray(doc.actions) &&
+    doc.hours.every(
+      (w) => w?.startAt instanceof Date && w.endAt instanceof Date,
+    )
+  );
+}
+
+/**
  * Every place of the currently active layer set, as markers.
  *
  * Returns an empty list rather than throwing when no event is live — the app
@@ -148,48 +201,66 @@ async function getEventMarkers(): Promise<{ markers: MapMarker[] }> {
   const config = await activeEventConfig(new Date());
   if (!config) return { markers: [] };
 
-  const docs = await getPlacesCollection()
+  const all = await getPlacesCollection()
     .find({ layerSetId: config.layerSetId })
     .toArray();
 
-  return {
-    markers: docs.map((doc) => {
-      // GeoJSON stores [lng, lat]; the wire carries named fields and the server
-      // is the only converter (ADR 0004 invariant 3). A swap raises no error and
-      // puts the booth in the ocean. Nothing validates the pair here on
-      // purpose — the 2dsphere index rejects a malformed one at INSERT, which
-      // catches it while somebody can still fix the sheet.
-      const [lng, lat] = doc.location.coordinates;
-      // `category` is an OPEN string, so an unmapped value lands on the config's
-      // fallback layer rather than vanishing: a booth missing from the festival
-      // map is not a failure anyone can see or report.
-      const presentation = presentationFor(config, doc.category);
+  const docs = all.filter(isRenderable);
+  if (docs.length !== all.length) {
+    // Counted and logged rather than thrown. One unusable row must not take the
+    // other sixty with it, and a silent skip would leave a booth missing from
+    // the map with nothing anywhere saying why.
+    logger.warn(
+      `[map] ${all.length - docs.length} place(s) in "${config.layerSetId}" are not renderable and were skipped`,
+    );
+  }
 
-      return {
-        id: doc._id,
-        layerId: presentation.layerId,
-        campus: doc.campus,
-        lat,
-        lng,
-        text: toWire(doc.title),
-        subtitle: doc.subtitle ? toWire(doc.subtitle) : null,
-        hours: doc.hours.map((w) => ({
-          startAt: w.startAt.toISOString(),
-          endAt: w.endAt.toISOString(),
-        })),
-        fields: doc.fields.map((f) => ({
-          label: toWire(f.label),
-          value: toWire(f.value),
-        })),
-        actions: toWireActions(doc.actions),
-        order: doc.order,
-        pinPriority: presentation.pinPriority,
-        // The PLACE's own id. Two booths sharing a plot are two taps — they were
-        // one, back when the plot was the addressable thing.
-        tap: { kind: "event", placeId: doc._id },
-      };
-    }),
-  };
+  const droppedActions: string[] = [];
+
+  const markers: MapMarker[] = docs.map((doc) => {
+    // GeoJSON stores [lng, lat]; the wire carries named fields and the server
+    // is the only converter (ADR 0004 invariant 3). A swap raises no error and
+    // puts the booth in the ocean. Nothing validates the pair here on
+    // purpose — the 2dsphere index rejects a malformed one at INSERT, which
+    // catches it while somebody can still fix the sheet.
+    const [lng, lat] = doc.location.coordinates;
+    // `category` is an OPEN string, so an unmapped value lands on the config's
+    // fallback layer rather than vanishing: a booth missing from the festival
+    // map is not a failure anyone can see or report.
+    const presentation = presentationFor(config, doc.category);
+
+    return {
+      id: doc._id,
+      layerId: presentation.layerId,
+      campus: doc.campus,
+      lat,
+      lng,
+      text: toWire(doc.title),
+      subtitle: doc.subtitle ? toWire(doc.subtitle) : null,
+      hours: doc.hours.map((w) => ({
+        startAt: w.startAt.toISOString(),
+        endAt: w.endAt.toISOString(),
+      })),
+      fields: doc.fields.map((f) => ({
+        label: toWire(f.label),
+        value: toWire(f.value),
+      })),
+      actions: toWireActions(doc.actions, droppedActions),
+      order: doc.order,
+      pinPriority: presentation.pinPriority,
+      // The PLACE's own id. Two booths sharing a plot are two taps — they were
+      // one, back when the plot was the addressable thing.
+      tap: { kind: "event", placeId: doc._id },
+    };
+  });
+
+  if (droppedActions.length > 0) {
+    logger.warn(
+      `[map] ${droppedActions.length} sheet button(s) dropped in "${config.layerSetId}": ${droppedActions.join("; ")}`,
+    );
+  }
+
+  return { markers };
 }
 
 export { getEventMarkers };

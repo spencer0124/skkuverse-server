@@ -97,7 +97,7 @@ Three, created by `MapService.onModuleInit` (`src/map/map-places.data.ts`):
 | --- | --- |
 | `places {layerSetId: 1}` | The one scan the projection makes. No lifecycle key — there is no lifecycle. |
 | `places {location: "2dsphere"}` | **Not** a query index. It is what makes Mongo reject a malformed coordinate pair at insert, which is the cheapest available guard against the `[lng, lat]` swap (ADR 0004 invariant 3). |
-| `activations {enabled: 1}` | The liveness read on every `/map/config`. |
+| `activations {enabled: 1, activeFrom: -1}` | The liveness read on every `/map/config`. Compound because `findActiveActivation` sorts by `activeFrom` — a single-key index would serve the equality and leave an in-memory sort stage on the one read path this file claims is index-shaped. |
 
 ## 5. Authoring
 
@@ -174,6 +174,29 @@ missing booths are invisible and the ones that made it look authoritative.
 
 `--delete-missing` really deletes — there is no `lifecycle: "retired"` to fall back on. It is opt-in
 because a truncated sheet plus an automatic delete is how a festival disappears mid-afternoon.
+
+### 6.1.1 The one-time cutover from the pre-collapse schema
+
+**`--delete-missing` is mandatory the first time, and `sessions`/`snapshots` have to go with it.**
+
+The old `places` documents carry the same `layerSetId` and are keyed `nsc-*`, while the reader now
+emits `<layerSetId>-*` ids — so an ordinary import does not overwrite them, it sits beside them. They
+have `name` where the projection reads `title` and no `hours` at all. `isRenderable` skips them and
+logs a count, so the map still serves; but 62 skipped places with nothing drawn is not a state to
+leave production in.
+
+```bash
+NODE_ENV=production npm run eventmap:import -- --dry-run       # lists them as orphans
+NODE_ENV=production npm run eventmap:import -- --delete-missing
+```
+
+Then drop the two collections the snapshot tier left behind, which nothing reads and no index
+covers:
+
+```javascript
+db.sessions.drop()
+db.snapshots.drop()
+```
 
 ### 6.2 The window — and the kill switch
 

@@ -37,6 +37,20 @@ const { ensureActivation, resolveDbName, upsertPlaces } = require("./lib/eventma
 const DEFAULT_FILE = path.join(__dirname, "data", "eskara-2026-places.json");
 const DEFAULT_LAYER_SET_ID = "eskara-2026";
 
+/**
+ * The next argv entry, refusing a flag.
+ *
+ * `--file --dry-run` would otherwise take "--dry-run" as the filename and
+ * silently disarm the dry run — the one flag whose absence is dangerous.
+ */
+function takeValue(argv, i, flag) {
+  const value = argv[i];
+  if (value === undefined || value.startsWith("--")) {
+    throw new Error(`${flag} needs a value`);
+  }
+  return value;
+}
+
 function parseArgs(argv) {
   const args = {
     file: DEFAULT_FILE,
@@ -48,8 +62,8 @@ function parseArgs(argv) {
     const arg = argv[i];
     if (arg === "--dry-run") args.dryRun = true;
     else if (arg === "--delete-missing") args.deleteMissing = true;
-    else if (arg === "--file") args.file = argv[++i];
-    else if (arg === "--layer-set-id") args.layerSetId = argv[++i];
+    else if (arg === "--file") args.file = takeValue(argv, ++i, "--file");
+    else if (arg === "--layer-set-id") args.layerSetId = takeValue(argv, ++i, "--layer-set-id");
     else throw new Error(`unknown argument: ${arg}`);
   }
   if (!args.file) throw new Error("--file needs a value");
@@ -85,7 +99,7 @@ async function main() {
   console.log(`file       ${args.file}`);
   console.log(`layerSetId ${args.layerSetId}`);
   console.log(`database   ${dbName}`);
-  console.log(`parsed     ${docs.length} valid, ${errors.length} rejected`);
+  console.log(`parsed     ${docs.length} place(s), ${errors.length} problem(s)`);
   if (docs.length > 0) console.log(`windows    ${windowHistogram(docs)}`);
 
   // Abort before touching Mongo. A rejected place means the sheet is wrong, and

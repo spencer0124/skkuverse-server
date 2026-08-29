@@ -9,19 +9,29 @@
  *
  * Two things are pinned here, and only two:
  *
- *  1. The seven indexes are actually created, with their options. The 2dsphere
- *     is coordinate validation rather than a query index (ADR 0004 invariant 3),
- *     and it is silent when missing.
+ *  1. The three indexes are actually created, ON THE RIGHT COLLECTIONS. The
+ *     2dsphere is coordinate validation rather than a query index (ADR 0004
+ *     invariant 3), and it is silent when missing — as is an index created
+ *     against the wrong collection, which is why the mock records the name.
  *  2. A failure is non-fatal. Index creation is a startup nicety, not a serving
  *     prerequisite; an Atlas hiccup during boot must not take /map down.
  */
 
 const createIndex = jest.fn().mockResolvedValue(undefined);
-const collections: Record<string, { createIndex: jest.Mock }> = {};
 
+/**
+ * Records the COLLECTION each index was created on, not just its keys.
+ *
+ * One shared mock cannot tell `activations.createIndex({enabled: 1})` from the
+ * same call against `places`, so every assertion below would still pass with
+ * the indexes on the wrong collections — which is exactly the mistake that is
+ * silent in production.
+ */
 function collectionFor(name: string) {
-  if (!collections[name]) collections[name] = { createIndex };
-  return collections[name];
+  return {
+    createIndex: (keys: unknown, options?: unknown) =>
+      createIndex(name, keys, ...(options === undefined ? [] : [options])),
+  };
 }
 
 jest.mock("../../../src/infra/db", () => ({
@@ -41,7 +51,7 @@ jest.mock("../../../src/infra/logger", () => mockLogger);
 import { ensureIndexes } from "../../../src/map/map-places.data";
 import { MapService } from "../../../src/map/map.service";
 
-/** Every (keys, options) pair createIndex was called with, as JSON for comparison. */
+/** Every (collection, keys, options?) call, as JSON for comparison. */
 function indexSpecs(): string[] {
   return createIndex.mock.calls.map((c) => JSON.stringify(c));
 }
@@ -65,10 +75,10 @@ describe("MapService.onModuleInit", () => {
 
     // No lifecycle key: a cancelled booth is deleted, not flagged, so the one
     // scan this collection serves filters on layerSetId alone.
-    expect(specs).toContain(JSON.stringify([{ layerSetId: 1 }]));
+    expect(specs).toContain(JSON.stringify(["places", { layerSetId: 1 }]));
     // Not a query index. This is what makes Mongo reject a malformed pair at
     // insert, which is the only automatic guard against the [lng,lat] swap.
-    expect(specs).toContain(JSON.stringify([{ location: "2dsphere" }]));
+    expect(specs).toContain(JSON.stringify(["places", { location: "2dsphere" }]));
   });
 
   it("creates no session index, because there are no sessions", async () => {
@@ -84,10 +94,14 @@ describe("MapService.onModuleInit", () => {
     expect(specs).not.toContain("startAt");
   });
 
-  it("indexes activations on the liveness read path", async () => {
+  it("indexes activations to cover the liveness filter AND its sort", async () => {
     await ensureIndexes();
 
-    expect(indexSpecs()).toContain(JSON.stringify([{ enabled: 1 }]));
+    // Compound, because findActiveActivation sorts by activeFrom. A bare
+    // {enabled: 1} leaves an in-memory sort stage on every /map/config.
+    expect(indexSpecs()).toContain(
+      JSON.stringify(["activations", { enabled: 1, activeFrom: -1 }]),
+    );
   });
 
   it("creates no snapshot index, because there are no snapshots", async () => {

@@ -202,6 +202,11 @@ function asActions(value, where, errors) {
 }
 
 function asPlace(raw, i, ctx, errors) {
+  // Anything this place contributes lands here first, so a place with ANY
+  // problem can be excluded whole. Pushing straight into `errors` and returning
+  // a document anyway made the importer's "N valid, M rejected" line count
+  // messages against places — two errors on one row read as two rejected rows.
+  const own = [];
   const where = `places[${i}]`;
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     errors.push(`${where} must be an object`);
@@ -210,7 +215,7 @@ function asPlace(raw, i, ctx, errors) {
 
   for (const [key, hint] of Object.entries(RETIRED_PLACE_KEYS)) {
     if (raw[key] !== undefined) {
-      errors.push(`${where}.${key} is no longer read — ${hint}`);
+      own.push(`${where}.${key} is no longer read — ${hint}`);
     }
   }
 
@@ -218,15 +223,17 @@ function asPlace(raw, i, ctx, errors) {
     errors.push(`${where}.id must be a non-empty string`);
     return null;
   }
+  errors.push(...own);
+  own.length = 0;
   const where2 = `places[${i}] ("${raw.id}")`;
 
   if (typeof raw.category !== "string" || raw.category.trim() === "") {
-    errors.push(`${where2}.category must be a non-empty string`);
+    own.push(`${where2}.category must be a non-empty string`);
   }
   if (typeof raw.order !== "number" || !Number.isFinite(raw.order)) {
     // No default. A silent 0 would make the list order arbitrary while looking
     // deliberate, and every real sheet has this column already.
-    errors.push(`${where2}.order must be a finite number`);
+    own.push(`${where2}.order must be a finite number`);
   }
 
   const lat = raw.lat;
@@ -234,22 +241,25 @@ function asPlace(raw, i, ctx, errors) {
   if (typeof lat !== "number" || !Number.isFinite(lat) || Math.abs(lat) > 90) {
     // Cheap swap detector, and it works here for the same reason it works in the
     // camera validator: SKKU's longitude (126) is outside latitude's ±90 range.
-    errors.push(`${where2}.lat ${lat} is not a latitude — lat and lng may be swapped`);
+    own.push(`${where2}.lat ${lat} is not a latitude — lat and lng may be swapped`);
   }
   if (typeof lng !== "number" || !Number.isFinite(lng) || Math.abs(lng) > 180) {
-    errors.push(`${where2}.lng ${lng} is not a longitude`);
+    own.push(`${where2}.lng ${lng} is not a longitude`);
   }
 
-  const title = asI18n(raw.title, `${where2}.title`, errors);
+  const title = asI18n(raw.title, `${where2}.title`, own);
   const subtitle =
     raw.subtitle === undefined || raw.subtitle === null
       ? null
-      : asI18n(raw.subtitle, `${where2}.subtitle`, errors);
-  const hours = asHours(raw.hours, `${where2}.hours`, errors);
-  const fields = asFields(raw.fields, `${where2}.fields`, errors);
-  const actions = asActions(raw.actions, `${where2}.actions`, errors);
+      : asI18n(raw.subtitle, `${where2}.subtitle`, own);
+  const hours = asHours(raw.hours, `${where2}.hours`, own);
+  const fields = asFields(raw.fields, `${where2}.fields`, own);
+  const actions = asActions(raw.actions, `${where2}.actions`, own);
 
-  if (!title) return null;
+  // ONE verdict per place. A document that failed any rule is not returned, so
+  // `docs.length` is the number of places that would actually be written.
+  errors.push(...own);
+  if (own.length > 0 || !title) return null;
 
   return {
     // Prefixed, so two festivals can hold a `bar-01` without colliding and an id

@@ -54,11 +54,15 @@ async function ensureIndexes(): Promise<void> {
     // validation infrastructure that happens to also be an index.
     places.createIndex({ location: "2dsphere" }),
 
-    // Liveness read path: find the enabled layer set.
-    activations.createIndex({ enabled: 1 }),
+    // Liveness read path. Compound because findActiveActivation SORTS by
+    // activeFrom — a bare {enabled: 1} serves the equality and leaves Mongo an
+    // in-memory sort stage, which would make this file's opening claim ("every
+    // query below is shaped to hit an index") untrue of the one read path it
+    // guards.
+    activations.createIndex({ enabled: 1, activeFrom: -1 }),
   ]);
 
-  logger.info("[eventmap] Indexes ensured");
+  logger.info("[map] Indexes ensured");
 }
 
 // --- Read paths -------------------------------------------------------------
@@ -88,22 +92,8 @@ async function findActiveActivation(now: Date): Promise<ActivationDoc | null> {
   );
 }
 
-/**
- * A layer set by id, WITHOUT the window check.
- *
- * Used only by an explicitly targeted force-publish, which is the ops pre-flight
- * path: validating and materializing next week's festival before it opens is the
- * whole value of `dryRun`, and it is impossible if the lookup requires the window
- * to be live. Publishing a version for a not-yet-active set is harmless — the
- * manifest still reports `activeLayerSetId: null` until the window opens.
- */
-async function findActivationById(layerSetId: string): Promise<ActivationDoc | null> {
-  return getActivationsCollection().findOne({ _id: layerSetId });
-}
-
 export {
   ensureIndexes,
-  findActivationById,
   findActiveActivation,
   getActivationsCollection,
   getPlacesCollection,

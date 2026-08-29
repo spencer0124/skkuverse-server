@@ -324,9 +324,10 @@ function loadOne(fileName: string): [string, LoadedConfig] {
     ];
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    // Loud, but not fatal: a live snapshot keeps serving and the manifest keeps
-    // answering. Silence here would look exactly like "the festival is over".
-    logger.error({ err: message, fileName }, "[eventmap] Config rejected");
+    // Loud, but not fatal: /map/config keeps serving the base layers, so the
+    // campus map is intact and only the festival is missing. Silence here would
+    // look exactly like "the festival is over".
+    logger.error({ err: message, fileName }, "[map] Layer set config rejected");
     return [layerSetIdFromFile, { config: null, error: message }];
   }
 }
