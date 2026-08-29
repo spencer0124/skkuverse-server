@@ -229,8 +229,8 @@ async function main() {
 
     console.log(describe(await activations.findOne({ _id: args.layerSetId }), now));
     console.log(
-      "\nPropagation is not instant: ~15 s api-replica memo plus the client's own\n" +
-        "refreshAfterSec poll (§12). Allow about 75 s before every device agrees.",
+      "\nPropagation is not instant: /map/config turns over on the next request,\n" +
+        "but /map/markers/event is cached 60 s at the edge. Allow about a minute.",
     );
   } finally {
     await client.close();
