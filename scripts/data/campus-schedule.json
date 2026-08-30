@@ -1,0 +1,46 @@
+{
+  "semester": "2026-2",
+  "effectiveFrom": "2026-08-31",
+  "patterns": [
+    {
+      "patternId": "weekday",
+      "days": [1, 2, 3, 4],
+      "serviceIds": ["campus-inja", "campus-jain"],
+      "entries": [
+        { "time": "07:00", "routeType": "regular", "busCount": 1, "notes": null },
+        { "time": "10:00", "routeType": "regular", "busCount": 1, "notes": null },
+        { "time": "12:00", "routeType": "regular", "busCount": 1, "notes": null },
+        { "time": "13:30", "routeType": "regular", "busCount": 1, "notes": null },
+        { "time": "15:00", "routeType": "regular", "busCount": 1, "notes": null },
+        { "time": "16:30", "routeType": "regular", "busCount": 1, "notes": null },
+        { "time": "18:15", "routeType": "regular", "busCount": 1, "notes": null }
+      ]
+    },
+    {
+      "patternId": "friday",
+      "days": [5],
+      "serviceIds": ["campus-inja", "campus-jain"],
+      "entries": [
+        { "time": "08:00", "routeType": "regular", "busCount": 1, "notes": "07시 대체" },
+        { "time": "08:00", "routeType": "hakbu", "busCount": 2, "notes": null },
+        { "time": "08:20", "routeType": "hakbu", "busCount": 1, "notes": null },
+        { "time": "10:00", "routeType": "regular", "busCount": 1, "notes": null },
+        { "time": "10:00", "routeType": "hakbu", "busCount": 1, "notes": null },
+        { "time": "10:10", "routeType": "hakbu", "busCount": 1, "notes": null },
+        { "time": "10:30", "routeType": "hakbu", "busCount": 1, "notes": null },
+        { "time": "12:00", "routeType": "regular", "busCount": 1, "notes": null },
+        { "time": "12:00", "routeType": "hakbu", "busCount": 1, "notes": null },
+        { "time": "12:10", "routeType": "hakbu", "busCount": 1, "notes": null },
+        { "time": "12:30", "routeType": "hakbu", "busCount": 1, "notes": null },
+        { "time": "13:30", "routeType": "regular", "busCount": 1, "notes": null },
+        { "time": "14:00", "routeType": "hakbu", "busCount": 2, "notes": null },
+        { "time": "14:20", "routeType": "hakbu", "busCount": 1, "notes": null },
+        { "time": "15:00", "routeType": "regular", "busCount": 1, "notes": null },
+        { "time": "16:20", "routeType": "hakbu", "busCount": 1, "notes": null },
+        { "time": "16:30", "routeType": "regular", "busCount": 1, "notes": null },
+        { "time": "18:10", "routeType": "hakbu", "busCount": 1, "notes": null },
+        { "time": "18:15", "routeType": "regular", "busCount": 1, "notes": null }
+      ]
+    }
+  ]
+}
