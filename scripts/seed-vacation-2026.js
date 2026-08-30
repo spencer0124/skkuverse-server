@@ -3,11 +3,14 @@
  * Seed 2026 summer vacation overrides for campus-inja and campus-jain.
  *
  * Inserts type:"replace" overrides for every weekday (Mon-Fri) from
- * 2026-07-08 through 2026-08-31 into bus_campus.bus_overrides.
+ * 2026-07-08 through 2026-08-30 into bus_campus.bus_overrides. The range end
+ * is a Sunday, so the last override actually written is Fri 2026-08-28.
  *
- * After Aug 31 the overrides have no matching dates, so the semester
- * schedule in bus_schedules resumes automatically from Sep 1 — no
- * manual cleanup needed.
+ * After Aug 30 the overrides have no matching dates, so the semester
+ * schedule in bus_schedules resumes automatically from Mon Aug 31 — no
+ * manual cleanup needed. Do NOT push this past Aug 30: the range once ran
+ * through Aug 31, which delayed the semester timetable to Sep 1 and had to
+ * be undone by scripts/unseed-vacation-2026-0831.js.
  *
  * Usage:
  *   node scripts/seed-vacation-2026.js --dry-run   # preview, no writes
@@ -30,7 +33,7 @@ if (!MONGO_URL) {
 const DB_NAME = "bus_campus";
 
 const VACATION_START = "2026-07-08";
-const VACATION_END   = "2026-08-31";
+const VACATION_END   = "2026-08-30";
 
 const INJA_ENTRY = { index: 1, time: "10:00", routeType: "regular", busCount: 1, notes: null };
 const JAIN_ENTRY = { index: 1, time: "13:30", routeType: "regular", busCount: 1, notes: null };

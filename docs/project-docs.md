@@ -883,7 +883,7 @@ Schedule endpoints use a different error format from the global `res.error()`:
 
 The cache stores the resolved week data. On cache hit, only `requestedFrom` is replaced (since it varies per call but the schedule data is the same).
 
-**When to invalidate**: After inserting/updating documents in `bus_schedules` or `bus_overrides`. Currently manual (call `clearCache()` or `clearCacheForService()` from a management endpoint or script). No automatic invalidation.
+**When to invalidate**: After inserting/updating documents in `bus_schedules` or `bus_overrides`. No automatic invalidation, and **no endpoint reaches `clearCache()`** — nothing routes to it. The only lever in production is restarting the process: `docker compose restart api-1` then `api-2`, one at a time so nginx always has a live upstream. `ROLE=poller` is exempt — it never binds a listener (`src/main.ts`), so it never resolves a schedule and its cache stays empty. Use `docker compose restart`, not `up -d --no-deps`: with an unchanged image the latter is a no-op and leaves the stale cache in place.
 
 ### Bus config ETag cache (in-memory)
 
@@ -933,6 +933,13 @@ module.exports = {
 This is the **minimum requirement** for the resolution engine to recognize the service.
 
 ### Step 2: Add schedule data to MongoDB
+
+> **The two campus shuttle services are not maintained this way.** `campus-inja` and `campus-jain` are owned by
+> the committed file `scripts/data/campus-schedule.json`, applied with `npm run schedule` — never by a hand-typed
+> `insertOne`. Editing them in `mongosh` puts the database out of step with the repo silently, which is how the
+> 2026-1 timetable survived into the 2026-2 semester. See §12.
+>
+> The example below is for adding a *new* service that has no committed file yet.
 
 Insert patterns into `bus_schedules`:
 
@@ -1098,8 +1105,9 @@ db.bus_overrides.insertOne({
 If the server is running, the in-memory cache may still serve stale data (up to 1 hour). Options:
 
 1. **Wait** — cache expires after 1 hour TTL
-2. **Restart server** — clears all caches
-3. **Call cache invalidation** — if you have a management endpoint that calls `clearCacheForService(serviceId)`
+2. **Restart the API replicas** — `docker compose restart api-1`, health-check, then `api-2`. This is the only
+   lever that works on demand. There is no management endpoint: `clearCacheForService()` exists on the service
+   but nothing routes to it.
 
 ---
 
@@ -1121,6 +1129,15 @@ Every schedule entry (in both `bus_schedules` and `bus_overrides`) has:
 - campus: `"regular"`, `"hakbu"`
 - fasttrack: `"fasttrack"`
 - Custom services can define their own
+
+A `routeType` with no matching badge is not an error anywhere — `BusScheduleDoc.entries` is `unknown[]` and no
+server code branches on it, so the entry is served and the client renders a blank chip. For the campus services
+`__tests__/nest/bus/campus-schedule-data.test.ts` pins this by importing `routeBadges` rather than hardcoding it.
+
+Two entries may share a `time` with different `routeType` — that is how "regular 1대 + 학부대학 2대 at 08:00" is
+expressed. For `campus-inja`/`campus-jain`, `index` is **derived from array position** by
+`scripts/set-campus-schedule.js` and must never be hand-written: a hand-maintained 1..N grows a duplicate the
+first time somebody inserts a departure in the middle.
 
 ---
 
@@ -1179,6 +1196,28 @@ jest.mock("../features/bus/campus-eta.data", () => ({
 - `migrate-inja-schedule.js` — INJA/JAIN 스케줄에 `routeType` 추가 (feat `ae6ec3a`)
 - `migrate-schedules.js` — 구 per-collection 포맷 → 통합 `bus_schedules` 이전 (feat `d5271f0`)
 - `migrate-source-dept-id.js` — `sourceDeptId` → `sourceId` 필드 rename (refactor `70923f6`, 후속 fix `8c62055`)
+
+### `scripts/set-campus-schedule.js`
+
+Applies the committed campus shuttle timetable to `bus_schedules`. The timetable lives in
+`scripts/data/campus-schedule.json` — a committed file so that a semester change is a reviewable `git diff` and a
+wrong timetable can be reverted rather than re-typed. `scripts/lib/campus-schedule-file.js` holds the pure
+parse/build/diff (no dotenv, no Mongo), which is what `__tests__/nest/bus/campus-schedule-data.test.ts` requires.
+
+- **Writes to**: `bus_campus.bus_schedules` (`_dev` unless `--prod`)
+- **Never upserts**: `resolveWeek` picks a pattern with `patterns.find(...)` — first match over an unordered
+  scan — so a typo'd key that created a fifth document could shadow a real one, nondeterministically and
+  possibly differently on api-1 and api-2. `matchedCount !== 1` aborts.
+- `index` is derived from array position; a hand-written `index` key is rejected by name.
+
+```bash
+npm run schedule -- --dry-run          # print the diff, write nothing
+npm run schedule -- --check            # exit 1 if the DB differs from the file
+npm run schedule                       # apply to bus_campus_dev
+npm run schedule -- --prod             # apply to bus_campus
+```
+
+Restart `api-1` and `api-2` afterwards — see §7.
 
 ### `scripts/seed-eskara.js`
 
