@@ -57,6 +57,7 @@ audience: internal
 | 문서 | 요약 |
 | --- | --- |
 | [notices-architecture.md](explanation/notices-architecture.md) | notices API가 왜 지금 모양인지 — 진짜 문제들과 미시 설계결정 |
+| [map-architecture.md](explanation/map-architecture.md) | The order to read `src/map/` in — layer vs layer set vs chip vs chip group, boot-time vs request-time work, and a change map by ownership tier |
 
 ### decisions (ADR)
 
