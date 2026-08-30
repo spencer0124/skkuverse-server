@@ -41,12 +41,6 @@ const config = {
     dbName: devDbName(process.env.MONGO_DB_NAME_BUS_CAMPUS),
     collections: {
       busCache: process.env.MONGO_CACHE_COLLECTION || "bus_cache",
-      INJA_weekday: process.env.MONGO_DB_NAME_INJA_WEEKDAY,
-      INJA_friday: process.env.MONGO_DB_NAME_INJA_FRIDAY,
-      INJA_weekend: process.env.MONGO_DB_NAME_INJA_WEEKEND,
-      JAIN_weekday: process.env.MONGO_DB_NAME_JAIN_WEEKDAY,
-      JAIN_friday: process.env.MONGO_DB_NAME_JAIN_FRIDAY,
-      JAIN_weekend: process.env.MONGO_DB_NAME_JAIN_WEEKEND,
     },
   },
 

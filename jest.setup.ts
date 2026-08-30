@@ -27,12 +27,6 @@ const defaults: Record<string, string> = {
   // /^[A-Za-z0-9_%-]+$/ (the URL-encoded-form check). Hyphen is OK.
   SEOUL_BUS_SERVICE_KEY: "test-seoul-bus-key",
   API_STATION_HEWA: "http://test-station",
-  MONGO_DB_NAME_INJA_WEEKDAY: "INJA_weekday",
-  MONGO_DB_NAME_INJA_FRIDAY: "INJA_friday",
-  MONGO_DB_NAME_INJA_WEEKEND: "INJA_weekend",
-  MONGO_DB_NAME_JAIN_WEEKDAY: "JAIN_weekday",
-  MONGO_DB_NAME_JAIN_FRIDAY: "JAIN_friday",
-  MONGO_DB_NAME_JAIN_WEEKEND: "JAIN_weekend",
   FCM_FUNCTION_URL: "http://test-fcm-function/sendNotification",
   FCM_API_KEY: "test-fcm-api-key",
   INTERNAL_DISPATCH_TOKEN: "test-internal-dispatch-token",

@@ -153,7 +153,7 @@ Pattern: `jest.mock("../lib/firebase", () => require("./helpers/mocks/firebase")
 
 Required at startup (missing → `process.exit(1)`, see `lib/config.js`):
 
-- **MongoDB**: `MONGO_URL`, `MONGO_DB_NAME_BUS_CAMPUS`, `MONGO_BUILDING_DB_NAME`, `MONGO_AD_DB_NAME`, `MONGO_NOTICES_DB_NAME`, `MONGO_DB_NAME_INJA_*`, `MONGO_DB_NAME_JAIN_*`
+- **MongoDB**: `MONGO_URL`, `MONGO_DB_NAME_BUS_CAMPUS`, `MONGO_BUILDING_DB_NAME`, `MONGO_AD_DB_NAME`, `MONGO_NOTICES_DB_NAME`, `MONGO_EVENTMAP_DB_NAME`, `MONGO_MINIAPPS_DB_NAME`
 - **External bus APIs**: `API_HSSC_NEW_PROD` (+ `_DEV`), `SEOUL_BUS_SERVICE_KEY` (shared TOPIS key; per-route URLs composed at runtime from `features/bus/jongro-routes.json`), `API_STATION_HEWA`
 - **Naver Maps**: `NAVER_API_KEY_ID`, `NAVER_API_KEY`, `NAVER_MAP_STYLE_ID`
 - **Notices dispatch**: `NOTICES_SERVICE_START_DATE`, `FCM_FUNCTION_URL`, `FCM_API_KEY`, `INTERNAL_DISPATCH_TOKEN`
