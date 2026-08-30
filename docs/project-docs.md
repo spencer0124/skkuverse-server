@@ -1194,7 +1194,9 @@ jest.mock("../features/bus/campus-eta.data", () => ({
 
 - `migrate-building-two-layer.js` — 빌딩 데이터 raw/enriched 2-layer 분리 (feat `d2723a5`)
 - `migrate-inja-schedule.js` — INJA/JAIN 스케줄에 `routeType` 추가 (feat `ae6ec3a`)
-- `migrate-schedules.js` — 구 per-collection 포맷 → 통합 `bus_schedules` 이전 (feat `d5271f0`)
+- `migrate-schedules.js` — 구 per-collection 포맷 → 통합 `bus_schedules` 이전 (feat `d5271f0`).
+  이 마이그레이션은 복사만 하고 원본을 지우지 않아 `INJA_*`/`JAIN_*` 컬렉션이 5개월간 남아 있었다 —
+  2026-08-31에 `scripts/drop-legacy-schedule-collections.js`로 정리됨
 - `migrate-source-dept-id.js` — `sourceDeptId` → `sourceId` 필드 rename (refactor `70923f6`, 후속 fix `8c62055`)
 
 ### `scripts/set-campus-schedule.js`
@@ -1218,6 +1220,24 @@ npm run schedule -- --prod             # apply to bus_campus
 ```
 
 Restart `api-1` and `api-2` afterwards — see §7.
+
+### `scripts/drop-legacy-schedule-collections.js`
+
+Drops the pre-2026-03 per-day-type schedule collections (`INJA_weekday`, `JAIN_friday`, … and the two stray
+`*_friday_sorted`). Run once against production on 2026-08-31; kept because the same eight names may still exist
+in another environment. A no-op where they are already absent.
+
+- **Drops from**: `bus_campus` (`_dev` unless `--prod`)
+- **Allowlist, never a prefix match** — a regex like `/^(INJA|JAIN)_/` would drop a collection somebody adds next
+  year. The script can only ever drop the eight names it lists.
+- **Refuses unless the replacement is healthy**: `bus_schedules` must exist with exactly 4 documents. Without that
+  guard, running it against a database where the migration never happened would destroy the only timetable.
+- **Dumps every collection to `__backups__/` before dropping**, and aborts if a dump comes back short.
+
+```bash
+node scripts/drop-legacy-schedule-collections.js --dry-run   # list, no writes
+node scripts/drop-legacy-schedule-collections.js --prod      # back up, then drop
+```
 
 ### `scripts/seed-eskara.js`
 
