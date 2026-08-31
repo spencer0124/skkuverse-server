@@ -204,9 +204,11 @@ order, and section 8 explains why that is enforced rather than conventional.
    its config. `chipGroupOf()` resolves a layer id to its exclusivity group. A leaf module: it imports
    only types, so nothing can create a cycle through it.
 
-   Two fields on the generated specs carry the whole festival story — `type` is hardcoded to `marker`
-   (see section 12), and `chipGroupId` is set to the layer set's own id, which is what makes each
-   festival its own fence.
+   Two fields on the generated specs carry the whole festival story — `markerStyle` is hardcoded to
+   `placeDot`, which is how every festival marker gets the dot-then-pin drawing without the config
+   saying so, and `chipGroupId` is set to the layer set's own id, which is what makes each festival
+   its own fence. There is deliberately no `type` beside them: the overlay's own `kind` is the sole
+   discriminant (section 12), so a layer no longer names its renderer.
 
 2. **`map-chips.data.ts`** — the chip validator, the synthesised reset chip, and the spec → wire
    projection. The validator accumulates errors rather than throwing on the first, so a bad edit is
