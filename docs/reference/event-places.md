@@ -318,6 +318,8 @@ the source IP, not a client TLS fault. Two causes, and they look identical:
 
 ## 8. Related
 
+- [how-to/configure-map-overlays.md](../how-to/configure-map-overlays.md) — the runbook: what can be drawn, which tier to edit, and what to check when a shape does not appear
+
 - [map-overlays-api.md](map-overlays-api.md) — the shared marker schema and the `/map/*` routes
 - [ADR 0004 — event map layer ownership](https://github.com/spencer0124/skkuverse/blob/main/docs/decisions/0004-event-map-layer-ownership.md)
 - Shuttle 증차 is a **separate** system — `bus_overrides` + `scripts/seed-eskara.js`. Link via a `route` action; do not rebuild it here.

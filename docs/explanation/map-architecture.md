@@ -431,7 +431,8 @@ shipped the third simply skips it — dropping that one overlay, never its layer
 
 ## Related
 
-- [reference/map-overlays-api.md](../reference/map-overlays-api.md) — the endpoint and marker contract
+- [how-to/configure-map-overlays.md](../how-to/configure-map-overlays.md) — the runbook: what can be drawn, which tier to edit, and what to check when a shape does not appear
+- [reference/map-overlays-api.md](../reference/map-overlays-api.md) — the endpoint and overlay contract
 - [reference/event-places.md](../reference/event-places.md) — the `places` / `activations` storage contract and the window kill-switch runbook
 - [explanation/notices-architecture.md](notices-architecture.md) — the sibling explanation doc, same shape for a different feature
 - [docs/README.md](../README.md) — writing rules
