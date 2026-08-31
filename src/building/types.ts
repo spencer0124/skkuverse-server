@@ -1,3 +1,4 @@
+import type { OverlayGeometry } from "../map/geo/geojson.types";
 import { ObjectId } from "mongodb";
 
 // --- 외부 SKKU campusMap.do 응답 (3 modes: buildList / buildInfo / spaceList) ---
@@ -222,4 +223,49 @@ export interface FloorSpace {
 export interface FloorGroup {
   floor: { ko: string; en: string };
   spaces: FloorSpace[];
+}
+
+// --- campus_shapes doc ---
+/**
+ * Permanent campus geometry: building footprints, the campus boundary, walking
+ * paths. Hand-authored, imported by `scripts/import-campus-shapes.js`.
+ *
+ * A SIBLING COLLECTION rather than a field on `buildings`, for two reasons.
+ * `buildings` is a mirror of SKKU's campusMap.do, re-synced on
+ * `BUILDING_SYNC_INTERVAL_MS`, so its document shape is owned by
+ * `building.sync.ts` and not by us — hand-authored geometry there survives
+ * today's field-level `$set` but not one change to `replaceOne`. And decisively,
+ * a campus boundary or a walking path has no building `_id` to hang off, so a
+ * `footprint` field could only ever cover half of what this holds.
+ *
+ * It lives in the building DB because that is where campus-permanent data
+ * belongs; `connections` set the precedent for a hand-authored collection
+ * alongside the synced ones.
+ */
+export interface CampusShapeDoc {
+  /** HUMAN-AUTHORED slug, as MapPlaceDoc. "hssc-boundary", "bldg-2-footprint". */
+  _id: string;
+  campus: Campus;
+  /**
+   * Targets a BASE_LAYERS entry directly — there is no category table on this
+   * side. `presentationFor` exists so ops can invent a category mid-festival;
+   * permanent geometry has no such need, and the base layer list is repo
+   * TypeScript either way. An id naming no layer is dropped and counted.
+   */
+  layerId: string;
+  /** GeoJSON, [lng, lat]. Served verbatim — see MapPlaceDoc.location. */
+  geometry: OverlayGeometry;
+  title: { ko: string; en: string };
+  subtitle?: { ko: string; en: string } | null;
+  /**
+   * The building this shape outlines, or `null` for geometry that is not a
+   * building — a boundary, a lawn, a path.
+   *
+   * Projected to `tap: { kind: "skku_building", placeId: String(skkuId) }`, so
+   * tapping a footprint opens exactly the sheet its number pin opens. No join
+   * and no new `MarkerTap` kind: one addressing scheme, as ADR 0004 requires.
+   */
+  skkuId: number | null;
+  order: number;
+  updatedAt: Date;
 }

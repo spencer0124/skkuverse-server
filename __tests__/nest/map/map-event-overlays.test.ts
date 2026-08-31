@@ -27,7 +27,7 @@ import {
 } from "../../../src/map/map-places.data";
 import { getLayerSetConfig } from "../../../src/map/map-layerset.config";
 import { presentationFor } from "../../../src/map/map-layerset.types";
-import { getEventMarkers } from "../../../src/map/map-event-markers.data";
+import { getEventOverlays } from "../../../src/map/map-event-overlays.data";
 
 const loaded = getLayerSetConfig("eskara-2026");
 if (!loaded?.config) throw new Error(`eskara-2026 failed to load: ${loaded?.error}`);
@@ -80,7 +80,7 @@ function arrange(docs: unknown[]) {
   return { placesFind: p.find };
 }
 
-describe("getEventMarkers", () => {
+describe("getEventOverlays", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFindActiveActivation.mockResolvedValue({
@@ -93,7 +93,7 @@ describe("getEventMarkers", () => {
 
     // No festival today is an ordinary answer, not an error — and it must not
     // touch Mongo at all.
-    await expect(getEventMarkers()).resolves.toEqual({ markers: [] });
+    await expect(getEventOverlays()).resolves.toEqual({ overlays: [] });
     expect(mockPlaces).not.toHaveBeenCalled();
   });
 
@@ -104,24 +104,27 @@ describe("getEventMarkers", () => {
 
     // Not an error: the config is what says which layer a category belongs to,
     // and without it there is nothing correct to serve. Mongo is not consulted.
-    await expect(getEventMarkers()).resolves.toEqual({ markers: [] });
+    await expect(getEventOverlays()).resolves.toEqual({ overlays: [] });
     expect(mockPlaces).not.toHaveBeenCalled();
   });
 
-  it("projects one document to one marker", async () => {
+  it("projects one document to one overlay", async () => {
     arrange([place()]);
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
 
     expect(markers).toHaveLength(1);
     expect(markers[0]).toEqual({
+      // A Point becomes a marker. The renderer is named by `kind` rather than
+      // inferred from a layer, which is what lets one layer draw pins and a
+      // zone at once.
+      kind: "marker",
       id: "eskara-2026-booth-01",
       layerId: "eskara26_booth",
       campus: "nsc",
-      // Un-swapped from GeoJSON. Latitude is the ~37 one; if these ever trade
-      // places the booth lands off the coast of Africa.
-      lat: 37.294452,
-      lng: 126.971747,
+      // The STORED object, verbatim. [lng, lat] — the ~126 one is longitude;
+      // if these ever trade places the booth lands off the coast of Africa.
+      geometry: { type: "Point", coordinates: [126.971747, 37.294452] },
       text: { ko: "우끼끼친", en: "Ukkikki" },
       subtitle: { ko: "생명공학대학 학생회", en: "생명공학대학 학생회" },
       hours: [
@@ -139,7 +142,7 @@ describe("getEventMarkers", () => {
   it("scans the live layer set and nothing else — one cursor, no join", async () => {
     const { placesFind } = arrange([place()]);
 
-    await getEventMarkers();
+    await getEventOverlays();
 
     // No lifecycle filter: a cancelled booth is DELETED, not flagged, so there
     // is no state left for a filter to exclude.
@@ -153,7 +156,7 @@ describe("getEventMarkers", () => {
     // single window would re-introduce the duplicate rows it exists to remove.
     arrange([place()]);
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
 
     expect(markers[0]!.hours).toEqual([
       { startAt: "2026-08-27T09:00:00.000Z", endAt: "2026-08-27T15:00:00.000Z" },
@@ -164,7 +167,7 @@ describe("getEventMarkers", () => {
   it("carries an always-open place through as an empty window list", async () => {
     arrange([place({ _id: "toilet", category: "facility", hours: [] })]);
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
 
     // `[]` has exactly ONE meaning — always open — which the old
     // `startAt: null, endAt: null` could not manage: it meant both an always-on
@@ -184,14 +187,17 @@ describe("getEventMarkers", () => {
     ];
     arrange(docs);
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
 
     expect(markers.map((m) => m.id).sort()).toEqual(["bar-1", "stage-1", "unmapped-1"]);
     for (const marker of markers) {
       const category = docs.find((d) => d._id === marker.id)!.category;
       const presentation = presentationFor(CONFIG, category);
       expect(marker.layerId).toBe(presentation.layerId);
-      expect(marker.pinPriority).toBe(presentation.pinPriority);
+      expect(marker.kind).toBe("marker");
+      if (marker.kind === "marker") {
+        expect(marker.pinPriority).toBe(presentation.pinPriority);
+      }
       expect(CONFIG.layers.some((l) => l.id === marker.layerId)).toBe(true);
     }
   });
@@ -201,7 +207,7 @@ describe("getEventMarkers", () => {
     // nobody can see is not a reportable bug, so it lands somewhere visible.
     arrange([place({ category: "전시" })]);
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
 
     expect(markers).toHaveLength(1);
     expect(markers[0]!.layerId).toBe(CONFIG.itemDefaults.fallback.layerId);
@@ -212,7 +218,7 @@ describe("getEventMarkers", () => {
     // stack. They are two documents now, so a tap names exactly one of them.
     arrange([place({ _id: "nightbar-nareun" }), place({ _id: "nightbar-f1" })]);
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
 
     expect(markers.map((m) => m.tap)).toEqual([
       { kind: "event", placeId: "nightbar-nareun" },
@@ -223,7 +229,7 @@ describe("getEventMarkers", () => {
   it("takes campus from the document that holds the coordinates", async () => {
     arrange([place({ campus: "hssc" })]);
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
 
     // One document now, so campus and position cannot disagree — which is what
     // the old "take the plot's campus, not the session's copy" rule was for.
@@ -233,7 +239,7 @@ describe("getEventMarkers", () => {
   it("falls back to Korean when a title has no English", async () => {
     arrange([place({ title: { ko: "에라의 불시착" } })]);
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
 
     expect(markers[0]!.text).toEqual({ ko: "에라의 불시착", en: "에라의 불시착" });
     expect("zh" in markers[0]!.text).toBe(false);
@@ -242,7 +248,7 @@ describe("getEventMarkers", () => {
   it("carries an ops-authored Chinese title through to the wire", async () => {
     arrange([place({ title: { ko: "우끼끼친", en: "Ukkikki", zh: "乌key" } })]);
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
 
     // Resolving server-side would lose Chinese booth names on a map whose layer
     // labels ARE translated to Chinese.
@@ -252,7 +258,7 @@ describe("getEventMarkers", () => {
   it("serves a null subtitle when ops authored none", async () => {
     arrange([place({ subtitle: null })]);
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
 
     expect(markers[0]!.subtitle).toBeNull();
   });
@@ -269,7 +275,7 @@ describe("getEventMarkers", () => {
       }),
     ]);
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
 
     expect(markers[0]!.fields).toEqual([
       { label: { ko: "메뉴", en: "Menu" }, value: { ko: "골뱅이소면 · 감자튀김", en: "골뱅이소면 · 감자튀김" } },
@@ -295,7 +301,7 @@ describe("getEventMarkers", () => {
       }),
     ]);
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
 
     expect(markers[0]!.actions).toHaveLength(1);
     const action = markers[0]!.actions[0]!;
@@ -307,7 +313,7 @@ describe("getEventMarkers", () => {
   describe("action validation — one bad button, not one lost booth", () => {
     async function actionsFor(action: Record<string, unknown>) {
       arrange([place({ actions: [action] })]);
-      const { markers } = await getEventMarkers();
+      const { overlays: markers } = await getEventOverlays();
       return markers[0]!.actions;
     }
 
@@ -400,7 +406,7 @@ describe("getEventMarkers", () => {
         }),
       ]);
 
-      const { markers } = await getEventMarkers();
+      const { overlays: markers } = await getEventOverlays();
 
       // Losing one button is recoverable; losing the booth is not.
       expect(markers[0]!.actions.map((a) => a.id)).toEqual(["ok"]);
@@ -427,7 +433,7 @@ describe("getEventMarkers", () => {
       };
       arrange([legacy, place()]);
 
-      const { markers } = await getEventMarkers();
+      const { overlays: markers } = await getEventOverlays();
 
       expect(markers.map((m) => m.id)).toEqual(["eskara-2026-booth-01"]);
       expect(mockLogger.warn).toHaveBeenCalledTimes(1);
@@ -437,7 +443,7 @@ describe("getEventMarkers", () => {
     it("skips a document whose hours or fields are not arrays", async () => {
       arrange([place({ _id: "no-hours", hours: undefined }), place()]);
 
-      const { markers } = await getEventMarkers();
+      const { overlays: markers } = await getEventOverlays();
 
       expect(markers.map((m) => m.id)).toEqual(["eskara-2026-booth-01"]);
     });
@@ -447,7 +453,7 @@ describe("getEventMarkers", () => {
       // The buildings producer refuses the same case and cites this one.
       arrange([place({ _id: "blank", title: { ko: "" } }), place()]);
 
-      const { markers } = await getEventMarkers();
+      const { overlays: markers } = await getEventOverlays();
 
       expect(markers.map((m) => m.id)).toEqual(["eskara-2026-booth-01"]);
     });
@@ -457,7 +463,7 @@ describe("getEventMarkers", () => {
       // whatever the author DID write rather than shipped as undefined.
       arrange([place({ title: { ko: "", zh: "乌key" } })]);
 
-      const { markers } = await getEventMarkers();
+      const { overlays: markers } = await getEventOverlays();
 
       expect(markers[0]!.text.ko).toBe("乌key");
       expect(markers[0]!.text.en).toBe("乌key");
@@ -477,7 +483,7 @@ describe("getEventMarkers", () => {
         }),
       ]);
 
-      const { markers } = await getEventMarkers();
+      const { overlays: markers } = await getEventOverlays();
 
       // Failing soft is only recoverable if somebody can find out it happened.
       expect(markers[0]!.actions).toEqual([]);
@@ -499,8 +505,131 @@ describe("getEventMarkers", () => {
       }),
     ]);
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
 
     expect("style" in markers[0]!.actions[0]!).toBe(false);
+  });
+});
+
+/**
+ * A zone is a place whose geometry happens to be an area. Nothing about the
+ * pipeline is special-cased for it — same collection, same activation, same
+ * cursor, same category table — which is the property these cases pin.
+ */
+describe("getEventOverlays — zones and route lines", () => {
+  const RING: [number, number][] = [
+    [126.9714, 37.2944],
+    [126.9724, 37.2944],
+    [126.9724, 37.2954],
+    [126.9714, 37.2954],
+    [126.9714, 37.2944],
+  ];
+
+  it("draws a Polygon place as a polygon, from the same cursor as the pins", async () => {
+    arrange([
+      place(),
+      place({
+        _id: "eskara-2026-zone-01",
+        location: { type: "Polygon", coordinates: [RING] },
+      }),
+    ]);
+
+    const { overlays } = await getEventOverlays();
+
+    expect(overlays.map((o) => o.kind).sort()).toEqual(["marker", "polygon"]);
+    const zone = overlays.find((o) => o.kind === "polygon")!;
+    // Verbatim. The server converts nothing, so this is identity.
+    expect(zone.geometry).toEqual({ type: "Polygon", coordinates: [RING] });
+  });
+
+  it("rewinds a clockwise ring on the way to the wire", async () => {
+    // Authored or hand-edited the wrong way round. Mongo accepts it silently,
+    // so the projection is the only place this can be caught.
+    const backwards = [...RING].reverse();
+    arrange([
+      place({
+        _id: "eskara-2026-zone-01",
+        location: { type: "Polygon", coordinates: [backwards] },
+      }),
+    ]);
+
+    const { overlays } = await getEventOverlays();
+    const zone = overlays[0]!;
+    expect(zone.kind).toBe("polygon");
+    if (zone.kind === "polygon") {
+      expect(zone.geometry.coordinates[0]).toEqual(RING);
+    }
+  });
+
+  it("draws a LineString place as a path", async () => {
+    arrange([
+      place({ _id: "eskara-2026-route-01", location: { type: "LineString", coordinates: RING } }),
+    ]);
+
+    const { overlays } = await getEventOverlays();
+    expect(overlays[0]!.kind).toBe("path");
+  });
+
+  it("gives a zone the same tap envelope a booth gets", async () => {
+    arrange([
+      place({ _id: "eskara-2026-zone-01", location: { type: "Polygon", coordinates: [RING] } }),
+    ]);
+
+    const { overlays } = await getEventOverlays();
+    expect(overlays[0]!.tap).toEqual({
+      kind: "event",
+      placeId: "eskara-2026-zone-01",
+    });
+  });
+
+  it("skips a structurally broken ring instead of 500ing the festival", async () => {
+    // `coordinates: [null]` satisfies "is an array" and then dereferences
+    // null.length inside the winding pass. This route has no try/catch, so
+    // without a structural guard one hand-edited document takes the whole
+    // festival down for every client for as long as the row exists.
+    arrange([
+      place(),
+      place({
+        _id: "eskara-2026-broken-01",
+        location: { type: "Polygon", coordinates: [null] },
+      }),
+    ]);
+
+    const { overlays } = await getEventOverlays();
+
+    expect(overlays).toHaveLength(1);
+    expect(overlays[0]!.id).toBe("eskara-2026-booth-01");
+  });
+
+  it("skips a ring too short to bound an area", async () => {
+    arrange([
+      place({
+        _id: "eskara-2026-thin-01",
+        location: { type: "Polygon", coordinates: [[RING[0], RING[1], RING[0]]] },
+      }),
+    ]);
+
+    await expect(getEventOverlays()).resolves.toEqual({ overlays: [] });
+  });
+
+  it("skips a geometry this build has no renderer for, and counts it", async () => {
+    // A MultiPolygon typed straight into Mongo. Fail SOFT: it is content, so
+    // one bad row must not take the other sixty with it — but it must not be
+    // silent either, or a booth goes missing with nothing saying why.
+    arrange([
+      place(),
+      place({
+        _id: "eskara-2026-bad-01",
+        location: { type: "MultiPolygon", coordinates: [[RING]] },
+      }),
+    ]);
+
+    const { overlays } = await getEventOverlays();
+
+    expect(overlays).toHaveLength(1);
+    expect(overlays[0]!.id).toBe("eskara-2026-booth-01");
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("not renderable"),
+    );
   });
 });

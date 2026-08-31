@@ -1,9 +1,14 @@
 // Mongo documents for the map's event places (skkuverse#11).
 // Contract: docs/reference/event-places.md §2. Cross-repo ownership: umbrella ADR 0004.
 //
-// Nothing here is a wire type. These are the stored documents; what the client
-// sees is a `MapMarker` (`map-marker.types.ts`), projected by
-// `map-event-markers.data.ts` with named lat/lng, never GeoJSON.
+// These are the stored documents; what the client sees is a `MapOverlay`
+// (`map-overlay.types.ts`), projected by `map-event-overlays.data.ts`.
+//
+// `location` is the ONE exception to "nothing here is a wire type": the stored
+// geometry object is served verbatim, byte for byte, with no conversion on the
+// server at all. That is deliberate — an axis swap can only be introduced at a
+// conversion, and swapped Seoul coordinates land in the Yellow Sea without ever
+// throwing. Removing the conversion is a stronger guarantee than guarding it.
 //
 // The layer SET — the developer-owned structure a festival is configured with —
 // lives in `map-layerset.types.ts`. The split is by who edits it: ops edit what
@@ -15,6 +20,7 @@
 // create two things to keep in sync for a value that cannot change.
 import type { Campus } from "../building/types";
 import type { I18n } from "../infra/types";
+import type { OverlayGeometry } from "./geo/geojson.types";
 
 // I18n is infra (`src/infra/types.ts`), because the map catalogue authors its
 // labels in the same shape and both halves share one resolver. Re-exported so
@@ -74,11 +80,20 @@ export interface MapPlaceDoc {
   /** OPEN string — "전시" next year must be a Mongo edit, not a deploy. */
   category: string;
   /**
-   * GeoJSON Point, [lng, lat], as BuildingDoc.location. REQUIRED — a place
-   * without coordinates cannot be drawn, and a nullable field would only defer
-   * the failure to render time. A place exists once surveyed, and not before.
+   * GeoJSON, [lng, lat], as BuildingDoc.location. REQUIRED — a place without
+   * geometry cannot be drawn, and a nullable field would only defer the failure
+   * to render time. A place exists once surveyed, and not before.
+   *
+   * A Point is a booth, a Polygon is a zone, a LineString is a route — one
+   * collection, because a zone is a place whose geometry happens to be an area
+   * (umbrella ADR 0004 invariant 1 applied to geometry). Widening the union on
+   * the SAME field is what keeps the `2dsphere` index working as the guard it
+   * already is: Mongo rejects an unclosed ring, a ring with fewer than four
+   * positions, a self-intersecting loop and a hole outside its exterior, all at
+   * insert. It does NOT check winding — that is the importer's job, via
+   * `geo/ring-winding.ts`, because the wire serves this object verbatim.
    */
-  location: { type: "Point"; coordinates: [number, number] };
+  location: OverlayGeometry;
   title: I18n;
   subtitle?: I18n | null;
   /** Empty = always open. See OpeningWindow. */
@@ -101,7 +116,7 @@ export interface ActivationDoc {
   activeUntil: Date | null;
   /**
    * One-field kill switch. `false` takes the event map down immediately — the
-   * layers leave `/map/config` and `/map/markers/event` returns nothing.
+   * layers leave `/map/config` and `/map/overlays/event` returns nothing.
    *
    * This document is the whole reason the activation tier survived the snapshot
    * deletion. The window could have moved into the config file, which would have

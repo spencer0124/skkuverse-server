@@ -57,7 +57,7 @@
  * ## Propagation
  *
  * Neither direction is instant. `/map/config` reads the activation per request,
- * so the layer list and the chip row turn over immediately; `/map/markers/event`
+ * so the layer list and the chip row turn over immediately; `/map/overlays/event`
  * is `public, max-age=60`, so a booth already fetched can linger on a device for
  * up to a minute. About a minute worst case, then, before every device is back
  * on the base campus map. Rehearse it before the festival rather than
@@ -230,7 +230,7 @@ async function main() {
     console.log(describe(await activations.findOne({ _id: args.layerSetId }), now));
     console.log(
       "\nPropagation is not instant: /map/config turns over on the next request,\n" +
-        "but /map/markers/event is cached 60 s at the edge. Allow about a minute.",
+        "but /map/overlays/event is cached 60 s at the edge. Allow about a minute.",
     );
   } finally {
     await client.close();

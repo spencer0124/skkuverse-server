@@ -23,6 +23,7 @@
     "verify:serve:down": "docker compose -f docker-compose.yml -f docker-compose.local-verify.yml down",
     "eventmap": "NODE_OPTIONS=--dns-result-order=ipv4first node scripts/eventmap-window.js",
     "eventmap:import": "NODE_OPTIONS=--dns-result-order=ipv4first node scripts/import-eventmap-places.js",
+    "campus:shapes": "NODE_OPTIONS=--dns-result-order=ipv4first node scripts/import-campus-shapes.js",
     "schedule": "NODE_OPTIONS=--dns-result-order=ipv4first node scripts/set-campus-schedule.js"
   },
   "author": "",

@@ -61,7 +61,7 @@ Express API server for SKKU (Sungkyunkwan University) campus. Serves real-time b
 
 Each feature in `features/` follows: `{name}.routes.js` (Express router), `{name}.fetcher.js` (background data polling), `{name}.data.js` or `{name}.stations.js` (static data/DB access). Poller registration is a side effect of `require()`-ing the fetcher.
 
-Route prefixes are mounted in `index.js`: `/bus/realtime`, `/bus/station`, `/bus/campus`, `/bus/schedule`, `/bus/config`, `/bus/route`, `/ui`, `/ad`, `/app`, `/map/config`, `/map/markers`, `/map/overlays`, `/building`, `/notices`, `/internal/notices`.
+Route prefixes are mounted in `index.js`: `/bus/realtime`, `/bus/station`, `/bus/campus`, `/bus/schedule`, `/bus/config`, `/bus/route`, `/ui`, `/ad`, `/app`, `/map/config`, `/map/overlays`, `/building`, `/notices`, `/internal/notices`.
 
 ### Notices Feature (`features/notices/`)
 

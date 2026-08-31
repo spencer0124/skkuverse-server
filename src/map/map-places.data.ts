@@ -17,7 +17,7 @@ import type { ActivationDoc, MapPlaceDoc } from "./map-places.types";
 // production map is a worse failure than an empty map.
 //
 // There is also no loadPlaces() wrapper. One caller reads this collection —
-// map-event-markers.data.ts — and it needs the cursor, not a named scan.
+// map-event-overlays.data.ts — and it needs the cursor, not a named scan.
 
 // --- Collection helpers ---
 //

@@ -119,8 +119,8 @@ module.exports = [
                 "./map-places.data",
                 "**/map-config.data",
                 "./map-config.data",
-                "**/map-event-markers.data",
-                "./map-event-markers.data",
+                "**/map-event-overlays.data",
+                "./map-event-overlays.data",
               ],
               message:
                 "leaf module: this import closes a cycle through map-layerset.config (see the file header).",

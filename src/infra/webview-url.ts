@@ -14,7 +14,7 @@ import { WEBVIEW_ORIGIN } from "./origins";
  * Two callers, deliberately different in what they do with the verdict, which is
  * why this exports a predicate rather than a validator that throws:
  *
- *  - `map-event-markers.data.ts` drops one sheet button and serves the booth
+ *  - `map-event-overlays.data.ts` drops one sheet button and serves the booth
  *    without it. Ops authored the value; losing a button is recoverable, losing
  *    the booth is not.
  *  - `map-chips.data.ts` accumulates the reason and drops one chip, same posture.

@@ -1,6 +1,6 @@
 /**
  * "Which layer set is live, and is its config usable?" — the one answer both
- * `/map/config` and `/map/markers/event` read.
+ * `/map/config` and `/map/overlays/event` read.
  *
  * The cases worth having are the two that are NOT "no festival today": an
  * activation naming a layer set this build has no file for, and one whose file

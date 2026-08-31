@@ -9,7 +9,7 @@ import type { EventMapConfig } from "./map-layerset.types";
  *
  * Owned by the event map because both halves of the answer are its APIs: the
  * activation window (`map-places.data`) and the loaded structure tier
- * (`map-layerset.config`). `/map/config` and `/map/markers/event` both ask, and
+ * (`map-layerset.config`). `/map/config` and `/map/overlays/event` both ask, and
  * asking through one function is what keeps them answering identically — the
  * layer list, the chip row and the markers all appear and disappear together.
  *

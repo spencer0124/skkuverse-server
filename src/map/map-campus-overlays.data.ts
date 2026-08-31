@@ -1,10 +1,26 @@
-import { getAllBuildings } from "../building/building.data";
-import type { Campus } from "../building/types";
-import type { BaseLayerId } from "./map-layers.data";
-import type { MapMarker } from "./map-marker.types";
+import { getAllBuildings, getAllCampusShapes } from "../building/building.data";
+import type { Campus, CampusShapeDoc } from "../building/types";
+import logger from "../infra/logger";
+import { BASE_LAYERS, type BaseLayerId } from "./map-layers.data";
+import type { MapOverlay, OverlayBase } from "./map-overlay.types";
+import {
+  isDrawableGeometry,
+  type GeoJsonLineString,
+  type GeoJsonPoint,
+  type GeoJsonPolygon,
+} from "./geo/geojson.types";
+import { toWirePolygon } from "./geo/ring-winding";
 
 /**
- * Campus buildings projected into the shared marker schema.
+ * Everything permanent on the campus map, in one collection.
+ *
+ * Two producers behind one response: the buildings, which are a mirror of
+ * SKKU's own data, and `campus_shapes`, which is hand-authored geometry —
+ * footprints, the campus boundary, walking paths. They ship together because
+ * they are the same kind of thing to a client: overlays on one map, told apart
+ * by `kind` and filtered by `layerId`.
+ *
+ * Campus buildings projected into the shared overlay schema.
  *
  * One response carries BOTH building layers. They are the same documents
  * differing only in which field becomes the visible string — `displayNo` for
@@ -75,14 +91,14 @@ const FALLBACK_MARKERS: FallbackMarker[] = [
  * the app read `{ko, en}`, so its markers were silently untappable AND rendered
  * blank labels; null is the same outcome, stated rather than accidental.
  */
-function formatFallback(): { markers: MapMarker[]; degraded: true } {
-  const markers: MapMarker[] = [];
+function formatFallback(): { overlays: MapOverlay[]; degraded: true } {
+  const overlays: MapOverlay[] = [];
   for (const m of FALLBACK_MARKERS) {
     const base = {
+      kind: "marker",
       id: m.id,
       campus: m.campus,
-      lat: m.lat,
-      lng: m.lng,
+      geometry: { type: "Point", coordinates: [m.lng, m.lat] },
       hours: [],
       subtitle: null,
       fields: [],
@@ -90,12 +106,12 @@ function formatFallback(): { markers: MapMarker[]; degraded: true } {
       order: 0,
       pinPriority: 0,
       tap: null,
-    } satisfies Partial<MapMarker>;
+    } satisfies Partial<MapOverlay>;
 
-    markers.push({ ...base, layerId: LAYER_NUMBERS, text: { ko: m.code, en: m.code } });
-    markers.push({ ...base, layerId: LAYER_LABELS, text: { ko: m.name, en: m.name } });
+    overlays.push({ ...base, layerId: LAYER_NUMBERS, text: { ko: m.code, en: m.code } });
+    overlays.push({ ...base, layerId: LAYER_LABELS, text: { ko: m.name, en: m.name } });
   }
-  return { markers, degraded: true };
+  return { overlays, degraded: true };
 }
 
 /**
@@ -109,8 +125,8 @@ function formatFallback(): { markers: MapMarker[]; degraded: true } {
  * client and edge cache for 24 hours, on a stable URL with no version stamp and
  * no revalidation to bust it.
  */
-async function getCampusMarkers(): Promise<{
-  markers: MapMarker[];
+async function getBuildingOverlays(): Promise<{
+  overlays: MapOverlay[];
   degraded: boolean;
 }> {
   const buildings = await getAllBuildings();
@@ -118,7 +134,7 @@ async function getCampusMarkers(): Promise<{
   // from the original route file rather than newly narrowed.
   if (!buildings?.length) return formatFallback();
 
-  const markers: MapMarker[] = [];
+  const overlays: MapOverlay[] = [];
 
   for (const b of buildings) {
     // GeoJSON stores [lng, lat]. The wire carries named fields and the server is
@@ -135,10 +151,15 @@ async function getCampusMarkers(): Promise<{
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
 
     const base = {
+      kind: "marker",
       id: String(b._id),
       campus: b.campus,
-      lat,
-      lng,
+      // Built here rather than stored, because BuildingDoc.location is a Point
+      // and this is the only producer whose source geometry is not already the
+      // wire object. The pair is destructured above and reassembled in the
+      // opposite order, which is exactly the swap risk this schema otherwise
+      // designs out — `map-overlay-coordinates.test.ts` pins it for that reason.
+      geometry: { type: "Point", coordinates: [lng, lat] },
       // A building has no opening-hours concept, which is exactly what an empty
       // window list means — never hidden, never filtered out by an open-now
       // control. The old `startAt: null, endAt: null` said the same thing in a
@@ -158,12 +179,12 @@ async function getCampusMarkers(): Promise<{
       // A building is addressed exactly as a booth is. String, not number: one
       // scheme for both kinds, narrowed back to a number by the app.
       tap: { kind: "skku_building" as const, placeId: String(b._id) },
-    } satisfies Partial<MapMarker>;
+    } satisfies Partial<MapOverlay>;
 
     // Buildings with no number are absent from 건물번호 but still named on
     // 건물이름 — the same filter the old overlay=number branch applied.
     if (b.displayNo) {
-      markers.push({
+      overlays.push({
         ...base,
         layerId: LAYER_NUMBERS,
         text: { ko: b.displayNo, en: b.displayNo },
@@ -184,7 +205,7 @@ async function getCampusMarkers(): Promise<{
     // refuses this case (`isRenderable`'s hasAnyText check); the two are
     // meant to be the same kind of thing, so this one refuses it too.
     if (nameKo) {
-      markers.push({
+      overlays.push({
         ...base,
         layerId: LAYER_LABELS,
         text: { ko: nameKo, en: nameEn },
@@ -192,7 +213,144 @@ async function getCampusMarkers(): Promise<{
     }
   }
 
-  return { markers, degraded: false };
+  return { overlays, degraded: false };
 }
 
-export { getCampusMarkers, FALLBACK_MARKERS, LAYER_LABELS, LAYER_NUMBERS };
+// --- Hand-authored campus geometry -----------------------------------------
+
+const BASE_LAYER_IDS: ReadonlySet<string> = new Set(BASE_LAYERS.map((l) => l.id));
+
+/**
+ * `campus_shapes` documents as overlays.
+ *
+ * Fail-soft in the same shape the event producer uses, and for the same reason:
+ * this is Mongo content, so a bad row is an authoring mistake rather than a
+ * developer one. It is skipped and counted; the rest of the campus still draws.
+ *
+ * A shape naming a layer that does not exist is the case worth catching. The
+ * base layer list is repo TypeScript while `layerId` here is hand-authored, so
+ * the two can drift — and the symptom of drift is an overlay that downloads
+ * fine and matches no layer, drawing nothing with no error anywhere.
+ */
+function toShapeOverlays(docs: CampusShapeDoc[]): MapOverlay[] {
+  const overlays: MapOverlay[] = [];
+  const skipped: string[] = [];
+
+  for (const doc of docs) {
+    if (!BASE_LAYER_IDS.has(doc.layerId)) {
+      skipped.push(`${doc._id}: layerId "${doc.layerId}" names no base layer`);
+      continue;
+    }
+    // STRUCTURAL, not just a type check. `coordinates: [null]` on a Polygon
+    // satisfies "is an array" and then dereferences `null.length` inside
+    // `toWirePolygon` — a throw out of a route with no try/catch, taking the
+    // buildings down with the geometry. One hand-edited document must not do
+    // that.
+    if (!isDrawableGeometry(doc.geometry) || !doc.title?.ko) {
+      skipped.push(`${doc._id}: geometry is not drawable, or the Korean title is blank`);
+      continue;
+    }
+
+    const base: OverlayBase = {
+      id: doc._id,
+      layerId: doc.layerId,
+      campus: doc.campus,
+      text: { ko: doc.title.ko, en: doc.title.en || doc.title.ko },
+      subtitle: doc.subtitle
+        ? { ko: doc.subtitle.ko, en: doc.subtitle.en || doc.subtitle.ko }
+        : null,
+      // Permanent geometry has no opening hours, and `[]` is the one spelling
+      // of always. A footprint fills the booth-shaped half of the schema with
+      // stated emptiness rather than omitting it.
+      hours: [],
+      fields: [],
+      actions: [],
+      order: doc.order,
+      // A footprint addresses its building exactly as the number pin does, so
+      // both taps open the same sheet. `null` for geometry that is not a
+      // building — a boundary, a path — which is how it stays a backdrop.
+      tap:
+        doc.skkuId === null
+          ? null
+          : { kind: "skku_building", placeId: String(doc.skkuId) },
+    };
+
+    // Points and lines pass through by reference, exactly as stored — no
+    // conversion, no swap. Polygon rings are normalised; that reorders ring
+    // elements only and cannot transpose a [lng, lat] pair.
+    switch (doc.geometry.type) {
+      case "Polygon":
+        overlays.push({
+          ...base,
+          kind: "polygon",
+          geometry: toWirePolygon(doc.geometry as GeoJsonPolygon),
+        });
+        break;
+      case "LineString":
+        overlays.push({ ...base, kind: "path", geometry: doc.geometry as GeoJsonLineString });
+        break;
+      case "Point":
+        overlays.push({
+          ...base,
+          kind: "marker",
+          geometry: doc.geometry as GeoJsonPoint,
+          // Campus geometry has no category table to resolve a priority from,
+          // and buildings never collide with each other, so the neutral value
+          // is stated rather than invented.
+          pinPriority: 0,
+        });
+        break;
+      default:
+        // Unreachable — `isDrawableGeometry` already narrowed to these three —
+        // and kept so that adding a geometry to the union without adding a
+        // branch here degrades into a counted skip rather than a silent drop.
+        skipped.push(`${doc._id}: geometry type has no renderer`);
+    }
+  }
+
+  if (skipped.length > 0) {
+    logger.warn(
+      `[map] ${skipped.length} campus shape(s) skipped: ${skipped.join("; ")}`,
+    );
+  }
+  return overlays;
+}
+
+/**
+ * The whole campus overlay collection — buildings and hand-authored geometry.
+ *
+ * The two reads are concurrent because neither depends on the other, and a
+ * failure of the shapes read must not take the buildings with it: campus
+ * geometry is an enhancement, the campus map is the product. `degraded`
+ * therefore continues to mean exactly one thing — the buildings fell back —
+ * so the controller's caching decision keeps the meaning it was written for.
+ */
+async function getCampusOverlays(): Promise<{
+  overlays: MapOverlay[];
+  degraded: boolean;
+}> {
+  const [buildings, shapeOverlays] = await Promise.all([
+    getBuildingOverlays(),
+    // The catch wraps the PROJECTION as well as the read. Wrapping only the
+    // read would leave a throw inside `toShapeOverlays` free to escape and take
+    // the buildings with it — the exact inverse of what this function is for.
+    (async () => toShapeOverlays(await getAllCampusShapes()))().catch(
+      (err: unknown) => {
+        logger.warn({ err }, "[map] campus shapes failed; serving buildings only");
+        return [] as MapOverlay[];
+      },
+    ),
+  ]);
+
+  return {
+    overlays: [...buildings.overlays, ...shapeOverlays],
+    degraded: buildings.degraded,
+  };
+}
+
+export {
+  getCampusOverlays,
+  FALLBACK_MARKERS,
+  LAYER_LABELS,
+  LAYER_NUMBERS,
+};

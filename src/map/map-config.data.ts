@@ -154,9 +154,8 @@ async function getMapConfig(lang: SupportedLang = "ko"): Promise<MapConfigRespon
       // "[object Object]". Labels are resolved here because they are the only
       // per-request part of a layer; the `?? id` is unreachable — `ko` is
       // required on every spec — and keeps the type honest.
-      ...layerSpecs.map(({ id, type, markerStyle, label, ...rest }) => ({
+      ...layerSpecs.map(({ id, markerStyle, label, ...rest }) => ({
         id,
-        type,
         markerStyle,
         label: pick(label, lang) ?? id,
         ...rest,

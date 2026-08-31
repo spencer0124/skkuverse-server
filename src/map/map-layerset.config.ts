@@ -96,6 +96,11 @@ function asFiniteNumber(value: unknown, where: string): number {
   return value;
 }
 
+function asBoolean(value: unknown, where: string): boolean {
+  if (typeof value !== "boolean") throw new Error(`${where} must be a boolean`);
+  return value;
+}
+
 function asOneOf<T extends string>(
   value: unknown,
   allowed: readonly T[],
@@ -244,7 +249,7 @@ function asCamera(value: unknown, where: string): MapCamera {
   const lng = asFiniteNumber(raw.lng, `${where}.lng`);
   // Cheap swap detector. Not a general guarantee — it only catches a flip
   // because SKKU's longitude (126) exceeds latitude's ±90 range. The real
-  // defence is the single conversion site in map-event-markers.data.ts.
+  // defence is the reader's own guard in scripts/lib/geojson-geometry.js.
   if (Math.abs(lat) > 90) {
     fail(`${where}.lat ${lat} is outside ±90 — lat and lng may be swapped`);
   }
@@ -264,6 +269,14 @@ function asItemPresentation(value: unknown, where: string): ItemPresentation {
   return {
     layerId: asString(raw.layerId, `${where}.layerId`),
     pinPriority: asFiniteNumber(raw.pinPriority, `${where}.pinPriority`),
+    // Absent or null means interactive, never fail closed — the same rule
+    // `userConfigurable` and `defaultVisibleWhen` follow. Anything present must
+    // be a real boolean: a string "false" is an authoring mistake worth naming,
+    // not a value to coerce.
+    interactive:
+      raw.interactive === undefined || raw.interactive === null
+        ? true
+        : asBoolean(raw.interactive, `${where}.interactive`),
   };
 }
 

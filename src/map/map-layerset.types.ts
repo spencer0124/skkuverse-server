@@ -30,7 +30,7 @@ import type { MapCamera } from "./map-chip.types";
  *    one of them is silent.
  *
  * This does NOT give up the timezone guarantee instants buy
- * (`docs/reference/map-markers-api.md` §3.3), because the client derives the
+ * (`docs/reference/map-overlays-api.md` §3.3), because the client derives the
  * current minute FROM THE EPOCH — `(Date.now() + 9h) % 86_400_000` — and never
  * from `Date.getHours()`. `Date.now()` is UTC epoch milliseconds and a device's
  * zone setting only changes how a time is formatted, so a phone set to New York
@@ -57,7 +57,7 @@ export interface DailyWindow {
  * list is a second spelling of "no schedule". This map domain has decided that
  * class of question before — `MapChipAction` over a flat `actionType`/`value`
  * pair, and the `status` scalar that was DELETED from beside `hours` for this
- * exact reason (`map-marker.types.ts`). Two flags may only sit side by side when
+ * exact reason (`map-overlay.types.ts`). Two flags may only sit side by side when
  * every combination of them is meaningful — the test `userConfigurable` clears
  * against this one, and that a boolean plus a window list would not.
  *
@@ -136,7 +136,35 @@ export interface EventChipDef {
  */
 export interface ItemPresentation {
   layerId: string;
+  /**
+   * The client's collision tiebreak, and MARKER-ONLY.
+   *
+   * Inert for a category whose places carry polygons or lines: two overlapping
+   * zones are a design choice, not a collision to resolve, and `MapOverlay`
+   * puts this field on the marker arm alone. A value left here on a zone
+   * category is a harmless no-op rather than a validator error — refusing it
+   * would require the config to know which categories carry rings, which is
+   * Mongo content it must not know.
+   */
   pinPriority: number;
+  /**
+   * Whether a place in this category responds to a tap. Absent means TRUE.
+   *
+   * This is how background geometry is expressed — a 통제 구간 outline that is
+   * drawn and not pressable — and it resolves to `tap: null` on the wire, which
+   * is a spelling that already existed.
+   *
+   * Absent means true for the same reason `userConfigurable` does: never fail
+   * closed. A layer set written before this field existed must not silently
+   * lose every tap.
+   *
+   * Per CATEGORY rather than per layer or per place. Two categories may map to
+   * one layer, so a single "구역" layer can hold tappable stage zones and an
+   * inert boundary without inventing a second layer. And not derived from
+   * "has no fields/actions": adding one card row must never silently turn a
+   * backdrop into a button.
+   */
+  interactive: boolean;
 }
 
 export interface ItemDefaults {

@@ -370,3 +370,61 @@ describe("assertValidConfig — defaultVisibleWhen, the WHEN axis", () => {
     );
   });
 });
+
+/**
+ * `interactive` — the per-category switch that makes a place a backdrop.
+ *
+ * A drawn-but-not-pressable zone (a 통제 구간 outline) resolves to `tap: null`,
+ * a spelling that already existed. It sits on the CATEGORY rather than the
+ * layer or the place: two categories may map to one layer, so one "구역" layer
+ * can hold tappable stage zones and an inert boundary without a second layer.
+ */
+describe("assertValidConfig — interactive, the TAP axis", () => {
+  it("defaults an absent value to interactive — never fail closed", () => {
+    const config = raw();
+    for (const p of Object.values<any>(config.itemDefaults.byCategory)) {
+      delete p.interactive;
+    }
+    delete config.itemDefaults.fallback.interactive;
+
+    const parsed = assertValidConfig(config);
+
+    // A layer set written before this field existed must not silently lose
+    // every tap on the map — the same rule userConfigurable follows.
+    expect(parsed.itemDefaults.fallback.interactive).toBe(true);
+    for (const p of Object.values(parsed.itemDefaults.byCategory)) {
+      expect(p.interactive).toBe(true);
+    }
+  });
+
+  it("treats an explicit null as absent, for the same reason", () => {
+    const config = raw();
+    config.itemDefaults.fallback.interactive = null;
+    expect(assertValidConfig(config).itemDefaults.fallback.interactive).toBe(true);
+  });
+
+  it("carries an explicit false through", () => {
+    const config = raw();
+    config.itemDefaults.fallback.interactive = false;
+    expect(assertValidConfig(config).itemDefaults.fallback.interactive).toBe(false);
+  });
+
+  it("refuses a non-boolean rather than coercing it", () => {
+    // `"false"` is truthy, so coercion would make a backdrop tappable while the
+    // sheet plainly says otherwise. An authoring mistake worth naming.
+    const config = raw();
+    config.itemDefaults.fallback.interactive = "false";
+    expect(() => assertValidConfig(config)).toThrow(
+      /config\.itemDefaults\.fallback\.interactive must be a boolean/,
+    );
+  });
+
+  it("names the exact category when one of them is wrong", () => {
+    const config = raw();
+    const [category] = Object.keys(config.itemDefaults.byCategory);
+    config.itemDefaults.byCategory[category!].interactive = 1;
+    expect(() => assertValidConfig(config)).toThrow(
+      new RegExp(`byCategory\\["${category}"\\]\\.interactive must be a boolean`),
+    );
+  });
+});

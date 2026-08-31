@@ -327,3 +327,126 @@ describe("parsePlacesFile — text and cards", () => {
     expect(docs[0].actions[0].actionValue).toBe("/eskara/entry");
   });
 });
+
+/**
+ * Zones and route lines are authored as pasted GeoJSON, not as named pairs.
+ *
+ * The rule the reader enforces: **a coordinate you type is named; a coordinate
+ * you paste is GeoJSON.** A fifty-vertex ring is not hand-typed — it comes out
+ * of geojson.io or QGIS in RFC 7946 — and asking an author to transcribe it
+ * into named pairs is exactly where a swap would be introduced.
+ */
+describe("parsePlacesFile — pasted geometry", () => {
+  const RING = [
+    [126.9704, 37.2901],
+    [126.9714, 37.2901],
+    [126.9714, 37.2911],
+    [126.9704, 37.2911],
+    [126.9704, 37.2901],
+  ];
+
+  /** A place authored with `geometry` instead of lat/lng. */
+  function withGeometry(geometry: unknown) {
+    return parse({}, { lat: undefined, lng: undefined, geometry });
+  }
+
+  it("stores a pasted Polygon exactly as authored", () => {
+    const { docs, errors } = withGeometry({ type: "Polygon", coordinates: [RING] });
+
+    expect(errors).toEqual([]);
+    // Identity of content: nothing is reshaped on the way in, which is what
+    // lets the projection serve it without reshaping it on the way out.
+    expect(docs[0].location).toEqual({ type: "Polygon", coordinates: [RING] });
+  });
+
+  it("stores a pasted LineString exactly as authored", () => {
+    const { docs, errors } = withGeometry({ type: "LineString", coordinates: RING });
+
+    expect(errors).toEqual([]);
+    expect(docs[0].location).toEqual({ type: "LineString", coordinates: RING });
+  });
+
+  it("refuses a place carrying both a pasted geometry and named lat/lng", () => {
+    const { docs, errors } = parse({}, {
+      geometry: { type: "Polygon", coordinates: [RING] },
+    });
+
+    expect(docs).toHaveLength(0);
+    expect(soleError({ errors })).toMatch(/has both lat\/lng and geometry/);
+  });
+
+  it("refuses a place carrying neither", () => {
+    const { docs, errors } = parse({}, { lat: undefined, lng: undefined });
+
+    expect(docs).toHaveLength(0);
+    expect(errors.join(" ")).toMatch(/is not a latitude/);
+  });
+
+  it("refuses a Point in the pasted form — one spelling per thing", () => {
+    const { errors } = withGeometry({
+      type: "Point",
+      coordinates: [126.9704, 37.2901],
+    });
+
+    expect(soleError({ errors })).toMatch(/is not authored here — write named lat\/lng/);
+  });
+
+  it("refuses a geometry type this build cannot draw", () => {
+    const { errors } = withGeometry({ type: "MultiPolygon", coordinates: [[RING]] });
+    expect(soleError({ errors })).toMatch(/type must be one of/);
+  });
+
+  it("reports BOTH coordinates when a named pair is wholly out of range", () => {
+    // A naive `else if` chain reports only the first, so the author fixes lat,
+    // re-runs, and meets lng on a second round trip. This file's posture is
+    // that one run names everything.
+    const { docs, errors } = parse({}, { lat: 999, lng: 999 });
+
+    expect(docs).toHaveLength(0);
+    expect(errors.filter((e: string) => /\.lat |\.lng /.test(e))).toHaveLength(2);
+  });
+
+  it("catches a wholesale [lat, lng] paste on the first vertex", () => {
+    // The failure this whole format exists to prevent. Swapped, the ring is
+    // drawn across the Yellow Sea and nothing anywhere throws — so the check
+    // has to happen while somebody is still holding the sheet.
+    const swapped = RING.map(([lng, lat]) => [lat, lng]);
+    const { docs, errors } = withGeometry({ type: "Polygon", coordinates: [swapped] });
+
+    expect(docs).toHaveLength(0);
+    expect(errors.join(" ")).toMatch(/is not a longitude|lat and lng may be swapped/);
+  });
+
+  it("refuses an unclosed ring, naming the fix", () => {
+    const { errors } = withGeometry({
+      type: "Polygon",
+      coordinates: [RING.slice(0, -1)],
+    });
+    expect(errors.join(" ")).toMatch(/is not closed — repeat the first position as the last/);
+  });
+
+  it("refuses a ring with too few positions to close", () => {
+    const { errors } = withGeometry({
+      type: "Polygon",
+      coordinates: [[RING[0], RING[1], RING[0]]],
+    });
+    expect(soleError({ errors })).toMatch(/needs at least 4/);
+  });
+
+  it("refuses a LineString with a single position", () => {
+    const { errors } = withGeometry({ type: "LineString", coordinates: [RING[0]] });
+    expect(soleError({ errors })).toMatch(/at least 2 positions/);
+  });
+
+  it("does NOT reject a ring for its winding direction", () => {
+    // Orientation is normalised at projection time, not here. Rejecting a paste
+    // for a direction the author cannot see would make a good sheet
+    // unimportable for an invisible reason — and doing it here would need a
+    // second copy of the shoelace, since scripts/ is CommonJS.
+    const backwards = [...RING].reverse();
+    const { docs, errors } = withGeometry({ type: "Polygon", coordinates: [backwards] });
+
+    expect(errors).toEqual([]);
+    expect(docs[0].location.coordinates[0]).toEqual(backwards);
+  });
+});
