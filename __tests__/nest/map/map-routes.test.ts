@@ -1,19 +1,17 @@
 /**
- * Nest port of the /map HTTP surface — integration over MapConfigController,
- * MapMarkersController, MapOverlaysController (5 endpoints, validation branches,
- * i18n labels, ETag/304, jongro overlay lookup).
+ * The /map HTTP surface — integration over MapConfigController and
+ * MapOverlaysController (3 endpoints, caching, i18n labels).
  *
- * MapService is overridden with a stub so the controllers' envelope/meta/ETag
- * wiring is exercised without the real data modules (no DB, no config coupling).
+ * MapService is overridden with a stub so the controllers' envelope/meta wiring
+ * is exercised without the real data modules (no DB, no config coupling).
  * BuildingService is overridden too because MapModule imports BuildingModule,
  * whose real onModuleInit would hit lib/db. The src/map/*.data modules are
- * covered by map-markers.test.ts and map-event-markers.test.ts alongside.
+ * covered by map-campus-overlays.test.ts and map-event-overlays.test.ts.
  *
  * Envelope parity:
  *  - /map/config → plain return → ResponseInterceptor wraps in
  *    { meta: { lang }, data } with X-Response-Time.
- *  - /map/markers/* and /map/overlays* → @Res() + sendSuccess → same envelope,
- *    plus Cache-Control (and ETag / 304 on the overlays root).
+ *  - /map/overlays/* → @Res() + sendSuccess → same envelope, plus Cache-Control.
  */
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
@@ -25,21 +23,15 @@ let app: NestExpressApplication;
 let httpServer: import("http").Server;
 let svc: {
   getMapConfig: jest.Mock;
-  getCampusMarkers: jest.Mock;
-  getEventMarkers: jest.Mock;
-  getOverlaysByCategory: jest.Mock;
-  computeEtag: jest.Mock;
-  getOverlayById: jest.Mock;
+  getCampusOverlays: jest.Mock;
+  getEventOverlays: jest.Mock;
 };
 
 beforeAll(async () => {
   svc = {
     getMapConfig: jest.fn(),
-    getCampusMarkers: jest.fn(),
-    getEventMarkers: jest.fn(),
-    getOverlaysByCategory: jest.fn(),
-    computeEtag: jest.fn(),
-    getOverlayById: jest.fn(),
+    getCampusOverlays: jest.fn(),
+    getEventOverlays: jest.fn(),
   };
   app = await buildMapApp([
     { provide: MapService, useValue: svc },
@@ -80,60 +72,81 @@ describe("GET /map/config", () => {
   });
 });
 
-describe("GET /map/markers/campus", () => {
+describe("GET /map/overlays/campus", () => {
   const data = {
-    markers: [
+    overlays: [
       {
+        kind: "marker",
         id: "2",
         layerId: "building_numbers",
         campus: "hssc",
-        lat: 37.587361,
-        lng: 126.994479,
+        geometry: { type: "Point", coordinates: [126.994479, 37.587361] },
         text: { ko: "1", en: "1" },
-        startAt: null,
-        endAt: null,
+        subtitle: null,
+        hours: [],
+        fields: [],
+        actions: [],
+        order: 0,
+        pinPriority: 0,
+        tap: { kind: "skku_building", placeId: "2" },
+      },
+      {
+        kind: "polygon",
+        id: "bldg-2-footprint",
+        layerId: "building_labels",
+        campus: "hssc",
+        geometry: {
+          type: "Polygon",
+          coordinates: [
+            [
+              [126.9944, 37.5873],
+              [126.9954, 37.5873],
+              [126.9954, 37.5883],
+              [126.9944, 37.5883],
+              [126.9944, 37.5873],
+            ],
+          ],
+        },
+        text: { ko: "수선관 외곽", en: "Suseon Hall Footprint" },
+        subtitle: null,
+        hours: [],
+        fields: [],
+        actions: [],
+        order: 0,
         tap: { kind: "skku_building", placeId: "2" },
       },
     ],
   };
 
-  it("takes no parameters and returns every building layer at once", async () => {
-    svc.getCampusMarkers.mockResolvedValue({ ...data, degraded: false });
+  it("serves pins and geometry in ONE collection, not two routes", async () => {
+    svc.getCampusOverlays.mockResolvedValue({ ...data, degraded: false });
 
-    const res = await request(httpServer).get("/map/markers/campus");
+    const res = await request(httpServer).get("/map/overlays/campus");
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ meta: { lang: "ko" }, data });
-    // The `overlay` query param is gone: one response carries both layers, and
-    // the service takes no argument to select between them.
-    expect(svc.getCampusMarkers).toHaveBeenCalledWith();
+    // The point of the route: a client draws the whole campus with one fetch,
+    // and tells a pin from a footprint by `kind`.
+    expect(res.body.data.overlays.map((o: { kind: string }) => o.kind)).toEqual([
+      "marker",
+      "polygon",
+    ]);
+    expect(svc.getCampusOverlays).toHaveBeenCalledWith();
   });
 
-  it("sets Cache-Control, which this route never had", async () => {
-    svc.getCampusMarkers.mockResolvedValue({ ...data, degraded: false });
+  it("caches for a day, because buildings do not move mid-session", async () => {
+    svc.getCampusOverlays.mockResolvedValue({ ...data, degraded: false });
 
-    const res = await request(httpServer).get("/map/markers/campus");
+    const res = await request(httpServer).get("/map/overlays/campus");
 
     expect(res.headers["cache-control"]).toBe("public, max-age=86400");
     expect(res.headers["x-response-time"]).toMatch(/ms$/);
   });
 
-  it("ignores a leftover overlay parameter instead of rejecting it", async () => {
-    svc.getCampusMarkers.mockResolvedValue({ ...data, degraded: false });
-
-    // An old client still appending ?overlay=number gets the full response
-    // rather than a 400. Nothing validates the param any more because nothing
-    // reads it.
-    const res = await request(httpServer).get("/map/markers/campus?overlay=number");
-
-    expect(res.status).toBe(200);
-    expect(svc.getCampusMarkers).toHaveBeenCalledWith();
-  });
-
   it("refuses to let the degraded fallback be cached", async () => {
-    svc.getCampusMarkers.mockResolvedValue({ ...data, degraded: true });
+    svc.getCampusOverlays.mockResolvedValue({ ...data, degraded: true });
 
-    const res = await request(httpServer).get("/map/markers/campus");
+    const res = await request(httpServer).get("/map/overlays/campus");
 
     // Otherwise a momentary empty collection pins 12 hardcoded buildings into
     // every client and edge cache for a day, on a URL with nothing to bust it.
@@ -144,26 +157,30 @@ describe("GET /map/markers/campus", () => {
   });
 });
 
-describe("GET /map/markers/event", () => {
-  it("wraps the markers in the envelope and sets Cache-Control", async () => {
+describe("GET /map/overlays/event", () => {
+  it("wraps the overlays in the envelope and sets a one-minute TTL", async () => {
     const data = {
-      markers: [
+      overlays: [
         {
+          kind: "marker",
           id: "s-1",
           layerId: "eskara26_booth",
           campus: "nsc",
-          lat: 37.294452,
-          lng: 126.971747,
+          geometry: { type: "Point", coordinates: [126.971747, 37.294452] },
           text: { ko: "우끼끼친", en: "Ukkikki" },
-          startAt: null,
-          endAt: null,
-          tap: { kind: "event", placeId: "nsc-plaza-a3" },
+          subtitle: null,
+          hours: [],
+          fields: [],
+          actions: [],
+          order: 0,
+          pinPriority: 0,
+          tap: { kind: "event", placeId: "s-1" },
         },
       ],
     };
-    svc.getEventMarkers.mockResolvedValue(data);
+    svc.getEventOverlays.mockResolvedValue(data);
 
-    const res = await request(httpServer).get("/map/markers/event");
+    const res = await request(httpServer).get("/map/overlays/event");
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ meta: { lang: "ko" }, data });
@@ -175,104 +192,33 @@ describe("GET /map/markers/event", () => {
   });
 
   it("does not fall through to its sibling route", async () => {
-    // Both live on @Controller("map/markers"), so a literal path must reach its
+    // Both live on @Controller("map/overlays"), so a literal path must reach its
     // own handler and leave the other untouched.
-    svc.getEventMarkers.mockResolvedValue({ markers: [] });
+    svc.getEventOverlays.mockResolvedValue({ overlays: [] });
 
-    const res = await request(httpServer).get("/map/markers/event");
+    const res = await request(httpServer).get("/map/overlays/event");
 
     expect(res.status).toBe(200);
-    // Both halves: its own handler ran, and the sibling's did not.
-    expect(svc.getEventMarkers).toHaveBeenCalled();
-    expect(svc.getCampusMarkers).not.toHaveBeenCalled();
+    expect(svc.getEventOverlays).toHaveBeenCalled();
+    expect(svc.getCampusOverlays).not.toHaveBeenCalled();
   });
 });
 
-describe("GET /map/overlays", () => {
-  it("400 MISSING_PARAM when category absent", async () => {
-    const res = await request(httpServer).get("/map/overlays");
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({
-      error: {
-        code: "MISSING_PARAM",
-        message: "category query parameter is required",
-      },
-    });
-    expect(svc.getOverlaysByCategory).not.toHaveBeenCalled();
-  });
-
-  it("404 NOT_FOUND when category unknown (even with If-None-Match)", async () => {
-    svc.getOverlaysByCategory.mockReturnValue(null);
-    const res = await request(httpServer)
-      .get("/map/overlays?category=bogus")
-      .set("If-None-Match", '"whatever"');
+describe("the routes this replaced", () => {
+  // These four URLs are gone, and their absence is worth pinning. The two
+  // /map/markers/* routes became the overlay collections above. The two legacy
+  // /map/overlays handlers served a hardcoded building table the v2 migration
+  // orphaned, and a jongro polyline lookup that GET /bus/route/:routeId already
+  // did better — and the second of those had a @Get(":overlayId") that would
+  // have swallowed /map/overlays/campus and answered "Overlay 'campus' not
+  // found". Deleting it is what freed the prefix.
+  it.each([
+    "/map/markers/campus",
+    "/map/markers/event",
+    "/map/overlays?category=hssc",
+    "/map/overlays/jongro07",
+  ])("404s %s", async (url) => {
+    const res = await request(httpServer).get(url);
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({
-      error: { code: "NOT_FOUND", message: "Category 'bogus' not found" },
-    });
-    // computeEtag must NOT be consulted before the 404 (order parity).
-    expect(svc.computeEtag).not.toHaveBeenCalled();
-  });
-
-  it("200 with ETag + Cache-Control + meta/data envelope", async () => {
-    const data = { category: "hssc", overlays: [{ id: "x" }] };
-    svc.getOverlaysByCategory.mockReturnValue(data);
-    svc.computeEtag.mockReturnValue('"abc123"');
-
-    const res = await request(httpServer).get("/map/overlays?category=hssc");
-
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ meta: { lang: "ko" }, data });
-    expect(res.headers.etag).toBe('"abc123"');
-    expect(res.headers["cache-control"]).toBe("public, max-age=300");
-    expect(res.headers["x-response-time"]).toMatch(/ms$/);
-    expect(svc.computeEtag).toHaveBeenCalledWith("hssc", "ko");
-  });
-
-  it("304 when If-None-Match matches the ETag", async () => {
-    svc.getOverlaysByCategory.mockReturnValue({ category: "hssc", overlays: [] });
-    svc.computeEtag.mockReturnValue('"etag-match"');
-
-    const res = await request(httpServer)
-      .get("/map/overlays?category=hssc")
-      .set("If-None-Match", '"etag-match"');
-
-    expect(res.status).toBe(304);
-    expect(res.text).toBe("");
-  });
-
-  it("per-language ETag (en differs from the ko request)", async () => {
-    const data = { category: "hssc", overlays: [] };
-    svc.getOverlaysByCategory.mockReturnValue(data);
-    svc.computeEtag.mockReturnValue('"en-etag"');
-    const res = await request(httpServer)
-      .get("/map/overlays?category=hssc")
-      .set("Accept-Language", "en");
-    expect(res.status).toBe(200);
-    expect(svc.computeEtag).toHaveBeenCalledWith("hssc", "en");
-    expect(svc.getOverlaysByCategory).toHaveBeenCalledWith("hssc", "en");
-  });
-});
-
-describe("GET /map/overlays/:overlayId", () => {
-  it("returns the overlay coords in the envelope", async () => {
-    const overlay = { coords: [[1, 2], [3, 4]] };
-    svc.getOverlayById.mockReturnValue(overlay);
-
-    const res = await request(httpServer).get("/map/overlays/jongro07");
-
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ meta: { lang: "ko" }, data: overlay });
-    expect(res.headers["x-response-time"]).toMatch(/ms$/);
-    expect(svc.getOverlayById).toHaveBeenCalledWith("jongro07");
-  });
-
-  it("404 NOT_FOUND for unknown overlayId", async () => {
-    svc.getOverlayById.mockReturnValue(undefined);
-    const res = await request(httpServer).get("/map/overlays/nope");
-    expect(res.status).toBe(404);
-    expect(res.body).toEqual({
-      error: { code: "NOT_FOUND", message: "Overlay 'nope' not found" },
-    });
   });
 });

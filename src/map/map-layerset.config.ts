@@ -96,6 +96,11 @@ function asFiniteNumber(value: unknown, where: string): number {
   return value;
 }
 
+function asBoolean(value: unknown, where: string): boolean {
+  if (typeof value !== "boolean") throw new Error(`${where} must be a boolean`);
+  return value;
+}
+
 function asOneOf<T extends string>(
   value: unknown,
   allowed: readonly T[],
@@ -264,6 +269,14 @@ function asItemPresentation(value: unknown, where: string): ItemPresentation {
   return {
     layerId: asString(raw.layerId, `${where}.layerId`),
     pinPriority: asFiniteNumber(raw.pinPriority, `${where}.pinPriority`),
+    // Absent or null means interactive, never fail closed — the same rule
+    // `userConfigurable` and `defaultVisibleWhen` follow. Anything present must
+    // be a real boolean: a string "false" is an authoring mistake worth naming,
+    // not a value to coerce.
+    interactive:
+      raw.interactive === undefined || raw.interactive === null
+        ? true
+        : asBoolean(raw.interactive, `${where}.interactive`),
   };
 }
 

@@ -1,12 +1,13 @@
 /**
  * Unit test for MapService — confirms each method delegates 1:1 to the
  * src/map/* data modules (no reimplementation). building.data is mocked so
- * getCampusMarkers exercises the FALLBACK_MARKERS path with no DB.
+ * getCampusOverlays exercises the FALLBACK_MARKERS path with no DB.
  */
 
-// Mock building.data so getCampusMarkers falls back (no DB).
+// Mock building.data so getCampusOverlays falls back (no DB).
 jest.mock("../../../src/building/building.data", () => ({
   getAllBuildings: jest.fn().mockResolvedValue([]),
+  getAllCampusShapes: jest.fn().mockResolvedValue([]),
 }));
 
 // getMapConfig now consults the activation window to decide whether the event
@@ -123,7 +124,7 @@ describe("MapService", () => {
     expect(eventLayers).toHaveLength(CONFIG.layers.length);
     // All share ONE endpoint, which is what makes six toggles cost one fetch.
     expect(new Set(eventLayers.map((l) => l.endpoint))).toEqual(
-      new Set(["/map/markers/event"]),
+      new Set(["/map/overlays/event"]),
     );
     expect(eventLayers.every((l) => l.markerStyle === "placeDot")).toBe(true);
     // defaultVisibleWhen is the config's, layer by layer — 편의시설 ships
@@ -302,10 +303,10 @@ describe("MapService", () => {
     expect(byId.get("building_numbers")!.style!.color).toBeUndefined();
   });
 
-  it("getCampusMarkers delegates to map-markers.data, both layers in one call", async () => {
+  it("getCampusOverlays delegates to map-campus-overlays.data, both layers in one call", async () => {
     // No overlay argument any more: one response carries both building layers,
     // so the app's endpoint-keyed cache serves two toggles from one fetch.
-    const { markers, degraded } = await svc.getCampusMarkers();
+    const { overlays: markers, degraded } = await svc.getCampusOverlays();
 
     // building.data is mocked to [] above, so this is the fallback path — and it
     // must say so, or the controller caches 12 hardcoded buildings for a day.
@@ -320,25 +321,9 @@ describe("MapService", () => {
     expect(markers[0]).not.toHaveProperty("skkuId");
   });
 
-  it("getOverlaysByCategory delegates to map-overlays.data", () => {
-    expect(svc.getOverlaysByCategory("hssc", "ko")!.overlays).toHaveLength(12);
-    expect(svc.getOverlaysByCategory("nsc", "ko")!.overlays).toHaveLength(1);
-    expect(svc.getOverlaysByCategory("bogus", "ko")).toBeNull();
-  });
-
-  it("computeEtag delegates to map-overlays.data (quoted md5, per-lang)", () => {
-    const ko = svc.computeEtag("hssc", "ko");
-    expect(ko).toMatch(/^"[a-f0-9]{32}"$/);
-    expect(svc.computeEtag("hssc", "en")).not.toBe(ko);
-    expect(svc.computeEtag("bogus", "ko")).toBeNull();
-  });
-
-  it("getOverlayById returns jongro coords for known ids, undefined otherwise", () => {
-    const jongro07 = svc.getOverlayById("jongro07");
-    expect(jongro07).toBeDefined();
-    expect(Array.isArray(jongro07!.coords)).toBe(true);
-    expect(jongro07!.coords.length).toBeGreaterThan(0);
-    expect(svc.getOverlayById("jongro02")).toBeDefined();
-    expect(svc.getOverlayById("nope")).toBeUndefined();
-  });
+  // The three legacy /map/overlays tests that stood here are gone with their
+  // methods: getOverlaysByCategory and computeEtag served a hardcoded building
+  // table that the v2 migration orphaned, and getOverlayById duplicated
+  // GET /bus/route/:routeId with less in the payload. Their coverage moved to
+  // map-routes.test.ts, which now pins that both URLs 404.
 });

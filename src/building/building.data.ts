@@ -5,6 +5,7 @@ import type {
   BuildingDoc,
   BuildingRawDoc,
   Campus,
+  CampusShapeDoc,
   ConnectionDoc,
   ConnectionResponseItem,
   FloorGroup,
@@ -44,6 +45,12 @@ function getConnectionsCollection(): Collection<ConnectionDoc> {
     .collection<ConnectionDoc>(config.building.collections.connections);
 }
 
+function getCampusShapesCollection(): Collection<CampusShapeDoc> {
+  return getClient()
+    .db(config.building.dbName!)
+    .collection<CampusShapeDoc>(config.building.collections.campusShapes);
+}
+
 // --- Indexes ---
 
 /**
@@ -69,6 +76,7 @@ async function ensureIndexes(): Promise<void> {
   const buildingsRaw = getRawBuildingsCollection();
   const spaces = getSpacesCollection();
   const connections = getConnectionsCollection();
+  const campusShapes = getCampusShapesCollection();
 
   await Promise.all([
     // buildings (enriched)
@@ -87,6 +95,12 @@ async function ensureIndexes(): Promise<void> {
     // connections
     connections.createIndex({ "a.skkuId": 1 }),
     connections.createIndex({ "b.skkuId": 1 }),
+    // campus_shapes. The 2dsphere is not for geo queries — none are run — it is
+    // there because Mongo rejects a malformed ring at insert, which is the
+    // cheapest guard we get against geometry that would fail to draw. Same
+    // reasoning as the places collection.
+    campusShapes.createIndex({ campus: 1 }),
+    campusShapes.createIndex({ geometry: "2dsphere" }),
   ]);
 }
 
@@ -236,8 +250,22 @@ function clearCache(): void {
   allBuildingsCacheTime = 0;
 }
 
+/**
+ * Every campus shape, in authored order.
+ *
+ * No in-process cache, unlike `getAllBuildings`. That cache exists because
+ * every /building/* request hits it; this is read once per client per day
+ * behind the overlay route's own 24-hour TTL, so a second layer of staleness
+ * would buy nothing and delay an ops correction.
+ */
+async function getAllCampusShapes(): Promise<CampusShapeDoc[]> {
+  return getCampusShapesCollection().find({}).sort({ order: 1, _id: 1 }).toArray();
+}
+
 export {
   getBuildingsCollection,
+  getCampusShapesCollection,
+  getAllCampusShapes,
   getRawBuildingsCollection,
   getSpacesCollection,
   getConnectionsCollection,

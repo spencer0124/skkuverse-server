@@ -52,9 +52,47 @@ import type { I18n } from "../infra/types";
  * the festival's config for exactly that reason.
  */
 export interface MapLayerStyle {
-  /** Bare hex, no `#` — the convention `toCssColor` expects. */
+  /**
+   * The layer's PRIMARY paint, in bare hex with no `#` — the convention
+   * `toCssColor` expects.
+   *
+   * What it paints depends on the overlay: a marker's tint, a line's stroke, a
+   * polygon's fill. One field rather than a `fillColor` beside it, because a
+   * layer carrying both would leave one of them dead on every overlay it draws,
+   * and "every combination must be meaningful" is the bar this file already
+   * applies to `userConfigurable` and `defaultVisibleWhen`.
+   */
   color?: string;
+  /** A polygon's or path's outline. Ignored where there is no outline to draw. */
   outlineColor?: string;
+  /**
+   * Outline thickness in points.
+   *
+   * Needed because the client's polygon overlay defaults it to ZERO — an
+   * unstyled polygon has no border at all — and because the app currently
+   * derives `outlineColor ? 1 : 0`, a workaround that exists only because this
+   * field did not.
+   */
+  outlineWidth?: number;
+  /**
+   * Fill alpha, 0–1.
+   *
+   * A requirement rather than a nicety: the client's polygon `color` defaults
+   * to OPAQUE black, so a zone shipped without this hides the basemap under it.
+   * Kept separate from `color` rather than widening the hex to eight digits,
+   * because `isHex6` is one rule shared by the bus overlay and festival layer
+   * colours, and an opacity is not a colour.
+   */
+  fillOpacity?: number;
+  /**
+   * Zoom bounds, inclusive of neither end by default.
+   *
+   * Building footprints and boundary lines are noise at campus-wide zoom and
+   * detail up close, which is a property of the layer rather than of any one
+   * overlay. Both map to the client overlay base props directly.
+   */
+  minZoom?: number;
+  maxZoom?: number;
   /** Pin width in points. Was `PIN_WIDTH`. */
   width?: number;
   /** Pin height in points. Was `PIN_HEIGHT`. */
@@ -68,7 +106,16 @@ export interface MapLayerStyle {
 
 export interface LayerSpec {
   id: string;
-  type: "marker" | "polyline";
+  /**
+   * How a MARKER on this layer is drawn. Ignored by every other overlay kind.
+   *
+   * There is deliberately no `type` beside it. A layer used to name its
+   * renderer, which meant the renderer was decided twice — once here and once
+   * by the geometry — and the two could disagree with nothing to blame. The
+   * overlay's own `kind` is now the single discriminant, which is also what
+   * lets ONE layer draw pins, a zone and a route line together: turning on
+   * 부스 can show all three, because the layer no longer constrains geometry.
+   */
   markerStyle?: string;
   /**
    * Every language we hold, resolved per request in `map-config.data.ts`.
@@ -158,6 +205,13 @@ export interface LayerSpec {
 }
 
 /**
+ * ONE route for the permanent campus collection — buildings and hand-authored
+ * geometry alike. Two layers over it cost one fetch, each rendering the subset
+ * carrying its own `layerId`.
+ */
+export const CAMPUS_OVERLAYS_ENDPOINT = "/map/overlays/campus";
+
+/**
  * The layers that exist regardless of whether a festival is live.
  *
  * One list, `as const satisfies`, so the id union below is read off it rather
@@ -173,59 +227,44 @@ export interface LayerSpec {
 export const BASE_LAYERS = [
   {
     id: "building_numbers",
-    type: "marker",
     markerStyle: "numberCircle",
     label: { ko: "건물번호", en: "Building Numbers", zh: "建筑编号" },
     defaultVisibleWhen: { kind: "always" },
     userConfigurable: true,
-    endpoint: "/map/markers/campus",
+    endpoint: CAMPUS_OVERLAYS_ENDPOINT,
     chipGroupId: null,
     style: { size: 16 },
   },
   {
     id: "building_labels",
-    type: "marker",
     markerStyle: "textLabel",
     label: { ko: "건물이름", en: "Building Names", zh: "建筑名称" },
     defaultVisibleWhen: { kind: "always" },
     userConfigurable: true,
-    endpoint: "/map/markers/campus",
+    endpoint: CAMPUS_OVERLAYS_ENDPOINT,
     chipGroupId: null,
     // The label layer draws above every other overlay so a building name is
     // never hidden behind a booth pin.
     style: { captionTextSize: 7, zIndex: 100000 },
   },
-  // {
-  //   id: "bus_route_jongro07",
-  //   type: "polyline",
-  //   label: { ko: "종로07 노선", en: "Jongro 07 Route", zh: "钟路07路线" },
-  //   defaultVisibleWhen: { kind: "always" },
-  //   userConfigurable: true,
-  //   endpoint: "/map/overlays/jongro07",
-  //   chipGroupId: null,
-  //   style: { color: "4CAF50" },
-  // },
-  // {
-  //   id: "bus_route_jongro02",
-  //   type: "polyline",
-  //   label: { ko: "종로02 노선", en: "Jongro 02 Route", zh: "钟路02路线" },
-  //   defaultVisibleWhen: { kind: "always" },
-  //   userConfigurable: true,
-  //   endpoint: "/map/overlays/jongro02",
-  //   chipGroupId: null,
-  //   style: { color: "4CAF50" },
-  // },
+  // The two commented-out bus route layers that used to sit here are gone. They
+  // pointed at `/map/overlays/:overlayId`, which is deleted, and they described
+  // themselves with a layer `type` that no longer exists. Reviving them is now
+  // a different and better-shaped job: give the two jongro routes documents in
+  // `campus_shapes` with LineString geometry, and they arrive through the
+  // campus collection as ordinary `kind: "path"` overlays with no second URL,
+  // no second parser and no sideways import of `src/bus` data.
 ] as const satisfies readonly LayerSpec[];
 
 export type BaseLayerId = (typeof BASE_LAYERS)[number]["id"];
 
 /**
  * ONE route for every festival layer, whichever festival. The app keys its
- * marker cache on this string, so six layers cost one fetch and one cache
+ * overlay cache on this string, so six layers cost one fetch and one cache
  * entry, each rendering the subset carrying its own `layerId`. Named for the
  * mechanism rather than the event, so next year's config changes no URL.
  */
-export const EVENT_MARKERS_ENDPOINT = "/map/markers/event";
+export const EVENT_OVERLAYS_ENDPOINT = "/map/overlays/event";
 
 /**
  * Geometry shared by every festival layer, whichever festival. This is how a
@@ -237,6 +276,21 @@ export const EVENT_LAYER_STYLE = {
   width: 22,
   height: 30,
   captionTextSize: 9,
+} as const satisfies MapLayerStyle;
+
+/**
+ * How a festival ZONE or route line is drawn, shared by every festival for the
+ * same reason `EVENT_LAYER_STYLE` is: this is the map's business, not the
+ * event's. Only `color` varies, and it is content.
+ *
+ * A translucent fill and a visible outline are not taste. The client's polygon
+ * overlay defaults `color` to opaque black and `outlineWidth` to 0, so a zone
+ * shipped without both would be a solid black blob with no border, hiding the
+ * booths it is supposed to group.
+ */
+export const EVENT_SHAPE_STYLE = {
+  fillOpacity: 0.18,
+  outlineWidth: 2,
 } as const satisfies MapLayerStyle;
 
 /**
@@ -269,14 +323,17 @@ function copyVisibility(when: LayerDefaultVisibility): LayerDefaultVisibility {
 export function eventLayerSpecs(config: EventMapConfig): LayerSpec[] {
   return config.layers.map((layer) => ({
     id: layer.id,
-    type: "marker",
+    // Every festival layer keeps a marker style, because a layer that draws no
+    // pins simply never uses it. That is cheaper than a config field saying
+    // which layers have pins — a claim that could disagree with the places
+    // actually stored, which is the second-discriminant problem again.
     markerStyle: "placeDot",
     label: layer.label,
     defaultVisibleWhen: copyVisibility(layer.defaultVisibleWhen),
     userConfigurable: true,
-    endpoint: EVENT_MARKERS_ENDPOINT,
+    endpoint: EVENT_OVERLAYS_ENDPOINT,
     chipGroupId: config.layerSetId,
-    style: { color: layer.color, ...EVENT_LAYER_STYLE },
+    style: { color: layer.color, ...EVENT_LAYER_STYLE, ...EVENT_SHAPE_STYLE },
   }));
 }
 

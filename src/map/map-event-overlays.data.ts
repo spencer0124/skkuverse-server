@@ -6,14 +6,29 @@ import { presentationFor } from "./map-layerset.types";
 import type { MapPlaceDoc, PlaceAction } from "./map-places.types";
 import { getPlacesCollection } from "./map-places.data";
 import type { I18n } from "../infra/types";
-import type { I18nWire, MapMarker, MarkerAction } from "./map-marker.types";
+import type {
+  GeoJsonLineString,
+  GeoJsonPoint,
+  GeoJsonPolygon,
+} from "./geo/geojson.types";
+import type {
+  I18nWire,
+  MapOverlay,
+  MarkerAction,
+  OverlayBase,
+} from "./map-overlay.types";
 
 /**
- * Event places projected into the ORDINARY map-marker schema.
+ * Event places projected into the ORDINARY map-overlay schema.
  *
  * A booth and a building are the same kind of thing (umbrella ADR 0004
  * invariant 1), so a booth arrives the way 건물번호 does: a layer in
- * /map/config with an endpoint, drawn by the app's one marker renderer.
+ * /map/config with an endpoint, drawn by the app's overlay renderer.
+ *
+ * A zone and a route line arrive the same way again. One collection holds all
+ * three, because a zone is a place whose geometry happens to be an area — the
+ * same invariant applied one level down. What differs is only `kind`, which
+ * names the renderer the client should reach for.
  *
  * Nothing here knows which festival is live. The layer a place belongs to is
  * read from the live layer set's config through `presentationFor` — one table,
@@ -178,9 +193,44 @@ function toWireActions(
  * A blank title is refused for the reason the buildings producer refuses one: an
  * empty label still occupies a tap target and a client collision slot.
  */
+const DRAWABLE_GEOMETRY = ["Point", "Polygon", "LineString"] as const;
+
+/**
+ * Which renderer draws this geometry.
+ *
+ * A mapping rather than a stored field: for the three shapes this build draws,
+ * the geometry determines the renderer completely, and a second stored field
+ * saying the same thing could disagree with it. The reserved overlays that are
+ * NOT geometry-determined — a metre-radius circle, an image on a bounding box —
+ * have no GeoJSON geometry at all, so they will arrive by their own path rather
+ * than widening this switch.
+ */
+function kindOf(type: "Point" | "Polygon" | "LineString"): MapOverlay["kind"] {
+  switch (type) {
+    case "Point":
+      return "marker";
+    case "Polygon":
+      return "polygon";
+    case "LineString":
+      return "path";
+  }
+}
+
+function isDrawableGeometry(location: MapPlaceDoc["location"]): boolean {
+  return (
+    !!location &&
+    (DRAWABLE_GEOMETRY as readonly string[]).includes(location.type) &&
+    Array.isArray(location.coordinates)
+  );
+}
+
 function isRenderable(doc: MapPlaceDoc): boolean {
   return (
     hasAnyText(doc.title) &&
+    // A geometry this build has no renderer for — a MultiPolygon typed straight
+    // into Mongo, say — is skipped and counted with the other unusable rows
+    // rather than shipped as an overlay the client would silently drop.
+    isDrawableGeometry(doc.location) &&
     Array.isArray(doc.hours) &&
     Array.isArray(doc.fields) &&
     Array.isArray(doc.actions) &&
@@ -191,15 +241,15 @@ function isRenderable(doc: MapPlaceDoc): boolean {
 }
 
 /**
- * Every place of the currently active layer set, as markers.
+ * Every place of the currently active layer set, as overlays.
  *
  * Returns an empty list rather than throwing when no event is live — the app
  * asks for this endpoint whenever the layer is configured, and "no festival
  * today" is an ordinary answer, not an error.
  */
-async function getEventMarkers(): Promise<{ markers: MapMarker[] }> {
+async function getEventOverlays(): Promise<{ overlays: MapOverlay[] }> {
   const config = await activeEventConfig(new Date());
-  if (!config) return { markers: [] };
+  if (!config) return { overlays: [] };
 
   const all = await getPlacesCollection()
     .find({ layerSetId: config.layerSetId })
@@ -217,24 +267,16 @@ async function getEventMarkers(): Promise<{ markers: MapMarker[] }> {
 
   const droppedActions: string[] = [];
 
-  const markers: MapMarker[] = docs.map((doc) => {
-    // GeoJSON stores [lng, lat]; the wire carries named fields and the server
-    // is the only converter (ADR 0004 invariant 3). A swap raises no error and
-    // puts the booth in the ocean. Nothing validates the pair here on
-    // purpose — the 2dsphere index rejects a malformed one at INSERT, which
-    // catches it while somebody can still fix the sheet.
-    const [lng, lat] = doc.location.coordinates;
+  const overlays: MapOverlay[] = docs.map((doc) => {
     // `category` is an OPEN string, so an unmapped value lands on the config's
     // fallback layer rather than vanishing: a booth missing from the festival
     // map is not a failure anyone can see or report.
     const presentation = presentationFor(config, doc.category);
 
-    return {
+    const base: OverlayBase = {
       id: doc._id,
       layerId: presentation.layerId,
       campus: doc.campus,
-      lat,
-      lng,
       text: toWire(doc.title),
       subtitle: doc.subtitle ? toWire(doc.subtitle) : null,
       hours: doc.hours.map((w) => ({
@@ -247,11 +289,28 @@ async function getEventMarkers(): Promise<{ markers: MapMarker[] }> {
       })),
       actions: toWireActions(doc.actions, droppedActions),
       order: doc.order,
-      pinPriority: presentation.pinPriority,
       // The PLACE's own id. Two booths sharing a plot are two taps — they were
-      // one, back when the plot was the addressable thing.
-      tap: { kind: "event", placeId: doc._id },
+      // one, back when the plot was the addressable thing. `null` where the
+      // category is authored inert, which is how a backdrop is drawn without
+      // becoming a tap target.
+      tap: presentation.interactive
+        ? { kind: "event", placeId: doc._id }
+        : null,
     };
+
+    // The geometry object is passed through BY REFERENCE, exactly as stored.
+    // There is no conversion here and that is the point: an axis swap can only
+    // be introduced at one, and a swapped ring lands in the Yellow Sea without
+    // ever throwing. The 2dsphere index refuses a malformed pair at insert,
+    // while somebody can still fix the sheet.
+    const kind = kindOf(doc.location.type);
+    if (kind === "marker") {
+      return { ...base, kind, geometry: doc.location as GeoJsonPoint, pinPriority: presentation.pinPriority };
+    }
+    if (kind === "polygon") {
+      return { ...base, kind, geometry: doc.location as GeoJsonPolygon };
+    }
+    return { ...base, kind, geometry: doc.location as GeoJsonLineString };
   });
 
   if (droppedActions.length > 0) {
@@ -260,7 +319,7 @@ async function getEventMarkers(): Promise<{ markers: MapMarker[] }> {
     );
   }
 
-  return { markers };
+  return { overlays };
 }
 
-export { getEventMarkers };
+export { getEventOverlays };

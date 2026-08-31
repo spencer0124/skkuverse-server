@@ -62,6 +62,9 @@ const config = {
       buildingsRaw: "buildings_raw",
       spaces: "spaces",
       connections: "connections",
+      // Hand-authored campus geometry. Not synced from campusMap.do — see
+      // CampusShapeDoc for why it is a sibling collection rather than a field.
+      campusShapes: "campus_shapes",
     },
     syncIntervalMs:
       parseInt(process.env.BUILDING_SYNC_INTERVAL_MS || "", 10) ||

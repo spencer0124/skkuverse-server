@@ -29,7 +29,7 @@ import {
   findActiveActivation,
   getPlacesCollection,
 } from "../../../src/map/map-places.data";
-import { getEventMarkers } from "../../../src/map/map-event-markers.data";
+import { getEventOverlays } from "../../../src/map/map-event-overlays.data";
 
 // scripts/ is excluded from tsconfig (plain CommonJS operator tooling), so this
 // is a require rather than an import — same as map-places-import.test.ts.
@@ -67,7 +67,19 @@ function collectionOf(docs: unknown[]) {
   } as never;
 }
 
-describe("event marker coordinates, end to end from the survey sheet", () => {
+/**
+ * Every position an overlay carries, flattened. Works for a Point, a LineString
+ * and a Polygon's rings alike, so the peninsula check below does not have to
+ * branch on `kind` — and so a new geometry arm is covered the day it lands.
+ */
+function positionsOf(overlay: { geometry: { coordinates: unknown } }): [number, number][] {
+  const flat = (overlay.geometry.coordinates as unknown[]).flat(2) as number[];
+  const out: [number, number][] = [];
+  for (let i = 0; i < flat.length; i += 2) out.push([flat[i]!, flat[i + 1]!]);
+  return out;
+}
+
+describe("event overlay coordinates, end to end from the survey sheet", () => {
   it("emits every place at the coordinates the sheet recorded", async () => {
     const raw = fs.readFileSync(REAL_FILE, "utf8");
     const { docs, errors } = parsePlacesFile(raw, { layerSetId: LAYER_SET_ID });
@@ -82,7 +94,7 @@ describe("event marker coordinates, end to end from the survey sheet", () => {
     >);
     mockPlaces.mockReturnValue(collectionOf(docs));
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
     const expected = sheetCoordsById();
 
     expect(markers).toHaveLength(docs.length);
@@ -90,12 +102,18 @@ describe("event marker coordinates, end to end from the survey sheet", () => {
     for (const marker of markers) {
       const ref = expected.get(marker.tap!.placeId)!;
       expect(ref).toBeDefined();
-      expect(marker.lat).toBeCloseTo(ref.lat, 6);
-      expect(marker.lng).toBeCloseTo(ref.lng, 6);
+      // The stored geometry object reaches the wire BY REFERENCE — no
+      // conversion on the server at all — so this is an identity check rather
+      // than a tolerance one. Anything but equality means somebody
+      // reintroduced a transform, which is where a swap comes from.
+      expect(marker.geometry).toEqual({
+        type: "Point",
+        coordinates: [ref.lng, ref.lat],
+      });
     }
   });
 
-  it("puts every marker on the Korean peninsula, not in the ocean", async () => {
+  it("puts every overlay on the Korean peninsula, not in the ocean", async () => {
     const raw = fs.readFileSync(REAL_FILE, "utf8");
     const { docs } = parsePlacesFile(raw, { layerSetId: LAYER_SET_ID });
 
@@ -104,16 +122,23 @@ describe("event marker coordinates, end to end from the survey sheet", () => {
     >);
     mockPlaces.mockReturnValue(collectionOf(docs));
 
-    const { markers } = await getEventMarkers();
+    const { overlays: markers } = await getEventOverlays();
 
     // The blunt version of the same check, and the one that would survive a
     // rewrite of everything above: a swap sends lat to ~126, which is not a
     // latitude South Korea has. 자과캠 sits near 37.29 N, 126.97 E.
+    //
+    // It matters MORE for rings than it did for pins. A pin in the ocean is one
+    // wrong dot; a swapped 30-vertex zone is a shape drawn across the Yellow
+    // Sea, and neither Mongo nor the type system says a word about either.
+    expect(markers.length).toBeGreaterThan(0);
     for (const m of markers) {
-      expect(m.lat).toBeGreaterThan(33);
-      expect(m.lat).toBeLessThan(39);
-      expect(m.lng).toBeGreaterThan(124);
-      expect(m.lng).toBeLessThan(132);
+      for (const [lng, lat] of positionsOf(m)) {
+        expect(lat).toBeGreaterThan(33);
+        expect(lat).toBeLessThan(39);
+        expect(lng).toBeGreaterThan(124);
+        expect(lng).toBeLessThan(132);
+      }
     }
   });
 });
