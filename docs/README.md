@@ -50,13 +50,14 @@ audience: internal
 | --- | --- |
 | [notices-api.md](reference/notices-api.md) | `/notices/*` + `/internal/notices/*` 요청·응답 계약, 에러 코드, 파일 맵 |
 | [event-places.md](reference/event-places.md) | 축제 장소의 저장·작성·운영 — `places`/`activations` 컬렉션, 인덱스, 시트 임포터, 창(window) 킬 스위치 런북 |
-| [map-markers-api.md](reference/map-markers-api.md) | The one marker schema every map layer draws, the `defaultVisible`/`userConfigurable` layer flags, and `GET /map/config` + `/map/markers/{campus,event}` — with the festival's layers and chips read from its config |
+| [map-markers-api.md](reference/map-markers-api.md) | The one marker schema every map layer draws, the `defaultVisibleWhen`/`userConfigurable` layer flags, and `GET /map/config` + `/map/markers/{campus,event}` — with the festival's layers and chips read from its config |
 
 ### explanation (메커니즘·배경)
 
 | 문서 | 요약 |
 | --- | --- |
 | [notices-architecture.md](explanation/notices-architecture.md) | notices API가 왜 지금 모양인지 — 진짜 문제들과 미시 설계결정 |
+| [map-architecture.md](explanation/map-architecture.md) | The order to read `src/map/` in — layer vs layer set vs chip vs chip group, boot-time vs request-time work, and a change map by ownership tier |
 
 ### decisions (ADR)
 

@@ -36,11 +36,13 @@ import { BASE_CHIPS, eventChipSpecs, validateChipSpecs } from "./map-chips.data"
 import { BASE_LAYERS, eventLayerSpecs } from "./map-layers.data";
 import type { I18n } from "../infra/types";
 import type {
+  DailyWindow,
   EventChipDef,
   EventLayerDef,
   EventMapConfig,
   ItemDefaults,
   ItemPresentation,
+  LayerDefaultVisibility,
 } from "./map-layerset.types";
 
 /**
@@ -94,12 +96,6 @@ function asFiniteNumber(value: unknown, where: string): number {
   return value;
 }
 
-function asBoolean(value: unknown, where: string, fallbackValue: boolean): boolean {
-  if (value === undefined || value === null) return fallbackValue;
-  if (typeof value !== "boolean") fail(`${where} must be a boolean`);
-  return value;
-}
-
 function asOneOf<T extends string>(
   value: unknown,
   allowed: readonly T[],
@@ -129,6 +125,72 @@ function assertUnique(ids: string[], where: string): void {
 
 // --- Structure --------------------------------------------------------------
 
+/**
+ * `"HH:MM"`, 24-hour, 00:00–23:59.
+ *
+ * "24:00" is a real spelling of midnight in other formats and is rejected here,
+ * because allowing it would give 00:00 a second one. "7:00" is rejected for the
+ * same reason: one shape, so a bound can be compared as a string.
+ */
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function asDailyWindow(value: unknown, where: string): DailyWindow {
+  const raw = asRecord(value, where);
+  const start = asString(raw.start, `${where}.start`);
+  const end = asString(raw.end, `${where}.end`);
+  for (const [key, bound] of [
+    ["start", start],
+    ["end", end],
+  ] as const) {
+    if (!HHMM.test(bound)) {
+      fail(
+        `${where}.${key} "${bound}" must be "HH:MM" on a 24-hour clock — midnight is "00:00", never "24:00"`,
+      );
+    }
+  }
+  // Equal bounds are ambiguous between "no minutes at all" and "the whole day",
+  // and a layer that is on all day is `{"kind":"always"}`. `start > end` is NOT
+  // an error: that is how a window says it wraps past midnight.
+  if (start === end) {
+    fail(
+      `${where} has equal bounds "${start}" — a layer that is on all day is {"kind":"always"}`,
+    );
+  }
+  return { start, end };
+}
+
+function asDefaultVisibleWhen(value: unknown, where: string): LayerDefaultVisibility {
+  // Absent means always on, for the reason the boolean this replaced defaulted
+  // to true: a layer that forgot to decide must not silently vanish.
+  if (value === undefined || value === null) return { kind: "always" };
+  const raw = asRecord(value, where);
+  const kind = asOneOf(
+    raw.kind,
+    ["always", "never", "scheduled"] as const,
+    `${where}.kind`,
+  );
+  if (kind !== "scheduled") {
+    // Every validator here builds a fresh object, so an unknown key is normally
+    // dropped without a word. Windows are the one worth failing on: they look
+    // authored, and being read by nothing is invisible from the config.
+    if (raw.windows !== undefined) {
+      fail(`${where}.windows is read only on kind "scheduled", and this layer is "${kind}"`);
+    }
+    return { kind };
+  }
+  const windows = asArray(raw.windows, `${where}.windows`).map((w, i) =>
+    asDailyWindow(w, `${where}.windows[${i}]`),
+  );
+  // Destructured rather than length-checked, so the non-empty tuple the type
+  // declares is what narrowing produces — a `windows.length === 0` guard would
+  // still leave `windows` a plain array and need a cast to return.
+  const [first, ...rest] = windows;
+  if (first === undefined) {
+    fail(`${where}.windows must not be empty — a layer that is on all day is {"kind":"always"}`);
+  }
+  return { kind, windows: [first, ...rest] };
+}
+
 function asEventLayer(value: unknown, where: string): EventLayerDef {
   const raw = asRecord(value, where);
   const color = asString(raw.color, `${where}.color`);
@@ -140,7 +202,10 @@ function asEventLayer(value: unknown, where: string): EventLayerDef {
     id: asString(raw.id, `${where}.id`),
     label: asI18n(raw.label, `${where}.label`),
     color,
-    defaultVisible: asBoolean(raw.defaultVisible, `${where}.defaultVisible`, true),
+    defaultVisibleWhen: asDefaultVisibleWhen(
+      raw.defaultVisibleWhen,
+      `${where}.defaultVisibleWhen`,
+    ),
   };
 }
 
@@ -235,10 +300,11 @@ export function assertValidConfig(raw: unknown): EventMapConfig {
     layers.map((l) => l.id),
     "config.layers",
   );
-  // The reset chip restores the default-visible set; with none there is no
-  // way back to the ordinary festival map.
-  if (!layers.some((l) => l.defaultVisible)) {
-    fail("config.layers must have at least one defaultVisible layer");
+  // The reset chip is scoped to the layers that come on by themselves —
+  // always-on plus scheduled. With none there is no way back to the ordinary
+  // festival map, and the default view is an empty one.
+  if (!layers.some((l) => l.defaultVisibleWhen.kind !== "never")) {
+    fail('config.layers must have at least one layer that is not defaultVisibleWhen.kind "never"');
   }
   // /map/config serves both lists in one response and the app keys its
   // visibility store on the id, so a festival layer called building_numbers
@@ -285,7 +351,12 @@ export function assertValidConfig(raw: unknown): EventMapConfig {
     name: asI18n(root.name, "config.name"),
     emoji: asString(root.emoji, "config.emoji"),
     camera,
-    timezone: asString(root.timezone, "config.timezone"),
+    // Narrowed to the one zone the wire contract can honour. A DailyWindow
+    // bound is wall-clock, and the client resolves it as a fixed +09:00 — so a
+    // config claiming another zone is a silent wrong answer rather than a
+    // degraded one. It was validated as any non-empty string until the WHEN
+    // axis gave it something to be wrong about; "Asia/Seuol" passed.
+    timezone: asOneOf(root.timezone, ["Asia/Seoul"] as const, "config.timezone"),
     layers,
     chips,
     itemDefaults,

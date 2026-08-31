@@ -146,4 +146,19 @@ export interface MapChip {
    */
   icon: MapChipIcon | null;
   action: MapChipAction;
+  /**
+   * Does this chip mean STOP NARROWING, rather than "show these layers".
+   *
+   * Stated outright because it stopped being derivable. A client used to
+   * recognise the reset chip by comparing what it names against the layers that
+   * are on by default — and with `defaultVisibleWhen` that comparison depends on
+   * the time of day, so at 19:00 the reset chip no longer describes the default
+   * view. `action.layerIds` still says which GROUP the chip is scoped to, the
+   * way it does for every chip; this says what the tap MEANS within it.
+   *
+   * `false` on every authored chip rather than absent: an optional field is a
+   * second thing for the client to branch on, and this list already ships
+   * `icon: null` rather than omitting it.
+   */
+  isReset: boolean;
 }

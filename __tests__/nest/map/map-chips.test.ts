@@ -13,7 +13,7 @@
  *
  * The reset chip is the one worth reading closely: it is not authored anywhere.
  * The server synthesises it from the festival's `name`, `emoji` and the layers
- * marked `defaultVisible`, so it cannot drift from the layer list.
+ * that come on by themselves, so it cannot drift from the layer list.
  */
 
 import { getLayerSetConfig } from "../../../src/map/map-layerset.config";
@@ -76,21 +76,45 @@ describe("the reset chip", () => {
     expect(first!.label).toEqual(CONFIG.name);
   });
 
-  it("restores the default set, not literally every layer", () => {
+  it("scopes itself to the layers that come on by themselves", () => {
     const all = resetChip(CONFIG);
     if (all.action.kind !== "focus") throw new Error("expected a focus chip");
 
-    const expected = CONFIG.layers.filter((l) => l.defaultVisible).map((l) => l.id);
+    // Always-on AND scheduled: a scheduled layer comes on by itself when its
+    // window opens, so it belongs to the set the reset chip is scoped to. Only
+    // an opt-in layer is outside it.
+    const expected = CONFIG.layers
+      .filter((l) => l.defaultVisibleWhen.kind !== "never")
+      .map((l) => l.id);
     expect([...all.action.layerIds].sort()).toEqual([...expected].sort());
 
-    // The bug this guards: naming every festival layer makes the reset chip turn
-    // ON a layer that ships defaultVisible: false. The user would land on a map
-    // carrying a layer they never opted into, with no chip left that gets back
-    // to the ordinary festival view. The shipped config has such a layer, so
-    // the guard is not vacuous.
-    const optIn = CONFIG.layers.find((l) => !l.defaultVisible);
+    // The bug this guards: naming every festival layer makes the reset chip
+    // scope reach a layer that ships opt-in. The shipped config has such a
+    // layer, so the guard is not vacuous.
+    const optIn = CONFIG.layers.find((l) => l.defaultVisibleWhen.kind === "never");
     expect(optIn).toBeDefined();
     expect(all.action.layerIds).not.toContain(optIn!.id);
+  });
+
+  it("is the one chip that says outright it is a reset", () => {
+    // `layerIds` still declares the GROUP the chip is scoped to — that is how
+    // any chip does it, and how a second festival's reset chip would stay off
+    // this one's layers. What it can no longer do is describe the resulting
+    // view, because a scheduled layer's default depends on the time of day.
+    // `isReset` carries that meaning instead: stop narrowing, do not "show
+    // these".
+    expect(resetChip(CONFIG).isReset).toBe(true);
+
+    const authored = eventChipSpecs(CONFIG).slice(1);
+    expect(authored.length).toBeGreaterThan(0);
+    expect(authored.every((chip) => chip.isReset === false)).toBe(true);
+
+    // And it survives the projection to the wire, for every language.
+    for (const lang of LANGS) {
+      const wire = getChips(lang, CONFIG);
+      expect(wire.filter((chip) => chip.isReset)).toHaveLength(1);
+      expect(wire.find((chip) => chip.isReset)!.id).toBe("eskara-2026_all");
+    }
   });
 
   it("is a fresh object per call — the config is shared across requests", () => {

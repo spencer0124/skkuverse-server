@@ -13,6 +13,67 @@ import type { I18n } from "../infra/types";
 import type { MapCamera } from "./map-chip.types";
 
 /**
+ * A recurring daily window in the layer set's timezone, `"HH:MM"` on a 24-hour
+ * clock, half-open `[start, end)`. `start > end` wraps past midnight, which is
+ * the natural spelling for 주점: `{ start: "18:00", end: "00:00" }`.
+ *
+ * WALL-CLOCK, unlike `OpeningWindow` and `TimeWindow`, whose docblocks argue
+ * against exactly these strings. The difference is which question is being
+ * answered, and it is worth stating here because on its face it reads as a
+ * contradiction:
+ *
+ *  - A PLACE's `hours` describe one booth on one festival day. Instants are
+ *    right there, and the array grows a member per day.
+ *  - A LAYER's default says "주점 belongs to the evening" — the same sentence on
+ *    every day of every festival. Written as instants it would restate the
+ *    festival's dates in a second committed file, and a date slip touching only
+ *    one of them is silent.
+ *
+ * This does NOT give up the timezone guarantee instants buy
+ * (`docs/reference/map-markers-api.md` §3.3), because the client derives the
+ * current minute FROM THE EPOCH — `(Date.now() + 9h) % 86_400_000` — and never
+ * from `Date.getHours()`. `Date.now()` is UTC epoch milliseconds and a device's
+ * zone setting only changes how a time is formatted, so a phone set to New York
+ * still flips 주점 on at 18:00 KST. The fixed +09:00 is exact rather than
+ * approximate: Korea has had no DST since 1988. Reading the device's local hour
+ * instead would break precisely the case ADR 0007 promises to survive.
+ *
+ * Midnight is `"00:00"`; `"24:00"` is rejected at load, so there is one
+ * spelling of it.
+ */
+export interface DailyWindow {
+  start: string;
+  end: string;
+}
+
+/**
+ * WHEN a layer is on to begin with — the axis that replaced a plain
+ * `defaultVisible: boolean`, and sits beside `userConfigurable`, which says
+ * *who* may change it.
+ *
+ * A tagged union rather than a boolean beside a window list, because that pair
+ * can hold combinations that mean nothing: `false` with windows is a flat
+ * contradiction, `true` with windows makes the boolean dead data, and an empty
+ * list is a second spelling of "no schedule". This map domain has decided that
+ * class of question before — `MapChipAction` over a flat `actionType`/`value`
+ * pair, and the `status` scalar that was DELETED from beside `hours` for this
+ * exact reason (`map-marker.types.ts`). Two flags may only sit side by side when
+ * every combination of them is meaningful — the test `userConfigurable` clears
+ * against this one, and that a boolean plus a window list would not.
+ *
+ * `scheduled` carries at least one window — a NON-EMPTY tuple, so the state the
+ * paragraph above argues against is not merely refused by the JSON validator but
+ * unrepresentable in the type. That matters because `BASE_LAYERS` is repo
+ * TypeScript and never passes through that validator: `tsc` is the only thing
+ * standing between a hand-written base layer and the wire. A layer that is on
+ * all day is `always`, which is the one spelling of that.
+ */
+export type LayerDefaultVisibility =
+  | { kind: "always" }
+  | { kind: "never" }
+  | { kind: "scheduled"; windows: [DailyWindow, ...DailyWindow[]] };
+
+/**
  * The map layers a festival draws.
  *
  * These are MAP layers in the `/map/config` sense — a booth is an ordinary
@@ -33,17 +94,20 @@ export interface EventLayerDef {
   /** Bare hex, no `#` — the convention the app's `toCssColor` expects. */
   color: string;
   /**
-   * Is the layer on to begin with. The reset chip restores exactly the set
-   * with this `true`, which is why a config needs at least one.
+   * When the layer is on to begin with. Absent means `{ kind: "always" }` —
+   * never fail closed, the same default the boolean this replaced had.
+   *
+   * The reset chip is scoped to exactly the layers that are not `never`, which
+   * is why a config needs at least one of them.
    */
-  defaultVisible: boolean;
+  defaultVisibleWhen: LayerDefaultVisibility;
 }
 
 /**
  * A narrowing chip: one tap to show only these layers within the festival's
  * group. The RESET chip — the way back, carrying the festival's `name` and
- * `emoji` — is not authored; the server synthesises it from `defaultVisible`,
- * so it can never drift from the layer list.
+ * `emoji` — is not authored; the server synthesises it from the layer list, so
+ * it can never drift from it.
  *
  * `label` may be omitted for a single-layer chip, in which case the chip reads
  * as its layer does. A chip spanning several layers has no such default and
@@ -60,7 +124,8 @@ export interface EventChipDef {
 /**
  * How a session's `category` becomes a marker on a layer.
  *
- * `category` is an OPEN string edited by ops (§4.2), so an unmapped value is
+ * `category` is an OPEN string edited by ops (`docs/reference/event-places.md`
+ * §4.2), so an unmapped value is
  * NOT a config error — it falls back and logs. Compare the structure→structure
  * reference `layerId`, which DOES block the config from loading: that is
  * developer-owned and a PR fixes it.

@@ -23,7 +23,9 @@
         "zh": "演出"
       },
       "color": "F76CA0",
-      "defaultVisible": true
+      "defaultVisibleWhen": {
+        "kind": "always"
+      }
     },
     {
       "id": "eskara26_bar",
@@ -33,7 +35,15 @@
         "zh": "酒馆"
       },
       "color": "F04452",
-      "defaultVisible": true
+      "defaultVisibleWhen": {
+        "kind": "scheduled",
+        "windows": [
+          {
+            "start": "18:00",
+            "end": "00:00"
+          }
+        ]
+      }
     },
     {
       "id": "eskara26_food",
@@ -43,7 +53,9 @@
         "zh": "美食"
       },
       "color": "FFB800",
-      "defaultVisible": true
+      "defaultVisibleWhen": {
+        "kind": "always"
+      }
     },
     {
       "id": "eskara26_booth",
@@ -53,7 +65,15 @@
         "zh": "摊位"
       },
       "color": "3182F6",
-      "defaultVisible": true
+      "defaultVisibleWhen": {
+        "kind": "scheduled",
+        "windows": [
+          {
+            "start": "11:00",
+            "end": "18:00"
+          }
+        ]
+      }
     },
     {
       "id": "eskara26_facility",
@@ -63,7 +83,9 @@
         "zh": "便利设施"
       },
       "color": "4CC9F0",
-      "defaultVisible": false
+      "defaultVisibleWhen": {
+        "kind": "never"
+      }
     },
     {
       "id": "eskara26_etc",
@@ -73,7 +95,9 @@
         "zh": "其他"
       },
       "color": "8B95A1",
-      "defaultVisible": true
+      "defaultVisibleWhen": {
+        "kind": "always"
+      }
     }
   ],
   "chips": [
