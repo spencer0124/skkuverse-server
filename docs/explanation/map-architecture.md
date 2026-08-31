@@ -204,9 +204,11 @@ order, and section 8 explains why that is enforced rather than conventional.
    its config. `chipGroupOf()` resolves a layer id to its exclusivity group. A leaf module: it imports
    only types, so nothing can create a cycle through it.
 
-   Two fields on the generated specs carry the whole festival story — `type` is hardcoded to `marker`
-   (see section 12), and `chipGroupId` is set to the layer set's own id, which is what makes each
-   festival its own fence.
+   Two fields on the generated specs carry the whole festival story — `markerStyle` is hardcoded to
+   `placeDot`, which is how every festival marker gets the dot-then-pin drawing without the config
+   saying so, and `chipGroupId` is set to the layer set's own id, which is what makes each festival
+   its own fence. There is deliberately no `type` beside them: the overlay's own `kind` is the sole
+   discriminant (section 12), so a layer no longer names its renderer.
 
 2. **`map-chips.data.ts`** — the chip validator, the synthesised reset chip, and the spec → wire
    projection. The validator accumulates errors rather than throwing on the first, so a bad edit is
@@ -350,7 +352,7 @@ The practical index. The last column is section 3's ownership split, applied.
 | Add next year's festival | New JSON **and** `CONFIG_FILES` **and** `scripts/copy-build-assets.js` | Yes — three coordinated edits |
 | Add a permanent, off-season chip | `map-chips.data.ts` → `BASE_CHIPS` | Yes |
 | Bring the bus route lines back | Give them `campus_shapes` documents with LineString geometry | No |
-| Change how a pin is drawn (size, z-index) | The client — the wire fields exist but are hardcoded there | App release |
+| Change how a pin is drawn (size, z-index) | `map-layers.data.ts` → `BASE_LAYERS[].style` or `EVENT_LAYER_STYLE` | No — the client reads these as of app `ced0352` |
 | Add a field to every overlay | `map-overlay.types.ts`, then **every** producer | Yes, plus an app release |
 | Add a new overlay kind (circle, ground image) | A `MapOverlay` arm, a producer branch, a client renderer | Yes, plus an app release |
 
@@ -431,7 +433,8 @@ shipped the third simply skips it — dropping that one overlay, never its layer
 
 ## Related
 
-- [reference/map-overlays-api.md](../reference/map-overlays-api.md) — the endpoint and marker contract
+- [how-to/configure-map-overlays.md](../how-to/configure-map-overlays.md) — the runbook: what can be drawn, which tier to edit, and what to check when a shape does not appear
+- [reference/map-overlays-api.md](../reference/map-overlays-api.md) — the endpoint and overlay contract
 - [reference/event-places.md](../reference/event-places.md) — the `places` / `activations` storage contract and the window kill-switch runbook
 - [explanation/notices-architecture.md](notices-architecture.md) — the sibling explanation doc, same shape for a different feature
 - [docs/README.md](../README.md) — writing rules

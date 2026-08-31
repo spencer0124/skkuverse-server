@@ -34,14 +34,24 @@ import type { I18n } from "../infra/types";
  * The drawing knobs a layer may set. Every member is optional, so a server that
  * sends none of them renders exactly as one that never had the field.
  *
- * ⚠️ THE GEOMETRY IS NOT HONOURED BY THE SHIPPED CLIENT YET. Today
- * `MapMarkerLayer.tsx` hardcodes `DOT_SIZE`, `PIN_WIDTH`/`PIN_HEIGHT` and the
- * label layer's `globalZIndex`, and its parser does not read `height` or
- * `zIndex` at all — only `color` and `captionTextSize` reach a component.
- * Editing `size` here therefore changes the wire and nothing on screen, with no
- * error on either side. These fields are a PROMISE about the wire until the
- * client stops hardcoding them; see `docs/reference/map-overlays-api.md` §9.7,
- * which is the same shape §9.3 records for `userConfigurable`.
+ * The MARKER geometry is honoured as of app `ced0352`: `width`, `height`,
+ * `size` and `zIndex` all reach a component, so editing one here changes what
+ * is on screen. What is still unread is the POLYGON set — `outlineWidth`,
+ * `fillOpacity`, `minZoom`, `maxZoom` — whose consumer is the client's overlay
+ * renderer; see `docs/reference/map-overlays-api.md` §9.7.
+ *
+ * ⚠️ THERE IS DELIBERATELY NO `shape` MEMBER. A place marker draws as a dot
+ * and is promoted to a pin only when selected, and the CLIENT owns that
+ * default: it reads an absent `style.shape` as `dotThenPin`, so every ESKARA
+ * layer gets the behaviour by saying nothing. Adding the member and stamping
+ * `"dotThenPin"` on the layers would freeze a default that is meant to move
+ * with the app that draws it. If a future layer genuinely wants `"pin"` — a
+ * handful of landmark markers, where a teardrop reads better and there is no
+ * density to relieve — add the member AND send it on that one layer only.
+ * Never spell a shape into `markerStyle`: that is a closed allowlist on the
+ * client, and an unrecognised member falls through to the building-number
+ * branch, which would draw every booth as a green numbered circle on any build
+ * older than the value. Pinned by `__tests__/nest/map/map.service.test.ts`.
  *
  * ⚠️ COLOUR IS DELIBERATELY NOT MOVED for the building layers. The number
  * circle's fill and the placeDot's tint fall back to `SdsColors.brand`, a
