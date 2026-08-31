@@ -8,6 +8,7 @@ import type {
   GeoJsonPoint,
   GeoJsonPolygon,
 } from "./geo/geojson.types";
+import { toWirePolygon } from "./geo/ring-winding";
 
 /**
  * Everything permanent on the campus map, in one collection.
@@ -268,10 +269,16 @@ function toShapeOverlays(docs: CampusShapeDoc[]): MapOverlay[] {
           : { kind: "skku_building", placeId: String(doc.skkuId) },
     };
 
-    // Passed through by reference, exactly as stored. No conversion, no swap.
+    // Points and lines pass through by reference, exactly as stored — no
+    // conversion, no swap. Polygon rings are normalised; that reorders ring
+    // elements only and cannot transpose a [lng, lat] pair.
     switch (doc.geometry.type) {
       case "Polygon":
-        overlays.push({ ...base, kind: "polygon", geometry: doc.geometry as GeoJsonPolygon });
+        overlays.push({
+          ...base,
+          kind: "polygon",
+          geometry: toWirePolygon(doc.geometry as GeoJsonPolygon),
+        });
         break;
       case "LineString":
         overlays.push({ ...base, kind: "path", geometry: doc.geometry as GeoJsonLineString });

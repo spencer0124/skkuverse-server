@@ -11,6 +11,7 @@ import type {
   GeoJsonPoint,
   GeoJsonPolygon,
 } from "./geo/geojson.types";
+import { toWirePolygon } from "./geo/ring-winding";
 import type {
   I18nWire,
   MapOverlay,
@@ -298,17 +299,21 @@ async function getEventOverlays(): Promise<{ overlays: MapOverlay[] }> {
         : null,
     };
 
-    // The geometry object is passed through BY REFERENCE, exactly as stored.
-    // There is no conversion here and that is the point: an axis swap can only
-    // be introduced at one, and a swapped ring lands in the Yellow Sea without
-    // ever throwing. The 2dsphere index refuses a malformed pair at insert,
-    // while somebody can still fix the sheet.
+    // Points and lines are passed through BY REFERENCE, exactly as stored, and
+    // that is the point: an axis swap can only be introduced at a conversion,
+    // and a swapped coordinate lands in the Yellow Sea without ever throwing.
+    // The 2dsphere index refuses a malformed pair at insert, while somebody can
+    // still fix the sheet.
+    //
+    // A polygon's RINGS are normalised — see `toWirePolygon`. That reorders
+    // ring elements and never touches the [lng, lat] inside one, so it cannot
+    // reintroduce a swap.
     const kind = kindOf(doc.location.type);
     if (kind === "marker") {
       return { ...base, kind, geometry: doc.location as GeoJsonPoint, pinPriority: presentation.pinPriority };
     }
     if (kind === "polygon") {
-      return { ...base, kind, geometry: doc.location as GeoJsonPolygon };
+      return { ...base, kind, geometry: toWirePolygon(doc.location as GeoJsonPolygon) };
     }
     return { ...base, kind, geometry: doc.location as GeoJsonLineString };
   });

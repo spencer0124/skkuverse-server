@@ -20,11 +20,21 @@
  * but cannot be tapped. That reversal belongs in one tested client adapter,
  * against a wire direction it can rely on.
  *
+ * NORMALISATION RUNS ON READ, in the projection, not on write in the importer.
+ * Two reasons, and the second is the load-bearing one. `scripts/` is CommonJS
+ * and excluded from tsconfig, so an importer that did this would need a second
+ * copy of the shoelace below — one rule with two implementations that can
+ * disagree, which is the parallel structure this codebase keeps deleting. And
+ * hand-editing Mongo is a blessed ops workflow (it is why `isRenderable`
+ * exists), so an import-time-only fix would miss exactly the edits most likely
+ * to be wrong. The cost is a shoelace sum over a handful of rings per request,
+ * behind a 60-second TTL.
+ *
  * Every position here is `[lng, lat]` — GeoJSON order, x then y — so the
  * shoelace sum below is the ordinary planar one with no axis juggling.
  */
 
-import type { LinearRing } from "./geojson.types";
+import type { GeoJsonPolygon, LinearRing } from "./geojson.types";
 
 /**
  * Twice the signed planar area of a ring. Positive is counter-clockwise.
@@ -106,4 +116,20 @@ export function rewindRing(
  */
 export function rewindPolygon(rings: LinearRing[]): LinearRing[] {
   return rings.map((ring, index) => rewindRing(ring, index === 0 ? "ccw" : "cw"));
+}
+
+/**
+ * A stored Polygon as the wire should carry it: rings closed and wound per
+ * RFC 7946.
+ *
+ * Returns the SAME object when nothing needed changing, so a conformant
+ * polygon still reaches the response by reference and the no-conversion
+ * property holds for every geometry that was authored correctly.
+ */
+export function toWirePolygon(geometry: GeoJsonPolygon): GeoJsonPolygon {
+  const rings = rewindPolygon(geometry.coordinates);
+  const unchanged =
+    rings.length === geometry.coordinates.length &&
+    rings.every((ring, i) => ring === geometry.coordinates[i]);
+  return unchanged ? geometry : { type: "Polygon", coordinates: rings };
 }

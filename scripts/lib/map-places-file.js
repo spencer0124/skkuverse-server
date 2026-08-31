@@ -32,6 +32,8 @@ const STYLES = ["primary", "secondary"];
  * exists to remove — so a pasted old-format file has to fail loudly rather than
  * import each place once and silently lose its second day.
  */
+const { asGeometry } = require("./geojson-geometry");
+
 const RETIRED_PLACE_KEYS = {
   days: "a place is one document now — write one entry in `hours` per day",
   slot: "no longer read; the windows in `hours` say when a place is open",
@@ -236,15 +238,31 @@ function asPlace(raw, i, ctx, errors) {
     own.push(`${where2}.order must be a finite number`);
   }
 
-  const lat = raw.lat;
-  const lng = raw.lng;
-  if (typeof lat !== "number" || !Number.isFinite(lat) || Math.abs(lat) > 90) {
-    // Cheap swap detector, and it works here for the same reason it works in the
-    // camera validator: SKKU's longitude (126) is outside latitude's ±90 range.
-    own.push(`${where2}.lat ${lat} is not a latitude — lat and lng may be swapped`);
-  }
-  if (typeof lng !== "number" || !Number.isFinite(lng) || Math.abs(lng) > 180) {
-    own.push(`${where2}.lng ${lng} is not a longitude`);
+  // A place carries EITHER named lat/lng (a hand-typed point) OR a pasted
+  // GeoJSON `geometry` (a ring or a line). Never both, and never neither —
+  // see scripts/lib/geojson-geometry.js for why the two forms exist.
+  const hasPoint = raw.lat !== undefined || raw.lng !== undefined;
+  const hasGeometry = raw.geometry !== undefined && raw.geometry !== null;
+
+  let location = null;
+  if (hasPoint && hasGeometry) {
+    own.push(
+      `${where2} has both lat/lng and geometry — a place has one position`,
+    );
+  } else if (hasGeometry) {
+    location = asGeometry(raw.geometry, `${where2}.geometry`, own);
+  } else {
+    const lat = raw.lat;
+    const lng = raw.lng;
+    if (typeof lat !== "number" || !Number.isFinite(lat) || Math.abs(lat) > 90) {
+      // Cheap swap detector, and it works here for the same reason it works in the
+      // camera validator: SKKU's longitude (126) is outside latitude's ±90 range.
+      own.push(`${where2}.lat ${lat} is not a latitude — lat and lng may be swapped`);
+    } else if (typeof lng !== "number" || !Number.isFinite(lng) || Math.abs(lng) > 180) {
+      own.push(`${where2}.lng ${lng} is not a longitude`);
+    } else {
+      location = { type: "Point", coordinates: [lng, lat] };
+    }
   }
 
   const title = asI18n(raw.title, `${where2}.title`, own);
@@ -259,7 +277,7 @@ function asPlace(raw, i, ctx, errors) {
   // ONE verdict per place. A document that failed any rule is not returned, so
   // `docs.length` is the number of places that would actually be written.
   errors.push(...own);
-  if (own.length > 0 || !title) return null;
+  if (own.length > 0 || !title || !location) return null;
 
   return {
     // Prefixed, so two festivals can hold a `bar-01` without colliding and an id
@@ -268,7 +286,7 @@ function asPlace(raw, i, ctx, errors) {
     layerSetId: ctx.layerSetId,
     campus: ctx.campus,
     category: raw.category,
-    location: { type: "Point", coordinates: [lng, lat] },
+    location,
     title,
     subtitle,
     hours,

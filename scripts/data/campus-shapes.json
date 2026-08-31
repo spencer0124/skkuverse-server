@@ -1,0 +1,4 @@
+{
+  "$comment": "Permanent campus geometry — footprints, boundaries, walking paths. Draw in geojson.io and paste the geometry object verbatim; it is stored and served untouched. `skkuId` is the building this outlines, or null for geometry that is not a building (which makes it a backdrop rather than a tap target). `layerId` must name a layer in BASE_LAYERS.",
+  "shapes": []
+}

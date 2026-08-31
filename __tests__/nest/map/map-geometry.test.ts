@@ -12,6 +12,7 @@
  */
 import {
   closeRing,
+  toWirePolygon,
   isClosedRing,
   rewindPolygon,
   rewindRing,
@@ -122,5 +123,38 @@ describe("rewindPolygon", () => {
 
   it("handles a polygon with no holes", () => {
     expect(rewindPolygon([CCW])).toEqual([CCW]);
+  });
+});
+
+describe("toWirePolygon", () => {
+  it("returns the SAME object when the polygon is already conformant", () => {
+    // Identity, not equality. A correctly authored polygon must still reach the
+    // response by reference, so the no-conversion property this schema is built
+    // on holds for every geometry that was authored right.
+    const geometry = { type: "Polygon" as const, coordinates: [CCW] };
+    expect(toWirePolygon(geometry)).toBe(geometry);
+  });
+
+  it("rewinds a stored clockwise exterior for the wire", () => {
+    const geometry = { type: "Polygon" as const, coordinates: [CW] };
+    const wire = toWirePolygon(geometry);
+
+    expect(wire).not.toBe(geometry);
+    expect(wire.coordinates[0]).toEqual(CCW);
+    // Mongo stores a reversed ring without complaint — its 2dsphere index
+    // checks closure and self-intersection, never orientation — so this is the
+    // only thing standing between an ops edit and a zone that draws but cannot
+    // be tapped.
+    expect(signedArea(wire.coordinates[0]!)).toBeGreaterThan(0);
+  });
+
+  it("leaves the [lng, lat] inside every position alone", () => {
+    // The whole no-swap argument rests on this: rewinding reorders ring
+    // ELEMENTS and never touches a position's contents.
+    const wire = toWirePolygon({ type: "Polygon", coordinates: [CW] });
+    for (const [lng, lat] of wire.coordinates[0]!) {
+      expect(lng).toBeGreaterThan(124);
+      expect(lat).toBeLessThan(39);
+    }
   });
 });

@@ -542,6 +542,25 @@ describe("getEventOverlays — zones and route lines", () => {
     expect(zone.geometry).toEqual({ type: "Polygon", coordinates: [RING] });
   });
 
+  it("rewinds a clockwise ring on the way to the wire", async () => {
+    // Authored or hand-edited the wrong way round. Mongo accepts it silently,
+    // so the projection is the only place this can be caught.
+    const backwards = [...RING].reverse();
+    arrange([
+      place({
+        _id: "eskara-2026-zone-01",
+        location: { type: "Polygon", coordinates: [backwards] },
+      }),
+    ]);
+
+    const { overlays } = await getEventOverlays();
+    const zone = overlays[0]!;
+    expect(zone.kind).toBe("polygon");
+    if (zone.kind === "polygon") {
+      expect(zone.geometry.coordinates[0]).toEqual(RING);
+    }
+  });
+
   it("draws a LineString place as a path", async () => {
     arrange([
       place({ _id: "eskara-2026-route-01", location: { type: "LineString", coordinates: RING } }),
