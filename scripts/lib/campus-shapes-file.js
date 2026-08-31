@@ -70,8 +70,13 @@ function asShape(raw, i, errors) {
     own.push(`${where2}.layerId must be a non-empty string`);
   }
   if (typeof raw.order !== "number" || !Number.isFinite(raw.order)) {
-    // No default. A silent 0 would make the draw order arbitrary while looking
+    // No default. A silent 0 would make the list order arbitrary while looking
     // deliberate.
+    //
+    // This is a SORT position, not paint order — the wire field it becomes is
+    // documented as the last tiebreak when two overlays share a coordinate.
+    // Which shape draws on top of which comes from the layer's `zIndex`, so two
+    // overlapping footprints on one layer are not ordered by this and cannot be.
     own.push(`${where2}.order must be a finite number`);
   }
   // `null` is meaningful: geometry that is not a building — a boundary, a lawn,

@@ -6,10 +6,11 @@ import { presentationFor } from "./map-layerset.types";
 import type { MapPlaceDoc, PlaceAction } from "./map-places.types";
 import { getPlacesCollection } from "./map-places.data";
 import type { I18n } from "../infra/types";
-import type {
-  GeoJsonLineString,
-  GeoJsonPoint,
-  GeoJsonPolygon,
+import {
+  isDrawableGeometry,
+  type GeoJsonLineString,
+  type GeoJsonPoint,
+  type GeoJsonPolygon,
 } from "./geo/geojson.types";
 import { toWirePolygon } from "./geo/ring-winding";
 import type {
@@ -177,26 +178,6 @@ function toWireActions(
 }
 
 /**
- * Is this document one this build can draw?
- *
- * Not defensive narrowing — this is the posture the deleted join already had for
- * a dangling `placeId` ("one typo in the sheet, and dropping the festival over
- * it would be worse"), restored now that the join is gone. Two things reach this
- * collection that the type does not describe:
- *
- *  - **Pre-collapse documents.** The ids are layer-set prefixed now, so an
- *    import does not overwrite the old `nsc-*` plots, and they still carry the
- *    matching `layerSetId`. `--delete-missing` removes them; a cutover that
- *    forgets it would otherwise 500 every marker for the whole festival.
- *  - **A hand-typed Mongo edit**, which is the ops workflow this repo blesses
- *    elsewhere and the reason the content hash used to cover whole documents.
- *
- * A blank title is refused for the reason the buildings producer refuses one: an
- * empty label still occupies a tap target and a client collision slot.
- */
-const DRAWABLE_GEOMETRY = ["Point", "Polygon", "LineString"] as const;
-
-/**
  * Which renderer draws this geometry.
  *
  * A mapping rather than a stored field: for the three shapes this build draws,
@@ -217,20 +198,32 @@ function kindOf(type: "Point" | "Polygon" | "LineString"): MapOverlay["kind"] {
   }
 }
 
-function isDrawableGeometry(location: MapPlaceDoc["location"]): boolean {
-  return (
-    !!location &&
-    (DRAWABLE_GEOMETRY as readonly string[]).includes(location.type) &&
-    Array.isArray(location.coordinates)
-  );
-}
-
+/**
+ * Is this document one this build can draw?
+ *
+ * Not defensive narrowing — this is the posture the deleted join already had for
+ * a dangling `placeId` ("one typo in the sheet, and dropping the festival over
+ * it would be worse"), restored now that the join is gone. Two things reach this
+ * collection that the type does not describe:
+ *
+ *  - **Pre-collapse documents.** The ids are layer-set prefixed now, so an
+ *    import does not overwrite the old `nsc-*` plots, and they still carry the
+ *    matching `layerSetId`. `--delete-missing` removes them; a cutover that
+ *    forgets it would otherwise 500 every marker for the whole festival.
+ *  - **A hand-typed Mongo edit**, which is the ops workflow this repo blesses
+ *    elsewhere and the reason the content hash used to cover whole documents.
+ *
+ * A blank title is refused for the reason the buildings producer refuses one: an
+ * empty label still occupies a tap target and a client collision slot.
+ */
 function isRenderable(doc: MapPlaceDoc): boolean {
   return (
     hasAnyText(doc.title) &&
     // A geometry this build has no renderer for — a MultiPolygon typed straight
-    // into Mongo, say — is skipped and counted with the other unusable rows
-    // rather than shipped as an overlay the client would silently drop.
+    // into Mongo, say — or one whose coordinates are structurally broken. Both
+    // are skipped and counted with the other unusable rows: a ring holding a
+    // null would otherwise throw out of a route with no try/catch and 500 the
+    // whole festival.
     isDrawableGeometry(doc.location) &&
     Array.isArray(doc.hours) &&
     Array.isArray(doc.fields) &&

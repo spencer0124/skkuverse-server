@@ -33,7 +33,7 @@ are the rules that decide what fills the layer list and the chip row.
 Two consequences fall out of this and are worth holding onto:
 
 - **A layer is a switch, not a download.** Every festival layer points at one shared marker endpoint
-  (`EVENT_MARKERS_ENDPOINT`), and both building layers point at another. The app keys its marker cache
+  (`EVENT_OVERLAYS_ENDPOINT`), and both building layers point at another. The app keys its overlay cache
   on the endpoint string, so layers sharing a source cost one fetch between them; each renders the
   subset of markers carrying its own `layerId`.
 - **A chip does two things at once.** It carries a camera *and* a list of layer ids. That pairing is
@@ -78,7 +78,7 @@ one of three tiers, and knowing which one answers most "where do I edit this" qu
 | --- | --- | --- |
 | **repo** | TypeScript, plus committed JSON under `src/map/config/` | PR and deploy |
 | **mongo** | The `places` and `activations` collections | Ops edit live, mid-festival, no deploy |
-| **wire** | The shapes the app receives (`MapMarker`, `MapChip`, the config response) | Deploy *and* an app release |
+| **wire** | The shapes the app receives (`MapOverlay`, `MapChip`, the config response) | Deploy *and* an app release |
 
 This split is also the fail-loud / fail-soft boundary, per the reasoning in
 [reference/event-places.md](../reference/event-places.md): a bad value in the repo tier is a developer

@@ -57,7 +57,7 @@ export interface DailyWindow {
  * list is a second spelling of "no schedule". This map domain has decided that
  * class of question before — `MapChipAction` over a flat `actionType`/`value`
  * pair, and the `status` scalar that was DELETED from beside `hours` for this
- * exact reason (`map-marker.types.ts`). Two flags may only sit side by side when
+ * exact reason (`map-overlay.types.ts`). Two flags may only sit side by side when
  * every combination of them is meaningful — the test `userConfigurable` clears
  * against this one, and that a boolean plus a window list would not.
  *

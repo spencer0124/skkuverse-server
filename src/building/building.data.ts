@@ -99,7 +99,12 @@ async function ensureIndexes(): Promise<void> {
     // there because Mongo rejects a malformed ring at insert, which is the
     // cheapest guard we get against geometry that would fail to draw. Same
     // reasoning as the places collection.
-    campusShapes.createIndex({ campus: 1 }),
+    //
+    // The other one covers the ONE read there is, `getAllCampusShapes`'s
+    // `find({}).sort({order: 1, _id: 1})`. Not `{campus: 1}`: nothing filters
+    // by campus, and an index on a field no query names is a write cost with
+    // no reader.
+    campusShapes.createIndex({ order: 1, _id: 1 }),
     campusShapes.createIndex({ geometry: "2dsphere" }),
   ]);
 }

@@ -139,7 +139,7 @@ export interface LayerSpec {
    * The server does NOT evaluate it. Opening and closing times ride in the
    * payload and the device does the arithmetic against its own clock, which is
    * the same contract `/map/overlays/event` relies on to stay cacheable
-   * (`map-markers.controller.ts`).
+   * (`map-overlays.controller.ts`).
    */
   defaultVisibleWhen: LayerDefaultVisibility;
   /**
@@ -247,13 +247,43 @@ export const BASE_LAYERS = [
     // never hidden behind a booth pin.
     style: { captionTextSize: 7, zIndex: 100000 },
   },
+  {
+    id: "campus_geometry",
+    label: { ko: "건물 외곽", en: "Building Outlines", zh: "建筑轮廓" },
+    // DEFINED BUT INERT, deliberately, and this is the one layer here in that
+    // quadrant — the combination `userConfigurable`'s contract calls out as
+    // meaningful. It exists so `campus_shapes` documents have a `layerId` they
+    // can legally name: the producer drops any shape whose layer is not in this
+    // list, so without an entry the whole collection is unauthorable.
+    //
+    // Nothing is drawn yet because nobody has traced a footprint. When the
+    // first geometry lands, this becomes visible by changing two fields —
+    // `defaultVisibleWhen` to `always` and `userConfigurable` to `true`. Until
+    // then it draws nothing and offers no toggle, rather than shipping a
+    // control that does nothing.
+    defaultVisibleWhen: { kind: "never" },
+    userConfigurable: false,
+    endpoint: CAMPUS_OVERLAYS_ENDPOINT,
+    chipGroupId: null,
+    // No `color`, for the reason the building layers have none: an outline
+    // belongs to the base map, whose palette is a design token that resolves
+    // per theme, and a hex from here cannot. The geometry knobs ARE sent,
+    // because they are theme-independent — and `outlineWidth` in particular,
+    // because the client's polygon overlay defaults it to 0 and would draw a
+    // borderless blob without it.
+    //
+    // `minZoom` because footprints at campus-wide zoom are noise; the outlines
+    // only mean anything once a building fills a useful part of the screen.
+    style: { fillOpacity: 0.12, outlineWidth: 1.5, minZoom: 16 },
+  },
   // The two commented-out bus route layers that used to sit here are gone. They
   // pointed at `/map/overlays/:overlayId`, which is deleted, and they described
   // themselves with a layer `type` that no longer exists. Reviving them is now
   // a different and better-shaped job: give the two jongro routes documents in
-  // `campus_shapes` with LineString geometry, and they arrive through the
-  // campus collection as ordinary `kind: "path"` overlays with no second URL,
-  // no second parser and no sideways import of `src/bus` data.
+  // `campus_shapes` with LineString geometry pointing at the layer above, and
+  // they arrive through the campus collection as ordinary `kind: "path"`
+  // overlays with no second URL, no second parser and no sideways import of
+  // `src/bus` data.
 ] as const satisfies readonly LayerSpec[];
 
 export type BaseLayerId = (typeof BASE_LAYERS)[number]["id"];
@@ -333,7 +363,18 @@ export function eventLayerSpecs(config: EventMapConfig): LayerSpec[] {
     userConfigurable: true,
     endpoint: EVENT_OVERLAYS_ENDPOINT,
     chipGroupId: config.layerSetId,
-    style: { color: layer.color, ...EVENT_LAYER_STYLE, ...EVENT_SHAPE_STYLE },
+    // `outlineColor` is the category colour at full strength while `color`
+    // fills at EVENT_SHAPE_STYLE's opacity, so a zone reads as its category
+    // without hiding the booths inside it. Derived rather than authored: a
+    // second colour in the config would be a value that can only ever be
+    // wrong, since a zone outlined in one category's colour and filled in
+    // another's means nothing.
+    style: {
+      color: layer.color,
+      outlineColor: layer.color,
+      ...EVENT_LAYER_STYLE,
+      ...EVENT_SHAPE_STYLE,
+    },
   }));
 }
 

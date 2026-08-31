@@ -582,6 +582,36 @@ describe("getEventOverlays — zones and route lines", () => {
     });
   });
 
+  it("skips a structurally broken ring instead of 500ing the festival", async () => {
+    // `coordinates: [null]` satisfies "is an array" and then dereferences
+    // null.length inside the winding pass. This route has no try/catch, so
+    // without a structural guard one hand-edited document takes the whole
+    // festival down for every client for as long as the row exists.
+    arrange([
+      place(),
+      place({
+        _id: "eskara-2026-broken-01",
+        location: { type: "Polygon", coordinates: [null] },
+      }),
+    ]);
+
+    const { overlays } = await getEventOverlays();
+
+    expect(overlays).toHaveLength(1);
+    expect(overlays[0]!.id).toBe("eskara-2026-booth-01");
+  });
+
+  it("skips a ring too short to bound an area", async () => {
+    arrange([
+      place({
+        _id: "eskara-2026-thin-01",
+        location: { type: "Polygon", coordinates: [[RING[0], RING[1], RING[0]]] },
+      }),
+    ]);
+
+    await expect(getEventOverlays()).resolves.toEqual({ overlays: [] });
+  });
+
   it("skips a geometry this build has no renderer for, and counts it", async () => {
     // A MultiPolygon typed straight into Mongo. Fail SOFT: it is content, so
     // one bad row must not take the other sixty with it — but it must not be

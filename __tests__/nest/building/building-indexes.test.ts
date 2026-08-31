@@ -43,10 +43,13 @@ describe("building.data ensureIndexes", () => {
     });
   });
 
-  it("creates the campus filter index on campus_shapes", async () => {
+  it("covers the one read there is, rather than a filter nothing uses", async () => {
     await ensureIndexes();
 
-    expect(createIndex).toHaveBeenCalledWith("campus_shapes", { campus: 1 });
+    // `getAllCampusShapes` is `find({}).sort({order: 1, _id: 1})` — no campus
+    // predicate anywhere — so this is the sort, not a filter.
+    expect(createIndex).toHaveBeenCalledWith("campus_shapes", { order: 1, _id: 1 });
+    expect(createIndex).not.toHaveBeenCalledWith("campus_shapes", { campus: 1 });
   });
 
   it("leaves the existing collections' indexes alone", async () => {

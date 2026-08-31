@@ -9,10 +9,9 @@
  *
  * RFC 7946 §3.1.6: "A linear ring MUST follow the right-hand rule with respect
  * to the area it bounds, i.e., exterior rings are counterclockwise, and holes
- * are clockwise." The wire serves stored geometry verbatim, so the ring has to
- * be conformant BEFORE it is stored — which is why this runs in the importer
- * rather than in the projection. Normalising on read would put the rule in the
- * hot path of every request to correct a mistake made once.
+ * are clockwise." Everything else about a geometry crosses the wire verbatim;
+ * this is the one correction applied on the way out, and the paragraph below
+ * says why it is on the way out rather than on the way in.
  *
  * The reason it matters is not pedantry about the spec. The client's polygon
  * overlay wants the OPPOSITE direction and its own docs warn that a wrongly
@@ -128,8 +127,9 @@ export function rewindPolygon(rings: LinearRing[]): LinearRing[] {
  */
 export function toWirePolygon(geometry: GeoJsonPolygon): GeoJsonPolygon {
   const rings = rewindPolygon(geometry.coordinates);
-  const unchanged =
-    rings.length === geometry.coordinates.length &&
-    rings.every((ring, i) => ring === geometry.coordinates[i]);
+  // Reference equality per ring, because `rewindRing` returns its input
+  // untouched when nothing needed changing. `rewindPolygon` is a 1:1 `map`, so
+  // the lengths always match and comparing them would be dead logic.
+  const unchanged = rings.every((ring, i) => ring === geometry.coordinates[i]);
   return unchanged ? geometry : { type: "Polygon", coordinates: rings };
 }

@@ -23,6 +23,10 @@
 const ACTION_TYPES = ["content", "route", "webview", "external", "miniapp"];
 const STYLES = ["primary", "secondary"];
 
+// Shared with the campus sheet, so the two authoring files cannot disagree
+// about what a valid ring is.
+const { asGeometry } = require("./geojson-geometry");
+
 /**
  * Keys that were meaningful in the OLD two-file format and would now be read as
  * nothing at all.
@@ -32,12 +36,11 @@ const STYLES = ["primary", "secondary"];
  * exists to remove — so a pasted old-format file has to fail loudly rather than
  * import each place once and silently lose its second day.
  */
-const { asGeometry } = require("./geojson-geometry");
-
 const RETIRED_PLACE_KEYS = {
   days: "a place is one document now — write one entry in `hours` per day",
   slot: "no longer read; the windows in `hours` say when a place is open",
-  placeId: "coordinates live on the place itself — use `lat`/`lng`",
+  placeId:
+    "coordinates live on the place itself — use `lat`/`lng`, or `geometry` for a ring or a line",
   startOffsetMin: "windows are absolute instants — use `hours[].startAt`",
   endOffsetMin: "windows are absolute instants — use `hours[].endAt`",
   hoursLabel: "derived from `hours` by the client",
@@ -254,13 +257,23 @@ function asPlace(raw, i, ctx, errors) {
   } else {
     const lat = raw.lat;
     const lng = raw.lng;
-    if (typeof lat !== "number" || !Number.isFinite(lat) || Math.abs(lat) > 90) {
+    // Two INDEPENDENT checks, not a chain. A wholesale transposition makes both
+    // wrong, and this file's whole posture is that one run names everything —
+    // an `else if` would hand the author one message, then the other on a
+    // second round trip.
+    const latOk =
+      typeof lat === "number" && Number.isFinite(lat) && Math.abs(lat) <= 90;
+    const lngOk =
+      typeof lng === "number" && Number.isFinite(lng) && Math.abs(lng) <= 180;
+    if (!latOk) {
       // Cheap swap detector, and it works here for the same reason it works in the
       // camera validator: SKKU's longitude (126) is outside latitude's ±90 range.
       own.push(`${where2}.lat ${lat} is not a latitude — lat and lng may be swapped`);
-    } else if (typeof lng !== "number" || !Number.isFinite(lng) || Math.abs(lng) > 180) {
+    }
+    if (!lngOk) {
       own.push(`${where2}.lng ${lng} is not a longitude`);
-    } else {
+    }
+    if (latOk && lngOk) {
       location = { type: "Point", coordinates: [lng, lat] };
     }
   }

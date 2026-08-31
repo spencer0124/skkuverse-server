@@ -8,7 +8,7 @@
  * No dotenv here — the executable scripts load it. Requiring this file has no
  * side effects.
  */
-const { isDeepStrictEqual } = require("node:util");
+const { upsertDocs } = require("./upsert-docs");
 
 /**
  * eventmap DB name, with the same _dev/_test suffixing infra/config.ts applies.
@@ -43,15 +43,6 @@ const COMPARED_FIELDS = [
   "order",
 ];
 
-function isUnchanged(existing, next) {
-  if (!existing) return false;
-  // isDeepStrictEqual, not JSON.stringify: documents come back from Mongo with
-  // their own key order, and a false "changed" would defeat the whole point.
-  return COMPARED_FIELDS.every((field) =>
-    isDeepStrictEqual(existing[field], next[field]),
-  );
-}
-
 /**
  * Upserts only the places that actually differ from what is stored.
  *
@@ -65,40 +56,7 @@ function isUnchanged(existing, next) {
  * cache. That tier is gone; the ops question is reason enough on its own.
  */
 async function upsertPlaces(collection, docs, now) {
-  if (docs.length === 0) return { inserted: 0, updated: 0, unchanged: 0 };
-
-  const existing = new Map(
-    (await collection.find({ _id: { $in: docs.map((d) => d._id) } }).toArray()).map(
-      (doc) => [doc._id, doc],
-    ),
-  );
-
-  const changed = docs.filter((doc) => !isUnchanged(existing.get(doc._id), doc));
-  if (changed.length === 0) {
-    return { inserted: 0, updated: 0, unchanged: docs.length };
-  }
-
-  const operations = changed.map((doc) => {
-    const { _id, ...rest } = doc;
-    // Whole-document $set, every field the reader emits included. The reader
-    // always emits all of them — `subtitle` as an explicit null, `fields` and
-    // `actions` as explicit empty arrays — so there is nothing to $unset: a row
-    // deleted from the sheet is overwritten rather than left behind.
-    return {
-      updateOne: {
-        filter: { _id },
-        update: { $set: { ...rest, updatedAt: now } },
-        upsert: true,
-      },
-    };
-  });
-
-  const result = await collection.bulkWrite(operations, { ordered: false });
-  return {
-    inserted: result.upsertedCount,
-    updated: result.modifiedCount,
-    unchanged: docs.length - changed.length,
-  };
+  return upsertDocs(collection, docs, now, COMPARED_FIELDS);
 }
 
 /** Create the activation if absent, disabled. Never modifies an existing one. */

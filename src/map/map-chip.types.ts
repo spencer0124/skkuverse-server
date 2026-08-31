@@ -128,7 +128,7 @@ export interface MapChip {
    * Resolved server-side from the spec's `{ko, en?, zh?}` with the event map's
    * `pick`, the way layer labels are.
    *
-   * Not shipped as `{ko, en, zh}` like `MapMarker.text`: that field ships every
+   * Not shipped as `{ko, en, zh}` like an overlay's `text`: that field ships every
    * language because its two producers hold different sets and resolving would
    * discard some. A chip label has one producer — a festival's config, or this
    * repo's base list — with the same fallback chain either way, so there is

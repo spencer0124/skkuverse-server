@@ -37,7 +37,9 @@ import { BASE_CHIPS } from "../../../src/map/map-chips.data";
 import { MapService } from "../../../src/map/map.service";
 
 /** 건물번호 + 건물이름. The bus polyline layers are commented out upstream. */
-const BASE_LAYER_COUNT = 2;
+// 건물번호, 건물이름, and the inert `campus_geometry` layer that exists so
+// campus_shapes documents have a layerId they can legally name.
+const BASE_LAYER_COUNT = 3;
 
 /**
  * The REAL shipped config. It loads with no mock — `map-layerset.config` reads the
@@ -65,8 +67,8 @@ describe("MapService", () => {
   it("getMapConfig delegates to map-config.data (campus labels via i18n)", async () => {
     const ko = await svc.getMapConfig("ko");
     expect(ko.campuses).toHaveLength(2);
-    // Two BASE layers and nothing else: no activation is live above.
-    expect(ko.layers).toHaveLength(2);
+    // The BASE layers and nothing else: no activation is live above.
+    expect(ko.layers).toHaveLength(BASE_LAYER_COUNT);
     expect(ko.campuses[0]!.label).toBe("인사캠");
     expect((await svc.getMapConfig("en")).campuses[0]!.label).toBe("HSSC");
   });
@@ -89,7 +91,14 @@ describe("MapService", () => {
     // background layer. `typeof … === "boolean"` would be a tautology here —
     // the field is required by LayerEntry and tsc is green — so assert the
     // VALUE instead.
-    expect(ko.layers.every((l) => l.userConfigurable === true)).toBe(true);
+    expect(ko.layers.every((l) => typeof l.userConfigurable === "boolean")).toBe(true);
+    // And the values, because this axis has a meaningful `false`: the inert
+    // campus geometry layer is the one occupant of the defined-but-inert
+    // quadrant, and it must not grow a toggle for a layer with nothing in it.
+    const byId = new Map(ko.layers.map((l) => [l.id, l.userConfigurable]));
+    expect(byId.get("building_numbers")).toBe(true);
+    expect(byId.get("building_labels")).toBe(true);
+    expect(byId.get("campus_geometry")).toBe(false);
   });
 
   it.each(["ko", "en", "zh"] as const)(
@@ -151,7 +160,7 @@ describe("MapService", () => {
     } as Awaited<ReturnType<typeof findActiveActivation>>);
 
     const ko = await svc.getMapConfig("ko");
-    expect(ko.layers.map((l) => l.id)).toEqual(["building_numbers", "building_labels"]);
+    expect(ko.layers.map((l) => l.id)).toEqual(["building_numbers", "building_labels", "campus_geometry"]);
     expect(ko.chips.map((c) => c.id)).toEqual(BASE_CHIPS.map((c) => c.id));
   });
 
@@ -172,7 +181,7 @@ describe("MapService", () => {
     });
 
     const ko = await svc.getMapConfig("ko");
-    expect(ko.layers.map((l) => l.id)).toEqual(["building_numbers", "building_labels"]);
+    expect(ko.layers.map((l) => l.id)).toEqual(["building_numbers", "building_labels", "campus_geometry"]);
     expect(ko.chips.map((c) => c.id)).toEqual(BASE_CHIPS.map((c) => c.id));
   });
 
@@ -182,10 +191,11 @@ describe("MapService", () => {
     // The whole point of containing that read: a festival lookup failing must
     // not take 건물번호 down with it.
     const ko = await svc.getMapConfig("ko");
-    expect(ko.layers).toHaveLength(2);
+    expect(ko.layers).toHaveLength(BASE_LAYER_COUNT);
     expect(ko.layers.map((l) => l.id)).toEqual([
       "building_numbers",
       "building_labels",
+      "campus_geometry",
     ]);
   });
 

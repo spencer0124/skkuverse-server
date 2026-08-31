@@ -396,6 +396,16 @@ describe("parsePlacesFile — pasted geometry", () => {
     expect(soleError({ errors })).toMatch(/type must be one of/);
   });
 
+  it("reports BOTH coordinates when a named pair is wholly out of range", () => {
+    // A naive `else if` chain reports only the first, so the author fixes lat,
+    // re-runs, and meets lng on a second round trip. This file's posture is
+    // that one run names everything.
+    const { docs, errors } = parse({}, { lat: 999, lng: 999 });
+
+    expect(docs).toHaveLength(0);
+    expect(errors.filter((e: string) => /\.lat |\.lng /.test(e))).toHaveLength(2);
+  });
+
   it("catches a wholesale [lat, lng] paste on the first vertex", () => {
     // The failure this whole format exists to prevent. Swapped, the ring is
     // drawn across the Yellow Sea and nothing anywhere throws — so the check

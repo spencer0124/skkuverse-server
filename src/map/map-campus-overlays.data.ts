@@ -3,10 +3,11 @@ import type { Campus, CampusShapeDoc } from "../building/types";
 import logger from "../infra/logger";
 import { BASE_LAYERS, type BaseLayerId } from "./map-layers.data";
 import type { MapOverlay, OverlayBase } from "./map-overlay.types";
-import type {
-  GeoJsonLineString,
-  GeoJsonPoint,
-  GeoJsonPolygon,
+import {
+  isDrawableGeometry,
+  type GeoJsonLineString,
+  type GeoJsonPoint,
+  type GeoJsonPolygon,
 } from "./geo/geojson.types";
 import { toWirePolygon } from "./geo/ring-winding";
 
@@ -240,8 +241,13 @@ function toShapeOverlays(docs: CampusShapeDoc[]): MapOverlay[] {
       skipped.push(`${doc._id}: layerId "${doc.layerId}" names no base layer`);
       continue;
     }
-    if (!doc.geometry || !doc.title?.ko) {
-      skipped.push(`${doc._id}: missing geometry or Korean title`);
+    // STRUCTURAL, not just a type check. `coordinates: [null]` on a Polygon
+    // satisfies "is an array" and then dereferences `null.length` inside
+    // `toWirePolygon` — a throw out of a route with no try/catch, taking the
+    // buildings down with the geometry. One hand-edited document must not do
+    // that.
+    if (!isDrawableGeometry(doc.geometry) || !doc.title?.ko) {
+      skipped.push(`${doc._id}: geometry is not drawable, or the Korean title is blank`);
       continue;
     }
 
@@ -295,7 +301,10 @@ function toShapeOverlays(docs: CampusShapeDoc[]): MapOverlay[] {
         });
         break;
       default:
-        skipped.push(`${doc._id}: geometry type is not drawable`);
+        // Unreachable — `isDrawableGeometry` already narrowed to these three —
+        // and kept so that adding a geometry to the union without adding a
+        // branch here degrades into a counted skip rather than a silent drop.
+        skipped.push(`${doc._id}: geometry type has no renderer`);
     }
   }
 
@@ -320,16 +329,21 @@ async function getCampusOverlays(): Promise<{
   overlays: MapOverlay[];
   degraded: boolean;
 }> {
-  const [buildings, shapes] = await Promise.all([
+  const [buildings, shapeOverlays] = await Promise.all([
     getBuildingOverlays(),
-    getAllCampusShapes().catch((err: unknown) => {
-      logger.warn({ err }, "[map] campus shapes read failed; serving buildings only");
-      return [] as CampusShapeDoc[];
-    }),
+    // The catch wraps the PROJECTION as well as the read. Wrapping only the
+    // read would leave a throw inside `toShapeOverlays` free to escape and take
+    // the buildings with it — the exact inverse of what this function is for.
+    (async () => toShapeOverlays(await getAllCampusShapes()))().catch(
+      (err: unknown) => {
+        logger.warn({ err }, "[map] campus shapes failed; serving buildings only");
+        return [] as MapOverlay[];
+      },
+    ),
   ]);
 
   return {
-    overlays: [...buildings.overlays, ...toShapeOverlays(shapes)],
+    overlays: [...buildings.overlays, ...shapeOverlays],
     degraded: buildings.degraded,
   };
 }

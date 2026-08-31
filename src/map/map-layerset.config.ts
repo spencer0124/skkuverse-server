@@ -249,7 +249,7 @@ function asCamera(value: unknown, where: string): MapCamera {
   const lng = asFiniteNumber(raw.lng, `${where}.lng`);
   // Cheap swap detector. Not a general guarantee — it only catches a flip
   // because SKKU's longitude (126) exceeds latitude's ±90 range. The real
-  // defence is the single conversion site in map-event-markers.data.ts.
+  // defence is the reader's own guard in scripts/lib/geojson-geometry.js.
   if (Math.abs(lat) > 90) {
     fail(`${where}.lat ${lat} is outside ±90 — lat and lng may be swapped`);
   }

@@ -354,6 +354,40 @@ describe("getCampusOverlays — hand-authored campus geometry", () => {
     );
   });
 
+  it("skips a structurally broken ring rather than blanking the campus", async () => {
+    // The failure mode this guard exists for: `coordinates: [null]` passes an
+    // "is an array" check and then throws inside the winding pass — and the
+    // throw would take the BUILDINGS with it, which is the inverse of what the
+    // shapes-are-an-enhancement rule promises.
+    mockGetAllCampusShapes.mockResolvedValue([
+      shape({ geometry: { type: "Polygon", coordinates: [null] } }),
+    ]);
+
+    const { overlays, degraded } = await getCampusOverlays();
+
+    expect(overlays).toHaveLength(2);
+    expect(overlays.every((o) => o.kind === "marker")).toBe(true);
+    expect(degraded).toBe(false);
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("not drawable"),
+    );
+  });
+
+  it("keeps serving the buildings when the PROJECTION throws, not just the read", async () => {
+    // A guard cannot be relied on to be total forever. The catch has to wrap
+    // the projection too, or the next unguarded shape does exactly what the
+    // guard was added to prevent.
+    mockGetAllCampusShapes.mockResolvedValue({
+      // Not an array — `toShapeOverlays` throws on the for-of.
+      length: 1,
+    } as never);
+
+    const { overlays, degraded } = await getCampusOverlays();
+
+    expect(overlays).toHaveLength(2);
+    expect(degraded).toBe(false);
+  });
+
   it("keeps serving the buildings when the shapes read fails", async () => {
     // Campus geometry is an enhancement; the campus map is the product. A
     // failing collection must not blank the buildings with it.

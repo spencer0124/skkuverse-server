@@ -304,7 +304,7 @@ the source IP, not a client TLS fault. Two causes, and they look identical:
 | --- | --- |
 | Stored documents | `src/map/map-places.types.ts` |
 | I/O + indexes | `src/map/map-places.data.ts` (no `seedIfEmpty` — there is no sensible default event) |
-| Places → map markers | `src/map/map-event-markers.data.ts` — see [map-overlays-api.md](map-overlays-api.md) |
+| Places → map overlays | `src/map/map-event-overlays.data.ts` — see [map-overlays-api.md](map-overlays-api.md) |
 | Live layer set + usable config | `src/map/map-active-layerset.ts` |
 | Structure load + validation | `src/map/map-layerset.config.ts` |
 | Structure types, `presentationFor` | `src/map/map-layerset.types.ts` |

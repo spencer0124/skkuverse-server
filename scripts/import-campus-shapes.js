@@ -3,9 +3,15 @@
  * Import the campus geometry sheet into the building DB's `campus_shapes`.
  *
  * The sibling of `import-eventmap-places.js`, and deliberately the same shape:
- * one file in, all-or-nothing out. It refuses to write anything if any shape is
- * bad, because a half-imported map is worse than no map — the missing outlines
- * are invisible and the ones that made it look authoritative.
+ * one file in, and nothing written if the file does not PARSE. A half-imported
+ * map is worse than no map — the missing outlines are invisible and the ones
+ * that made it look authoritative.
+ *
+ * "Nothing written" covers parse errors, which is every rule the reader owns.
+ * It does not cover a Mongo rejection: `geojson-geometry.js` defers unclosed
+ * and self-intersecting rings to the 2dsphere index, so those surface at write
+ * time. The write is one unordered `bulkWrite`, so such a rejection costs one
+ * document rather than truncating the sheet at whichever row it hit.
  *
  * This collection is hand-authored and NOT synced from campusMap.do, which is
  * why it is a sibling of `buildings` rather than a field on it: the crawler
@@ -26,9 +32,9 @@ require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
 const { MongoClient } = require("mongodb");
-const { isDeepStrictEqual } = require("util");
 
 const { parseCampusShapesFile } = require("./lib/campus-shapes-file");
+const { upsertDocs } = require("./lib/upsert-docs");
 
 const DEFAULT_FILE = path.join(__dirname, "data", "campus-shapes.json");
 
@@ -119,28 +125,12 @@ async function main() {
       return;
     }
 
-    const existing = await shapes.find({}).toArray();
-    const byId = new Map(existing.map((d) => [d._id, d]));
-    let inserted = 0;
-    let updated = 0;
-    let unchanged = 0;
-
-    for (const doc of docs) {
-      const prior = byId.get(doc._id);
-      // The diff is not an optimisation — a handful of documents would cost
-      // nothing to rewrite. It keeps `updatedAt` meaning "this shape actually
-      // changed", which is the only signal anyone has when a map looks wrong.
-      if (prior && COMPARED_FIELDS.every((f) => isDeepStrictEqual(prior[f], doc[f]))) {
-        unchanged++;
-        continue;
-      }
-      await shapes.replaceOne({ _id: doc._id }, doc, { upsert: true });
-      if (prior) updated++;
-      else inserted++;
-    }
-
+    // Same helper the event sheet uses — one bulkWrite, and the same
+    // "only write what changed" rule, so `updatedAt` keeps meaning something.
+    const summary = await upsertDocs(shapes, docs, new Date(), COMPARED_FIELDS);
     console.log(
-      `\nshapes    ${inserted} inserted, ${updated} updated, ${unchanged} unchanged`,
+      `\nshapes    ${summary.inserted} inserted, ${summary.updated} updated, ` +
+        `${summary.unchanged} unchanged`,
     );
 
     if (args.deleteMissing && orphans.length > 0) {

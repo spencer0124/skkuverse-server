@@ -1176,7 +1176,7 @@ shape §4.0 exists to avoid — to buy a rollout ordering that a JS-only OTA can
 | Festival layers, chips, labels, colours, camera, category → layer table | `src/map/config/<layerSetId>.json` |
 | Category → presentation resolver (both producers) | `presentationFor` in `src/map/map-layerset.types.ts` |
 | `DailyWindow`, `LayerDefaultVisibility`, and why this axis is wall-clock | `src/map/map-layerset.types.ts` |
-| HTTP + `Cache-Control` | `src/map/controllers/map-config.controller.ts`, `src/map/controllers/map-markers.controller.ts` |
+| HTTP + `Cache-Control` | `src/map/controllers/map-config.controller.ts`, `src/map/controllers/map-overlays.controller.ts` |
 | Module wiring, rate limit, endpoint inventory | `src/map/map.module.ts` |
 | Campus labels | `src/infra/i18n.ts` (`map.campus.*`) — layer and chip labels are inline `{ko, en?, zh?}` on their specs, resolved with `pick()` from the same module |
 | Building documents | `src/building/building.data.ts` |
