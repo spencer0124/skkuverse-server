@@ -425,8 +425,9 @@ second one. This is the paragraph a client implements from.
    QGIS says it outright about `LayerFlag::Private`: flags are "used for the UI but are not
    preventing any API call." Nothing here is an authorization boundary.
 3. **A chip may not change it either.** A chip tap is a user-initiated change, so `false` here puts
-   the layer out of a chip's reach as well as out of the sheet's (§8.2). Inert today, since nothing
-   is `false`.
+   the layer out of a chip's reach as well as out of the sheet's (§8.2). The one `false` on this wire
+   is `campus_geometry`, the layer that exists so `campus_shapes` documents have a `layerId` they may
+   legally name — so a chip has to leave it alone too, not only the sheet.
 4. **The client must shadow a stored toggle, not overwrite it.** A user's persisted visibility choice
    survives a layer becoming non-configurable and comes back when it becomes configurable again. The
    resolution is the fallback chain of §4.3, not an assignment. Writing the forced value into
@@ -562,15 +563,27 @@ the envelope varies on `Accept-Language` while the marker data does not.
 `campuses[].radiusM` is how far from the centre still counts as being on a campus; it belongs to the
 campus reconciliation feature rather than to markers, and its derivation is in `map-config.data.ts`.
 
-`layers[].style` carries the **marker geometry**, which the app hardcodes: `size` is `DOT_SIZE`,
-`width`/`height` are `PIN_WIDTH`/`PIN_HEIGHT` (the tintable base icon's natural proportions, so a
-client honouring them does not distort the tint), and `zIndex` is the label layer's `globalZIndex`.
+`layers[].style` carries the **marker geometry** the app used to hardcode: `size` was `DOT_SIZE`,
+`width`/`height` were `PIN_WIDTH`/`PIN_HEIGHT` (the tintable base icon's natural proportions, so a
+client honouring them does not distort the tint), and `zIndex` was the label layer's `globalZIndex`.
+All four are read from the wire as of app `ced0352`. Every member stays optional, so a server
+sending none of them renders exactly as one that never had the field.
 
-> [!WARNING]
-> **The geometry is served and not yet consumed** — see §9.7. `MapMarkerLayer.tsx` still uses its own
-> constants, and `parseLayerStyle` does not read `height` or `zIndex` at all. Only `color` and
-> `captionTextSize` reach a component today, so editing `size` here changes the wire and nothing on
-> screen. Every member is optional, so a server sending none of them renders as before either way.
+Sizing, for a layer that wants to depart from the defaults: `width`/`height` size the **selected**
+marker whatever shape it takes — a selected disc uses `width` as its diameter — and `size` sizes the
+**unselected** disc. Sending neither is the ordinary case.
+
+> [!NOTE]
+> **There is no `style.shape` on this wire, and the absence is the setting.** A place marker draws as
+> a small dot and is promoted to a pin only when it is selected; the client owns that default and
+> reads an absent `shape` as `dotThenPin`. Sending the value explicitly would freeze a default that
+> is meant to move with the app that draws it, so every festival layer is left saying nothing and
+> `MapLayerStyle` has no such member. Send `shape` only to opt ONE layer OUT — `pin` for a handful of
+> landmark markers, say — and never spell a shape into `markerStyle`, a closed allowlist whose
+> unrecognised members fall through to the building-number rendering and would draw every booth as a
+> green numbered circle on an older build. The axis is specified in skkuverse-app
+> `docs/reference/map-config-api-spec.md`; `__tests__/nest/map/map.service.test.ts` pins that this
+> server sends nothing.
 
 Colour is deliberately **not** moved for the building layers. Their fill and the placeDot tint fall
 back to `SdsColors.brand`, a design token that resolves per theme; a hex from here cannot. Geometry
@@ -879,8 +892,8 @@ the resulting view should be (§8.5).
    outside it is untouched. An **empty** `layerIds` resolves no group, so the chip moves the camera
    and changes nothing — that is the camera-only chip, and it is why the field is not nullable.
 2. **Never a `userConfigurable: false` layer** — §4.4 rule 3. A chip tap is a user-initiated change,
-   and that flag already answers who may make one. Inert today, since nothing is `false`; stated so
-   it holds when that quadrant gets its first occupant.
+   and that flag already answers who may make one. That quadrant has one occupant, `campus_geometry`,
+   so this is a live rule rather than a reserved one.
 
 Together these are what let a festival chip swap the six festival layers while 건물번호 and 건물이름
 stay visible **and** stay user-toggleable. Neither "exclusive over everything" nor "purely additive"
@@ -1073,13 +1086,17 @@ amendment retires invariant 2's "unrecognised predicate node evaluates `false`" 
 predicate on the wire — in favour of the marker-level rule: a marker whose `layerId` the app cannot
 resolve is dropped and counted.
 
-### 9.3 `userConfigurable` is served but nothing consumes it
+### 9.3 `userConfigurable` is consumed — closed
 
-Every layer entry carries the flag; no client reads it yet. `MapLayerDef` in
-`packages/shared/src/types/map.ts` has no such member, so it is parsed away. The contract in §4 is
-therefore a **promise about the wire**, not a description of shipped behaviour, and rule 1 (absent
-means `true`) is what makes that safe in the meantime: today's clients behave exactly as if every
-layer were configurable, which is what every layer currently is.
+Recorded here as a gap, and it is not one any more. As of app `a519ca0` the flag is declared on
+`MapLayerDef` (`packages/shared/src/types/map.ts`), parsed with rule 1's absent-means-`true` default
+(`packages/shared/src/map/parser.ts`), and read in two places: `isLayerVisible`
+(`packages/shared/src/map/chips.ts`) makes `false` the top tier of §4.3's resolution chain, and the
+filter sheet drops the tile for it. The app's own tests pin both directions of rule 1.
+
+So §4 describes shipped behaviour rather than a promise about the wire. What made the gap safe while
+it lasted is still the reason rule 1 is spelled the way it is: absent meant `true`, so a client that
+had never heard of the flag behaved exactly as if every layer were configurable.
 
 ### 9.4 Next year's festival is a config file
 
@@ -1118,26 +1135,30 @@ that is precisely why this reorg stripped `?overlay=` (§6). A nearby URL carryi
 So §8.7's chip kind needs its own client hook with a quantised key, not `useLayerMarkers`. Recorded
 now because the constraint belongs to the design, not to the day it is discovered.
 
-### 9.7 Chips, camera defaults and marker geometry are served but not consumed
+### 9.7 The style members the client does not read yet
 
-The same shape as §9.3, and worth listing separately because §8 says "this is that endpoint" and a
-reader could stop there. As of this deploy the client reads **none** of it:
+A six-row table stood here, headed "as of this deploy the client reads **none** of it". Every row is
+closed as of app `a519ca0`: `chips`, `cameraDefaults`, `layers[].chipGroupId`, `campuses[].radiusM`,
+`campuses[].defaultTilt`/`defaultBearing` and the marker geometry — `size`, `width`, `height`,
+`zIndex`, and `shape` with it — are all parsed and consumed, and the hardcoded `CAMPUS_CHIPS` mock it
+cited does not exist in the app at all. The table is deliberately not restated in corrected form: a
+per-field inventory of another repository's HEAD ages into a confident falsehood, which is precisely
+what happened to this one. What is worth keeping is the shape of the remaining gap and the reason it
+is safe.
 
-| Served | Client state |
-| --- | --- |
-| `chips` | `parseMapConfig` builds `{naver, campuses, layers}` only; `MapConfig` has no `chips` member. `CampusChipRow.tsx` still renders its hardcoded `CAMPUS_CHIPS` mock |
-| `cameraDefaults` | not parsed; `CampusScreen` still uses literal `zoom: 17.5` / `duration: 500` at three call sites |
-| `layers[].chipGroupId` | not parsed |
-| `style.height`, `style.zIndex` | not parsed at all by `parseLayerStyle` |
-| `style.size`, `style.width` | parsed, then ignored — `MapMarkerLayer.tsx` uses `DOT_SIZE`, `PIN_WIDTH`, `PIN_HEIGHT` and `globalZIndex={100000}` regardless |
-| `campuses[].defaultTilt` / `defaultBearing` | parsed, then dropped by `focusCampus` |
+What is genuinely unread today is four members, and they are one thing — the **polygon knobs**.
+`outlineWidth`, `fillOpacity` and `minZoom` are on the wire already (`campus_geometry` sends all
+three, and `EVENT_SHAPE_STYLE` sends the first two on every festival layer); `maxZoom` is declared
+here and set by no layer. `MapLayerStyle` in `packages/shared/src/types/map.ts` declares none of the
+four, so they are parsed away, and the shipped polyline overlay still derives its border as
+`style?.outlineColor ? 1 : 0` — the workaround `outlineWidth` was added to replace. Their consumer is
+the overlay renderer that §9.0's app half brings, so this closes with that deploy rather than on a
+schedule of its own.
 
-Only `style.color` and `style.captionTextSize` are honoured today.
-
-That is safe rather than broken — **this is why server-first is the right order here**, unlike §9.1.
-Every field is additive and the client's parsers ignore unknown keys, so nothing regresses while the
-client catches up. But it does mean the wire is a **promise** until it does: changing `size` here
-today changes the response and nothing on screen, with no error on either side.
+That is safe rather than broken. Every member is optional and the client's parsers ignore unknown
+keys, so a zone shipped today reaches a build that draws it with the client's own defaults instead of
+erroring. It does mean `fillOpacity` is a **promise** until then: changing it here changes the
+response and nothing on screen, with no error on either side.
 
 ### 9.8 `defaultVisibleWhen` blanks the campus map until the app half ships
 

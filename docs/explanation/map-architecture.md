@@ -350,7 +350,7 @@ The practical index. The last column is section 3's ownership split, applied.
 | Add next year's festival | New JSON **and** `CONFIG_FILES` **and** `scripts/copy-build-assets.js` | Yes — three coordinated edits |
 | Add a permanent, off-season chip | `map-chips.data.ts` → `BASE_CHIPS` | Yes |
 | Bring the bus route lines back | Give them `campus_shapes` documents with LineString geometry | No |
-| Change how a pin is drawn (size, z-index) | The client — the wire fields exist but are hardcoded there | App release |
+| Change how a pin is drawn (size, z-index) | `map-layers.data.ts` → `BASE_LAYERS[].style` or `EVENT_LAYER_STYLE` | No — the client reads these as of app `ced0352` |
 | Add a field to every overlay | `map-overlay.types.ts`, then **every** producer | Yes, plus an app release |
 | Add a new overlay kind (circle, ground image) | A `MapOverlay` arm, a producer branch, a client renderer | Yes, plus an app release |
 

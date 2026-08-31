@@ -34,6 +34,7 @@ import { findActiveActivation } from "../../../src/map/map-places.data";
 import { pick } from "../../../src/infra/i18n";
 import type { EventMapConfig } from "../../../src/map/map-layerset.types";
 import { BASE_CHIPS } from "../../../src/map/map-chips.data";
+import { EVENT_LAYER_STYLE, EVENT_SHAPE_STYLE } from "../../../src/map/map-layers.data";
 import { MapService } from "../../../src/map/map.service";
 
 /** 건물번호 + 건물이름. The bus polyline layers are commented out upstream. */
@@ -311,6 +312,49 @@ describe("MapService", () => {
     // here cannot.
     expect(stage.style!.color).toBe(CONFIG.layers.find((l) => l.id === "eskara26_stage")!.color);
     expect(byId.get("building_numbers")!.style!.color).toBeUndefined();
+  });
+
+  /**
+   * Asserted on the WIRE rather than on the layer set JSON, and the difference
+   * is the point. `asEventLayer` in map-layerset.config.ts reads four named
+   * members out of each authored layer and builds a fresh object, so a "shape"
+   * typed into eskara-2026.json is dropped and could never reach a response. A
+   * test guarding the config file would pass while someone stamped a shape onto
+   * EVENT_LAYER_STYLE, which is the edit that would actually ship one.
+   */
+  it("sends no style.shape, leaving every place marker on the client's dot-then-pin default", async () => {
+    mockFindActiveActivation.mockResolvedValue({
+      _id: "eskara-2026",
+    } as Awaited<ReturnType<typeof findActiveActivation>>);
+
+    const ko = await svc.getMapConfig("ko");
+    // Selected by markerStyle rather than by the eskara ids: `placeDot` is the
+    // only client branch that reads the shape axis, so this is exactly the set
+    // the rule covers — and it picks up next year's festival for free.
+    const placeDotLayers = ko.layers.filter((l) => l.markerStyle === "placeDot");
+
+    // Guards the loop below, which would pass vacuously on an empty array.
+    expect(placeDotLayers).toHaveLength(CONFIG.layers.length);
+
+    for (const layer of placeDotLayers) {
+      // A style object is always built, so an absent key below is the wire
+      // declining to say rather than there being nowhere to say it.
+      expect(layer.style).toBeDefined();
+      // The client reads an absent `shape` as `dotThenPin`. Sending
+      // "dotThenPin" explicitly would agree with today's client and freeze a
+      // default that is meant to move with it, so silence IS the setting.
+      // Object.keys rather than a member access: MapLayerStyle has no `shape`,
+      // deliberately, so `layer.style.shape` would not compile.
+      expect(Object.keys(layer.style ?? {})).not.toContain("shape");
+    }
+
+    // Named separately because these two constants are where a shape would be
+    // stamped onto every layer at once. A failure here says which constant was
+    // edited instead of pointing at a projected response object. Opting ONE
+    // layer out stays legal — that would be a `shape` on its own style literal,
+    // and the loop above is what you would narrow, deliberately.
+    expect(Object.keys(EVENT_LAYER_STYLE)).not.toContain("shape");
+    expect(Object.keys(EVENT_SHAPE_STYLE)).not.toContain("shape");
   });
 
   it("getCampusOverlays delegates to map-campus-overlays.data, both layers in one call", async () => {

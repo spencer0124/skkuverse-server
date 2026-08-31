@@ -196,6 +196,20 @@ colour fields:
 | `fillOpacity` | — | — | fill alpha, 0–1 |
 | `minZoom` / `maxZoom` | zoom bounds | zoom bounds | zoom bounds |
 | `size`, `width`, `height`, `captionTextSize`, `zIndex` | pin geometry | width | draw order |
+| `shape` | dot vs pin — **do not send** | — | — |
+
+`shape` is the one knob in that table you should leave alone. A place marker
+draws as a small dot and becomes a pin only while it is selected, and the client
+owns that default: it reads an absent `shape` as `dotThenPin`, so every festival
+layer already behaves that way. Sending `"dotThenPin"` back would freeze a
+default that is meant to move with the app that draws it. The field exists only
+to opt a single layer **out** — `"pin"` for a handful of landmark markers, where
+a teardrop reads better and there is no density to relieve — and the server does
+not currently declare it at all, so opting out means adding the member to
+`MapLayerStyle` first. Never put a shape in `markerStyle`: that is a closed
+allowlist on the client, and an unrecognised member falls through to the
+building-number rendering, drawing every booth as a green numbered circle on any
+build older than the value.
 
 Two of these are not optional in practice, and the reason is the client's own
 defaults: its polygon overlay defaults `color` to **opaque black** and
