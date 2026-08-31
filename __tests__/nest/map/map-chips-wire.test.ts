@@ -82,6 +82,13 @@ describe("GET /map/config (real MapService)", () => {
     // field as "no group" by accident rather than by contract.
     expect(layers[0]).toHaveProperty("chipGroupId", null);
     expect(JSON.stringify(res.body)).toContain('"chipGroupId":null');
+
+    // `defaultVisibleWhen` is a NESTED OBJECT where every other layer field is
+    // a scalar, and it reaches the wire through the `...rest` spread rather
+    // than a named copy — so an interceptor or a serialization step dropping it
+    // would be invisible to every other test.
+    expect(layers[0]).toHaveProperty("defaultVisibleWhen", { kind: "always" });
+    expect(layers.every((l: { defaultVisibleWhen?: unknown }) => l.defaultVisibleWhen)).toBe(true);
   });
 
   it("adds the festival chips while an activation is open", async () => {
@@ -118,6 +125,31 @@ describe("GET /map/config (real MapService)", () => {
         durationMs: 500,
       },
       layerIds: ["eskara26_stage"],
+    });
+    expect(stageChip.isReset).toBe(false);
+
+    // The reset chip's two halves, on the bytes: `isReset` says what the tap
+    // means, `layerIds` still says which group it is scoped to. Serving the
+    // second empty would leave it group-less.
+    const resetWire = res.body.data.chips.find(
+      (c: { id: string }) => c.id === "eskara-2026_all",
+    );
+    expect(resetWire.isReset).toBe(true);
+    expect(resetWire.action.layerIds.length).toBeGreaterThan(0);
+    expect(resetWire.action.layerIds).not.toContain("eskara26_facility");
+    expect(
+      res.body.data.chips.filter((c: { isReset: boolean }) => c.isReset),
+    ).toHaveLength(1);
+
+    // A scheduled layer's windows survive serialization as authored — the
+    // wrap past midnight included, which is the one bound pair a "fix" would
+    // be tempted to normalise.
+    const barLayer = res.body.data.layers.find(
+      (l: { id: string }) => l.id === "eskara26_bar",
+    );
+    expect(barLayer.defaultVisibleWhen).toEqual({
+      kind: "scheduled",
+      windows: [{ start: "18:00", end: "00:00" }],
     });
 
     // No webview chip ships since 분실물 was removed, so there is no absolute

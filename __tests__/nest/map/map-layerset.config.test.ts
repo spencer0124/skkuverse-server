@@ -64,7 +64,9 @@ describe("the shipped eskara-2026 config", () => {
 
   it("has at least one layer on by default, so the reset chip restores something", () => {
     const config = assertValidConfig(raw());
-    expect(config.layers.some((l) => l.defaultVisible)).toBe(true);
+    expect(
+      config.layers.some((l) => l.defaultVisibleWhen.kind !== "never"),
+    ).toBe(true);
   });
 });
 
@@ -159,11 +161,14 @@ describe("assertValidConfig — identity and shape", () => {
   });
 
   it("rejects a layer set where nothing is on by default", () => {
-    // The reset chip restores the default-visible set; with none there is no
-    // way back to the ordinary festival map.
+    // The reset chip restores the layers that come on by themselves — always-on
+    // plus scheduled. With none there is no way back to the ordinary festival
+    // map, and the default view is an empty one.
     const config = raw();
-    for (const layer of config.layers) layer.defaultVisible = false;
-    expect(() => assertValidConfig(config)).toThrow(/at least one defaultVisible/);
+    for (const layer of config.layers) layer.defaultVisibleWhen = { kind: "never" };
+    expect(() => assertValidConfig(config)).toThrow(
+      /at least one layer that is not defaultVisibleWhen\.kind "never"/,
+    );
   });
 
   it("rejects a colour that is not bare six-digit hex", () => {
@@ -225,3 +230,143 @@ describe("assertValidConfig — identity and shape", () => {
   });
 });
 
+
+describe("assertValidConfig — defaultVisibleWhen, the WHEN axis", () => {
+  it("keeps a scheduled layer's windows, wrapping past midnight included", () => {
+    const config = assertValidConfig(raw());
+    const bar = config.layers.find((l) => l.id === "eskara26_bar")!;
+    // 주점 is the wrapping case: 18:00 is after 00:00, and that is what says
+    // "past midnight" rather than being a swapped pair.
+    expect(bar.defaultVisibleWhen).toEqual({
+      kind: "scheduled",
+      windows: [{ start: "18:00", end: "00:00" }],
+    });
+
+    const booth = config.layers.find((l) => l.id === "eskara26_booth")!;
+    expect(booth.defaultVisibleWhen).toEqual({
+      kind: "scheduled",
+      windows: [{ start: "11:00", end: "18:00" }],
+    });
+  });
+
+  it("reads an absent defaultVisibleWhen as always on — never fail closed", () => {
+    // The boolean it replaces defaulted to `true` for the same reason: a layer
+    // that forgot to decide must not silently vanish from the map.
+    const config = raw();
+    delete config.layers[0].defaultVisibleWhen;
+    expect(assertValidConfig(config).layers[0]!.defaultVisibleWhen).toEqual({
+      kind: "always",
+    });
+  });
+
+  it("rejects an unknown kind rather than falling back to one", () => {
+    const config = raw();
+    config.layers[0].defaultVisibleWhen = { kind: "sometimes" };
+    expect(() => assertValidConfig(config)).toThrow(
+      /config\.layers\[0\]\.defaultVisibleWhen\.kind must be one of \[always, never, scheduled\]/,
+    );
+  });
+
+  it("rejects windows on a kind that never reads them", () => {
+    // Every validator here builds a fresh object, so an unknown key is normally
+    // dropped without a word. A window list that looks authored and is read by
+    // nothing is exactly the stray key worth failing on.
+    const config = raw();
+    config.layers[0].defaultVisibleWhen = {
+      kind: "never",
+      windows: [{ start: "18:00", end: "00:00" }],
+    };
+    expect(() => assertValidConfig(config)).toThrow(
+      /config\.layers\[0\]\.defaultVisibleWhen\.windows is read only on kind "scheduled"/,
+    );
+  });
+
+  it("rejects a scheduled layer with no windows, naming the spelling that means always", () => {
+    const config = raw();
+    config.layers[0].defaultVisibleWhen = { kind: "scheduled", windows: [] };
+    expect(() => assertValidConfig(config)).toThrow(
+      /config\.layers\[0\]\.defaultVisibleWhen\.windows must not be empty/,
+    );
+  });
+
+  // Both bounds, not just `start`: the validator loops over the pair, and a
+  // suite that only ever varies `start` stays green if the loop is reduced to
+  // one member.
+  it.each(["24:00", "7:00", "25:00", "18:60", "1800", "18:00:00", ""])(
+    "rejects %p at either end of a window",
+    (bound) => {
+      // "24:00" is the one worth naming: it is a real spelling of midnight in
+      // other formats, and allowing it would give 00:00 a second spelling.
+      for (const key of ["start", "end"] as const) {
+        const config = raw();
+        config.layers[0].defaultVisibleWhen = {
+          kind: "scheduled",
+          windows: [{ start: "11:00", end: "23:00", [key]: bound }],
+        };
+        expect(() => assertValidConfig(config)).toThrow(
+          new RegExp(`config\\.layers\\[0\\]\\.defaultVisibleWhen\\.windows\\[0\\]\\.${key}`),
+        );
+      }
+    },
+  );
+
+  it.each(["always", "never"])("rejects windows on kind %p", (kind) => {
+    const config = raw();
+    config.layers[0].defaultVisibleWhen = {
+      kind,
+      windows: [{ start: "18:00", end: "00:00" }],
+    };
+    expect(() => assertValidConfig(config)).toThrow(
+      /defaultVisibleWhen\.windows is read only on kind "scheduled"/,
+    );
+  });
+
+  it.each([{}, 3, "18:00"])("rejects %p in place of a windows array", (windows) => {
+    const config = raw();
+    config.layers[0].defaultVisibleWhen = { kind: "scheduled", windows };
+    expect(() => assertValidConfig(config)).toThrow(
+      /config\.layers\[0\]\.defaultVisibleWhen\.windows must be an array/,
+    );
+  });
+
+  it("reads an explicit null the way it reads an absent value", () => {
+    // JSON has a null and config authors write it. It must not fall through to
+    // asRecord, which would reject it as "must be an object".
+    const config = raw();
+    config.layers[0].defaultVisibleWhen = null;
+    expect(assertValidConfig(config).layers[0]!.defaultVisibleWhen).toEqual({
+      kind: "always",
+    });
+  });
+
+  it("rejects equal bounds — ambiguous between no minutes and all day", () => {
+    const config = raw();
+    config.layers[0].defaultVisibleWhen = {
+      kind: "scheduled",
+      windows: [{ start: "18:00", end: "18:00" }],
+    };
+    expect(() => assertValidConfig(config)).toThrow(
+      /config\.layers\[0\]\.defaultVisibleWhen\.windows\[0\] has equal bounds/,
+    );
+  });
+
+  it("accepts a window that wraps past midnight", () => {
+    const config = raw();
+    config.layers[0].defaultVisibleWhen = {
+      kind: "scheduled",
+      windows: [{ start: "22:00", end: "02:00" }],
+    };
+    expect(() => assertValidConfig(config)).not.toThrow();
+  });
+
+  it("rejects a timezone the wire contract cannot honour", () => {
+    // A DailyWindow bound is wall-clock, and the client resolves it as a fixed
+    // +09:00. A zone this server cannot promise is a silent wrong answer, not a
+    // degraded one — and "Asia/Seuol" passed the old non-empty-string check.
+    const config = raw();
+    config.timezone = "Asia/Seuol";
+    expect(() => assertValidConfig(config)).toThrow(
+      /config\.timezone must be one of \[Asia\/Seoul\]/,
+    );
+  });
+});

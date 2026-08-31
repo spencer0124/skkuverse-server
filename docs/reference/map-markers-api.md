@@ -3,15 +3,15 @@ title: Map Markers API Reference
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-08-29
+last-updated: 2026-08-31
 audience: internal
 ---
 
 # Map Markers API
 
-> The one marker schema every layer of the campus map draws, the two layer flags that say what is
-> visible and who may change it, the chips that move the camera and swap layer sets, and the three
-> endpoints that carry them. Cross-repo ownership is
+> The one marker schema every layer of the campus map draws, the two layer flags that say when a
+> layer is visible and who may change it, the chips that move the camera and swap layer sets, and the
+> three endpoints that carry them. Cross-repo ownership is
 > [umbrella ADR 0004](https://github.com/spencer0124/skkuverse/blob/main/docs/decisions/0004-event-map-layer-ownership.md);
 > the festival's storage, authoring and ops tiers are [event-places.md](event-places.md).
 
@@ -165,6 +165,20 @@ timezone still derives correctly. A device whose clock is genuinely wrong does n
 accepted rather than corrected. The side benefit is the one that matters on the day: the map keeps
 telling the truth on a dead network.
 
+**The exception, and it is on the other axis.** A layer's `defaultVisibleWhen` (§4) *does* decide
+something by the clock — but it decides a **default**, which the user overrides, not what may be
+drawn. The distinction is worth keeping sharp:
+
+| | Says | Overridable |
+| --- | --- | --- |
+| A marker's `hours` | *this place is open then* | n/a — it never hides the pin |
+| A layer's `defaultVisibleWhen` | *this layer starts on then* | yes, by a toggle or a chip |
+
+So a 주점 pin still exists at noon; its layer merely starts off. A deep link opens it regardless,
+because deep links resolve against every marker rather than the visible set.
+
+That axis is **wall-clock** where this one is instants, and §4.2 says why.
+
 ### 3.4 Two markers on one coordinate
 
 The server drops, merges and clock-filters nothing; it ships every place of the live set with
@@ -201,26 +215,96 @@ does not need to, because their windows are one night apart and step 1 has alrea
 > pairs were surveyed as a single interpolated point with identical hours — genuinely two stalls, so
 > the fix was two coordinates, a quarter of the strip's own step (~1.3 m) apart.
 
-## 4. Layer flags — `defaultVisible` and `userConfigurable`
+## 4. Layer flags — `defaultVisibleWhen` and `userConfigurable`
 
 Two independent axes on every layer entry in `GET /map/config`:
 
 | Flag | Question it answers |
 | --- | --- |
-| `defaultVisible` | What the value **is** to begin with |
+| `defaultVisibleWhen` | **When** the layer is on to begin with |
 | `userConfigurable` | **Who may change it** |
 
-It is the shape Firefox ships as `{Value, Status}` and GeoServer as `enabled`/`advertised`. The four
-combinations are all meaningful:
+`userConfigurable` is the shape Firefox ships as `{Value, Status}` and GeoServer as
+`enabled`/`advertised`. Both of its combinations against a layer that starts on, and both against one
+that starts off, are meaningful:
 
-| `defaultVisible` | `userConfigurable` | Meaning | Example |
+| starts on | `userConfigurable` | Meaning | Example |
 | --- | --- | --- | --- |
-| `true` | `false` | Always-on background layer | a base layer the product does not let you remove |
-| `true` | `true` | Ordinary toggle | 건물번호, 건물이름, most festival layers |
-| `false` | `true` | Opt-in | 편의시설 — looked up when wanted, not carried on screen all festival |
-| `false` | `false` | Defined but inert — a kill switch | a layer shipped dark, switched on by a config change alone |
+| yes | `false` | Always-on background layer | a base layer the product does not let you remove |
+| yes | `true` | Ordinary toggle | 건물번호, 건물이름, most festival layers |
+| no | `true` | Opt-in | 편의시설 — looked up when wanted, not carried on screen all festival |
+| no | `false` | Defined but inert — a kill switch | a layer shipped dark, switched on by a config change alone |
 
-### 4.1 Four contract rules
+### 4.0 `defaultVisibleWhen` — a tagged union, not a flag beside a schedule
+
+```ts
+interface DailyWindow { start: string; end: string }   // "HH:MM", 24-hour, half-open [start, end)
+
+type LayerDefaultVisibility =
+  | { kind: "always" }
+  | { kind: "never" }
+  | { kind: "scheduled"; windows: DailyWindow[] };      // >= 1 window
+```
+
+`start > end` wraps past midnight, which is the natural spelling for 주점 —
+`{ start: "18:00", end: "00:00" }` — and needs no special case. Midnight is `"00:00"`; `"24:00"` is
+rejected at load so there is one spelling of it.
+
+This replaced a `defaultVisible: boolean`, and it is a union rather than that boolean **beside** a
+window list because the pair could hold combinations that mean nothing: `false` with windows is a
+flat contradiction, `true` with windows makes the boolean dead data, and an empty list is a second
+spelling of "no schedule". The bar for two flags sitting side by side is the one `userConfigurable`
+clears above — every combination meaningful — and that pair would not have cleared it. The same
+call has been made twice before in this domain: `MapChipAction` is tagged on `kind` rather than
+carrying a flat `actionType`/`actionValue` pair (§8.1), and a `status` scalar was **deleted** from
+beside `hours` because the two could contradict each other (§3.2).
+
+A layer that is on all day is `{ "kind": "always" }`, which is the one spelling of that — a
+`scheduled` entry with no windows is refused and names it.
+
+### 4.1 The server does not evaluate it
+
+`defaultVisibleWhen` ships as authored and the **device** resolves it against its own clock. This is
+the same contract `/map/markers/event` already relies on — "opening and closing times ride in the
+payload, so a booth changes state on the device's clock without a refetch" (§5.3) — and it is what
+keeps `/map/config` a deterministic response with a stable ETag. A server-side "is it on now" would
+make the body vary by the second and cache nowhere.
+
+### 4.2 Why this axis is wall-clock where `hours` are instants
+
+A place's `hours` describe one booth on one festival day; a layer's default says "주점 belongs to the
+evening", which is the same sentence on every day of every festival. Written as instants that
+sentence would restate the festival's dates in a second committed file, and a date slip touching only
+one of them is silent.
+
+The timezone guarantee of §3.3 is **not** given up, because the client derives the current minute
+from the epoch — `(Date.now() + 9h) % 86_400_000` — and never from the device's local hour.
+`Date.now()` is UTC epoch milliseconds and a device's zone setting only changes how a time is
+*formatted*, so a phone set to New York still flips 주점 on at 18:00 KST. The fixed +09:00 is exact
+rather than approximate: Korea has had no DST since 1988.
+
+`config.timezone` is therefore validated against a closed list of one, `Asia/Seoul`. It is an
+**authoring** guard and nothing else: the field is still read by no code and is **not** served — the
+client hardcodes +09:00, and the zone never crosses the wire. What the narrowing buys is that a
+config claiming a zone the client cannot resolve is refused at load instead of quietly meaning
+something other than it says. It was a free-form non-empty string until this axis gave it something
+to be wrong about; `"Asia/Seuol"` used to pass.
+
+### 4.3 Resolution order on the client
+
+Four tiers, and `defaultVisibleWhen` is the last resort:
+
+```text
+forced[id] ?? chipNarrowing[id] ?? userToggle[id] ?? defaultVisibleAt(layer, now)
+```
+
+`forced` outranks a chip because a `userConfigurable: false` layer is out of a chip's reach too
+(§4.4 rule 3), and a chip's narrowing outranks the stored toggle because a tap is the more recent
+statement of intent. Every tier is a **fallback, not an assignment** — §4.4 rule 4 says why writing
+any of them into storage destroys a preference, and quotes the tail of this chain rather than a
+second one. This is the paragraph a client implements from.
+
+### 4.4 Four contract rules
 
 1. **An absent `userConfigurable` means `true`. Never fail closed.** This follows GeoServer ("a
    layer is advertised by default") and Esri's `listMode` default of "show". An old client that has
@@ -236,9 +320,10 @@ combinations are all meaningful:
    is `false`.
 4. **The client must shadow a stored toggle, not overwrite it.** A user's persisted visibility choice
    survives a layer becoming non-configurable and comes back when it becomes configurable again. The
-   resolution is a fallback chain, not an assignment — `forced[id] ?? userToggle[id] ??
-   defaultVisible`. Writing the forced value into storage would destroy a preference the user cannot
-   re-express while the control is hidden.
+   resolution is the fallback chain of §4.3, not an assignment. Writing the forced value into
+   storage would destroy a preference the user cannot re-express while the control is hidden, and —
+   since the last tier now varies with the clock — would also freeze a schedule the moment it was
+   first read.
 
 ## 5. Endpoints
 
@@ -259,7 +344,7 @@ the app's fallback for a failed config is a bundled default holding no booth lay
 building layers** — so letting a Mongo hiccup here propagate would trade a missing festival for a
 blank campus map.
 
-Response, abridged to one event layer of the six, `lang=ko`, with a window open:
+Response, abridged to two event layers of the six, `lang=ko`, with a window open:
 
 ```json
 {
@@ -294,7 +379,7 @@ Response, abridged to one event layer of the six, `lang=ko`, with a window open:
         "type": "marker",
         "markerStyle": "numberCircle",
         "label": "건물번호",
-        "defaultVisible": true,
+        "defaultVisibleWhen": { "kind": "always" },
         "userConfigurable": true,
         "endpoint": "/map/markers/campus",
         "chipGroupId": null,
@@ -305,7 +390,7 @@ Response, abridged to one event layer of the six, `lang=ko`, with a window open:
         "type": "marker",
         "markerStyle": "textLabel",
         "label": "건물이름",
-        "defaultVisible": true,
+        "defaultVisibleWhen": { "kind": "always" },
         "userConfigurable": true,
         "endpoint": "/map/markers/campus",
         "chipGroupId": null,
@@ -316,11 +401,25 @@ Response, abridged to one event layer of the six, `lang=ko`, with a window open:
         "type": "marker",
         "markerStyle": "placeDot",
         "label": "공연",
-        "defaultVisible": true,
+        "defaultVisibleWhen": { "kind": "always" },
         "userConfigurable": true,
         "endpoint": "/map/markers/event",
         "chipGroupId": "eskara-2026",
         "style": { "color": "F76CA0", "width": 22, "height": 30, "captionTextSize": 9 }
+      },
+      {
+        "id": "eskara26_bar",
+        "type": "marker",
+        "markerStyle": "placeDot",
+        "label": "주점",
+        "defaultVisibleWhen": {
+          "kind": "scheduled",
+          "windows": [{ "start": "18:00", "end": "00:00" }]
+        },
+        "userConfigurable": true,
+        "endpoint": "/map/markers/event",
+        "chipGroupId": "eskara-2026",
+        "style": { "color": "F04452", "width": 22, "height": 30, "captionTextSize": 9 }
       }
     ],
     "chips": [
@@ -554,11 +653,11 @@ A festival's layers are **authored in its config** — `src/map/config/<layerSet
 The window is the on/off lever (`npm run eventmap open|close`), so a festival starts and ends with no
 deploy and the layers simply stop existing afterwards rather than lingering as dead toggles.
 
-Each entry is `{ id, label: {ko, en?, zh?}, color, defaultVisible }` and nothing else: `color` is
+Each entry is `{ id, label: {ko, en?, zh?}, color, defaultVisibleWhen }` and nothing else: `color` is
 content (a category colour is a fact about the event), and everything about how a festival pin is
 *drawn* — `markerStyle: "placeDot"`, the pin geometry — is the map's business, applied to every
 festival alike by `eventLayerSpecs` in `src/map/map-layers.data.ts`. Every festival layer is
-`userConfigurable: true`; one that ships `defaultVisible: false` is the opt-in tier (편의시설), not a
+`userConfigurable: true`; one that ships `{ "kind": "never" }` is the opt-in tier (편의시설), not a
 locked background layer. Its `chipGroupId` is the **layer set id**, so two festivals could never share
 a chip group.
 
@@ -566,7 +665,15 @@ Which category lands on which layer is `itemDefaults.byCategory[<category>].laye
 file, with `itemDefaults.fallback.layerId` for anything unmapped. That table is the **only** place
 the mapping exists; the materializer and this route both resolve through it
 ([event-places.md](event-places.md)). A layer id that collides with a base layer, a
-`layerId` that names no layer, or a set with nothing `defaultVisible` is a rejected config (§8.6).
+`layerId` that names no layer, or a set where every layer is `{ "kind": "never" }` is a rejected
+config (§8.6).
+
+**How to author the schedules**, which the file cannot say about itself: windows on two layers of one
+group should be authored to hand over rather than overlap, because two crowded layers drawn at once
+is the problem `defaultVisibleWhen` exists to solve — half-open bounds make `[11:00, 18:00)` and
+`[18:00, 00:00)` exactly adjacent. A layer window is an OPS choice, not a rollup of its places'
+`hours`: a booth whose own hours run past its layer's window is still a marker the user can turn on,
+and its pin is one chip away.
 
 The values as served for ESKARA 2026 are the file itself — read it rather than a copy here.
 
@@ -620,8 +727,17 @@ interface MapChip {
   label: string;                                  // pick(label, lang), resolved server-side
   icon: { kind: "emoji"; emoji: string } | null;
   action: MapChipAction;
+  isReset: boolean;                               // true on exactly the synthesised chip
 }
 ```
+
+`isReset` says a tap means **stop narrowing** rather than "show these layers". It is stated on the
+wire because it stopped being derivable: a client used to recognise the reset chip by comparing what
+it names against the layers that are on by default, and with `defaultVisibleWhen` that comparison
+depends on the time of day — at 19:00 the reset chip no longer describes the default view.
+`action.layerIds` still declares the group the chip is scoped to, the way it does for every chip;
+`isReset` says what the tap means within it. It is `false` on every authored chip rather than
+omitted, for the same reason `icon` ships `null`: an absent field is a second thing to branch on.
 
 Discriminated on `kind`, matching `MarkerTap` in this same domain rather than the flat
 `actionType` + `actionValue: string` pair the home screen's SDUI uses. That pair cannot carry a
@@ -637,11 +753,19 @@ are enforced whenever one returns.
 
 ### 8.2 What a chip tap may change — two rules
 
+**First, which kind of tap it is.** A chip carrying `isReset: true` (§8.1) CLEARS its group's
+narrowing rather than applying one: every layer in the group falls back to
+`userToggle ?? defaultVisibleAt` (§4.3), and the camera still moves. The two rules below describe a
+**narrowing** tap. Reading rule 1 over the reset chip would set every layer it names to on — turning
+주점 on at noon, which is the crowding `defaultVisibleWhen` exists to remove. That is why `isReset` is
+on the wire at all: `layerIds` still says which group the chip may touch, and can no longer say what
+the resulting view should be (§8.5).
+
 1. **Only layers sharing the `chipGroupId` of the layers it names.** The chip's `layerIds` resolve to
    one group; every layer in that group is set (named → on, unnamed sibling → off); every layer
    outside it is untouched. An **empty** `layerIds` resolves no group, so the chip moves the camera
    and changes nothing — that is the camera-only chip, and it is why the field is not nullable.
-2. **Never a `userConfigurable: false` layer** — §4.1 rule 3. A chip tap is a user-initiated change,
+2. **Never a `userConfigurable: false` layer** — §4.4 rule 3. A chip tap is a user-initiated change,
    and that flag already answers who may make one. Inert today, since nothing is `false`; stated so
    it holds when that quadrant gets its first occupant.
 
@@ -688,15 +812,23 @@ So outside an activation window `chips` is `[]`, and a client must render nothin
 empty row. It stays a list because a permanent chip is an ordinary thing to want back.
 
 **The reset chip is synthesised, not authored.** Its id is `<layerSetId>_all` (`eskara-2026_all`), its
-label is the festival's `name`, its icon the festival's `emoji`, and its `layerIds` are exactly the
-layers marked `defaultVisible` — the festival's **default** set, not literally every layer. That
-distinction is load-bearing: a layer that ships `defaultVisible: false` (편의시설) must stay out of it,
-or the way back would turn on something the user never opted into and leave no chip that returns to
-the ordinary festival view. Deriving the list from the layer definitions is what makes drift
-impossible; a hand-written copy of the same ids is the parallel structure that quietly stops turning
-one category back on. The id form is a wire rule the app may key on (it logs `map_chip` taps by
-chip id), which is why it is written down here and in `resetChip()` rather than left to a template
-string.
+label is the festival's `name`, its icon the festival's `emoji`, it carries `isReset: true`, and its
+`layerIds` are exactly the layers that come on by **themselves** — `always` plus `scheduled`, not
+literally every layer. That distinction is load-bearing: a layer that ships `{ "kind": "never" }`
+(편의시설) must stay out of it, or the way back would reach something the user never opted into and
+leave no chip that returns to the ordinary festival view. A `scheduled` layer belongs in the set
+precisely because it comes on by itself once its window opens.
+
+`isReset` and `layerIds` are not redundant. `layerIds` is how **any** chip declares which group it
+may change, and emptying it here would leave the reset chip with no group at all — so a second
+festival's reset chip could not be told from this one's. What `layerIds` can no longer do is describe
+the resulting *view*, because a scheduled layer's default depends on the time of day and only the
+client knows what time it is.
+
+Deriving the list from the layer definitions is what makes drift impossible; a hand-written copy of
+the same ids is the parallel structure that quietly stops turning one category back on. The id form
+is a wire rule the app may key on (it logs `map_chip` taps by chip id), which is why it is written
+down here and in `resetChip()` rather than left to a template string.
 
 An authored chip is `{ id, emoji, layerIds, label? }`. It names one or more of the layer set's own
 layers and shares the config's `camera`. `label` may be omitted for a single-layer chip, in which
@@ -731,7 +863,11 @@ The rules:
 | a chip's `layerIds` do not straddle two groups | `validateChipSpecs` |
 | chip ids are unique — including against the synthesised reset chip's | `validateChipSpecs`, the only place that collision is visible at all |
 | a `webview` URL passes `toWebviewUrl` | `validateChipSpecs` |
-| at least one layer is `defaultVisible`, so the reset chip restores something | `assertValidConfig` |
+| at least one layer is not `defaultVisibleWhen.kind: "never"`, so the reset chip is scoped to something | `assertValidConfig` |
+| every `DailyWindow` bound is `"HH:MM"` on a 24-hour clock — `"24:00"` and `"7:00"` refused | `assertValidConfig` |
+| a `DailyWindow`'s bounds differ; `start > end` is legal and wraps past midnight | `assertValidConfig` |
+| `kind: "scheduled"` carries at least one window, and no other `kind` carries a `windows` key | `assertValidConfig` |
+| `config.timezone` is `Asia/Seoul` — the one zone the wall-clock contract can honour (§4.2) | `assertValidConfig` |
 | a multi-layer chip carries a label; `layerIds` is non-empty; `color` is bare six-digit hex | `assertValidConfig` |
 
 There is no translation-miss case any more. Labels are inline `{ko, en?, zh?}` on the layer and the
@@ -776,7 +912,8 @@ release. What an app built before its half sees against this server:
 | `skkuverse://map?place=event:…` | dropped — `PLACE_KINDS` does not carry `event` |
 
 Every intermediate state degrades correctly rather than blanking the campus map, which is what let
-the server land in five commits without the app blocking any of them. The app-side change is:
+the server land in five commits without the app blocking any of them. **That property does not
+survive `defaultVisibleWhen` — see §9.8, which is a deploy gate rather than a known gap.** The app-side change is:
 `TAP_KINDS` / `PLACE_KINDS` / the `CampusScreen` switch learn `event`; the whole snapshot client is
 deleted; the list, card and peek sheet render from markers; and one pure function resolves a
 coordinate collision (§3.4). Until it ships, the festival map is a picture with no taps.
@@ -866,6 +1003,26 @@ Every field is additive and the client's parsers ignore unknown keys, so nothing
 client catches up. But it does mean the wire is a **promise** until it does: changing `size` here
 today changes the response and nothing on screen, with no error on either side.
 
+### 9.8 `defaultVisibleWhen` blanks the campus map until the app half ships
+
+Unlike §9.1, this one does **not** degrade. `defaultVisible` left the wire, and the shipped app
+parses it as `(raw.defaultVisible as boolean) ?? false` — the one field in that parser that fails
+CLOSED, where its neighbours `userConfigurable` and `chipGroupId` carry comments saying they must
+not. The store then seeds each layer's visibility from it once and the render loop drops anything
+false, so against this server an install with no persisted toggle draws **nothing**: not 건물번호,
+not 건물이름, not a single booth. `/map/config` is served live and needs no OTA, so this reaches
+every install the moment it deploys, and it takes the base campus map with it rather than only the
+festival.
+
+So the order is the one §9.1's title already states, and this time it is load-bearing: **the app half
+is a prerequisite.** It must parse `defaultVisibleWhen` and resolve §4.3's chain, and be adopted,
+before this server reaches production. It ships JS-only over OTA, so adoption is not gated on a store
+release.
+
+The alternative was a derived `defaultVisible` kept on the wire for one release and then removed.
+It was rejected deliberately: it puts two fields answering one question back on the wire — the
+shape §4.0 exists to avoid — to buy a rollout ordering that a JS-only OTA can give for free.
+
 ## 10. Source of truth (file map)
 
 | Concern | File |
@@ -880,6 +1037,7 @@ today changes the response and nothing on screen, with no error on either side.
 | "Which layer set is live, and is its config usable" | `src/map/map-active-layerset.ts` |
 | Festival layers, chips, labels, colours, camera, category → layer table | `src/map/config/<layerSetId>.json` |
 | Category → presentation resolver (both producers) | `presentationFor` in `src/map/map-layerset.types.ts` |
+| `DailyWindow`, `LayerDefaultVisibility`, and why this axis is wall-clock | `src/map/map-layerset.types.ts` |
 | HTTP + `Cache-Control` | `src/map/controllers/map-config.controller.ts`, `src/map/controllers/map-markers.controller.ts` |
 | Module wiring, rate limit, endpoint inventory | `src/map/map.module.ts` |
 | Campus labels | `src/infra/i18n.ts` (`map.campus.*`) — layer and chip labels are inline `{ko, en?, zh?}` on their specs, resolved with `pick()` from the same module |

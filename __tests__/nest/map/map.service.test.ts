@@ -126,11 +126,17 @@ describe("MapService", () => {
       new Set(["/map/markers/event"]),
     );
     expect(eventLayers.every((l) => l.markerStyle === "placeDot")).toBe(true);
-    // defaultVisible is the config's, layer by layer — 편의시설 ships hidden.
+    // defaultVisibleWhen is the config's, layer by layer — 편의시설 ships
+    // opt-in and 주점 ships scheduled, and both have to survive the projection
+    // intact. It rides to the wire through the `...rest` spread rather than a
+    // named copy, so a shape change here is what would catch a regression.
     for (const def of CONFIG.layers) {
-      expect(eventLayers.find((l) => l.id === def.id)!.defaultVisible).toBe(def.defaultVisible);
+      expect(eventLayers.find((l) => l.id === def.id)!.defaultVisibleWhen).toEqual(
+        def.defaultVisibleWhen,
+      );
     }
-    expect(CONFIG.layers.some((l) => !l.defaultVisible)).toBe(true);
+    expect(CONFIG.layers.some((l) => l.defaultVisibleWhen.kind === "never")).toBe(true);
+    expect(CONFIG.layers.some((l) => l.defaultVisibleWhen.kind === "scheduled")).toBe(true);
     expect(eventLayers.find((l) => l.id === "eskara26_bar")!.label).toBe("주점");
   });
 

@@ -46,6 +46,8 @@ export interface MapChipSpec {
   /** Every language we hold, resolved per request with the event map's `pick`. */
   label: I18n;
   action: MapChipActionSpec;
+  /** See `MapChip.isReset`. Only the synthesised reset chip carries `true`. */
+  isReset: boolean;
 }
 
 /**
@@ -150,11 +152,20 @@ assertValidChipSpecs(BASE_CHIPS, BASE_LAYERS);
 /**
  * The way back, synthesised rather than authored.
  *
- * It restores the festival's DEFAULT layer set — the layers marked
- * `defaultVisible`, not literally every layer — without touching 건물번호 or
- * 건물이름. A layer that ships hidden (편의시설) stays out of it: naming every
- * layer would make "축제 전체" turn on something the user never opted into and
- * leave no chip that gets back to the ordinary festival map.
+ * It is scoped to the layers that come on by THEMSELVES — always-on plus
+ * scheduled — without touching 건물번호 or 건물이름. A layer that ships opt-in
+ * (편의시설) stays out of it: naming every layer would make "축제 전체" reach
+ * something the user never opted into and leave no chip that gets back to the
+ * ordinary festival map. A scheduled layer belongs in the set precisely because
+ * it comes on by itself when its window opens.
+ *
+ * `isReset` carries the meaning, and `layerIds` keeps carrying the SCOPE. The
+ * two are not redundant: `layerIds` is how any chip declares which group it may
+ * change, and emptying it here would leave this chip with no group at all — so
+ * a second festival's reset chip could not be told from this one's. What
+ * `layerIds` can no longer do is describe the resulting VIEW, because a
+ * scheduled layer's default depends on the time of day and only the client
+ * knows what time it is.
  *
  * Deriving it here from the config is what makes drift impossible: a second
  * hand-written list of the same ids is exactly the parallel structure that
@@ -169,8 +180,11 @@ export function resetChip(config: EventMapConfig): MapChipSpec {
     action: {
       kind: "focus",
       camera: { ...config.camera },
-      layerIds: config.layers.filter((layer) => layer.defaultVisible).map((layer) => layer.id),
+      layerIds: config.layers
+        .filter((layer) => layer.defaultVisibleWhen.kind !== "never")
+        .map((layer) => layer.id),
     },
+    isReset: true,
   };
 }
 
@@ -199,6 +213,9 @@ export function eventChipSpecs(config: EventMapConfig): MapChipSpec[] {
       camera: { ...config.camera },
       layerIds: [...chip.layerIds],
     },
+    // An authored chip narrows; only the synthesised one undoes it. Stated
+    // rather than left absent, so the wire carries no optional field.
+    isReset: false,
   }));
   return [resetChip(config), ...authored];
 }
@@ -237,5 +254,6 @@ export function getChips(lang: SupportedLang, event: EventMapConfig | null): Map
     label: pick(spec.label, lang) ?? spec.id,
     icon: { kind: "emoji", emoji: spec.emoji },
     action: toWireAction(spec.action),
+    isReset: spec.isReset,
   }));
 }

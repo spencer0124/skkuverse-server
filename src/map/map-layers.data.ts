@@ -1,4 +1,7 @@
-import type { EventMapConfig } from "./map-layerset.types";
+import type {
+  EventMapConfig,
+  LayerDefaultVisibility,
+} from "./map-layerset.types";
 import type { I18n } from "../infra/types";
 
 /**
@@ -75,19 +78,37 @@ export interface LayerSpec {
    * a second one — and so `tsc` refuses a layer with no label at all.
    */
   label: I18n;
-  /** Is the layer on to begin with. */
-  defaultVisible: boolean;
+  /**
+   * WHEN the layer is on to begin with, and the client's LAST resort — a chip's
+   * narrowing and the user's own toggle both outrank it.
+   *
+   * Three axes on a layer now, not two: this says *when*, `userConfigurable`
+   * says *who* may change it, and *what* is no longer a separate flag because
+   * it is this one's `kind`. The boolean that used to sit here could not
+   * express 주점, which belongs to the evening on every day of the festival, and
+   * a boolean beside a window list would have been able to hold combinations
+   * that mean nothing — see `LayerDefaultVisibility`.
+   *
+   * The server does NOT evaluate it. Opening and closing times ride in the
+   * payload and the device does the arithmetic against its own clock, which is
+   * the same contract `/map/markers/event` relies on to stay cacheable
+   * (`map-markers.controller.ts`).
+   */
+  defaultVisibleWhen: LayerDefaultVisibility;
   /**
    * May the user change it.
    *
-   * Two independent axes: `defaultVisible` is what the value IS,
-   * `userConfigurable` is who may change it — the shape Firefox ships as
-   * `{Value, Status}` and GeoServer as `enabled`/`advertised`. The four
-   * combinations are: always-on background (true/false), ordinary toggle
-   * (true/true), opt-in (false/true), and defined-but-inert (false/false).
+   * Independent of `defaultVisibleWhen`: that one says WHEN the layer starts
+   * on, this one says WHO may change it — the shape Firefox ships as
+   * `{Value, Status}` and GeoServer as `enabled`/`advertised`. Both of its
+   * values are meaningful against a layer that starts on and against one that
+   * does not: always-on background, ordinary toggle, opt-in, and
+   * defined-but-inert. That test — every combination meaningful — is exactly
+   * what a boolean beside a window list would have failed, and why the WHEN
+   * axis is one tagged field instead.
    *
    * Four rules the client must hold. They are the same four as
-   * `docs/reference/map-markers-api.md` §4.1 — that document is the contract,
+   * `docs/reference/map-markers-api.md` §4.4 — that document is the contract,
    * and this list must not disagree with it:
    *
    *  - **An ABSENT value means `true`.** Never fail closed — GeoServer's "a
@@ -155,7 +176,7 @@ export const BASE_LAYERS = [
     type: "marker",
     markerStyle: "numberCircle",
     label: { ko: "건물번호", en: "Building Numbers", zh: "建筑编号" },
-    defaultVisible: true,
+    defaultVisibleWhen: { kind: "always" },
     userConfigurable: true,
     endpoint: "/map/markers/campus",
     chipGroupId: null,
@@ -166,7 +187,7 @@ export const BASE_LAYERS = [
     type: "marker",
     markerStyle: "textLabel",
     label: { ko: "건물이름", en: "Building Names", zh: "建筑名称" },
-    defaultVisible: true,
+    defaultVisibleWhen: { kind: "always" },
     userConfigurable: true,
     endpoint: "/map/markers/campus",
     chipGroupId: null,
@@ -178,7 +199,7 @@ export const BASE_LAYERS = [
   //   id: "bus_route_jongro07",
   //   type: "polyline",
   //   label: { ko: "종로07 노선", en: "Jongro 07 Route", zh: "钟路07路线" },
-  //   defaultVisible: true,
+  //   defaultVisibleWhen: { kind: "always" },
   //   userConfigurable: true,
   //   endpoint: "/map/overlays/jongro07",
   //   chipGroupId: null,
@@ -188,7 +209,7 @@ export const BASE_LAYERS = [
   //   id: "bus_route_jongro02",
   //   type: "polyline",
   //   label: { ko: "종로02 노선", en: "Jongro 02 Route", zh: "钟路02路线" },
-  //   defaultVisible: true,
+  //   defaultVisibleWhen: { kind: "always" },
   //   userConfigurable: true,
   //   endpoint: "/map/overlays/jongro02",
   //   chipGroupId: null,
@@ -222,7 +243,7 @@ export const EVENT_LAYER_STYLE = {
  * The live festival's layers as ordinary `LayerSpec`s.
  *
  * Every one is the user's to turn off, 편의시설 included — that one merely
- * starts hidden, per its `defaultVisible`. Nothing in a festival set is a
+ * starts hidden, per its `defaultVisibleWhen`. Nothing in a festival set is a
  * locked background layer. The chip group is the layer set id, so two festivals
  * could never share one, and a chip swaps these layers between themselves while
  * leaving 건물번호 and 건물이름 exactly as the user left them.
@@ -231,13 +252,27 @@ export const EVENT_LAYER_STYLE = {
  * every request, so nothing built from it may hand a config object through to
  * a response by reference.
  */
+/**
+ * A `LayerDefaultVisibility` copied to its leaves.
+ *
+ * `Object.freeze` on the config is shallow, so the `windows` array and each
+ * window in it are the config's own mutable objects. Handing one to a response
+ * would share it across every request — the rule stated above, which every
+ * other field here and in `resetChip` already keeps.
+ */
+function copyVisibility(when: LayerDefaultVisibility): LayerDefaultVisibility {
+  if (when.kind !== "scheduled") return { kind: when.kind };
+  const [first, ...rest] = when.windows;
+  return { kind: "scheduled", windows: [{ ...first }, ...rest.map((w) => ({ ...w }))] };
+}
+
 export function eventLayerSpecs(config: EventMapConfig): LayerSpec[] {
   return config.layers.map((layer) => ({
     id: layer.id,
     type: "marker",
     markerStyle: "placeDot",
     label: layer.label,
-    defaultVisible: layer.defaultVisible,
+    defaultVisibleWhen: copyVisibility(layer.defaultVisibleWhen),
     userConfigurable: true,
     endpoint: EVENT_MARKERS_ENDPOINT,
     chipGroupId: config.layerSetId,
