@@ -10,7 +10,7 @@ audience: internal
 # Event Places
 
 > How a festival's booths are stored, authored and switched on. The WIRE they reach the app over is
-> [map-markers-api.md](map-markers-api.md) — one shared marker schema for booths and buildings alike.
+> [map-overlays-api.md](map-overlays-api.md) — one shared marker schema for booths and buildings alike.
 > Cross-repo ownership is [ADR 0004](https://github.com/spencer0124/skkuverse/blob/main/docs/decisions/0004-event-map-layer-ownership.md).
 
 ## 1. Summary
@@ -18,7 +18,7 @@ audience: internal
 | | |
 | --- | --- |
 | Collections | `places`, `activations` (database: `MONGO_EVENTMAP_DB_NAME`) |
-| Served by | `GET /map/markers/event` and `GET /map/config` — there is no `/eventmap` route |
+| Served by | `GET /map/overlays/event` and `GET /map/config` — there is no `/eventmap` route |
 | Authored by | `scripts/data/<layerSetId>-places.json` → `npm run eventmap:import` |
 | Switched by | `npm run eventmap -- open\|close` |
 | Structure tier | `src/map/config/<layerSetId>.json` — layers, chips, category table |
@@ -47,7 +47,7 @@ interface MapPlaceDoc {
   layerSetId: string;
   campus: "hssc" | "nsc";
   category: string;            // OPEN string → layerId via the config's table
-  location: { type: "Point"; coordinates: [number, number] };   // [lng, lat]
+  location: OverlayGeometry;   // RFC 7946 Point | LineString | Polygon, [lng, lat]
   title: I18n;
   subtitle?: I18n | null;
   hours: { startAt: Date; endAt: Date }[];   // [] = always open
@@ -96,7 +96,7 @@ Three, created by `MapService.onModuleInit` (`src/map/map-places.data.ts`):
 | Index | Why |
 | --- | --- |
 | `places {layerSetId: 1}` | The one scan the projection makes. No lifecycle key — there is no lifecycle. |
-| `places {location: "2dsphere"}` | **Not** a query index. It is what makes Mongo reject a malformed coordinate pair at insert, which is the cheapest available guard against the `[lng, lat]` swap (ADR 0004 invariant 3). |
+| `places {location: "2dsphere"}` | **Not** a query index. It is what makes Mongo reject a malformed coordinate pair at insert, which is the cheapest available guard against the `[lng, lat]` swap (ADR 0004 invariant 3). For a ring it also refuses an unclosed loop, fewer than four positions, a self-intersection and a hole outside its exterior — all free. It does **not** check winding: a reversed ring stores silently, which is why that is normalised at projection time instead. |
 | `activations {enabled: 1, activeFrom: -1}` | The liveness read on every `/map/config`. Compound because `findActiveActivation` sorts by `activeFrom` — a single-key index would serve the equality and leave an in-memory sort stage on the one read path this file claims is index-shaped. |
 
 ## 5. Authoring
@@ -129,8 +129,38 @@ One file per layer set: `scripts/data/<layerSetId>-places.json`.
 - **A bare string is Korean shorthand** for `{"ko": …}`. The sheet is hand-typed and overwhelmingly
   Korean-only, so requiring the object form on every string would be noise around the few that carry
   a translation.
-- **`lat`/`lng` are named here** and become GeoJSON `[lng, lat]` in the reader — one conversion site
-  on the write path, mirroring the projection on the read path.
+- **A coordinate you type is named; a coordinate you paste is GeoJSON.** A booth carries `lat`/`lng`,
+  which the reader turns into a GeoJSON Point — the one conversion site on the write path. A zone or a
+  route line carries a `geometry` key holding a GeoJSON `Polygon` or `LineString` **pasted verbatim**
+  from geojson.io or QGIS, which is stored and served untouched. A place has one or the other; both,
+  or neither, is a rejected sheet.
+
+  The split is not taste. A fifty-vertex ring is not hand-typed, and asking an author to transcribe a
+  tool's `[lng, lat]` output into named pairs is exactly where a swap gets introduced. The pasted form
+  removes every transcription step between the drawing tool and the wire.
+
+  ```jsonc
+  {
+    "id": "zone-main-stage", "category": "zone", "order": 5, "title": "메인 무대 존",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [126.9712, 37.2951], [126.9715, 37.2951],
+        [126.9715, 37.2949], [126.9712, 37.2949], [126.9712, 37.2951]
+      ]]
+    }
+  }
+  ```
+
+  The reader checks closure, a minimum of four positions per ring, and the same `abs(lat) > 90` swap
+  detector a named pair gets — so a wholesale `[lat, lng]` paste is caught on the first vertex rather
+  than drawn across the Yellow Sea. It deliberately does **not** check winding: rejecting a paste for
+  an orientation the author cannot see would make a good sheet unimportable for an invisible reason,
+  and the projection normalises it anyway.
+
+- **A drawn-but-not-tappable shape** is authored by setting `interactive: false` on its **category**
+  in the layer set's `itemDefaults`, which yields `tap: null` on the wire. Per category, because two
+  categories may share a layer — so one 구역 layer holds tappable stage zones and an inert boundary.
 - **A window crossing midnight** is written with the next day's date. That is why the 주점 entries
   end at `00:00` on the following morning.
 - **`order` has no default.** A silent `0` would make list order arbitrary while looking deliberate.
@@ -232,13 +262,13 @@ is the only thing standing between "we meant to leave it up" and "nobody remembe
 
 **This is why the activation stayed in Mongo.** `close` is the kill switch for a rain cancellation or
 anything else going wrong, and it takes effect without a deploy: `/map/config` reads the activation
-per request, so the layers and the chip row turn over immediately, while `/map/markers/event` is
+per request, so the layers and the chip row turn over immediately, while `/map/overlays/event` is
 `public, max-age=60`, so a booth already fetched can linger for up to a minute. **Rehearse before the
 festival**, not during one.
 
 ### 6.3 Staging before the window opens
 
-Import at any time. `/map/config` advertises no festival layers and `/map/markers/event` returns `[]`
+Import at any time. `/map/config` advertises no festival layers and `/map/overlays/event` returns `[]`
 until `activeFrom`, so content can sit on production with zero exposure.
 
 ### 6.4 When Atlas refuses with `SSL alert number 80`
@@ -274,7 +304,7 @@ the source IP, not a client TLS fault. Two causes, and they look identical:
 | --- | --- |
 | Stored documents | `src/map/map-places.types.ts` |
 | I/O + indexes | `src/map/map-places.data.ts` (no `seedIfEmpty` — there is no sensible default event) |
-| Places → map markers | `src/map/map-event-markers.data.ts` — see [map-markers-api.md](map-markers-api.md) |
+| Places → map markers | `src/map/map-event-markers.data.ts` — see [map-overlays-api.md](map-overlays-api.md) |
 | Live layer set + usable config | `src/map/map-active-layerset.ts` |
 | Structure load + validation | `src/map/map-layerset.config.ts` |
 | Structure types, `presentationFor` | `src/map/map-layerset.types.ts` |
@@ -288,6 +318,6 @@ the source IP, not a client TLS fault. Two causes, and they look identical:
 
 ## 8. Related
 
-- [map-markers-api.md](map-markers-api.md) — the shared marker schema and the `/map/*` routes
+- [map-overlays-api.md](map-overlays-api.md) — the shared marker schema and the `/map/*` routes
 - [ADR 0004 — event map layer ownership](https://github.com/spencer0124/skkuverse/blob/main/docs/decisions/0004-event-map-layer-ownership.md)
 - Shuttle 증차 is a **separate** system — `bus_overrides` + `scripts/seed-eskara.js`. Link via a `route` action; do not rebuild it here.

@@ -50,7 +50,7 @@ audience: internal
 | --- | --- |
 | [notices-api.md](reference/notices-api.md) | `/notices/*` + `/internal/notices/*` 요청·응답 계약, 에러 코드, 파일 맵 |
 | [event-places.md](reference/event-places.md) | 축제 장소의 저장·작성·운영 — `places`/`activations` 컬렉션, 인덱스, 시트 임포터, 창(window) 킬 스위치 런북 |
-| [map-markers-api.md](reference/map-markers-api.md) | The one marker schema every map layer draws, the `defaultVisibleWhen`/`userConfigurable` layer flags, and `GET /map/config` + `/map/markers/{campus,event}` — with the festival's layers and chips read from its config |
+| [map-overlays-api.md](reference/map-overlays-api.md) | The one overlay schema every map layer draws — pins, zones and route lines tagged by `kind` — the `defaultVisibleWhen`/`userConfigurable` layer flags, and `GET /map/config` + `/map/overlays/{campus,event}` |
 
 ### explanation (메커니즘·배경)
 

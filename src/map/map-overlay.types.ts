@@ -57,7 +57,7 @@ export type MarkerTap =
  * `ko` is the source language and always present; `en` falls back to it rather
  * than being absent, so the client never has to; `zh` ships only when authored.
  * Shared by every text-bearing field below for one reason: resolving
- * server-side would make `/map/markers/event` vary by language and split its
+ * server-side would make `/map/overlays/event` vary by language and split its
  * 60-second edge cache three ways during exactly the burst that TTL absorbs.
  */
 export interface I18nWire {

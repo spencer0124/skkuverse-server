@@ -202,9 +202,8 @@ Every successful response uses the envelope `{ meta: { lang, ... }, data: ... }`
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/map/config` | — | Map style, campuses, layers, chips, camera defaults |
-| GET | `/map/markers/campus` | — | Building markers, both layers |
-| GET | `/map/markers/event` | — | Festival booth markers of the live layer set, while its window is open |
-| GET | `/map/overlays` | — | Polygon/route overlays |
+| GET | `/map/overlays/campus` | — | Everything permanent: building pins in both layers, plus footprints, boundaries and paths |
+| GET | `/map/overlays/event` | — | Everything the live layer set draws — booth pins, zones, route lines — while its window is open |
 | GET | `/building/search` | — | Ranked building + room search (`?q=`, optional `?campus=`) — see [ADR 0006](docs/decisions/0006-building-search-relevance-ranking.md) |
 | GET | `/building/*` | — | Building detail + list |
 | GET | `/ui/*` | — | SDUI fragments (bus list, campus list, scroll config) |

@@ -30,7 +30,7 @@ import type { MapCamera } from "./map-chip.types";
  *    one of them is silent.
  *
  * This does NOT give up the timezone guarantee instants buy
- * (`docs/reference/map-markers-api.md` §3.3), because the client derives the
+ * (`docs/reference/map-overlays-api.md` §3.3), because the client derives the
  * current minute FROM THE EPOCH — `(Date.now() + 9h) % 86_400_000` — and never
  * from `Date.getHours()`. `Date.now()` is UTC epoch milliseconds and a device's
  * zone setting only changes how a time is formatted, so a phone set to New York

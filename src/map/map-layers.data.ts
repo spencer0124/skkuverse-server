@@ -40,7 +40,7 @@ import type { I18n } from "../infra/types";
  * `zIndex` at all — only `color` and `captionTextSize` reach a component.
  * Editing `size` here therefore changes the wire and nothing on screen, with no
  * error on either side. These fields are a PROMISE about the wire until the
- * client stops hardcoding them; see `docs/reference/map-markers-api.md` §9.7,
+ * client stops hardcoding them; see `docs/reference/map-overlays-api.md` §9.7,
  * which is the same shape §9.3 records for `userConfigurable`.
  *
  * ⚠️ COLOUR IS DELIBERATELY NOT MOVED for the building layers. The number
@@ -138,7 +138,7 @@ export interface LayerSpec {
    *
    * The server does NOT evaluate it. Opening and closing times ride in the
    * payload and the device does the arithmetic against its own clock, which is
-   * the same contract `/map/markers/event` relies on to stay cacheable
+   * the same contract `/map/overlays/event` relies on to stay cacheable
    * (`map-markers.controller.ts`).
    */
   defaultVisibleWhen: LayerDefaultVisibility;
@@ -155,7 +155,7 @@ export interface LayerSpec {
    * axis is one tagged field instead.
    *
    * Four rules the client must hold. They are the same four as
-   * `docs/reference/map-markers-api.md` §4.4 — that document is the contract,
+   * `docs/reference/map-overlays-api.md` §4.4 — that document is the contract,
    * and this list must not disagree with it:
    *
    *  - **An ABSENT value means `true`.** Never fail closed — GeoServer's "a
