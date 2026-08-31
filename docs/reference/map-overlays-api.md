@@ -1022,7 +1022,9 @@ and answered `404 Overlay 'campus' not found`.
 answer 404, `lat`/`lng` left the wire for `geometry`, and `layers[].type` is gone. Chosen knowingly:
 splitting overlays by geometry was the thing to remove, and the two halves land inside one release.
 
-What the app half needs, named rather than designed here: parse `data.overlays` and dispatch on
+The client-side runbook is
+[how-to/migrate-app-to-map-overlays.md](../how-to/migrate-app-to-map-overlays.md).
+In short: parse `data.overlays` and dispatch on
 `kind`; read `geometry.coordinates` as `[lng, lat]` and rename to `{ latitude, longitude }`; reverse
 every polygon ring for the SDK's opposite winding (§2.4); drop `layers[].type` from `MapLayerDef` and
 choose the renderer per overlay instead; and give the `kind` switch a `default:` that returns null,
