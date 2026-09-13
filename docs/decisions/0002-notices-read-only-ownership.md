@@ -3,7 +3,7 @@ title: Notices — 서버는 읽기 전용, 쓰기는 크롤러·AI 소유
 type: adr
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-07-22
+last-updated: 2026-09-13
 audience: internal
 ---
 
@@ -11,7 +11,7 @@ audience: internal
 
 ## Status
 
-Accepted — 2026-04-10 (백필 문서화 2026-07-22)
+Accepted — 2026-04-10 (백필 문서화 2026-07-22, 인덱스 이름 개정 2026-09-13)
 
 ## Context
 
@@ -28,7 +28,7 @@ Accepted — 2026-04-10 (백필 문서화 2026-07-22)
 
 - **크롤러**가 문서 자체와 unique 인덱스를 소유(인덱스 이름·필드 정의는 위 크롤러 스키마). 서버는 이 인덱스를 건드리지 않고 상세 조회(`findOne`)에서 그대로 히트.
 - **skkuverse-ai**가 `summary*` 필드를 `$set`으로 소유.
-- **서버**는 **read-optimization 복합 인덱스**(`sourceId_1_date_-1_crawledAt_-1__id_-1`) 하나만 추가 소유. 컬렉션에 **절대 쓰지 않는다**. `src/notices/notices-data.service.ts`의 `onModuleInit`에서 idempotent하게 ensure.
+- **서버**는 **read-optimization 복합 인덱스**(`sourceId_1_date_-1__id_-1`) 하나만 추가 소유. 컬렉션에 **절대 쓰지 않는다**. `src/notices/notices-data.service.ts`의 `onModuleInit`에서 idempotent하게 ensure. (2026-09-13 [ADR 0007](0007-notice-ordering-key.md)이 `sourceId_1_date_-1_crawledAt_-1__id_-1`을 대체 — 구 인덱스는 rolling deploy 호환을 위해 한 릴리스 동안 남겨두고 후속 릴리스에서 drop.)
 - **정제(sanitize)는 크롤러 담당.** 크롤러가 `nh3` sanitize + GFM `cleanMarkdown` 변환까지 끝내 저장하고(파이프라인·본문 4종 세부는 위 크롤러 스키마), 서버는 `cleanMarkdown → contentMarkdown` rename만 하는 pass-through. HTML·plain 본문은 API에 노출하지 않으므로 서버 레이어의 XSS 공격 표면이 사라진다 — 앱의 마크다운 렌더러가 자체 sanitize 책임.
 
 ## Consequences

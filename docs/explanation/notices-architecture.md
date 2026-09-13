@@ -33,7 +33,7 @@ audience: internal
 | # | 진짜 문제 | 왜 어려운가 |
 | --- | --- | --- |
 | 1 | 리스트 payload가 쉽게 거대해진다 | `content`는 5MB까지. 리스트에 실수로 포함하면 학과당 수백 KB·MB 응답. |
-| 2 | 같은 `crawledAt`의 공지가 배치로 뭉침 | 크롤러가 `insert_many`로 수십 개를 넣으면 tiebreaker 없는 커서는 중복·스킵. |
+| 2 | 같은 날짜의 공지가 배치로 뭉침 | `date`가 day-granular라 동률이 기본이고, 크롤러가 `insert_many`로 수십 개를 넣으면 tiebreaker 없는 커서는 중복·스킵. |
 | 3 | 학과마다 메타데이터가 다름 | wordpress-api 전략은 `category`/`author`가 빈 문자열. `if (item.category)`를 모든 뷰에서 쓸 수 없음. |
 | 4 | 크롤러/요약기가 DB에 계속 필드 추가 | 서버가 exclusion projection을 쓰면 새 내부 필드가 자동 노출. |
 | 5 | AI `summaryType`이 확장될 수 있음 | 프롬프트가 변해 새 값이 나오면 기존 앱이 깨질 수 있음. |
@@ -83,22 +83,24 @@ audience: internal
 
 공지 API만 다른 envelope으로 바꿀 수도 있었지만 거절. `/ad`, `/bus`, `/building` 전부가 공통 응답 형태(`src/common/response.interceptor.ts` + `send-success.ts`)를 쓴다. 새 엔드포인트만 다르면 클라이언트가 두 형태를 알아야 한다. **일관성이 설계보다 이긴다.**
 
-### 커서: `(date, crawledAt, _id)` 트리플
+### 커서: `(date, _id)` 페어
 
-원래는 `(date, crawledAt)` 두 개로 tiebreak하려 했으나, `insert_many` 배치가 같은 millisecond `crawledAt`을 수십 개 만들면 페이지 경계에서 중복·스킵이 난다. `_id` ObjectId를 세 번째 키로:
+> **2026-09-13 변경** — 원래 `(date, crawledAt, _id)` 트리플이었다. `crawledAt`을 정렬에서 뺀 이유와 측정치는 [decisions/0007-notice-ordering-key.md](../decisions/0007-notice-ordering-key.md). 요약: 크롤러가 30분마다 무변경 page-0 공지의 `crawledAt`을 다시 쓰기 때문에 정렬 키로 쓸 수 없다 — 같은 `date`를 공유하는 두 공지의 순서가 틱마다 뒤집힌다 (2026-09-06 프로덕션 측정: 39개 `(sourceId, date)` 그룹 / 247개 문서). 커서 wire shape은 `{d, c, i}`를 유지하되 `c`는 읽지 않는다 (롤백 호환).
 
-- `_id`는 배치 내부에서도 고유 → tiebreak 100% 보장.
-- 인덱스 suffix `{sourceId:1, date:-1, crawledAt:-1, _id:-1}`에 명시하면 Mongo가 `SORT` 스테이지 없이 `IXSCAN`만으로 처리 → `limit(limit+1)`이 진짜 O(limit).
+`date`는 day-granular 문자열이라 같은 날짜 내 tiebreak가 필수다. `_id` ObjectId가 그 역할:
+
+- `_id`는 배치 내부에서도 고유 → tiebreak 100% 보장. 원래 `crawledAt` 뒤의 세 번째 키로 들어온 이유가 이것이었고, 이제 두 번째 키가 됐다.
+- 재작성되지 않는다. 임베드된 timestamp가 삽입 순서를 주므로 "같은 날짜 안에서 최신순"의 실제 의미와 일치한다.
+- 인덱스 suffix `{sourceId:1, date:-1, _id:-1}`에 명시하면 Mongo가 `SORT` 스테이지 없이 `IXSCAN`만으로 처리 → `limit(limit+1)`이 진짜 O(limit).
 - ObjectId 12바이트 → 인덱스 오버헤드 무시 가능.
 
-커서 필터는 3-branch `$or`:
+커서 필터는 2-branch `$or`:
 
 ```js
 {
   $or: [
-    { date: { $lt: d } },                                   // 이전 날짜 전부
-    { date: d, crawledAt: { $lt: new Date(c) } },           // 같은 날짜, 더 이른 크롤
-    { date: d, crawledAt: new Date(c), _id: { $lt: oid } }, // 같은 크롤 배치, 더 작은 _id
+    { date: { $lt: d } },              // 이전 날짜 전부
+    { date: d, _id: { $lt: oid } },    // 같은 날짜, 더 작은 _id
   ],
 }
 ```
@@ -177,7 +179,7 @@ notices는 대형 컬렉션이라 인덱스 없이 full scan이 돌면 DB 부하
 
 ## 5. 다음에 생각해 볼 것들 (현재 범위 밖)
 
-1. **전체 최신순 피드** (`/notices/feed`) — 학과 무관. `{date:-1, crawledAt:-1, _id:-1}` 인덱스 필요.
+1. **전체 최신순 피드** (`/notices/feed`) — 학과 무관. `{date:-1, _id:-1}` 인덱스 필요.
 2. **검색** (`?q=`) — `title`/`contentText` text 인덱스 + 한국어 tokenization. (검색 파라미터 검증은 `search.service.ts`에 이미 존재.)
 3. **`campus`/`category` 채우기** — 일부 sources는 여전히 null. 수동 점진 작업.
 4. **`isDeleted` tombstone UX** — 현재 404 숨김. 사용자 피드백 있으면 전환 고려.

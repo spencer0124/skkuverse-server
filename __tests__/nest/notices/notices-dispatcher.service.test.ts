@@ -19,6 +19,7 @@
  */
 
 import { ObjectId } from "mongodb";
+import moment from "moment-timezone";
 
 // Freeze Date for time-comparing assertions (claimNext age gate, lease window,
 // updateOne $set timestamps). Real timers stay live so the dispatcher's
@@ -266,9 +267,12 @@ describe("NoticesDispatcherService.sweepPending", () => {
     // partial-index-friendly form matching dispatch_pending_idx's
     // partialFilterExpression so the planner uses the partial index.
     expect(filter.aiSummaryAt).toEqual({ $type: "date" });
-    // Age gate uses crawledAt (crawler-emitted) — createdAt does not exist.
-    expect(filter.crawledAt).toBeDefined();
-    expect(filter.crawledAt.$gt).toBeInstanceOf(Date);
+    // Age gate is the notice's own publication date (immutable), not any
+    // crawl timestamp — a crawl stamp the crawler rewrites cannot answer
+    // "is this notice recent?". See ADR 0008.
+    expect(filter.crawledAt).toBeUndefined();
+    expect(filter.date).toEqual({ $gte: expect.any(String) });
+    expect(filter.date.$gte).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     // $not:{$gte} so missing-field docs (fresh inserts) match.
     expect(filter.pushAttempts).toEqual({
       $not: { $gte: config.notices.dispatch.maxAttempts },
@@ -282,6 +286,49 @@ describe("NoticesDispatcherService.sweepPending", () => {
       ]),
     );
     expect(update.$set.dispatchClaimedAt).toBeInstanceOf(Date);
+  });
+
+  it("computes the date floor in Asia/Seoul, not UTC", async () => {
+    // 2026-05-24T20:00Z is 2026-05-25 05:00 KST — the two zones disagree on
+    // what "today" is. A floor computed in UTC lands one day early here, so
+    // this is the input that separates a correct implementation from one
+    // that passes by accident for 15 hours a day.
+    jest.setSystemTime(new Date("2026-05-24T20:00:00Z"));
+    mockCollection.findOneAndUpdate.mockResolvedValue(null);
+    await service.sweepPending("tz-check");
+    const [filter] = mockCollection.findOneAndUpdate.mock.calls[0];
+
+    const { maxAgeDays } = config.notices.dispatch;
+    // KST day is the 25th, so the floor is the 25th minus maxAgeDays.
+    expect(filter.date.$gte).toBe(
+      moment("2026-05-25", "YYYY-MM-DD").subtract(maxAgeDays, "days").format("YYYY-MM-DD"),
+    );
+    // And explicitly NOT the UTC-day answer, which is one day earlier.
+    expect(filter.date.$gte).not.toBe(
+      moment("2026-05-24", "YYYY-MM-DD").subtract(maxAgeDays, "days").format("YYYY-MM-DD"),
+    );
+  });
+
+  it("gate is immune to summarization lag — no crawl timestamp in the filter", async () => {
+    // The reason this gate moved off `crawledAt` (ADR 0008): a notice whose
+    // AI summary lands days after insert must still be claimable. Nothing in
+    // the filter may reference when we crawled or last touched the document,
+    // or that notice ages out before it is ever eligible.
+    mockCollection.findOneAndUpdate.mockResolvedValue(null);
+    await service.sweepPending("lag-check");
+    const [filter] = mockCollection.findOneAndUpdate.mock.calls[0];
+
+    expect(Object.keys(filter)).not.toContain("crawledAt");
+    expect(JSON.stringify(filter)).not.toContain("crawledAt");
+  });
+
+  it("propagates a changed maxAgeDays into the date floor", async () => {
+    mockCollection.findOneAndUpdate.mockResolvedValue(null);
+    await service.sweepPending("window-check", { maxAgeDays: 3 });
+    const [filter] = mockCollection.findOneAndUpdate.mock.calls[0];
+    expect(filter.date.$gte).toBe(
+      moment(FIXED_NOW).tz("Asia/Seoul").subtract(3, "days").format("YYYY-MM-DD"),
+    );
   });
 
   it("respects sweepBatchCap as the per-tick blast-radius cap", async () => {
@@ -337,11 +384,16 @@ describe("NoticesDispatcherService.sweepPending", () => {
         c.dispatchClaimedAt && c.dispatchClaimedAt.$lt instanceof Date,
     );
     expect(leaseClause).toBeDefined();
-    const { claimLeaseMs, maxAgeMs } = config.notices.dispatch;
+    const { claimLeaseMs, maxAgeDays } = config.notices.dispatch;
     expect(leaseClause.dispatchClaimedAt.$lt.getTime()).toBe(
       FIXED_NOW.getTime() - claimLeaseMs,
     );
-    expect(filter.crawledAt.$gt.getTime()).toBe(FIXED_NOW.getTime() - maxAgeMs);
+    // Floor is maxAgeDays before FIXED_NOW *in Asia/Seoul*. Computing it in
+    // UTC would pass on most inputs and be wrong for 9 hours of every day,
+    // so the expectation is built in the same zone the gate uses.
+    expect(filter.date.$gte).toBe(
+      moment(FIXED_NOW).tz("Asia/Seoul").subtract(maxAgeDays, "days").format("YYYY-MM-DD"),
+    );
   });
 
   it("propagates a changed maxAttempts into the filter ($not.$gte)", async () => {

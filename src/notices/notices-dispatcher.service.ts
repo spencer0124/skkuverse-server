@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import moment from "moment-timezone";
 import config from "../infra/config";
 import {
   postToFcmFunction,
@@ -17,10 +18,13 @@ import type { NoticeDoc } from "./types";
  * Express version becomes private instance state here (Nest providers are
  * singletons by default, so this is the same one-flag-per-process semantics).
  *
- * Nothing about the behavior changes:
+ * The port from notices.dispatcher.ts changed nothing. One thing has changed
+ * since, and only one — the age gate moved from `crawledAt` to the notice's
+ * publication `date` (ADR 0008). Everything below still holds:
  *  - claim-lease findOneAndUpdate filter (pushedAt:null, aiSummaryAt $type date,
- *    crawledAt age-gate via maxAgeMs, pushAttempts $not $gte maxAttempts,
- *    isDeleted $ne true, dispatchClaimedAt lease via claimLeaseMs);
+ *    publication-date age-gate via maxAgeDays, pushAttempts $not $gte
+ *    maxAttempts, isDeleted $ne true, dispatchClaimedAt lease via
+ *    claimLeaseMs);
  *  - sweepPending(triggerSource, opts?) + claimNext + dispatchGroup;
  *  - postToFunction → Node fetch to FCM_FUNCTION_URL with X-API-Key + an
  *    AbortController fcmTimeoutMs abort;
@@ -37,7 +41,7 @@ import type { NoticeDoc } from "./types";
  */
 
 interface DispatchOpts {
-  maxAgeMs?: number;
+  maxAgeDays?: number;
   claimLeaseMs?: number;
   maxAttempts?: number;
   sweepBatchCap?: number;
@@ -267,7 +271,7 @@ export class NoticesDispatcherService {
     now: Date,
     opts: DispatchOpts = {},
   ): ReturnType<ReturnType<typeof getNoticesCollection>["findOneAndUpdate"]> {
-    const { maxAgeMs, claimLeaseMs, maxAttempts } = {
+    const { maxAgeDays, claimLeaseMs, maxAttempts } = {
       ...config.notices.dispatch,
       ...opts,
     };
@@ -276,17 +280,28 @@ export class NoticesDispatcherService {
     // on `dispatch_pending_idx` exactly so the planner can use the partial index
     // instead of a collection scan. MongoDB partial indexes do not support $ne.
     //
-    // Age gate uses `crawledAt` (the crawler-emitted timestamp) — NOT `createdAt`.
-    // The notices collection is populated by skkuverse-crawler and uses
-    // `crawledAt` for "when the crawler first inserted/touched this doc".
-    // There is no `createdAt` field. Verified 2026-05-04 against a sample doc
-    // and against `notices.data.js:LIST_PROJECTION` which already references
-    // `crawledAt` for the read path.
+    // Age gate is the notice's own publication `date`, not any crawl
+    // timestamp. `date` is a day-granular YYYY-MM-DD string in Asia/Seoul
+    // (crawler-emitted, immutable), so the floor is computed in that zone —
+    // comparing against a UTC day would shift the boundary by 9 hours and
+    // silently clip or admit a day's worth of notices.
+    //
+    // It used to gate on `crawledAt > now - 24h`. Because the crawler
+    // rewrites `crawledAt` on every unchanged page-0 notice, that predicate
+    // actually evaluated to "is this notice still on page 0?" — and it is
+    // the only thing keeping a slowly-summarized notice eligible. Measured
+    // Sept 2026: 8.9% of pushed notices were summarized >24h after insert
+    // (n=313), so freezing `crawledAt` under the old gate would have
+    // silenced all of them. See ADR 0008.
+    const dateFloor = moment(now)
+      .tz("Asia/Seoul")
+      .subtract(maxAgeDays, "days")
+      .format("YYYY-MM-DD");
     return col.findOneAndUpdate(
       {
         pushedAt: null,
         aiSummaryAt: { $type: "date" },
-        crawledAt: { $gt: new Date(now.getTime() - maxAgeMs) },
+        date: { $gte: dateFloor },
         // `$not: { $gte }` instead of `$lt` so missing/null pushAttempts (newly
         // crawled docs that have never been claimed) ALSO match. `$lt` against
         // a missing field returns false in Mongo and would silently exclude

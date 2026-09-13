@@ -71,6 +71,8 @@ audience: internal
 | [0004-strict-config-pre-deploy-dry-load.md](decisions/0004-strict-config-pre-deploy-dry-load.md) | accepted (백필) |
 | [0005-notice-dispatch-content-group.md](decisions/0005-notice-dispatch-content-group.md) | accepted |
 | [0006-building-search-relevance-ranking.md](decisions/0006-building-search-relevance-ranking.md) | accepted |
+| [0007-notice-ordering-key.md](decisions/0007-notice-ordering-key.md) | accepted |
+| [0008-dispatch-age-gate-on-publication-date.md](decisions/0008-dispatch-age-gate-on-publication-date.md) | accepted |
 
 ### internal (포스트모템)
 

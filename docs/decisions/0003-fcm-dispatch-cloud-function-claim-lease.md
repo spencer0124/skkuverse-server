@@ -33,7 +33,7 @@ Accepted — 2026-05 (백필 문서화 2026-07-22)
 
 **Claim-lease로 중복 발송 차단:** Mongo `claimedAt` 필드로 5분 lease. dispatcher가 후보를 가져올 때 `claimedAt` 미설정 또는 5분 경과분만 선택 후 곧장 자기 ID로 stamp. 다른 컨테이너가 같은 후보를 보면 lease 유효해 skip.
 
-**Retry & 폐기:** `pushAttempts >= maxAttempts(5)` 필터로 5회 실패분 자동 제외. `maxAgeMs=24h` 넘은 공지는 통째 abandon(long outage 후 stale push 폭주 방지). `sweepBatchCap=200`으로 틱당 blast radius cap.
+**Retry & 폐기:** `pushAttempts >= maxAttempts(5)` 필터로 5회 실패분 자동 제외. `maxAgeDays=14`(공지 자체의 게시일 기준, Asia/Seoul) 넘은 공지는 통째 abandon(long outage 후 stale push 폭주 방지). 2026-09-13 [ADR 0008](0008-dispatch-age-gate-on-publication-date.md)이 `maxAgeMs=24h`(`crawledAt` 기준)에서 교체 — 크롤러의 touch가 `crawledAt`을 계속 갱신해 게이트가 사실상 "아직 page 0에 있나?"를 묻고 있었다. `sweepBatchCap=200`으로 틱당 blast radius cap.
 
 ## Consequences
 
@@ -43,5 +43,5 @@ Accepted — 2026-05 (백필 문서화 2026-07-22)
 - (+) claim-lease로 multi-replica·poller 동시성에서 중복 발송 방지.
 - (−) 서버·Cloud Function·크롤러 3자에 dispatch 관심사가 분산 — 경로 추적이 한 파일에 없음.
 - (−) `crawledAt` 같은 실제 doc 필드명에 의존(초기에 `createdAt`을 쿼리해 0건 나온 incident 있었음, commit `7c6944e`) — prod doc shape을 가정하지 말고 sample로 검증할 것.
-- 설정 상수(`claimLeaseMs`, `maxAgeMs`, `maxAttempts`, `sweepBatchCap`, `sweepCronIntervalMs`)의 현재 값은 `src/config`의 notices dispatch 설정이 SSOT.
+- 설정 상수(`claimLeaseMs`, `maxAgeDays`, `maxAttempts`, `sweepBatchCap`, `sweepCronIntervalMs`)의 현재 값은 `src/config`의 notices dispatch 설정이 SSOT.
 - FCM 아키텍처 전체(앱 측 device 등록, topic 파생)는 sibling 레포 `skkuverse-app`의 `docs/explanation/fcm-architecture.md` 참조.

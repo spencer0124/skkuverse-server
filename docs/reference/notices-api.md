@@ -113,7 +113,8 @@ audience: internal
 
 - **리스트 summary는 brief** (3필드: `oneLiner`, `type`, `endAt`). full summary는 상세에서만.
 - **`endAt` 파생:** `summaryPeriods[0]`의 `endDate`/`endTime`에서 `{ date, time } | null`. 다중 phase 공지는 `periods[0]`(가장 이른 마감) 기준 D-day. 결정론적(now() 무의존).
-- **커서는 filter-agnostic** — `(date, crawledAt, _id)` 트리플만 인코딩. `type`을 바꿔도 accept (일부 skip 가능 → 클라이언트가 필터 변경 시 리스트 리셋).
+- **커서는 filter-agnostic** — `(date, _id)` 페어로 페이징한다. `type`을 바꿔도 accept (일부 skip 가능 → 클라이언트가 필터 변경 시 리스트 리셋).
+- **커서 payload는 여전히 `{d, c, i}` 3필드** — `c`(구 `crawledAt`)는 더 이상 읽지 않지만 롤백 호환을 위해 계속 실어 보낸다. 클라이언트는 커서를 opaque 문자열로만 다루면 되고, 필드가 하나 줄어드는 후속 릴리스에도 영향받지 않는다. 배경은 [decisions/0007-notice-ordering-key.md](../decisions/0007-notice-ordering-key.md).
 
 ## GET /notices (다중 소스)
 
