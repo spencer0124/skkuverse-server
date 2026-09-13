@@ -87,9 +87,24 @@ const config = {
       functionUrl: process.env.FCM_FUNCTION_URL,
       apiKey: process.env.FCM_API_KEY,
       internalToken: process.env.INTERNAL_DISPATCH_TOKEN,
-      // Outer bound on push age. Older rows are abandoned to avoid spamming
-      // users with stale "new" notices after a long outage.
-      maxAgeMs: 24 * 60 * 60 * 1000,
+      // Outer bound on push age, measured against the notice's own
+      // publication `date` (Asia/Seoul, YYYY-MM-DD) — NOT against when we
+      // crawled it. Older rows are abandoned to avoid spamming users with
+      // stale "new" notices after a long outage.
+      //
+      // This used to be `maxAgeMs: 24h` against `crawledAt`. That could not
+      // survive the crawler dropping its no-op touch (skkuverse#52): the
+      // touch is the only reason a not-yet-pushed notice stays inside a 24h
+      // crawledAt window, and 8.9% of notices pushed in Sept 2026 were
+      // summarized more than 24h after insert (n=313) — every one of those
+      // would have gone silent. `date` is immutable, so summarization lag
+      // cannot age a notice out before it is eligible.
+      //
+      // 14 days is not a guess: replayed with this exact predicate against
+      // all 2,498 real pushes since 2026-08-01, it matches 2,498 of 2,498
+      // (max observed gap 10.6d) — a measured no-op on current traffic.
+      // See docs/decisions/0008-dispatch-age-gate-on-publication-date.md.
+      maxAgeDays: 14,
       // Claim lease — 10× the FCM timeout so a slow round trip won't trip
       // a re-claim, but short enough that a crashed dispatcher's claims
       // free up on the next sweep.

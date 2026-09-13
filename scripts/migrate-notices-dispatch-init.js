@@ -9,11 +9,24 @@
  *       dispatchClaimedAt on every existing notice doc so the first sweep
  *       does NOT fire pushes for every historical notice.
  *
- * Idempotent. Re-running:
+ * !! DO NOT RE-RUN THIS SCRIPT. It is spent. !!
+ *
+ * Step (b) was safe exactly once — at greenfield, when every doc lacking
+ * `pushedAt` was historical. That is no longer true: the crawler inserts new
+ * notices without `pushedAt`, and they acquire it only when actually pushed.
+ * On 2026-09-13 prod held 350 such docs (6 claimable that minute, the rest
+ * awaiting summarization). Re-running would stamp all 350 as already-handled
+ * and silence every push they are owed — permanently, since `pushedAt` never
+ * clears.
+ *
+ * To change the sweep index, use scripts/migrate-notices-dispatch-index.js,
+ * which does the index half only and asserts it left document state alone.
+ *
+ * Historical note on idempotency (true at the time, kept for the record):
  *   - createIndex with the same spec is a no-op (Mongo returns the existing
  *     name without error).
- *   - the backfill matches `pushedAt: { $exists: false }`, so a second run
- *     finds 0 docs to update.
+ *   - the backfill matches `pushedAt: { $exists: false }`, which found 0 docs
+ *     on a second run *in the greenfield window*.
  *
  * Usage:
  *   node scripts/migrate-notices-dispatch-init.js              # apply
@@ -30,10 +43,11 @@ const config = require("../src/infra/config");
 const DRY_RUN = process.argv.includes("--dry-run");
 
 const PARTIAL_INDEX_NAME = "dispatch_pending_idx";
-// Sort key uses `crawledAt` (crawler-emitted timestamp) — NOT `createdAt`.
-// The notices collection has no `createdAt` field. Sweep query in
-// notices.dispatcher.js:claimNext uses `crawledAt` as the age gate.
-// Verified against prod doc 2026-05-04.
+// Sort key as of this script's era: `crawledAt`, matching the age gate the
+// sweep used then. SUPERSEDED 2026-09-13 by ADR 0008 — the gate now filters
+// on the notice's publication `date`, and the live index key follows it via
+// scripts/migrate-notices-dispatch-index.js. Left unchanged here because
+// this script must not run again (see header).
 const PARTIAL_INDEX_SPEC = { crawledAt: -1 };
 // Partial filter — matches the sweep's hot predicates exactly.
 // Note: MongoDB partial indexes do NOT support $ne. We use $type: "date"
