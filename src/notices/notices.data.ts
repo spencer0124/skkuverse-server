@@ -3,7 +3,7 @@
  *
  * Reads only — the skkuverse-crawler owns writes and the unique index
  * `articleNo_1_sourceId_1`. This module adds the read-path compound
- * index that covers list queries with the {date, crawledAt, _id} cursor.
+ * index that covers list queries with the {date, _id} cursor.
  */
 import { getClient } from "../infra/db";
 import config from "../infra/config";
@@ -11,15 +11,22 @@ import { buildCursorFilter, encodeCursor } from "./notices.cursor";
 import { escapeRegex } from "./notices.search";
 import type { CursorPayload, NoticeDoc } from "./types";
 
-// 4-key compound index — declared in ensureNoticeIndexes(). We .hint()
+// 3-key compound index — declared in ensureNoticeIndexes(). We .hint()
 // every query to this index to defend against the planner picking the
 // orphan 2-key sourceId_1_date_-1 index that exists on prod (undeclared
 // by app code, origin TBD). Without the hint, multi-source $in queries
 // pick the 2-key and incur an in-memory SORT stage because the sort
-// spec {date, crawledAt, _id} extends past what the 2-key covers.
+// spec {date, _id} extends past what the 2-key covers.
 // Verified prod measurement Phase 0a 2026-04-26: with hint, multiIn
 // keysExamined drops 904 → 465 (-49%), executionTime 9ms → 3ms (-67%).
-const FORCE_INDEX = { sourceId: 1, date: -1, crawledAt: -1, _id: -1 };
+//
+// `crawledAt` sat between date and _id until ADR 0007 removed it from the
+// sort — the crawler rewrites it every 30 minutes, so it reordered rows
+// that shared a date. The predecessor index
+// `sourceId_1_date_-1_crawledAt_-1__id_-1` is deliberately left in place
+// for one release: a rolling deploy keeps an old replica hinting it, and
+// hint() against a missing index throws BadValue.
+const FORCE_INDEX = { sourceId: 1, date: -1, _id: -1 };
 
 // Inclusion projection — lightweight list items. Heavy fields
 // (content/cleanHtml/contentText/editHistory) are intentionally omitted.
@@ -103,7 +110,7 @@ function getNoticesCollection() {
  */
 async function ensureNoticeIndexes(): Promise<void> {
   const col = getNoticesCollection();
-  await col.createIndex({ sourceId: 1, date: -1, crawledAt: -1, _id: -1 });
+  await col.createIndex({ sourceId: 1, date: -1, _id: -1 });
 }
 
 /**
@@ -144,7 +151,7 @@ async function _findNotices(
     // mongodb v7's Filter<NoticeDoc> is strict; the dynamic $and shape above
     // is type-checked at the boundary via the Record<string, unknown> cast.
     .find(filter as never, { projection: LIST_PROJECTION })
-    .sort({ date: -1, crawledAt: -1, _id: -1 })
+    .sort({ date: -1, _id: -1 })
     .hint(FORCE_INDEX)
     .limit(limit + 1)
     .toArray()) as NoticeDoc[];
@@ -152,6 +159,9 @@ async function _findNotices(
   const hasMore = docs.length > limit;
   const items = hasMore ? docs.slice(0, limit) : docs;
   const last = items[items.length - 1];
+  // `c` is still emitted although buildCursorFilter no longer reads it, so a
+  // cursor minted here stays decodable by the previous release. Retiring it
+  // is a separate change (ADR 0007) once no such server can receive one.
   const nextCursor =
     hasMore && last
       ? encodeCursor({
@@ -179,7 +189,7 @@ function findNoticesBySource(
 
 /**
  * Paginated list of notices across multiple sources.
- * Uses the existing (sourceId, date, crawledAt, _id) compound index
+ * Uses the existing (sourceId, date, _id) compound index
  * via $in — MongoDB merge-sorts the per-source index scans internally.
  */
 function findNoticesBySources(

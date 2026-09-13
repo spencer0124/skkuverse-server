@@ -42,10 +42,15 @@ export type CategoryConfig = CategoryFixed | CategoryPicker;
 
 // --- Cursor payload (notice list pagination) ---
 // Plain shape before base64-url encoding. See notices.cursor.ts docstring
-// for the {date desc, crawledAt desc, _id desc} sort rationale.
+// for the {date desc, _id desc} sort rationale.
+//
+// `c` is a legacy field. It held crawledAt back when crawledAt was the second
+// sort key; nothing reads it now, but encode still emits it and decode still
+// accepts it so cursors stay decodable across a rollback. Optional because a
+// cursor minted after `c` stops being emitted must still decode here.
 export interface CursorPayload {
   d: string;  // YYYY-MM-DD
-  c: string;  // ISO datetime
+  c?: string; // ISO datetime — legacy, ignored by buildCursorFilter
   i: string;  // 24-hex ObjectId
 }
 
