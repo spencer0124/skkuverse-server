@@ -7,16 +7,21 @@
     "the surveyed plots; the 2026 line-up replaces those wholesale and the importer",
     "is unchanged.",
     "",
-    "THE FACILITY BLOCK IS REAL 2026 DATA. The seven 화장실 and the three 야간 자인",
-    "셔틀 대기 points were surveyed by the 총학생회 and handed over on 2026-09-19;",
+    "THE FACILITY BLOCK IS REAL 2026 DATA. The nine 화장실 and the one 야간 자인",
+    "셔틀 대기 point were surveyed by the 총학생회 and handed over on 2026-09-19;",
     "they are the only authored coordinates in this file. The placeholder toilets",
     "they replaced sat on one interpolated line ~5 m apart, so every one of them was",
     "wrong. Each new point was checked against the SKKU campus API (campusMap.do,",
     "campusCd=2): the nearest building is the one the label names, 6-29 m away for",
     "the seven that name a building.",
     "",
-    "The shuttle queue points carry `hours: []` because the council sent POSITIONS",
-    "ONLY. They are night-only in reality, so that empty list is the one place this",
+    "The council handed over three shuttle queue points and corrected two of them",
+    "the same day: 제1과학관 and 제2과학관 are 화장실, not queue points, and only",
+    "복지회관 앞 is a queue. Nothing moved — toilet-sci1 and toilet-sci2 carry the",
+    "surveyed coordinates unchanged; what changed is what they are.",
+    "",
+    "The shuttle queue point carries `hours: []` because the council sent a POSITION",
+    "ONLY. It is night-only in reality, so that empty list is the one place this",
     "file stretches the rule below — fill `hours` the moment the 2026 dates and the",
     "night shuttle timetable are confirmed, in the same edit that retires the 2025",
     "line-up.",
@@ -1375,13 +1380,39 @@
       "order": 107
     },
     {
+      "id": "toilet-sci2",
+      "category": "facility",
+      "lat": 37.294846,
+      "lng": 126.974593,
+      "title": {
+        "ko": "화장실 (제2과학관)",
+        "en": "Restroom (Science Hall 2)",
+        "zh": "洗手间（第二科学馆）"
+      },
+      "hours": [],
+      "order": 108
+    },
+    {
+      "id": "toilet-sci1",
+      "category": "facility",
+      "lat": 37.294436,
+      "lng": 126.974565,
+      "title": {
+        "ko": "화장실 (제1과학관)",
+        "en": "Restroom (Science Hall 1)",
+        "zh": "洗手间（第一科学馆）"
+      },
+      "hours": [],
+      "order": 109
+    },
+    {
       "id": "medical",
       "category": "facility",
       "lat": 37.294806,
       "lng": 126.971281,
       "title": "의무실 / 응급 부스",
       "hours": [],
-      "order": 108
+      "order": 110
     },
     {
       "id": "barrierfree",
@@ -1399,7 +1430,7 @@
           "style": "secondary"
         }
       ],
-      "order": 109
+      "order": 111
     },
 
     {
@@ -1411,42 +1442,6 @@
         "ko": "야간 자인셔틀 대기 (복지회관 앞)",
         "en": "Night JAIN shuttle queue (Welfare Hall)",
         "zh": "夜间自仁班车候车处（福利会馆）"
-      },
-      "subtitle": {
-        "ko": "자과캠 → 인사캠",
-        "en": "NSC → HSSC",
-        "zh": "自然校区 → 人文校区"
-      },
-      "hours": [],
-      "order": 110
-    },
-    {
-      "id": "shuttle-queue-sci2",
-      "category": "facility",
-      "lat": 37.294846,
-      "lng": 126.974593,
-      "title": {
-        "ko": "야간 자인셔틀 대기 (제2과학관)",
-        "en": "Night JAIN shuttle queue (Science Hall 2)",
-        "zh": "夜间自仁班车候车处（第二科学馆）"
-      },
-      "subtitle": {
-        "ko": "자과캠 → 인사캠",
-        "en": "NSC → HSSC",
-        "zh": "自然校区 → 人文校区"
-      },
-      "hours": [],
-      "order": 111
-    },
-    {
-      "id": "shuttle-queue-sci1",
-      "category": "facility",
-      "lat": 37.294436,
-      "lng": 126.974565,
-      "title": {
-        "ko": "야간 자인셔틀 대기 (제1과학관)",
-        "en": "Night JAIN shuttle queue (Science Hall 1)",
-        "zh": "夜间自仁班车候车处（第一科学馆）"
       },
       "subtitle": {
         "ko": "자과캠 → 인사캠",
