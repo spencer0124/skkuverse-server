@@ -3,7 +3,7 @@ title: Map Overlays API Reference
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-08-31
+last-updated: 2026-09-20
 audience: internal
 ---
 
@@ -1043,6 +1043,13 @@ every polygon ring for the SDK's opposite winding (§2.4); drop `layers[].type` 
 choose the renderer per overlay instead; and give the `kind` switch a `default:` that returns null,
 per §2.3 rule 4.
 
+**Status, 2026-09-20.** The app half is written. `f8ad32b` on skkuverse-app `dev` carries the overlay
+parser, the polygon and path renderers, and the layer-style members §9.7 used to list as unread;
+nothing in that repository's source names `/map/markers` any more. It is **not** on that repository's
+`main`, which settles less than it looks like it does — that repo has published OTAs by hand before,
+so `main` is not a record of what users run. Whether the half has reached anyone is answered by
+probing a build, never by reading a branch or this paragraph.
+
 The sections below predate this change. §9.1 in particular describes a compatibility matrix against a
 build that could still read `/map/markers/*`, and is kept as history rather than as current guidance.
 
@@ -1135,30 +1142,36 @@ that is precisely why this reorg stripped `?overlay=` (§6). A nearby URL carryi
 So §8.7's chip kind needs its own client hook with a quantised key, not `useLayerMarkers`. Recorded
 now because the constraint belongs to the design, not to the day it is discovered.
 
-### 9.7 The style members the client does not read yet
+### 9.7 The polygon style knobs, and why this section stopped inventorying them
 
-A six-row table stood here, headed "as of this deploy the client reads **none** of it". Every row is
-closed as of app `a519ca0`: `chips`, `cameraDefaults`, `layers[].chipGroupId`, `campuses[].radiusM`,
-`campuses[].defaultTilt`/`defaultBearing` and the marker geometry — `size`, `width`, `height`,
-`zIndex`, and `shape` with it — are all parsed and consumed, and the hardcoded `CAMPUS_CHIPS` mock it
-cited does not exist in the app at all. The table is deliberately not restated in corrected form: a
-per-field inventory of another repository's HEAD ages into a confident falsehood, which is precisely
-what happened to this one. What is worth keeping is the shape of the remaining gap and the reason it
-is safe.
+A six-row table stood here first, headed "as of this deploy the client reads **none** of it". It was
+closed, deleted, and replaced with a paragraph naming four members that remained unread — and that
+paragraph went stale the same way, inside three weeks. It said `MapLayerStyle` in
+`packages/shared/src/types/map.ts` declared none of `outlineWidth`, `fillOpacity`, `minZoom` and
+`maxZoom`, so the server's values were parsed away; and that the polyline overlay still derived its
+border as `style?.outlineColor ? 1 : 0`, the workaround `outlineWidth` was added to replace. As of
+app `f8ad32b` all four are declared, all four are read by `parseLayerStyle`, and the polyline reads
+`outlineWidth` directly — the workaround survives only as a comment naming what it replaced.
 
-What is genuinely unread today is four members, and they are one thing — the **polygon knobs**.
-`outlineWidth`, `fillOpacity` and `minZoom` are on the wire already (`campus_geometry` sends all
-three, and `EVENT_SHAPE_STYLE` sends the first two on every festival layer); `maxZoom` is declared
-here and set by no layer. `MapLayerStyle` in `packages/shared/src/types/map.ts` declares none of the
-four, so they are parsed away, and the shipped polyline overlay still derives its border as
-`style?.outlineColor ? 1 : 0` — the workaround `outlineWidth` was added to replace. Their consumer is
-the overlay renderer that §9.0's app half brings, so this closes with that deploy rather than on a
-schedule of its own.
+The first version warned that "a per-field inventory of another repository's HEAD ages into a
+confident falsehood". It was right, and then it did it again in the correction. So the warning is
+restated as a rule: **this document does not inventory what another repository reads.** That is a
+fact about a build, it moves without this file being opened, and a stale inventory here is worse than
+no inventory — it is read as current.
 
-That is safe rather than broken. Every member is optional and the client's parsers ignore unknown
-keys, so a zone shipped today reaches a build that draws it with the client's own defaults instead of
-erroring. It does mean `fillOpacity` is a **promise** until then: changing it here changes the
-response and nothing on screen, with no error on either side.
+What stays is the direction of failure, which is this repository's to guarantee. Every style member
+is optional, and the client's parsers ignore keys they do not know. A layer sending a knob an older
+build cannot read draws with that build's own defaults rather than erroring; a layer sending none
+renders exactly as one that never had the field. That symmetry is what makes a mixed fleet safe, and
+it is the only claim in this section that needs no checking against another repository.
+
+One inventory does belong here, because the subject is local: `maxZoom` is declared in
+`MapLayerStyle` (`src/map/map-layers.data.ts`) and set by no layer. `campus_geometry` sends
+`fillOpacity`, `outlineWidth` and `minZoom`; `EVENT_SHAPE_STYLE` sends the first two on every festival
+layer, which is why a festival zone needs no style of its own.
+
+When any of this reaches users is §9.0's question rather than this section's — these knobs are read by
+the overlay renderer the app half brings, so they arrive with it or not at all.
 
 ### 9.8 `defaultVisibleWhen` blanks the campus map until the app half ships
 
