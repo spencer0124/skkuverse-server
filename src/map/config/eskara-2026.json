@@ -88,6 +88,18 @@
       }
     },
     {
+      "id": "eskara26_control",
+      "label": {
+        "ko": "통제구역",
+        "en": "Restricted",
+        "zh": "管制区"
+      },
+      "color": "C92A2A",
+      "defaultVisibleWhen": {
+        "kind": "always"
+      }
+    },
+    {
       "id": "eskara26_etc",
       "label": {
         "ko": "기타",
@@ -160,6 +172,18 @@
         "en": "Facilities",
         "zh": "便利设施"
       }
+    },
+    {
+      "id": "eskara26_view_control",
+      "emoji": "🚧",
+      "layerIds": [
+        "eskara26_control"
+      ],
+      "label": {
+        "ko": "통제구역",
+        "en": "Restricted",
+        "zh": "管制区"
+      }
     }
   ],
   "itemDefaults": {
@@ -183,6 +207,14 @@
       "facility": {
         "layerId": "eskara26_facility",
         "pinPriority": 10
+      },
+      "control_entry": {
+        "layerId": "eskara26_control",
+        "pinPriority": 0
+      },
+      "control_vehicle": {
+        "layerId": "eskara26_control",
+        "pinPriority": 0
       }
     },
     "fallback": {

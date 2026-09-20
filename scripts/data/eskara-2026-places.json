@@ -50,7 +50,23 @@
     "point apiece; the `b` of each pair now sits a quarter of the strip's own step",
     "(~1.3 m) along it. Two places may share a coordinate only when their windows are",
     "disjoint — the strip really is re-striped from day booths to night bars — and a",
-    "test enforces exactly that."
+    "test enforces exactly that.",
+    "",
+    "THE TWO CONTROL ZONES ARE REAL 2026 DATA, and the first `geometry` entries in",
+    "this file. The 총학생회 handed over 13 points for 진입 통제구역 and 4 for 차량",
+    "통제구역 on 2026-09-20, with one instruction: connect each zone's points in the",
+    "order given. Both are closed rings — the 진입 ring's first and last points sit",
+    "14 m apart and the 차량 ring's 175 m, so neither arrived closed and both are",
+    "closed here by repeating the first position. Neither ring self-intersects.",
+    "They are thin corridors along campus roads, not areas enclosing booths:",
+    "exactly ONE existing place falls inside 진입 통제구역 and none inside 차량",
+    "통제구역, which is why they are left tappable instead of made backdrops — a",
+    "zone that swallows no taps may as well carry the sheet that explains it.",
+    "",
+    "The council also sent one rule with NO coordinates — 기숙사 사생 외 모든 인원의",
+    "기숙사 전관 출입 금지. It rides 진입 통제구역's `fields`, because a tappable",
+    "zone's sheet is the only place on this map that can carry a sentence. Move it",
+    "the moment there is a better home for it."
   ],
   "places": [
     {
@@ -1450,6 +1466,84 @@
       },
       "hours": [],
       "order": 112
+    },
+
+    {
+      "id": "control-entry",
+      "category": "control_entry",
+      "title": {
+        "ko": "진입 통제구역",
+        "en": "Restricted entry zone"
+      },
+      "subtitle": {
+        "ko": "총학생회 통제",
+        "en": "Student council control"
+      },
+      "fields": [
+        {
+          "label": "안내",
+          "value": "통제선 안쪽은 진입이 제한됩니다."
+        },
+        {
+          "label": "기숙사",
+          "value": "기숙사 사생 외 모든 인원의 기숙사 전관 출입이 금지됩니다."
+        }
+      ],
+      "hours": [],
+      "order": 200,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [126.97147536130258, 37.293005932339945],
+            [126.9715879285493, 37.29356910796036],
+            [126.97236050031655, 37.293488197503216],
+            [126.97252939227461, 37.29425186617639],
+            [126.97154818922115, 37.294276412911906],
+            [126.97057259036363, 37.29438880406379],
+            [126.97080033213791, 37.29604451664774],
+            [126.9715052582971, 37.29596810029006],
+            [126.97157287157368, 37.29611904028839],
+            [126.9705436608196, 37.29627196494881],
+            [126.97030480699236, 37.2942062770862],
+            [126.97151723816175, 37.29410746092993],
+            [126.97132028415456, 37.29302166302564],
+            [126.97147536130258, 37.293005932339945]
+          ]
+        ]
+      }
+    },
+    {
+      "id": "control-vehicle",
+      "category": "control_vehicle",
+      "title": {
+        "ko": "차량 통제구역",
+        "en": "Vehicle restricted zone"
+      },
+      "subtitle": {
+        "ko": "총학생회 통제",
+        "en": "Student council control"
+      },
+      "fields": [
+        {
+          "label": "안내",
+          "value": "축제 기간 해당 구간의 차량 통행이 통제됩니다."
+        }
+      ],
+      "hours": [],
+      "order": 201,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [126.97061696860364, 37.296276488356554],
+            [126.97069584306522, 37.29646797831636],
+            [126.97257946587712, 37.29611927776948],
+            [126.97255977946416, 37.29597961243268],
+            [126.97061696860364, 37.296276488356554]
+          ]
+        ]
+      }
     }
   ]
 }

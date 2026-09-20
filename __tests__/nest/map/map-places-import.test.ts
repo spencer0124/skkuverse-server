@@ -50,6 +50,21 @@ function soleError(result: { errors: string[] }): string {
   return result.errors[0]!;
 }
 
+/**
+ * Every `[lng, lat]` in a geometry, whatever its type.
+ *
+ * A Point's pair is the geometry; a ring's are nested one level deeper. The
+ * checks below care about positions rather than shapes, so they walk this
+ * instead of destructuring `coordinates` — which silently yields `undefined`
+ * for a latitude the moment the sheet holds anything but a Point, and did.
+ */
+function positionsOf(geometry: { type: string; coordinates: unknown }): [number, number][] {
+  const c = geometry.coordinates;
+  if (geometry.type === "Point") return [c as [number, number]];
+  if (geometry.type === "LineString") return c as [number, number][];
+  return (c as [number, number][][]).flat();
+}
+
 describe("parsePlacesFile — the committed sheet", () => {
   const raw = fs.readFileSync(REAL_FILE, "utf8");
   const { docs, errors } = parsePlacesFile(raw, { layerSetId: LAYER_SET_ID });
@@ -106,8 +121,11 @@ describe("parsePlacesFile — the committed sheet", () => {
         ? true
         : a.some((x) => b.some((y) => x.startAt < y.endAt && y.startAt < x.endAt));
 
+    // Points only. `pinPriority` lives on the marker arm alone because two
+    // overlapping ZONES are a design choice rather than a collision to resolve
+    // — see `map-overlay.types.ts` — so a ring has no business in this ladder.
     const byCoord = new Map<string, typeof docs>();
-    for (const d of docs) {
+    for (const d of docs.filter((x) => x.location.type === "Point")) {
       const key = d.location.coordinates.join(",");
       byCoord.set(key, [...(byCoord.get(key) ?? []), d]);
     }
@@ -127,12 +145,17 @@ describe("parsePlacesFile — the committed sheet", () => {
   });
 
   it("puts every place on the Korean peninsula, not in the ocean", () => {
+    // EVERY position, not just a Point's own pair. A pasted ring arrives from a
+    // drawing tool, so a wholesale swap trips the reader's own ±90 guard on the
+    // first vertex — but a single transposed pair partway through a fourteen-
+    // point ring passes that guard and draws a spike into the Yellow Sea.
     for (const d of docs) {
-      const [lng, lat] = d.location.coordinates;
-      expect(lat).toBeGreaterThan(33);
-      expect(lat).toBeLessThan(39);
-      expect(lng).toBeGreaterThan(124);
-      expect(lng).toBeLessThan(132);
+      for (const [lng, lat] of positionsOf(d.location)) {
+        expect(lat).toBeGreaterThan(33);
+        expect(lat).toBeLessThan(39);
+        expect(lng).toBeGreaterThan(124);
+        expect(lng).toBeLessThan(132);
+      }
     }
   });
 });

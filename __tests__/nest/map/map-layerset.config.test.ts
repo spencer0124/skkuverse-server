@@ -53,6 +53,30 @@ describe("the shipped eskara-2026 config", () => {
     }
   });
 
+  it("maps every category the committed sheet actually uses", () => {
+    // The two committed files are edited in different tiers and deployed on
+    // different clocks: the sheet reaches Mongo through an importer and needs no
+    // release, while this config needs one. So a category added to the sheet and
+    // forgotten here does not fail — it falls through `itemDefaults.fallback` to
+    // the grey 기타 layer and draws, which is the failure that looks like success.
+    //
+    // The fallback is not thereby useless: it exists for a category typed into
+    // MONGO at 22:00 (ADR 0004 invariant 2). Nothing in the reviewed sheet may
+    // rely on it.
+    const config = assertValidConfig(raw());
+    const sheet = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, "../../../scripts/data/eskara-2026-places.json"),
+        "utf8",
+      ),
+    ) as { places: { category: string }[] };
+
+    const unmapped = [...new Set(sheet.places.map((p) => p.category))].filter(
+      (category) => !(category in config.itemDefaults.byCategory),
+    );
+    expect(unmapped).toEqual([]);
+  });
+
   it("keeps every chip pointing at layers that exist", () => {
     const config = assertValidConfig(raw());
     const layerIds = new Set(config.layers.map((l) => l.id));

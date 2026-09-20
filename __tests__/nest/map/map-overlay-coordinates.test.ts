@@ -49,14 +49,48 @@ const mockPlaces = getPlacesCollection as jest.MockedFunction<
   typeof getPlacesCollection
 >;
 
-/** The sheet's own lat/lng, keyed by the id the projection will tap through. */
-function sheetCoordsById(): Map<string, { lat: number; lng: number }> {
+/**
+ * What the sheet authored for each place, keyed by the id the projection emits.
+ *
+ * Either a named `lat`/`lng` pair or a pasted `geometry` — never both, which the
+ * reader enforces. Both forms are carried because the wire assertion below has
+ * to check a different thing for each.
+ */
+type Authored = { lat?: number; lng?: number; geometry?: WireGeometry };
+
+function sheetCoordsById(): Map<string, Authored> {
   const raw = JSON.parse(fs.readFileSync(REAL_FILE, "utf8"));
-  const out = new Map<string, { lat: number; lng: number }>();
+  const out = new Map<string, Authored>();
   for (const place of raw.places) {
-    out.set(`${LAYER_SET_ID}-${place.id}`, { lat: place.lat, lng: place.lng });
+    out.set(`${LAYER_SET_ID}-${place.id}`, {
+      lat: place.lat,
+      lng: place.lng,
+      geometry: place.geometry,
+    });
   }
   return out;
+}
+
+type WireGeometry = { type: string; coordinates: unknown };
+
+/**
+ * The same geometry with every ring reversed.
+ *
+ * The ONE transform the projection is allowed to apply: `toWirePolygon`
+ * normalises a ring to RFC 7946 §3.1.6 winding, so a clockwise paste comes back
+ * reversed. Nothing else about the positions may change, which is why the
+ * assertion below compares against exactly these two candidates rather than
+ * sorting the positions — a sort would also accept a shape whose vertices were
+ * shuffled into a different polygon entirely.
+ */
+function rewound(geometry: WireGeometry): WireGeometry {
+  if (geometry.type !== "Polygon") return geometry;
+  return {
+    type: "Polygon",
+    coordinates: (geometry.coordinates as [number, number][][]).map((ring) =>
+      [...ring].reverse(),
+    ),
+  };
 }
 
 function collectionOf(docs: unknown[]) {
@@ -100,16 +134,23 @@ describe("event overlay coordinates, end to end from the survey sheet", () => {
     expect(markers).toHaveLength(docs.length);
 
     for (const marker of markers) {
-      const ref = expected.get(marker.tap!.placeId)!;
+      const ref = expected.get(marker.id)!;
       expect(ref).toBeDefined();
       // The stored geometry object reaches the wire BY REFERENCE — no
       // conversion on the server at all — so this is an identity check rather
       // than a tolerance one. Anything but equality means somebody
       // reintroduced a transform, which is where a swap comes from.
-      expect(marker.geometry).toEqual({
-        type: "Point",
-        coordinates: [ref.lng, ref.lat],
-      });
+      if (ref.geometry) {
+        // A pasted ring is the same object, EXCEPT that winding is normalised
+        // on the way out. The committed sheet holds one ring of each direction,
+        // so both branches are exercised rather than merely allowed for.
+        expect([ref.geometry, rewound(ref.geometry)]).toContainEqual(marker.geometry);
+      } else {
+        expect(marker.geometry).toEqual({
+          type: "Point",
+          coordinates: [ref.lng, ref.lat],
+        });
+      }
     }
   });
 
