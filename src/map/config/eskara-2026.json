@@ -100,6 +100,18 @@
       }
     },
     {
+      "id": "eskara26_entry",
+      "label": {
+        "ko": "입장",
+        "en": "Entry",
+        "zh": "入场"
+      },
+      "color": "7048E8",
+      "defaultVisibleWhen": {
+        "kind": "always"
+      }
+    },
+    {
       "id": "eskara26_etc",
       "label": {
         "ko": "기타",
@@ -151,7 +163,7 @@
     },
     {
       "id": "eskara26_view_booth",
-      "emoji": "🎫",
+      "emoji": "🎨",
       "layerIds": [
         "eskara26_booth"
       ],
@@ -184,6 +196,18 @@
         "en": "Restricted",
         "zh": "管制区"
       }
+    },
+    {
+      "id": "eskara26_view_entry",
+      "emoji": "🎫",
+      "layerIds": [
+        "eskara26_entry"
+      ],
+      "label": {
+        "ko": "입장",
+        "en": "Entry",
+        "zh": "入场"
+      }
     }
   ],
   "itemDefaults": {
@@ -215,6 +239,10 @@
       "control_vehicle": {
         "layerId": "eskara26_control",
         "pinPriority": 0
+      },
+      "entry": {
+        "layerId": "eskara26_entry",
+        "pinPriority": 35
       }
     },
     "fallback": {

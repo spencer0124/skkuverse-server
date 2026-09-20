@@ -66,7 +66,31 @@
     "The council also sent one rule with NO coordinates — 기숙사 사생 외 모든 인원의",
     "기숙사 전관 출입 금지. It rides 진입 통제구역's `fields`, because a tappable",
     "zone's sheet is the only place on this map that can carry a sentence. Move it",
-    "the moment there is a better home for it."
+    "the moment there is a better home for it.",
+    "",
+    "THE THREE 팔찌 배부 부스 ARE REAL 2026 DATA, handed over by the 총학생회 on",
+    "2026-09-20. Each coordinate was checked against the SKKU campus API",
+    "(campusMap.do, campusCd=2) the way the facility block was: the nearest",
+    "building is the one the council named — 글로벌광장 33 m, 삼성학술정보관 37 m,",
+    "글로벌광장 50 m. The three sit 28-38 m apart, so they are three places rather",
+    "than one, and the nearest other place is 99 m away.",
+    "",
+    "THE 22:00 END IS DERIVED, NOT GIVEN. The council sent opening times only —",
+    "12:00, 14:00, 17:00, each written as an open-ended `12:00-`. A window needs",
+    "both bounds, and `hours: []` would print 상시 운영 at 3 a.m., so the end is",
+    "taken from where the day it gates actually ends: the 2일차 timetable's last",
+    "block is 17:30-22:00. Ask the council to confirm it, and correct it here —",
+    "this is the one number in these three entries nobody surveyed.",
+    "",
+    "Distribution is 2일차 (10. 2.) ONLY; 1일차 is 짐 검사 alone. That is why each",
+    "booth carries one window rather than two. The 성균인 booth's 단체 (12:00-14:00)",
+    "and 개별 (14:00-) split is deliberately NOT two windows: they are contiguous,",
+    "so the client would render 12:00-14:00 / 14:00-22:00 with nothing to say which",
+    "is which — a window carries no label. The webview explains the split.",
+    "",
+    "The council wrote that a 티켓 부스 already existed here under another name.",
+    "It did not — 팔찌/티켓/매표/발권 matched nothing in this repository. What they",
+    "saw was almost certainly the 부스 chip's 🎫, which now belongs to 입장 instead."
   ],
   "places": [
     {
@@ -1476,8 +1500,8 @@
         "en": "Restricted entry zone"
       },
       "subtitle": {
-        "ko": "총학생회 통제",
-        "en": "Student council control"
+        "ko": "기숙사 사생 외 전관 출입 금지",
+        "en": "Dormitories closed to non-residents"
       },
       "fields": [
         {
@@ -1521,8 +1545,8 @@
         "en": "Vehicle restricted zone"
       },
       "subtitle": {
-        "ko": "총학생회 통제",
-        "en": "Student council control"
+        "ko": "축제 기간 차량 통행 통제",
+        "en": "Closed to vehicles during the festival"
       },
       "fields": [
         {
@@ -1544,6 +1568,85 @@
           ]
         ]
       }
+    },
+
+    {
+      "id": "wristband-skku",
+      "category": "entry",
+      "lat": 37.29334676628425,
+      "lng": 126.97450900242458,
+      "title": {
+        "ko": "성균인 팔찌 배부 부스",
+        "en": "Wristband pickup — SKKU"
+      },
+      "subtitle": "학생증·신분증 지참 필수",
+      "actions": [
+        {
+          "id": "wristband",
+          "label": "팔찌 배부 안내",
+          "actionType": "external",
+          "actionValue": "https://eskara.miniapp.skkuverse.com/eskara/wristband"
+        }
+      ],
+      "hours": [
+        {
+          "startAt": "2026-10-02T12:00:00+09:00",
+          "endAt": "2026-10-02T22:00:00+09:00"
+        }
+      ],
+      "order": 94
+    },
+    {
+      "id": "wristband-alumni",
+      "category": "entry",
+      "lat": 37.29356082909974,
+      "lng": 126.9748190748319,
+      "title": {
+        "ko": "동문 팔찌 배부 부스",
+        "en": "Wristband pickup — alumni"
+      },
+      "subtitle": "신분증 지참 필수 · 동문 전용",
+      "actions": [
+        {
+          "id": "wristband",
+          "label": "팔찌 배부 안내",
+          "actionType": "external",
+          "actionValue": "https://eskara.miniapp.skkuverse.com/eskara/wristband"
+        }
+      ],
+      "hours": [
+        {
+          "startAt": "2026-10-02T14:00:00+09:00",
+          "endAt": "2026-10-02T22:00:00+09:00"
+        }
+      ],
+      "order": 95
+    },
+    {
+      "id": "wristband-guest",
+      "category": "entry",
+      "lat": 37.293322079868375,
+      "lng": 126.9749403923806,
+      "title": {
+        "ko": "외부인 팔찌 배부 부스",
+        "en": "Wristband pickup — guests"
+      },
+      "subtitle": "티켓 확인 후 팔찌 교환",
+      "actions": [
+        {
+          "id": "wristband",
+          "label": "팔찌 배부 안내",
+          "actionType": "external",
+          "actionValue": "https://eskara.miniapp.skkuverse.com/eskara/wristband"
+        }
+      ],
+      "hours": [
+        {
+          "startAt": "2026-10-02T17:00:00+09:00",
+          "endAt": "2026-10-02T22:00:00+09:00"
+        }
+      ],
+      "order": 96
     }
   ]
 }
