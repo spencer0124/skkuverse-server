@@ -2,9 +2,29 @@
   "layerSetId": "eskara-2026",
   "campus": "nsc",
   "_readme": [
-    "VERIFICATION DATASET, not authored 2026 content. Every name is the real 2025",
-    "ESKARA line-up, mapped onto the surveyed plots; the 2026 line-up replaces this",
-    "file wholesale and the importer is unchanged.",
+    "VERIFICATION DATASET, not authored 2026 content — EXCEPT the facility block.",
+    "Every booth, bar and truck name is the real 2025 ESKARA line-up, mapped onto",
+    "the surveyed plots; the 2026 line-up replaces those wholesale and the importer",
+    "is unchanged.",
+    "",
+    "THE FACILITY BLOCK IS REAL 2026 DATA. The nine 화장실 and the one 야간 자인",
+    "셔틀 대기 point were surveyed by the 총학생회 and handed over on 2026-09-19;",
+    "they are the only authored coordinates in this file. The placeholder toilets",
+    "they replaced sat on one interpolated line ~5 m apart, so every one of them was",
+    "wrong. Each new point was checked against the SKKU campus API (campusMap.do,",
+    "campusCd=2): the nearest building is the one the label names, 6-29 m away for",
+    "the seven that name a building.",
+    "",
+    "The council handed over three shuttle queue points and corrected two of them",
+    "the same day: 제1과학관 and 제2과학관 are 화장실, not queue points, and only",
+    "복지회관 앞 is a queue. Nothing moved — toilet-sci1 and toilet-sci2 carry the",
+    "surveyed coordinates unchanged; what changed is what they are.",
+    "",
+    "The shuttle queue point carries `hours: []` because the council sent a POSITION",
+    "ONLY. It is night-only in reality, so that empty list is the one place this",
+    "file stretches the rule below — fill `hours` the moment the 2026 dates and the",
+    "night shuttle timetable are confirmed, in the same edit that retires the 2025",
+    "line-up.",
     "",
     "ONE ENTRY PER PLACE. A booth open on both festival days is one entry with two",
     "windows in `hours` — never two entries. The previous format had a `days: [1,2]`",
@@ -30,7 +50,23 @@
     "point apiece; the `b` of each pair now sits a quarter of the strip's own step",
     "(~1.3 m) along it. Two places may share a coordinate only when their windows are",
     "disjoint — the strip really is re-striped from day booths to night bars — and a",
-    "test enforces exactly that."
+    "test enforces exactly that.",
+    "",
+    "THE TWO CONTROL ZONES ARE REAL 2026 DATA, and the first `geometry` entries in",
+    "this file. The 총학생회 handed over 13 points for 진입 통제구역 and 4 for 차량",
+    "통제구역 on 2026-09-20, with one instruction: connect each zone's points in the",
+    "order given. Both are closed rings — the 진입 ring's first and last points sit",
+    "14 m apart and the 차량 ring's 175 m, so neither arrived closed and both are",
+    "closed here by repeating the first position. Neither ring self-intersects.",
+    "They are thin corridors along campus roads, not areas enclosing booths:",
+    "exactly ONE existing place falls inside 진입 통제구역 and none inside 차량",
+    "통제구역, which is why they are left tappable instead of made backdrops — a",
+    "zone that swallows no taps may as well carry the sheet that explains it.",
+    "",
+    "The council also sent one rule with NO coordinates — 기숙사 사생 외 모든 인원의",
+    "기숙사 전관 출입 금지. It rides 진입 통제구역's `fields`, because a tappable",
+    "zone's sheet is the only place on this map that can carry a sentence. Move it",
+    "the moment there is a better home for it."
   ],
   "places": [
     {
@@ -1269,40 +1305,121 @@
       "order": 100
     },
     {
-      "id": "toilet-bioeng",
+      "id": "toilet-newgate",
       "category": "facility",
-      "lat": 37.295045,
-      "lng": 126.971331,
-      "title": "화장실 (생명공학관)",
+      "lat": 37.295897,
+      "lng": 126.971446,
+      "title": {
+        "ko": "화장실 (신관게이트)",
+        "en": "Restroom (Singwan Gate)",
+        "zh": "洗手间（新馆门）"
+      },
       "hours": [],
       "order": 101
     },
     {
-      "id": "toilet-welfare",
+      "id": "toilet-bar",
       "category": "facility",
-      "lat": 37.294997,
-      "lng": 126.971321,
-      "title": "화장실 (복지회관)",
+      "lat": 37.29463,
+      "lng": 126.970496,
+      "title": {
+        "ko": "화장실 (주점 구역)",
+        "en": "Restroom (bar zone)",
+        "zh": "洗手间（酒馆区）"
+      },
       "hours": [],
       "order": 102
     },
     {
       "id": "toilet-rotc",
       "category": "facility",
-      "lat": 37.294949,
-      "lng": 126.971311,
-      "title": "화장실 (학군단 1층)",
+      "lat": 37.294445,
+      "lng": 126.971788,
+      "title": {
+        "ko": "화장실 (학군단 건물 내)",
+        "en": "Restroom (inside the ROTC building)",
+        "zh": "洗手间（学军团楼内）"
+      },
       "hours": [],
       "order": 103
     },
     {
-      "id": "toilet-field",
+      "id": "toilet-welfare",
       "category": "facility",
-      "lat": 37.294901,
-      "lng": 126.971301,
-      "title": "화장실 (대운동장 남서)",
+      "lat": 37.294007,
+      "lng": 126.972575,
+      "title": {
+        "ko": "화장실 (복지회관)",
+        "en": "Restroom (Welfare Hall)",
+        "zh": "洗手间（福利会馆）"
+      },
       "hours": [],
       "order": 104
+    },
+    {
+      "id": "toilet-union",
+      "category": "facility",
+      "lat": 37.294073,
+      "lng": 126.973604,
+      "title": {
+        "ko": "화장실 (학생회관)",
+        "en": "Restroom (Student Union Hall)",
+        "zh": "洗手间（学生会馆）"
+      },
+      "hours": [],
+      "order": 105
+    },
+    {
+      "id": "toilet-bioeng",
+      "category": "facility",
+      "lat": 37.295796,
+      "lng": 126.973764,
+      "title": {
+        "ko": "화장실 (생명공학관)",
+        "en": "Restroom (Bioengineering Hall)",
+        "zh": "洗手间（生命工学馆）"
+      },
+      "hours": [],
+      "order": 106
+    },
+    {
+      "id": "toilet-basic",
+      "category": "facility",
+      "lat": 37.295323,
+      "lng": 126.974204,
+      "title": {
+        "ko": "화장실 (기초학문관)",
+        "en": "Restroom (Basic Studies Hall)",
+        "zh": "洗手间（基础学问馆）"
+      },
+      "hours": [],
+      "order": 107
+    },
+    {
+      "id": "toilet-sci2",
+      "category": "facility",
+      "lat": 37.294846,
+      "lng": 126.974593,
+      "title": {
+        "ko": "화장실 (제2과학관)",
+        "en": "Restroom (Science Hall 2)",
+        "zh": "洗手间（第二科学馆）"
+      },
+      "hours": [],
+      "order": 108
+    },
+    {
+      "id": "toilet-sci1",
+      "category": "facility",
+      "lat": 37.294436,
+      "lng": 126.974565,
+      "title": {
+        "ko": "화장실 (제1과학관)",
+        "en": "Restroom (Science Hall 1)",
+        "zh": "洗手间（第一科学馆）"
+      },
+      "hours": [],
+      "order": 109
     },
     {
       "id": "medical",
@@ -1311,7 +1428,7 @@
       "lng": 126.971281,
       "title": "의무실 / 응급 부스",
       "hours": [],
-      "order": 105
+      "order": 110
     },
     {
       "id": "barrierfree",
@@ -1329,7 +1446,104 @@
           "style": "secondary"
         }
       ],
-      "order": 106
+      "order": 111
+    },
+
+    {
+      "id": "shuttle-queue-welfare",
+      "category": "facility",
+      "lat": 37.293968,
+      "lng": 126.972981,
+      "title": {
+        "ko": "야간 자인셔틀 대기 (복지회관 앞)",
+        "en": "Night JAIN shuttle queue (Welfare Hall)",
+        "zh": "夜间自仁班车候车处（福利会馆）"
+      },
+      "subtitle": {
+        "ko": "자과캠 → 인사캠",
+        "en": "NSC → HSSC",
+        "zh": "自然校区 → 人文校区"
+      },
+      "hours": [],
+      "order": 112
+    },
+
+    {
+      "id": "control-entry",
+      "category": "control_entry",
+      "title": {
+        "ko": "진입 통제구역",
+        "en": "Restricted entry zone"
+      },
+      "subtitle": {
+        "ko": "총학생회 통제",
+        "en": "Student council control"
+      },
+      "fields": [
+        {
+          "label": "안내",
+          "value": "통제선 안쪽은 진입이 제한됩니다."
+        },
+        {
+          "label": "기숙사",
+          "value": "기숙사 사생 외 모든 인원의 기숙사 전관 출입이 금지됩니다."
+        }
+      ],
+      "hours": [],
+      "order": 200,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [126.97147536130258, 37.293005932339945],
+            [126.9715879285493, 37.29356910796036],
+            [126.97236050031655, 37.293488197503216],
+            [126.97252939227461, 37.29425186617639],
+            [126.97154818922115, 37.294276412911906],
+            [126.97057259036363, 37.29438880406379],
+            [126.97080033213791, 37.29604451664774],
+            [126.9715052582971, 37.29596810029006],
+            [126.97157287157368, 37.29611904028839],
+            [126.9705436608196, 37.29627196494881],
+            [126.97030480699236, 37.2942062770862],
+            [126.97151723816175, 37.29410746092993],
+            [126.97132028415456, 37.29302166302564],
+            [126.97147536130258, 37.293005932339945]
+          ]
+        ]
+      }
+    },
+    {
+      "id": "control-vehicle",
+      "category": "control_vehicle",
+      "title": {
+        "ko": "차량 통제구역",
+        "en": "Vehicle restricted zone"
+      },
+      "subtitle": {
+        "ko": "총학생회 통제",
+        "en": "Student council control"
+      },
+      "fields": [
+        {
+          "label": "안내",
+          "value": "축제 기간 해당 구간의 차량 통행이 통제됩니다."
+        }
+      ],
+      "hours": [],
+      "order": 201,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [126.97061696860364, 37.296276488356554],
+            [126.97069584306522, 37.29646797831636],
+            [126.97257946587712, 37.29611927776948],
+            [126.97255977946416, 37.29597961243268],
+            [126.97061696860364, 37.296276488356554]
+          ]
+        ]
+      }
     }
   ]
 }
