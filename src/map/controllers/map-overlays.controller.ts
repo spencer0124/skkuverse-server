@@ -62,4 +62,24 @@ export class MapOverlaysController {
     res.set("Cache-Control", "public, max-age=60");
     sendSuccess(req, res, data);
   }
+
+  /**
+   * GET /map/overlays/event/details
+   *
+   * The sheet body behind each event pin — a menu, photos, an operator — keyed
+   * by the overlay's `tap.placeId`. Split from `event` rather than folded into
+   * it because only the sheet reads it: the map, the list and the collision
+   * ladder would otherwise download every menu to draw pins.
+   *
+   * Under this prefix on purpose, so the `map/overlays` rate limit in
+   * MapModule covers it with no new entry — a forgotten entry there leaves a
+   * route unthrottled. Same TTL and same gate as `event`, so an ops correction
+   * to a menu is live on the same minute as one to a pin.
+   */
+  @Get("event/details")
+  async eventDetails(@Req() req: Request, @Res() res: Response): Promise<void> {
+    const data = await this.map.getEventPlaceDetails();
+    res.set("Cache-Control", "public, max-age=60");
+    sendSuccess(req, res, data);
+  }
 }

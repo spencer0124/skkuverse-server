@@ -1,6 +1,6 @@
 /**
  * The /map HTTP surface — integration over MapConfigController and
- * MapOverlaysController (3 endpoints, caching, i18n labels).
+ * MapOverlaysController (4 endpoints, caching, i18n labels).
  *
  * MapService is overridden with a stub so the controllers' envelope/meta wiring
  * is exercised without the real data modules (no DB, no config coupling).
@@ -25,6 +25,7 @@ let svc: {
   getMapConfig: jest.Mock;
   getCampusOverlays: jest.Mock;
   getEventOverlays: jest.Mock;
+  getEventPlaceDetails: jest.Mock;
 };
 
 beforeAll(async () => {
@@ -32,6 +33,7 @@ beforeAll(async () => {
     getMapConfig: jest.fn(),
     getCampusOverlays: jest.fn(),
     getEventOverlays: jest.fn(),
+    getEventPlaceDetails: jest.fn(),
   };
   app = await buildMapApp([
     { provide: MapService, useValue: svc },
@@ -201,6 +203,53 @@ describe("GET /map/overlays/event", () => {
     expect(res.status).toBe(200);
     expect(svc.getEventOverlays).toHaveBeenCalled();
     expect(svc.getCampusOverlays).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /map/overlays/event/details", () => {
+  it("wraps the details in the envelope, on the event route's TTL", async () => {
+    const data = {
+      details: {
+        "eskara-2026-truck-x": {
+          placeId: "eskara-2026-truck-x",
+          kind: "foodTruck",
+          org: null,
+          isUnion: false,
+          locationLabel: null,
+          actions: [],
+          blocks: [
+            {
+              type: "table",
+              id: "menu",
+              title: null,
+              rows: [{ label: { ko: "닭꼬치", en: "닭꼬치" }, value: { ko: "5,000원", en: "5,000원" } }],
+            },
+          ],
+        },
+      },
+    };
+    svc.getEventPlaceDetails.mockResolvedValue(data);
+
+    const res = await request(httpServer).get("/map/overlays/event/details");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ meta: { lang: "ko" }, data });
+    // The same minute as the pins, so a menu correction lands with a pin one.
+    expect(res.headers["cache-control"]).toBe("public, max-age=60");
+    expect(res.headers["x-response-time"]).toMatch(/ms$/);
+  });
+
+  it("is its own route: neither sibling answers for the other", async () => {
+    svc.getEventPlaceDetails.mockResolvedValue({ details: {} });
+    svc.getEventOverlays.mockResolvedValue({ overlays: [] });
+
+    await request(httpServer).get("/map/overlays/event/details");
+    expect(svc.getEventPlaceDetails).toHaveBeenCalledTimes(1);
+    expect(svc.getEventOverlays).not.toHaveBeenCalled();
+
+    await request(httpServer).get("/map/overlays/event");
+    expect(svc.getEventOverlays).toHaveBeenCalledTimes(1);
+    expect(svc.getEventPlaceDetails).toHaveBeenCalledTimes(1);
   });
 });
 

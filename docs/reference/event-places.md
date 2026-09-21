@@ -3,7 +3,7 @@ title: Event Places — Storage, Authoring and Operations
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-08-29
+last-updated: 2026-09-22
 audience: internal
 ---
 
@@ -18,7 +18,7 @@ audience: internal
 | | |
 | --- | --- |
 | Collections | `places`, `activations` (database: `MONGO_EVENTMAP_DB_NAME`) |
-| Served by | `GET /map/overlays/event` and `GET /map/config` — there is no `/eventmap` route |
+| Served by | `GET /map/overlays/event`, `GET /map/overlays/event/details` and `GET /map/config` — there is no `/eventmap` route |
 | Authored by | `scripts/data/<layerSetId>-places.json` → `npm run eventmap:import` |
 | Switched by | `npm run eventmap -- open\|close` |
 | Structure tier | `src/map/config/<layerSetId>.json` — layers, chips, category table |
@@ -54,6 +54,7 @@ interface MapPlaceDoc {
   fields: { label: I18n; value: I18n }[];    // ordered card rows
   actions: PlaceAction[];
   order: number;
+  detail?: PlaceDetailDoc | null;            // the sheet body — see §5.3
   updatedAt: Date;
 }
 ```
@@ -168,6 +169,61 @@ One file per layer set: `scripts/data/<layerSetId>-places.json`.
   config; an importer holding its own copy would disagree with the server the moment it changed. The
   projection resolves at serve time, and drops a button it cannot resolve.
 
+### 5.3 A place's `detail` — the sheet body
+
+What a tapped place's sheet shows beyond its pin: an operator, a menu, photos, notices. Served on its
+own route, `GET /map/overlays/event/details` ([map-overlays-api.md §5.4](map-overlays-api.md)), never on
+the overlay. The shape is the app's `PlaceDetail` — a typed head and an ordered list of blocks the
+author composes — declared in `src/map/map-place-detail.types.ts`.
+
+```json
+{
+  "id": "truck-oyabong", "category": "food", "lat": 37.29542, "lng": 126.971501, "order": 20,
+  "title": "오야봉", "subtitle": "야끼소바 · 오꼬노미야끼",
+  "detail": {
+    "kind": "foodTruck",
+    "blocks": [
+      { "type": "table", "id": "menu", "rows": [{ "label": "소고기 야끼소바", "value": "11,000원" }] },
+      {
+        "type": "image", "id": "photo-1", "caption": "소고기 야끼소바",
+        "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-oyabong/01-9961d281.jpg"
+      }
+    ]
+  }
+}
+```
+
+The reader is **strict here**, unlike its tolerance for unknown keys elsewhere: a misspelled optional
+key (`captoin`) would otherwise import clean and render as nothing. Absent optional values become an
+explicit `null` (`isUnion`: `false`), never `undefined` — a stored `undefined` comes back as `null` and
+would re-diff on every import.
+
+| Key | Rule |
+| --- | --- |
+| `kind` | required; one of `pub`, `booth`, `promo`, `foodTruck`, `goods`, `facility`, `stage`, `etc`. Closed in the app, so a new one ships there first |
+| `org`, `locationLabel` | optional text |
+| `isUnion` | optional real boolean; default `false` |
+| `blocks[]` | `id` unique within the place; `type` one of `text` (`body`), `list` (`items[]`: `emoji?`, `title`, `description?`), `table` (`rows[]`: `label`, `value`), `image` (`url`, `caption?`), `notice` (`items[]` of text); every block takes an optional `title`; lists non-empty |
+| `image.url` | on `https://media.skkuverse.com` only (`MEDIA_ORIGIN`) — see below |
+| `actions[]` | `id` unique; `link` (`label`, absolute https `url`) or `instagram` (`label`, `profileUrl` = `https://www.instagram.com/<username>`, `postUrl` = a `/p/`, `/reel/` or `/reels/` link or `null`); at most one `instagram` |
+
+A bad detail rejects its whole place, the same verdict every other field gets.
+
+- **Put the first `table` first when it is the point.** The app lifts the first table into the
+  collapsed card and uses the first `image` as its hero, so a truck opens on its menu.
+- **Photos live in the R2 media bucket**, `skkuverse-media`, served at `https://media.skkuverse.com`.
+  The reader checks only the URL's text and never fetches it, so **upload before you import** — an
+  imported key with no object behind it is a blank image on every phone. Keys carry a hash of the
+  content (`<layerSetId>/<purpose>/<placeId>/<nn>-<sha256[:8]>.jpg`) and are uploaded with
+  `Cache-Control: public, max-age=31536000, immutable`, so an object is **never overwritten**: a
+  replaced photo is a new key, a new URL, and no device or edge ever holds a stale copy.
+
+  ```bash
+  npx wrangler@4 r2 object put skkuverse-media/<key> --file <photo.jpg> --remote \
+    --content-type image/jpeg --cache-control "public, max-age=31536000, immutable"
+  curl -sI https://media.skkuverse.com/<key>   # 200, image/jpeg
+  ```
+
 ### 5.1 The old keys fail loudly
 
 `days`, `slot`, `startOffsetMin`, `endOffsetMin`, `hoursLabel`, `lifecycle`, `placeId`, the tenant
@@ -204,6 +260,10 @@ missing booths are invisible and the ones that made it look authoritative.
 
 `--delete-missing` really deletes — there is no `lifecycle: "retired"` to fall back on. It is opt-in
 because a truncated sheet plus an automatic delete is how a festival disappears mid-afternoon.
+
+The first import after `detail` shipped reports **every** place as updated, once: the stored documents
+have no `detail` key and the reader now writes `null`. That is the only time an unchanged sheet
+rewrites `updatedAt`.
 
 ### 6.1.1 The one-time cutover from the pre-collapse schema
 
@@ -305,6 +365,8 @@ the source IP, not a client TLS fault. Two causes, and they look identical:
 | Stored documents | `src/map/map-places.types.ts` |
 | I/O + indexes | `src/map/map-places.data.ts` (no `seedIfEmpty` — there is no sensible default event) |
 | Places → map overlays | `src/map/map-event-overlays.data.ts` — see [map-overlays-api.md](map-overlays-api.md) |
+| Places → sheet details | `src/map/map-event-details.data.ts`, shape in `src/map/map-place-detail.types.ts` |
+| Media host rule | `MEDIA_ORIGIN` in `src/infra/origins.ts`, `src/infra/media-url.ts` |
 | Live layer set + usable config | `src/map/map-active-layerset.ts` |
 | Structure load + validation | `src/map/map-layerset.config.ts` |
 | Structure types, `presentationFor` | `src/map/map-layerset.types.ts` |

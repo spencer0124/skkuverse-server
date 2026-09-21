@@ -41,6 +41,10 @@ const COMPARED_FIELDS = [
   "fields",
   "actions",
   "order",
+  // Easy to forget and silent when forgotten: a field missing here is still
+  // written for a NEW place, but an edit that changes only this field reads as
+  // "unchanged" and never lands.
+  "detail",
 ];
 
 /**

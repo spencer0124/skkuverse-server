@@ -3,7 +3,7 @@ title: The Map Module, In Reading Order
 type: explanation
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-08-31
+last-updated: 2026-09-22
 audience: internal
 ---
 
@@ -91,8 +91,8 @@ Three thin files. Read them to learn what exists, then stop thinking about them;
 logic on purpose.
 
 - **`map.module.ts`** — the endpoint list and the rate limiter. The only file that shows the module's
-  full surface in one screen: three endpoints across two prefixes, `/map/config` and
-  `/map/overlays/{campus,event}`. It imports `BuildingModule`, because the campus overlay path reaches
+  full surface in one screen: four endpoints across two prefixes, `/map/config`,
+  `/map/overlays/{campus,event}` and `/map/overlays/event/details`. It imports `BuildingModule`, because the campus overlay path reaches
   into the building feature for both its buildings and its `campus_shapes`. There is no poller: the
   feature is purely HTTP.
 - **`controllers/`** — HTTP concerns only. Worth one careful read for the caching, which is where the
@@ -288,7 +288,14 @@ underneath them.
   booth. `kind` is derived from the stored `geometry.type` rather than stored beside it, because a
   second field saying the same thing could disagree with the first.
 
-Both producers pass Point and LineString geometry through **by reference**. Only a polygon's rings are
+- **`map-event-details.data.ts`** — the same documents again, projected into the sheet body a tapped
+  pin opens rather than into overlays. A separate route because only the sheet reads it. It reuses the
+  overlay producer's `toWire` and `isRenderable`, so text and "is this place servable" are decided in one
+  place, and re-checks every block and URL it serves: the importer already refused a bad detail, so
+  these checks exist for a hand edit in Mongo, where one block missing its body would otherwise throw
+  out of `toWire` and 500 every sheet.
+
+Both overlay producers pass Point and LineString geometry through **by reference**. Only a polygon's rings are
 touched, and only to normalise winding.
 
 ## 8. Why the reading order is the import order
@@ -330,6 +337,7 @@ happens once, at process start, and never again.
 | per request | Layer and chip lists built, labels resolved to `meta.lang` | — |
 | per request | Places scanned by `layerSetId` and projected to overlays | Unrenderable rows skipped and counted in the log |
 | per request | Polygon rings normalised to RFC 7946 winding | — (a degenerate ring is left alone) |
+| per request | Place details projected; blocks, actions and image hosts re-checked | One block, one action or one detail dropped and named in the log |
 
 The pattern behind that table: **fail loud where a PR fixes it, fail soft where content broke, and
 never fail the request.** The building layers must survive a typo in an ops spreadsheet.
@@ -353,6 +361,8 @@ The practical index. The last column is section 3's ownership split, applied.
 | Add a permanent, off-season chip | `map-chips.data.ts` → `BASE_CHIPS` | Yes |
 | Bring the bus route lines back | Give them `campus_shapes` documents with LineString geometry | No |
 | Change how a pin is drawn (size, z-index) | `map-layers.data.ts` → `BASE_LAYERS[].style` or `EVENT_LAYER_STYLE` | No — the client reads these as of app `ced0352` |
+| Change a place's menu, photos or notices | upload new photos to R2 first, then the sheet's `detail` → `npm run eventmap:import` | No |
+| Add a detail block type | `map-place-detail.types.ts`, the importer's copy, the details producer, a client renderer | Yes, plus an app release to draw it — older builds drop it |
 | Add a field to every overlay | `map-overlay.types.ts`, then **every** producer | Yes, plus an app release |
 | Add a new overlay kind (circle, ground image) | A `MapOverlay` arm, a producer branch, a client renderer | Yes, plus an app release |
 
@@ -373,6 +383,9 @@ test is often faster than reading the file it covers.
 | `map-chips.test.ts`, `map-chips-wire.test.ts` | The chip group rules, reset chip synthesis, spec → wire projection |
 | `map-active-layerset.test.ts`, `map-window.test.ts` | The chokepoint, and window arithmetic including null bounds |
 | `map-event-overlays.test.ts`, `map-overlay-coordinates.test.ts` | Projection, the unrenderable-row skip, `[lng, lat]` ordering |
+| `map-event-details.test.ts` | The detail projection, every fail-soft drop, and the committed sheet served whole through both producers |
+| `map-place-detail-import.test.ts` | The detail reader's rejections, the importer's copies agreeing with the server, the trucks' menu-first shape |
+| `eventmap-db.test.ts` | The import diff: a detail-only edit is written, an unchanged re-import writes nothing |
 | `map-campus-overlays.test.ts` | Both building layers from one call, campus geometry beside them, the degraded fallback |
 | `map-geometry.test.ts` | Winding and closure — the one guarantee Mongo does not give |
 | `map-overlay-interactive.test.ts` | `interactive: false` → `tap: null`, one layer holding both |

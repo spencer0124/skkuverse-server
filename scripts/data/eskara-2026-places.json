@@ -2,10 +2,10 @@
   "layerSetId": "eskara-2026",
   "campus": "nsc",
   "_readme": [
-    "VERIFICATION DATASET, not authored 2026 content — EXCEPT the facility block.",
-    "Every booth, bar and truck name is the real 2025 ESKARA line-up, mapped onto",
-    "the surveyed plots; the 2026 line-up replaces those wholesale and the importer",
-    "is unchanged.",
+    "VERIFICATION DATASET, not authored 2026 content — EXCEPT the facility block",
+    "and the food trucks. Every booth and bar name is the real 2025 ESKARA",
+    "line-up, mapped onto the surveyed plots; the 2026 line-up replaces those",
+    "wholesale and the importer is unchanged.",
     "",
     "THE FACILITY BLOCK IS REAL 2026 DATA. The nine 화장실 and the one 야간 자인",
     "셔틀 대기 point were surveyed by the 총학생회 and handed over on 2026-09-19;",
@@ -121,7 +121,29 @@
     "stated rather than hidden. The 기숙사 sentence is now the entry zone's",
     "`subtitle`, and a subtitle reaches a screen only through the place's sheet —",
     "so on the map it is reachable through the event list's row alone, and not",
-    "at all once that list shows only tappable places."
+    "at all once that list shows only tappable places.",
+    "",
+    "THE 17 FOOD TRUCKS ARE REAL 2026 DATA, handed over by the 총학생회 on",
+    "2026-09-22 as a vendor list (업체명 and one 메뉴/가격 cell each) and 48 menu",
+    "photos from the vendor's agency (뉴플레이스컴퍼니). Each truck carries a",
+    "`detail`: its menu as a table, split by hand from the free-text cell with every",
+    "price kept exactly as written, then one image block per photo. The photos",
+    "live on media.skkuverse.com (R2), cropped of the template's white band and",
+    "drop shadow and re-encoded at a 1280 px long edge; each key carries a hash of",
+    "its content, so a replaced photo is a new URL and never an overwrite.",
+    "",
+    "Ids are VENDOR slugs (`truck-oyabong`), not plot numbers. The plot",
+    "assignment was not given, so the 17 surveyed truck plots are reused in the",
+    "list's 순번 order as placeholders — when the assignment arrives only",
+    "`lat`/`lng` move, not a detail full of that vendor's photo URLs.",
+    "",
+    "NOT GIVEN, AND PLACEHOLDERS HERE: which truck stands on which plot; the",
+    "운영 시간 (11:00-23:00 is the 2025 trucks' window moved onto 10/1-10/2); the",
+    "council's Instagram post link. 다모아푸드 is 10/1 only and 판판마라 10/2 only,",
+    "per the list. Names follow the council's list where the photo folders spell",
+    "them differently (오야붕, 써니플, 피꼬브로, 팬팬마라). 우마이식당's salmon photo",
+    "is filed as 크림연어초밥 but the list sells 생연어초밥 — captioned per the list.",
+    "제이푸드's 크레페메뉴판 photo is NOT published: its prices contradict the list."
   ],
   "places": [
     {
@@ -215,327 +237,1016 @@
       "order": 12
     },
     {
-      "id": "truck-01",
+      "id": "truck-oyabong",
       "category": "food",
       "lat": 37.29542,
       "lng": 126.971501,
-      "title": "인사이더",
-      "subtitle": "푸드트럭 1",
+      "title": "오야봉",
+      "subtitle": "야끼소바 · 오꼬노미야끼",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "소고기 야끼소바",
+                "value": "11,000원"
+              },
+              {
+                "label": "소고기 불 야끼소바",
+                "value": "12,000원"
+              },
+              {
+                "label": "해물 오꼬노미야끼",
+                "value": "11,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-oyabong/01-9961d281.jpg",
+            "caption": "소고기 야끼소바"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-oyabong/02-187b17a7.jpg",
+            "caption": "소고기 불 야끼소바"
+          },
+          {
+            "type": "image",
+            "id": "photo-3",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-oyabong/03-cbe048ee.jpg",
+            "caption": "해물 오꼬노미야끼"
+          }
+        ]
+      },
       "order": 20
     },
     {
-      "id": "truck-02",
+      "id": "truck-umai",
       "category": "food",
       "lat": 37.29538,
       "lng": 126.971492,
-      "title": "더머거",
-      "subtitle": "푸드트럭 2",
+      "title": "우마이식당",
+      "subtitle": "불초밥 · 연어초밥",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "소고기 불초밥 (8pcs)",
+                "value": "10,000원"
+              },
+              {
+                "label": "생연어초밥 (8pcs)",
+                "value": "12,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-umai/01-09e23406.jpg",
+            "caption": "소고기 불초밥"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-umai/02-fd8ddc99.jpg",
+            "caption": "생연어초밥"
+          }
+        ]
+      },
       "order": 21
     },
     {
-      "id": "truck-03",
+      "id": "truck-bossdak",
       "category": "food",
       "lat": 37.29534,
       "lng": 126.971484,
-      "title": "천하제일관",
-      "subtitle": "푸드트럭 3",
+      "title": "보스닭",
+      "subtitle": "닭강정",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "닭강정 (후라이드/양념/마늘간장)",
+                "value": "10,000원 / 15,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-bossdak/01-25343d3b.jpg",
+            "caption": "닭강정 (후라이드)"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-bossdak/02-96c2e608.jpg",
+            "caption": "닭강정 (양념)"
+          },
+          {
+            "type": "image",
+            "id": "photo-3",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-bossdak/03-4e11b96a.jpg",
+            "caption": "닭강정 (마늘간장)"
+          }
+        ]
+      },
       "order": 22
     },
     {
-      "id": "truck-04",
+      "id": "truck-paradise-coffee",
       "category": "food",
       "lat": 37.2953,
       "lng": 126.971476,
-      "title": "러키비키",
-      "subtitle": "푸드트럭 4",
+      "title": "파라다이스 커피",
+      "subtitle": "커피 · 음료",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "커피 & 음료",
+                "value": "3,500~7,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-paradise-coffee/01-8c2a408f.jpg",
+            "caption": "아메리카노"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-paradise-coffee/02-27b643d9.jpg",
+            "caption": "음료"
+          }
+        ]
+      },
       "order": 23
     },
     {
-      "id": "truck-06",
+      "id": "truck-jungwoo-kkochi",
       "category": "food",
       "lat": 37.295221,
       "lng": 126.971459,
-      "title": "밀키웨이",
-      "subtitle": "푸드트럭 6",
+      "title": "정우꼬치 맛있는꼬치",
+      "subtitle": "닭꼬치",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "order": 25
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "닭꼬치 (소금/데리야끼/스파이시)",
+                "value": "5,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-jungwoo-kkochi/01-a36e06ff.jpg",
+            "caption": "닭꼬치"
+          }
+        ]
+      },
+      "order": 24
     },
     {
-      "id": "truck-07",
+      "id": "truck-myeongpum-hanip",
       "category": "food",
       "lat": 37.295181,
       "lng": 126.971451,
-      "title": "택이네",
-      "subtitle": "푸드트럭 7",
+      "title": "명품한입",
+      "subtitle": "타코야끼 · 소떡소떡",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "order": 26
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "타코야끼 (오리지날/치즈/갈릭/명란/청양)",
+                "value": "5,000~6,000원"
+              },
+              {
+                "label": "불닭세트",
+                "value": "10,000원"
+              },
+              {
+                "label": "소떡소떡",
+                "value": "4,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-myeongpum-hanip/01-970ace35.jpg",
+            "caption": "타코야끼"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-myeongpum-hanip/02-159b5d93.jpg",
+            "caption": "불닭세트"
+          },
+          {
+            "type": "image",
+            "id": "photo-3",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-myeongpum-hanip/03-ce1fb53a.jpg",
+            "caption": "소떡소떡"
+          }
+        ]
+      },
+      "order": 25
     },
     {
-      "id": "truck-08",
+      "id": "truck-toktok-pangpang",
       "category": "food",
       "lat": 37.295141,
       "lng": 126.971442,
-      "title": "만수무강",
-      "subtitle": "푸드트럭 8",
+      "title": "톡톡팡팡",
+      "subtitle": "구슬아이스크림",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "order": 27
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "구슬아이스크림 싱글",
+                "value": "4,000원"
+              },
+              {
+                "label": "구슬아이스크림 더블",
+                "value": "7,000원"
+              },
+              {
+                "label": "구슬아이스크림 전체",
+                "value": "10,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-toktok-pangpang/01-03e30884.jpg",
+            "caption": "구슬아이스크림 싱글"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-toktok-pangpang/02-08b355aa.jpg",
+            "caption": "구슬아이스크림 더블"
+          },
+          {
+            "type": "image",
+            "id": "photo-3",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-toktok-pangpang/03-ffabfa4d.jpg",
+            "caption": "구슬아이스크림 전체"
+          }
+        ]
+      },
+      "order": 26
     },
     {
-      "id": "truck-09",
+      "id": "truck-huimang-churros",
       "category": "food",
       "lat": 37.295101,
       "lng": 126.971434,
-      "title": "미식유랑단",
-      "subtitle": "푸드트럭 9",
+      "title": "희망츄러스",
+      "subtitle": "츄러스 · 아이스크림",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "order": 28
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "츄러스",
+                "value": "4,000원"
+              },
+              {
+                "label": "회오리감자",
+                "value": "5,000원"
+              },
+              {
+                "label": "소프트아이스크림",
+                "value": "4,000원"
+              },
+              {
+                "label": "젤라또아이스크림",
+                "value": "5,000원"
+              },
+              {
+                "label": "소프트아츄",
+                "value": "6,000원"
+              },
+              {
+                "label": "젤라또아츄",
+                "value": "7,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-huimang-churros/01-5f0c04e5.jpg",
+            "caption": "츄러스"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-huimang-churros/02-ca1eb0c8.jpg",
+            "caption": "회오리감자"
+          },
+          {
+            "type": "image",
+            "id": "photo-3",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-huimang-churros/03-a88048b4.jpg",
+            "caption": "아이스크림 츄러스"
+          },
+          {
+            "type": "image",
+            "id": "photo-4",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-huimang-churros/04-538b4de3.jpg",
+            "caption": "젤라또 아이스크림"
+          }
+        ]
+      },
+      "order": 27
     },
     {
-      "id": "truck-10",
+      "id": "truck-sunnycook",
       "category": "food",
       "lat": 37.295061,
       "lng": 126.971426,
-      "title": "러브디아",
-      "subtitle": "푸드트럭 10",
+      "title": "써니쿡",
+      "subtitle": "칠리새우 · 크림새우",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "order": 29
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "칠리새우",
+                "value": "10,000~15,000원"
+              },
+              {
+                "label": "크림새우",
+                "value": "10,000~15,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-sunnycook/01-b9b28d5a.jpg",
+            "caption": "칠리새우"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-sunnycook/02-355bb613.jpg",
+            "caption": "크림새우"
+          }
+        ]
+      },
+      "order": 28
     },
     {
-      "id": "truck-11",
+      "id": "truck-geongang-gajok",
       "category": "food",
       "lat": 37.295021,
       "lng": 126.971418,
-      "title": "브레이브푸드",
-      "subtitle": "푸드트럭 11",
+      "title": "건강가족",
+      "subtitle": "족발 · 닭발",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "order": 30
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "족발덮밥",
+                "value": "10,000원"
+              },
+              {
+                "label": "왕족발",
+                "value": "15,000원"
+              },
+              {
+                "label": "순살불족",
+                "value": "15,000원"
+              },
+              {
+                "label": "무뼈닭발",
+                "value": "12,000원"
+              },
+              {
+                "label": "껍데기볶음",
+                "value": "8,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-geongang-gajok/01-0cbab862.jpg",
+            "caption": "족발덮밥"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-geongang-gajok/02-50deebc8.jpg",
+            "caption": "왕족발"
+          },
+          {
+            "type": "image",
+            "id": "photo-3",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-geongang-gajok/03-cd857f8a.jpg",
+            "caption": "순살불족"
+          },
+          {
+            "type": "image",
+            "id": "photo-4",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-geongang-gajok/04-fa4d065b.jpg",
+            "caption": "무뼈닭발"
+          },
+          {
+            "type": "image",
+            "id": "photo-5",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-geongang-gajok/05-f4599ca2.jpg",
+            "caption": "껍데기볶음"
+          }
+        ]
+      },
+      "order": 29
     },
     {
-      "id": "truck-12",
+      "id": "truck-jfood",
       "category": "food",
       "lat": 37.294981,
       "lng": 126.971409,
-      "title": "홀리몰리",
-      "subtitle": "푸드트럭 12",
+      "title": "제이푸드",
+      "subtitle": "크레페",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "order": 31
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "딸기크레페",
+                "value": "7,000원"
+              },
+              {
+                "label": "바나나딸기크레페",
+                "value": "8,000원"
+              },
+              {
+                "label": "바나나딸기블루베리크레페",
+                "value": "9,000원"
+              },
+              {
+                "label": "망고크레페",
+                "value": "9,000원"
+              },
+              {
+                "label": "두바이크레페",
+                "value": "10,000원"
+              },
+              {
+                "label": "딸기두바이크레페",
+                "value": "12,000원"
+              },
+              {
+                "label": "생크림&아이스크림 추가",
+                "value": "2,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-jfood/01-9a00efc8.jpg",
+            "caption": "크레페"
+          }
+        ]
+      },
+      "order": 30
     },
     {
-      "id": "truck-13",
+      "id": "truck-staking",
       "category": "food",
       "lat": 37.294941,
       "lng": 126.971401,
-      "title": "푸드시스터즈",
-      "subtitle": "푸드트럭 13",
+      "title": "스테이킹",
+      "subtitle": "팟타이",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "order": 32
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "새우 팟타이",
+                "value": "10,000원"
+              },
+              {
+                "label": "치킨 팟타이",
+                "value": "10,000원"
+              },
+              {
+                "label": "삼겹살 팟타이",
+                "value": "10,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-staking/01-c1f5a79d.jpg",
+            "caption": "새우 팟타이"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-staking/02-d7da4e0c.jpg",
+            "caption": "치킨 팟타이"
+          },
+          {
+            "type": "image",
+            "id": "photo-3",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-staking/03-dd4c56ac.jpg",
+            "caption": "삼겹살 팟타이"
+          }
+        ]
+      },
+      "order": 31
     },
     {
-      "id": "truck-14",
+      "id": "truck-pikkoboro",
       "category": "food",
       "lat": 37.294902,
       "lng": 126.971393,
-      "title": "장이당",
-      "subtitle": "푸드트럭 14",
+      "title": "피꼬보로",
+      "subtitle": "피자",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "order": 33
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "콤비네이션 피자",
+                "value": "13,000원"
+              },
+              {
+                "label": "페퍼로니 피자",
+                "value": "13,000원"
+              },
+              {
+                "label": "치즈 피자",
+                "value": "13,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-pikkoboro/01-3ec61da3.jpg",
+            "caption": "콤비네이션 피자"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-pikkoboro/02-8321c3b8.jpg",
+            "caption": "페퍼로니 피자"
+          },
+          {
+            "type": "image",
+            "id": "photo-3",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-pikkoboro/03-ff529832.jpg",
+            "caption": "치즈 피자"
+          }
+        ]
+      },
+      "order": 32
     },
     {
-      "id": "truck-15",
+      "id": "truck-prime-factory",
       "category": "food",
       "lat": 37.294862,
       "lng": 126.971384,
-      "title": "웅이네푸드트럭",
-      "subtitle": "푸드트럭 15",
+      "title": "프라임팩토리",
+      "subtitle": "스테이크",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "order": 34
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "스테이크 싱글",
+                "value": "13,000원"
+              },
+              {
+                "label": "스테이크 더블",
+                "value": "24,000원"
+              },
+              {
+                "label": "볶음밥 추가",
+                "value": "3,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-prime-factory/01-f27262f9.jpg",
+            "caption": "스테이크 싱글"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-prime-factory/02-9640b75d.jpg",
+            "caption": "스테이크 더블"
+          },
+          {
+            "type": "image",
+            "id": "photo-3",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-prime-factory/03-47f50cf7.jpg",
+            "caption": "볶음밥 추가"
+          }
+        ]
+      },
+      "order": 33
     },
     {
-      "id": "truck-16",
+      "id": "truck-nyamnyam",
       "category": "food",
       "lat": 37.294822,
       "lng": 126.971376,
-      "title": "최쉐푸드",
-      "subtitle": "푸드트럭 16",
+      "title": "냠냠쩝쩝",
+      "subtitle": "타코 · 나초",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         },
         {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "order": 35
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "비프타코",
+                "value": "10,000원"
+              },
+              {
+                "label": "쉬림프타코",
+                "value": "10,000원"
+              },
+              {
+                "label": "나초",
+                "value": "8,000원"
+              },
+              {
+                "label": "프라이",
+                "value": "12,000원"
+              },
+              {
+                "label": "비프콤보",
+                "value": "20,000원"
+              },
+              {
+                "label": "쉬림프콤보",
+                "value": "20,000원"
+              },
+              {
+                "label": "멕시코인 모듬세트",
+                "value": "25,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-nyamnyam/01-e3c2bee9.jpg",
+            "caption": "비프타코"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-nyamnyam/02-d3f681b3.jpg",
+            "caption": "쉬림프타코"
+          },
+          {
+            "type": "image",
+            "id": "photo-3",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-nyamnyam/03-a0ff1938.jpg",
+            "caption": "나초"
+          },
+          {
+            "type": "image",
+            "id": "photo-4",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-nyamnyam/04-8b45e2e3.jpg",
+            "caption": "프라이"
+          },
+          {
+            "type": "image",
+            "id": "photo-5",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-nyamnyam/05-a64d8c58.jpg",
+            "caption": "타코 콤보"
+          },
+          {
+            "type": "image",
+            "id": "photo-6",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-nyamnyam/06-3fdcadf1.jpg",
+            "caption": "멕시코인 모듬세트"
+          }
+        ]
+      },
+      "order": 34
     },
     {
-      "id": "truck-17",
+      "id": "truck-damoa-food",
       "category": "food",
       "lat": 37.294782,
       "lng": 126.971367,
-      "title": "팔붕이쿡",
-      "subtitle": "푸드트럭 17",
+      "title": "다모아푸드",
+      "subtitle": "야채곱창 · 순대곱창",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         }
       ],
-      "order": 36
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "야채곱창 싱글",
+                "value": "13,000원"
+              },
+              {
+                "label": "야채곱창 더블",
+                "value": "20,000원"
+              },
+              {
+                "label": "순대곱창 싱글",
+                "value": "13,000원"
+              },
+              {
+                "label": "순대곱창 더블",
+                "value": "20,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-damoa-food/01-22f3917a.jpg",
+            "caption": "곱창볶음 싱글"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-damoa-food/02-6331edc0.jpg",
+            "caption": "곱창볶음 더블"
+          }
+        ]
+      },
+      "order": 35
     },
     {
-      "id": "truck-18",
+      "id": "truck-panpan-mala",
       "category": "food",
       "lat": 37.294742,
       "lng": 126.971359,
-      "title": "파라다이스",
-      "subtitle": "푸드트럭 18",
+      "title": "판판마라",
+      "subtitle": "마라꼬치",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T23:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T23:00:00+09:00"
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "order": 37
+      "detail": {
+        "kind": "foodTruck",
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "마라꼬치 A SET",
+                "value": "12,000원"
+              },
+              {
+                "label": "마라꼬치 B SET",
+                "value": "16,000원"
+              },
+              {
+                "label": "마라꼬치 C SET",
+                "value": "27,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-panpan-mala/01-4168ee91.jpg",
+            "caption": "마라꼬치"
+          }
+        ]
+      },
+      "order": 36
     },
     {
       "id": "promo-01",

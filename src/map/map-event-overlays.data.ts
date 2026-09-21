@@ -97,6 +97,15 @@ function isCleanValue(value: string): boolean {
 }
 
 /**
+ * A complete https URL with nothing trailing — the rule for anything handed to a
+ * URL opener. Shared with the place-detail producer's `link` actions, so the two
+ * kinds of sheet button cannot disagree about what "external" accepts.
+ */
+function isAbsoluteHttpsUrl(value: unknown): value is string {
+  return typeof value === "string" && isCleanValue(value) && ABSOLUTE_HTTPS_RE.test(value);
+}
+
+/**
  * `actionValue` shape rules, per event-places.md §5 plus the one case the prose
  * glosses over.
  *
@@ -120,7 +129,7 @@ function isValidActionValue(action: PlaceAction): boolean {
       return toWebviewUrl(value) !== null;
     case "external":
     case "miniapp":
-      return ABSOLUTE_HTTPS_RE.test(value);
+      return isAbsoluteHttpsUrl(value);
     default:
       return false;
   }
@@ -320,4 +329,7 @@ async function getEventOverlays(): Promise<{ overlays: MapOverlay[] }> {
   return { overlays };
 }
 
-export { getEventOverlays };
+// `toWire`, `isRenderable` and `isAbsoluteHttpsUrl` are shared with the
+// place-detail producer (`map-event-details.data.ts`), which serves the same
+// documents and must resolve text and judge a document exactly as this one does.
+export { getEventOverlays, isAbsoluteHttpsUrl, isRenderable, toWire };
