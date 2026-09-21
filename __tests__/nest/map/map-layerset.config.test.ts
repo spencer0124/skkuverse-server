@@ -81,12 +81,16 @@ describe("the shipped eskara-2026 config", () => {
     expect(chips[0]!.label).toBeDefined();
   });
 
-  it("names each 통제구역 with an inert caption on the zone's own layer", () => {
+  it("names each 통제구역 on the zone's own layer, and makes all of it inert", () => {
     // A polygon has no caption, so a zone's name is a second, point-shaped place.
     // It works only if the name lands on the SAME layer as the zone — the layer
     // is what a toggle or a chip switches, so that is the whole mechanism by which
-    // the two appear and disappear together. And the label must be inert, or a
-    // tap on the word would open a sheet for the label rather than the zone.
+    // the two appear and disappear together.
+    //
+    // All four are inert as of 2026-09-22: the 총학생회's zones are a backdrop to
+    // read, not a place to open, so neither the area nor its word takes a tap.
+    // The label keeps its own category anyway, so the day a zone becomes
+    // tappable again its word does not quietly become a second tap target.
     const config = assertValidConfig(raw());
     const by = config.itemDefaults.byCategory;
     for (const [zone, label] of [
@@ -95,22 +99,31 @@ describe("the shipped eskara-2026 config", () => {
     ] as const) {
       expect(by[label]!.layerId).toBe(by[zone]!.layerId);
       expect(by[label]!.interactive).toBe(false);
-      expect(by[zone]!.interactive).toBe(true);
+      expect(by[zone]!.interactive).toBe(false);
       // A bare caption, not a pin: the layer draws its points as `textLabel`.
       const layer = config.layers.find((l) => l.id === by[zone]!.layerId)!;
       expect(layer.markerStyle).toBe("textLabel");
     }
   });
 
-  it("pulls the 통제구역 chip back and leaves every other chip where it was", () => {
+  it("frames the 통제구역 on 운용재 from further out, and moves no other chip", () => {
     // The zones are long north-south bands, and between the chip row and the
     // bottom sheet a phone shows about 511 pt of map — at the festival's zoom
-    // their southern tip sits under the sheet. So that ONE chip zooms out, from
-    // the same centre, and every other chip keeps the camera they all shared.
+    // their southern tip sits under the sheet. So that ONE chip steps back and
+    // recentres on 운용재 (building 49), which sits nearer the middle of both
+    // zones than 대운동장 does; every other chip keeps the camera they shared.
     const config = assertValidConfig(raw());
     const control = config.chips.find((c) => c.id === "eskara26_view_control")!;
     expect(control.camera!.zoom).toBeLessThan(config.camera.zoom);
-    expect({ ...control.camera!, zoom: config.camera.zoom }).toEqual(config.camera);
+    // 운용재 as /map/overlays/campus serves it, which is campusMap.do's pair.
+    expect([control.camera!.lat, control.camera!.lng]).toEqual([37.294555, 126.971921]);
+    // Only the framing moved. The motion is the festival's, not this chip's.
+    const { tilt, bearing, durationMs } = control.camera!;
+    expect({ tilt, bearing, durationMs }).toEqual({
+      tilt: config.camera.tilt,
+      bearing: config.camera.bearing,
+      durationMs: config.camera.durationMs,
+    });
     for (const chip of config.chips.filter((c) => c.id !== "eskara26_view_control")) {
       expect(chip.camera).toEqual(config.camera);
     }

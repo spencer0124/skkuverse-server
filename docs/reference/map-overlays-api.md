@@ -961,8 +961,10 @@ set's own layers and flies to its own `camera` when it carries one, the config's
 chip always takes the config's. A chip camera is **whole or absent** — validated by the same
 `asCamera` as the config's, so a chip that sets only `zoom` is refused rather than inheriting the
 other five fields. It exists because the layers a chip shows are not all in one place: ESKARA 2026's
-통제구역 chip zooms out to 16.7 from the shared 17.5, because the zones' southern tip otherwise sits
-under the bottom sheet. `label` may be omitted for a single-layer chip, in which
+통제구역 chip steps back from the shared zoom and recentres on 운용재, because the zones are long
+north-south bands whose southern tip otherwise sits under the bottom sheet. (The values themselves
+live in the config, not here, so this sentence cannot drift from them.) `label` may be omitted for a
+single-layer chip, in which
 case the chip reads as its layer does; a chip spanning several layers has no such default and must
 say what it means. ESKARA 2026 authors every label, because its pills read singular (`Bar`) where its
 layer toggles read plural (`Bars`) — copy that a deploy must not quietly change.

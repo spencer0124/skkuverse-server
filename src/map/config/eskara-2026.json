@@ -252,9 +252,9 @@
         "zh": "管制区"
       },
       "camera": {
-        "lat": 37.295129,
-        "lng": 126.971234,
-        "zoom": 16.7,
+        "lat": 37.294555,
+        "lng": 126.971921,
+        "zoom": 16.2,
         "tilt": 0,
         "bearing": 0,
         "durationMs": 500
@@ -305,11 +305,13 @@
       },
       "control_entry": {
         "layerId": "eskara26_control_entry",
-        "pinPriority": 0
+        "pinPriority": 0,
+        "interactive": false
       },
       "control_vehicle": {
         "layerId": "eskara26_control_vehicle",
-        "pinPriority": 0
+        "pinPriority": 0,
+        "interactive": false
       },
       "entry": {
         "layerId": "eskara26_entry",
