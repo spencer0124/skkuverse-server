@@ -40,6 +40,7 @@ import type {
   EventChipDef,
   EventLayerDef,
   EventMapConfig,
+  EventMarkerStyle,
   ItemDefaults,
   ItemPresentation,
   LayerDefaultVisibility,
@@ -196,6 +197,17 @@ function asDefaultVisibleWhen(value: unknown, where: string): LayerDefaultVisibi
   return { kind, windows: [first, ...rest] };
 }
 
+function asMarkerStyle(value: unknown, where: string): EventMarkerStyle {
+  // Absent means the pin — what every festival layer drew before the field
+  // existed — so this is additive for every config already on disk.
+  if (value === undefined || value === null) return "placeDot";
+  // A closed set, failed at LOAD rather than passed through. The client's own
+  // allowlist sends an unrecognised member to the building-number branch, so a
+  // typo here would not error anywhere: it would draw every booth on the layer
+  // as a green numbered circle, loud to a user and invisible to us.
+  return asOneOf(value, ["placeDot", "textLabel"] as const, where);
+}
+
 function asEventLayer(value: unknown, where: string): EventLayerDef {
   const raw = asRecord(value, where);
   const color = asString(raw.color, `${where}.color`);
@@ -211,6 +223,7 @@ function asEventLayer(value: unknown, where: string): EventLayerDef {
       raw.defaultVisibleWhen,
       `${where}.defaultVisibleWhen`,
     ),
+    markerStyle: asMarkerStyle(raw.markerStyle, `${where}.markerStyle`),
   };
 }
 

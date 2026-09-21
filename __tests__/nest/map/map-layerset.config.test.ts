@@ -81,6 +81,27 @@ describe("the shipped eskara-2026 config", () => {
     expect(chips[0]!.label).toBeDefined();
   });
 
+  it("names each 통제구역 with an inert caption on the zone's own layer", () => {
+    // A polygon has no caption, so a zone's name is a second, point-shaped place.
+    // It works only if the name lands on the SAME layer as the zone — the layer
+    // is what a toggle or a chip switches, so that is the whole mechanism by which
+    // the two appear and disappear together. And the label must be inert, or a
+    // tap on the word would open a sheet for the label rather than the zone.
+    const config = assertValidConfig(raw());
+    const by = config.itemDefaults.byCategory;
+    for (const [zone, label] of [
+      ["control_entry", "control_entry_label"],
+      ["control_vehicle", "control_vehicle_label"],
+    ] as const) {
+      expect(by[label]!.layerId).toBe(by[zone]!.layerId);
+      expect(by[label]!.interactive).toBe(false);
+      expect(by[zone]!.interactive).toBe(true);
+      // A bare caption, not a pin: the layer draws its points as `textLabel`.
+      const layer = config.layers.find((l) => l.id === by[zone]!.layerId)!;
+      expect(layer.markerStyle).toBe("textLabel");
+    }
+  });
+
   it("maps every category the committed sheet actually uses", () => {
     // The two committed files are edited in different tiers and deployed on
     // different clocks: the sheet reaches Mongo through an importer and needs no
@@ -479,4 +500,41 @@ describe("assertValidConfig — interactive, the TAP axis", () => {
       new RegExp(`byCategory\\["${category}"\\]\\.interactive must be a boolean`),
     );
   });
+});
+
+describe("assertValidConfig — markerStyle, the HOW axis", () => {
+  /** The first layer with its markerStyle replaced (or deleted, for undefined). */
+  function withMarkerStyle(value: unknown) {
+    const config = raw();
+    if (value === undefined) delete config.layers[0].markerStyle;
+    else config.layers[0].markerStyle = value;
+    return config;
+  }
+
+  it("reads an absent markerStyle as the pin every festival layer drew before", () => {
+    // Additive for every config already on disk: a file written before the
+    // field existed must mean exactly what it meant then.
+    expect(assertValidConfig(withMarkerStyle(undefined)).layers[0]!.markerStyle).toBe(
+      "placeDot",
+    );
+  });
+
+  it("accepts textLabel, the bare caption a zone's name is drawn with", () => {
+    expect(assertValidConfig(withMarkerStyle("textLabel")).layers[0]!.markerStyle).toBe(
+      "textLabel",
+    );
+  });
+
+  it.each(["numberCircle", "numberDot", "pin", "TextLabel"])(
+    "refuses %s, because the client would draw it as a building number",
+    (value) => {
+      // Failed at load rather than passed through: the client's allowlist sends
+      // an unrecognised member to the building-number branch, so this would not
+      // error anywhere — every booth would become a green numbered circle. The
+      // two building renderings are refused too; they mean nothing for a place.
+      expect(() => assertValidConfig(withMarkerStyle(value))).toThrow(
+        /layers\[0\]\.markerStyle must be one of \[placeDot, textLabel\]/,
+      );
+    },
+  );
 });

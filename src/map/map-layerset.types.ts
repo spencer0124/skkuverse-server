@@ -73,6 +73,9 @@ export type LayerDefaultVisibility =
   | { kind: "never" }
   | { kind: "scheduled"; windows: [DailyWindow, ...DailyWindow[]] };
 
+/** The marker styles a festival layer may choose. See `EventLayerDef.markerStyle`. */
+export type EventMarkerStyle = "placeDot" | "textLabel";
+
 /**
  * The map layers a festival draws.
  *
@@ -83,16 +86,32 @@ export type LayerDefaultVisibility =
  * are checked at load against the base map's own layer ids, because the two
  * lists are served side by side in one response.
  *
- * Geometry (`placeDot`, pin size) is NOT here: that is how a festival marker is
- * drawn, which is the map's business and the same for every festival. Only
- * `color` is content — a category colour (주점 red, 먹거리 amber) is a fact about
- * the event, not about the theme.
+ * Geometry (pin size, caption size) is NOT here: that is how a festival marker
+ * is drawn, which is the map's business and the same for every festival. `color`
+ * is content — a category colour (주점 red, 먹거리 amber) is a fact about the
+ * event, not about the theme. `markerStyle` is the one drawing choice that is
+ * content too, and it is narrow: pin or bare caption, nothing about size.
  */
 export interface EventLayerDef {
   id: string;
   label: I18n;
   /** Bare hex, no `#` — the convention the app's `toCssColor` expects. */
   color: string;
+  /**
+   * How a POINT on this layer draws. Absent means `"placeDot"`, the pin every
+   * festival layer drew before this was authorable, so an older config file
+   * means exactly what it always meant.
+   *
+   * It exists for `textLabel`: a caption with no pin, which is how a zone gets
+   * its name onto the map. The polygon overlay has no caption of its own, so the
+   * name is an ordinary place on the zone's OWN layer — and because the layer is
+   * the unit a toggle or a chip switches, the label turns on and off with the
+   * zone with nothing linking the two documents.
+   *
+   * Narrower than the client's allowlist on purpose. `numberCircle` and
+   * `numberDot` are building-number renderings with no meaning for a place.
+   */
+  markerStyle: EventMarkerStyle;
   /**
    * When the layer is on to begin with. Absent means `{ kind: "always" }` —
    * never fail closed, the same default the boolean this replaced had.
