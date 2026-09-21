@@ -90,7 +90,15 @@
     "",
     "The council wrote that a 티켓 부스 already existed here under another name.",
     "It did not — 팔찌/티켓/매표/발권 matched nothing in this repository. What they",
-    "saw was almost certainly the 부스 chip's 🎫, which now belongs to 입장 instead."
+    "saw was almost certainly the 부스 chip's 🎫, which now belongs to 입장 instead.",
+    "",
+    "차량 통제구역 WAS RESURVEYED on 2026-09-22. Three corners moved 1.2-1.7 m and",
+    "the east end moved 6.9 m, which squared the strip off: its two short edges",
+    "were 22.3 m and 15.5 m and are now 21.6 m and 21.7 m. Area 3,257 -> 3,812 m2,",
+    "still a simple closed ring. The same edit split the two zones onto their own",
+    "layers so they could take the colours the council asked for — 진입 red, 차량",
+    "blue — and turned both off by default, to be seen only when the 통제구역 chip",
+    "is tapped."
   ],
   "places": [
     {
@@ -1560,11 +1568,11 @@
         "type": "Polygon",
         "coordinates": [
           [
-            [126.97061696860364, 37.296276488356554],
-            [126.97069584306522, 37.29646797831636],
-            [126.97257946587712, 37.29611927776948],
-            [126.97255977946416, 37.29597961243268],
-            [126.97061696860364, 37.296276488356554]
+            [126.97062824436703, 37.29628324893438],
+            [126.97067892281298, 37.29647473190478],
+            [126.97263020139258, 37.29616659396774],
+            [126.97257669861975, 37.295975111167664],
+            [126.97062824436703, 37.29628324893438]
           ]
         ]
       }

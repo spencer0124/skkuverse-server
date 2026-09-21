@@ -314,6 +314,35 @@ describe("MapService", () => {
     expect(byId.get("building_numbers")!.style!.color).toBeUndefined();
   });
 
+  it("draws a festival zone as a fill with no outline", async () => {
+    mockFindActiveActivation.mockResolvedValue({
+      _id: "eskara-2026",
+    } as Awaited<ReturnType<typeof findActiveActivation>>);
+
+    const ko = await svc.getMapConfig("ko");
+    const zone = ko.layers.find((l) => l.id === "eskara26_control_entry")!;
+    expect(zone).toBeDefined();
+
+    // Fill only, asked for by the 총학생회 on 2026-09-22. The two halves fail in
+    // OPPOSITE directions, which is why both are asserted: drop `fillOpacity`
+    // and the client's polygon falls back to opaque black over the booths it
+    // covers; keep an `outlineWidth` and the border they asked us to remove is
+    // simply back. Neither is visible to a test run that only checks the
+    // response parses.
+    expect(zone.style!.fillOpacity).toBeGreaterThan(0);
+    expect(zone.style!.outlineWidth).toBe(0);
+    // Not merely a zero width. A colour for a stroke that cannot be drawn is a
+    // field that can only ever be inert, which is the one thing every field on
+    // this wire is not allowed to be.
+    expect(zone.style!.outlineColor).toBeUndefined();
+
+    // Named separately for the reason the `shape` test below gives: this
+    // constant is where a border comes back for every festival layer at once,
+    // and a failure here says which line was edited rather than pointing at a
+    // projected response object.
+    expect(EVENT_SHAPE_STYLE.outlineWidth).toBe(0);
+  });
+
   /**
    * Asserted on the WIRE rather than on the layer set JSON, and the difference
    * is the point. `asEventLayer` in map-layerset.config.ts reads four named

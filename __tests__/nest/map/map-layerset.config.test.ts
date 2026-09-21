@@ -53,6 +53,34 @@ describe("the shipped eskara-2026 config", () => {
     }
   });
 
+  it("gives the two 통제구역 their own layer, their own colour, and no default", () => {
+    // Three things the 총학생회 asked for on 2026-09-22, and this file is the
+    // only place any of them is expressible. Colour is a property of the LAYER,
+    // so two colours require two layers — splitting them is not organisation,
+    // it is the mechanism. And "선택 시에만" is `never`, not a schedule.
+    const config = assertValidConfig(raw());
+    const entry = config.itemDefaults.byCategory.control_entry!;
+    const vehicle = config.itemDefaults.byCategory.control_vehicle!;
+    expect(entry.layerId).not.toBe(vehicle.layerId);
+
+    const layerOf = (id: string) => config.layers.find((l) => l.id === id)!;
+    expect(layerOf(entry.layerId).color).not.toBe(layerOf(vehicle.layerId).color);
+    for (const id of [entry.layerId, vehicle.layerId]) {
+      expect(layerOf(id).defaultVisibleWhen).toEqual({ kind: "never" });
+    }
+
+    // Still ONE chip over both. Two layers is a colour decision; it must not
+    // become a second control for the reader to find, and a chip naming more
+    // than one layer is exactly the shape the validator asks to carry its own
+    // label for.
+    const chips = config.chips.filter((c) => c.layerIds.includes(entry.layerId));
+    expect(chips).toHaveLength(1);
+    expect(chips[0]!.layerIds).toEqual(
+      expect.arrayContaining([entry.layerId, vehicle.layerId]),
+    );
+    expect(chips[0]!.label).toBeDefined();
+  });
+
   it("maps every category the committed sheet actually uses", () => {
     // The two committed files are edited in different tiers and deployed on
     // different clocks: the sheet reaches Mongo through an importer and needs no
