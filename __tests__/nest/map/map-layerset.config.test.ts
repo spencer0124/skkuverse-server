@@ -102,6 +102,20 @@ describe("the shipped eskara-2026 config", () => {
     }
   });
 
+  it("pulls the 통제구역 chip back and leaves every other chip where it was", () => {
+    // The zones are long north-south bands, and between the chip row and the
+    // bottom sheet a phone shows about 511 pt of map — at the festival's zoom
+    // their southern tip sits under the sheet. So that ONE chip zooms out, from
+    // the same centre, and every other chip keeps the camera they all shared.
+    const config = assertValidConfig(raw());
+    const control = config.chips.find((c) => c.id === "eskara26_view_control")!;
+    expect(control.camera!.zoom).toBeLessThan(config.camera.zoom);
+    expect({ ...control.camera!, zoom: config.camera.zoom }).toEqual(config.camera);
+    for (const chip of config.chips.filter((c) => c.id !== "eskara26_view_control")) {
+      expect(chip.camera).toEqual(config.camera);
+    }
+  });
+
   it("maps every category the committed sheet actually uses", () => {
     // The two committed files are edited in different tiers and deployed on
     // different clocks: the sheet reaches Mongo through an importer and needs no
@@ -294,6 +308,33 @@ describe("assertValidConfig — identity and shape", () => {
     expect(() => assertValidConfig(config)).toThrow(
       /config.camera.durationMs must be a finite number/,
     );
+  });
+
+  it("holds a chip's own camera to the same rule — whole or not at all", () => {
+    // A chip camera missing one field must NOT borrow it from the config's. That
+    // would be the silent default the rule above forbids, only moved one level
+    // down, and a zoom override that quietly inherited the wrong duration is
+    // exactly the kind of motion bug nobody can see from the file.
+    const config = raw();
+    delete config.chips[0].camera.durationMs;
+    expect(() => assertValidConfig(config)).toThrow(
+      /config\.chips\[0\]\.camera\.durationMs must be a finite number/,
+    );
+  });
+
+  it("runs the swap detector on a chip's camera too", () => {
+    const config = raw();
+    const cam = config.chips[0].camera;
+    config.chips[0].camera = { ...cam, lat: cam.lng, lng: cam.lat };
+    expect(() => assertValidConfig(config)).toThrow(
+      /config\.chips\[0\]\.camera\.lat .* lat and lng may be swapped/,
+    );
+  });
+
+  it("treats an absent chip camera as the config's, not as an error", () => {
+    const config = raw();
+    delete config.chips[0].camera;
+    expect(assertValidConfig(config).chips[0]!.camera).toBeUndefined();
   });
 
   it("rejects an I18n object with no ko", () => {

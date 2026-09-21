@@ -149,6 +149,14 @@
         "ko": "공연",
         "en": "Stage",
         "zh": "演出"
+      },
+      "camera": {
+        "lat": 37.295129,
+        "lng": 126.971234,
+        "zoom": 17.5,
+        "tilt": 0,
+        "bearing": 0,
+        "durationMs": 500
       }
     },
     {
@@ -161,6 +169,14 @@
         "ko": "주점",
         "en": "Bar",
         "zh": "酒吧"
+      },
+      "camera": {
+        "lat": 37.295129,
+        "lng": 126.971234,
+        "zoom": 17.5,
+        "tilt": 0,
+        "bearing": 0,
+        "durationMs": 500
       }
     },
     {
@@ -173,6 +189,14 @@
         "ko": "먹거리",
         "en": "Food",
         "zh": "美食"
+      },
+      "camera": {
+        "lat": 37.295129,
+        "lng": 126.971234,
+        "zoom": 17.5,
+        "tilt": 0,
+        "bearing": 0,
+        "durationMs": 500
       }
     },
     {
@@ -185,6 +209,14 @@
         "ko": "부스",
         "en": "Booth",
         "zh": "摊位"
+      },
+      "camera": {
+        "lat": 37.295129,
+        "lng": 126.971234,
+        "zoom": 17.5,
+        "tilt": 0,
+        "bearing": 0,
+        "durationMs": 500
       }
     },
     {
@@ -197,6 +229,14 @@
         "ko": "편의시설",
         "en": "Facilities",
         "zh": "便利设施"
+      },
+      "camera": {
+        "lat": 37.295129,
+        "lng": 126.971234,
+        "zoom": 17.5,
+        "tilt": 0,
+        "bearing": 0,
+        "durationMs": 500
       }
     },
     {
@@ -210,6 +250,14 @@
         "ko": "통제구역",
         "en": "Restricted",
         "zh": "管制区"
+      },
+      "camera": {
+        "lat": 37.295129,
+        "lng": 126.971234,
+        "zoom": 16.7,
+        "tilt": 0,
+        "bearing": 0,
+        "durationMs": 500
       }
     },
     {
@@ -222,6 +270,14 @@
         "ko": "입장",
         "en": "Entry",
         "zh": "入场"
+      },
+      "camera": {
+        "lat": 37.295129,
+        "lng": 126.971234,
+        "zoom": 17.5,
+        "tilt": 0,
+        "bearing": 0,
+        "durationMs": 500
       }
     }
   ],

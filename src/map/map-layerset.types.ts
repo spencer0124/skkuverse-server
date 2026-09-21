@@ -138,6 +138,19 @@ export interface EventChipDef {
   emoji: string;
   layerIds: string[];
   label?: I18n;
+  /**
+   * Where this chip's tap flies the map. Absent means the layer set's own
+   * `camera`, which every chip shared until this existed — so a config written
+   * before it means exactly what it meant.
+   *
+   * Per chip because the layers a chip shows are not all in one place. The
+   * 통제구역 are long north-south bands whose tips leave a frame sized for the
+   * booth cluster, so the chip that shows them needs a wider view than the one
+   * that shows 주점. When present it is a WHOLE camera, validated exactly as the
+   * config's is: a chip overriding only `zoom` would inherit the rest silently,
+   * and a silent inheritance is precisely what a motion value may not have.
+   */
+  camera?: MapCamera;
 }
 
 /**

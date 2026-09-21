@@ -3,7 +3,7 @@ title: Map Overlays API Reference
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-20
+last-updated: 2026-09-22
 audience: internal
 ---
 
@@ -833,8 +833,8 @@ endpoint lands. This is that endpoint.
 
 > [!NOTE]
 > `MapChip` is the **wire**. The **authored** form of a festival chip is `EventChipDef` in the layer
-> set's config — `{ id, emoji, layerIds, label? }` — and `src/map/map-chips.data.ts` projects it into
-> this shape, adding the camera and the synthesised reset chip (§8.5). This is the only chip
+> set's config — `{ id, emoji, layerIds, label?, camera? }` — and `src/map/map-chips.data.ts` projects it
+> into this shape, resolving the camera and adding the synthesised reset chip (§8.5). This is the only chip
 > vocabulary there is — the predicate chips the deleted snapshot used to ship went with the pins they
 > filtered.
 
@@ -956,8 +956,13 @@ the same ids is the parallel structure that quietly stops turning one category b
 is a wire rule the app may key on (it logs `map_chip` taps by chip id), which is why it is written
 down here and in `resetChip()` rather than left to a template string.
 
-An authored chip is `{ id, emoji, layerIds, label? }`. It names one or more of the layer set's own
-layers and shares the config's `camera`. `label` may be omitted for a single-layer chip, in which
+An authored chip is `{ id, emoji, layerIds, label?, camera? }`. It names one or more of the layer
+set's own layers and flies to its own `camera` when it carries one, the config's otherwise; the reset
+chip always takes the config's. A chip camera is **whole or absent** — validated by the same
+`asCamera` as the config's, so a chip that sets only `zoom` is refused rather than inheriting the
+other five fields. It exists because the layers a chip shows are not all in one place: ESKARA 2026's
+통제구역 chip zooms out to 16.7 from the shared 17.5, because the zones' southern tip otherwise sits
+under the bottom sheet. `label` may be omitted for a single-layer chip, in which
 case the chip reads as its layer does; a chip spanning several layers has no such default and must
 say what it means. ESKARA 2026 authors every label, because its pills read singular (`Bar`) where its
 layer toggles read plural (`Bars`) — copy that a deploy must not quietly change.

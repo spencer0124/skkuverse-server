@@ -248,6 +248,13 @@ function asChip(value: unknown, where: string): EventChipDef {
     // from the layer, so the hash reflects what was authored.
     fail(`${where}.label is required when layerIds names more than one layer`);
   }
+  // Optional as a whole, complete when present. `asCamera` is the same validator
+  // the config's own camera goes through, so a chip camera missing `durationMs`
+  // is refused rather than borrowing the config's — the no-silent-default rule
+  // `asCamera` states applies per camera, not per file.
+  if (raw.camera !== undefined && raw.camera !== null) {
+    chip.camera = asCamera(raw.camera, `${where}.camera`);
+  }
   return chip;
 }
 

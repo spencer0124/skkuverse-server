@@ -151,11 +151,53 @@ describe("authored chips", () => {
     expect(spec.label).toEqual({ ko: "야간 주점" });
   });
 
-  it("all point the camera where the config says", () => {
+  it("each fly to their own camera, or the config's when they author none", () => {
+    // This test used to read "all point the camera where the config says" —
+    // every chip shared one camera. Chips may now carry their own, so the rule is
+    // per chip: the authored camera wins, the config's is the fallback, and the
+    // reset chip (authored nowhere) is always the config's.
+    const authoredById = new Map(CONFIG.chips.map((c) => [c.id, c]));
     for (const chip of eventChipSpecs(CONFIG)) {
       if (chip.action.kind !== "focus") throw new Error("expected focus");
-      expect(chip.action.camera).toEqual(CONFIG.camera);
+      const authored = authoredById.get(chip.id);
+      expect(chip.action.camera).toEqual(authored?.camera ?? CONFIG.camera);
     }
+  });
+
+  it("fall back to the config's camera when a chip authors none", () => {
+    // The shipped config authors a camera on every chip, so the fallback is
+    // exercised on a synthetic one — it is what makes the field additive for a
+    // config written before it existed.
+    const bare: EventMapConfig = {
+      ...CONFIG,
+      chips: [{ id: "x", emoji: "🍻", layerIds: ["eskara26_bar"] }],
+    };
+    const spec = eventChipSpecs(bare).find((c) => c.id === "x")!;
+    if (spec.action.kind !== "focus") throw new Error("expected focus");
+    expect(spec.action.camera).toEqual(CONFIG.camera);
+    // A copy, never the config's own frozen object.
+    expect(spec.action.camera).not.toBe(CONFIG.camera);
+  });
+
+  it("copy an authored camera rather than hand it out by reference", () => {
+    const withCamera: EventMapConfig = {
+      ...CONFIG,
+      chips: [
+        {
+          id: "x",
+          emoji: "🍻",
+          layerIds: ["eskara26_bar"],
+          camera: { ...CONFIG.camera, zoom: 15 },
+        },
+      ],
+    };
+    const authored = withCamera.chips[0]!.camera!;
+    const spec = eventChipSpecs(withCamera).find((c) => c.id === "x")!;
+    if (spec.action.kind !== "focus") throw new Error("expected focus");
+    expect(spec.action.camera).toEqual(authored);
+    // The config is shared across every request, so a response must never
+    // alias it: a caller mutating one reply would move every later one.
+    expect(spec.action.camera).not.toBe(authored);
   });
 });
 
