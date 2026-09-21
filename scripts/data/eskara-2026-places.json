@@ -105,14 +105,23 @@
     "captions (their layers are `markerStyle: textLabel`) standing on the zone's",
     "OWN layer — which is the whole trick: the layer is what a toggle or a chip",
     "switches, so the name comes and goes with the zone and nothing links them.",
-    "They take their own `*_label` categories only so they can be inert",
-    "(`interactive: false`) while the zones stay tappable.",
+    "They take their own `*_label` categories so a word's tappability is decided",
+    "apart from its zone's — today neither takes a tap (see below).",
     "",
     "The 진입 label is NOT at the zone's centroid, because that centroid falls",
     "OUTSIDE the zone — the ring is a U-shaped band. It sits at the interior point",
     "farthest from every edge, the southern lobe, about 81 m wide there. The 차량",
     "strip is convex, so its label is simply the centroid. Move either one with",
-    "the ring it names."
+    "the ring it names.",
+    "",
+    "2026-09-22: EVERY 통제구역 PLACE IS INERT — both zones and both words are",
+    "`interactive: false`. That REVERSES the reasoning in the 2026-09-20",
+    "paragraph above, which left the zones tappable so a sheet could carry the",
+    "기숙사 line: the council wants the whole area read, not opened. The cost is",
+    "stated rather than hidden. The 기숙사 sentence is now the entry zone's",
+    "`subtitle`, and a subtitle reaches a screen only through the place's sheet —",
+    "so on the map it is reachable through the event list's row alone, and not",
+    "at all once that list shows only tappable places."
   ],
   "places": [
     {
