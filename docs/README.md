@@ -3,7 +3,7 @@ title: Docs Index & Conventions
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-08-31
+last-updated: 2026-09-22
 audience: internal
 ---
 
@@ -51,8 +51,8 @@ audience: internal
 | 문서 | 요약 |
 | --- | --- |
 | [notices-api.md](reference/notices-api.md) | `/notices/*` + `/internal/notices/*` 요청·응답 계약, 에러 코드, 파일 맵 |
-| [event-places.md](reference/event-places.md) | 축제 장소의 저장·작성·운영 — `places`/`activations` 컬렉션, 인덱스, 시트 임포터, 창(window) 킬 스위치 런북 |
-| [map-overlays-api.md](reference/map-overlays-api.md) | The one overlay schema every map layer draws — pins, zones and route lines tagged by `kind` — the `defaultVisibleWhen`/`userConfigurable` layer flags, and `GET /map/config` + `/map/overlays/{campus,event}` |
+| [event-places.md](reference/event-places.md) | 축제 장소의 저장·작성·운영 — `places`/`activations` 컬렉션, 인덱스, 시트 임포터, 장소 `detail`(시트 본문)과 R2 사진 규칙, 창(window) 킬 스위치 런북 |
+| [map-overlays-api.md](reference/map-overlays-api.md) | The one overlay schema every map layer draws — pins, zones and route lines tagged by `kind` — the `defaultVisibleWhen`/`userConfigurable` layer flags, and `GET /map/config` + `/map/overlays/{campus,event}` + `/map/overlays/event/details` |
 
 ### explanation (메커니즘·배경)
 

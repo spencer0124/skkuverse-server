@@ -206,6 +206,320 @@ function asActions(value, where, errors) {
   return out;
 }
 
+// --- Place detail -----------------------------------------------------------
+//
+// The sheet body a tapped place opens (`src/map/map-place-detail.types.ts`).
+// STRICT, unlike the rest of this reader's tolerance for unknown keys: every
+// level refuses a key it does not know, because a misspelled optional key —
+// `captoin` — would otherwise import clean and render as nothing, which is the
+// silent failure the whole detail exists to end.
+//
+// The constants below are COPIES of server values, because scripts/ is plain
+// CommonJS and cannot import TypeScript. A parity test in
+// __tests__/nest/map/map-places-import.test.ts pins each to its source, and the
+// serve path re-checks every URL anyway, so drift can only ever drop a block.
+
+/** src/map/map-place-detail.types.ts PLACE_KINDS — CLOSED on the client. */
+const PLACE_KINDS = ["pub", "booth", "promo", "foodTruck", "goods", "facility", "stage", "etc"];
+/** src/map/map-place-detail.types.ts PLACE_BLOCK_TYPES. */
+const BLOCK_TYPES = ["text", "list", "table", "image", "notice"];
+/** src/map/map-place-detail.types.ts PLACE_DETAIL_ACTION_TYPES. */
+const DETAIL_ACTION_TYPES = ["instagram", "link"];
+/** src/infra/origins.ts MEDIA_ORIGIN. */
+const MEDIA_ORIGIN = "https://media.skkuverse.com";
+
+const WHITESPACE_RE = /\s/;
+/** src/map/map-event-overlays.data.ts ABSOLUTE_HTTPS_RE. */
+const ABSOLUTE_HTTPS_RE = /^https:\/\/[^\s/][^\s]*$/;
+const INSTAGRAM_HOSTS = ["instagram.com", "www.instagram.com"];
+/** Paths that are Instagram's own pages, not a username. */
+const INSTAGRAM_RESERVED_PATHS = ["accounts", "direct", "explore", "p", "reel", "reels", "stories"];
+const INSTAGRAM_MEDIA_KINDS = ["p", "reel", "reels"];
+
+/** Copy of src/infra/media-url.ts `isMediaUrl` — see there for each rule. */
+function isMediaUrl(value) {
+  if (typeof value !== "string" || value === "" || WHITESPACE_RE.test(value)) return false;
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  if (url.origin !== MEDIA_ORIGIN) return false;
+  if (url.username !== "" || url.password !== "") return false;
+  if (url.pathname === "/" || url.hash !== "") return false;
+  return true;
+}
+
+/** Copy of src/map/map-event-details.data.ts `isAbsoluteHttpsUrl`. */
+function isAbsoluteHttpsUrl(value) {
+  return typeof value === "string" && !WHITESPACE_RE.test(value) && ABSOLUTE_HTTPS_RE.test(value);
+}
+
+/** The path segments of an https Instagram URL, or null for anything else. */
+function instagramSegments(value) {
+  if (!isAbsoluteHttpsUrl(value)) return null;
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  if (!INSTAGRAM_HOSTS.includes(url.hostname.toLowerCase())) return null;
+  return url.pathname.split("/").filter(Boolean);
+}
+
+/**
+ * Copy of src/map/map-event-details.data.ts `isInstagramProfileUrl`.
+ *
+ * Mirrors what the app will actually open (skkuverse-app `instagram.ts`): a
+ * profile is exactly one path segment that is not one of Instagram's own pages.
+ * Anything else is accepted by a looser check and then does NOTHING on tap.
+ */
+function isInstagramProfileUrl(value) {
+  const segments = instagramSegments(value);
+  return (
+    segments !== null &&
+    segments.length === 1 &&
+    !INSTAGRAM_RESERVED_PATHS.includes(segments[0].toLowerCase())
+  );
+}
+
+/** Copy of src/map/map-event-details.data.ts `isInstagramPostUrl`: `/p|reel|reels/<code>`. */
+function isInstagramPostUrl(value) {
+  const segments = instagramSegments(value);
+  return (
+    segments !== null &&
+    segments.length === 2 &&
+    INSTAGRAM_MEDIA_KINDS.includes(segments[0].toLowerCase())
+  );
+}
+
+function isPlainObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function rejectUnknownKeys(raw, allowed, at, errors) {
+  for (const key of Object.keys(raw)) {
+    if (!allowed.includes(key)) {
+      errors.push(`${at}.${key} is not a known key — expected one of [${allowed.join(", ")}]`);
+    }
+  }
+}
+
+/** Absent or null is `null` — never `undefined`, which would re-diff on every import. */
+function asOptionalI18n(value, where, errors) {
+  if (value === undefined || value === null) return null;
+  return asI18n(value, where, errors);
+}
+
+function asUniqueId(value, at, seen, errors) {
+  if (typeof value !== "string" || value.trim() === "") {
+    errors.push(`${at}.id must be a non-empty string`);
+    return null;
+  }
+  if (seen.has(value)) {
+    errors.push(`${at}.id "${value}" is used twice in this place`);
+    return null;
+  }
+  seen.add(value);
+  return value;
+}
+
+/** A non-empty array, each element read by `read`. */
+function asNonEmptyList(value, where, errors, read) {
+  if (!Array.isArray(value) || value.length === 0) {
+    errors.push(`${where} must be a non-empty array`);
+    return [];
+  }
+  return value.map((raw, i) => read(raw, `${where}[${i}]`));
+}
+
+const BLOCK_KEYS = {
+  text: ["type", "id", "title", "body"],
+  list: ["type", "id", "title", "items"],
+  table: ["type", "id", "title", "rows"],
+  image: ["type", "id", "title", "url", "caption"],
+  notice: ["type", "id", "title", "items"],
+};
+
+function asListItem(raw, at, errors) {
+  if (!isPlainObject(raw)) {
+    errors.push(`${at} must be an object`);
+    return null;
+  }
+  rejectUnknownKeys(raw, ["emoji", "title", "description"], at, errors);
+  let emoji = null;
+  if (raw.emoji !== undefined && raw.emoji !== null) {
+    if (typeof raw.emoji !== "string" || raw.emoji.trim() === "") {
+      errors.push(`${at}.emoji must be a non-empty string or null`);
+    } else {
+      emoji = raw.emoji;
+    }
+  }
+  return {
+    emoji,
+    title: asI18n(raw.title, `${at}.title`, errors),
+    description: asOptionalI18n(raw.description, `${at}.description`, errors),
+  };
+}
+
+function asTableRow(raw, at, errors) {
+  if (!isPlainObject(raw)) {
+    errors.push(`${at} must be an object`);
+    return null;
+  }
+  rejectUnknownKeys(raw, ["label", "value"], at, errors);
+  return {
+    label: asI18n(raw.label, `${at}.label`, errors),
+    value: asI18n(raw.value, `${at}.value`, errors),
+  };
+}
+
+function asBlock(raw, at, seenIds, errors) {
+  if (!isPlainObject(raw)) {
+    errors.push(`${at} must be an object`);
+    return null;
+  }
+  if (!BLOCK_TYPES.includes(raw.type)) {
+    errors.push(`${at}.type must be one of [${BLOCK_TYPES.join(", ")}]`);
+    return null;
+  }
+  rejectUnknownKeys(raw, BLOCK_KEYS[raw.type], at, errors);
+  const id = asUniqueId(raw.id, at, seenIds, errors);
+  const title = asOptionalI18n(raw.title, `${at}.title`, errors);
+  const head = { type: raw.type, id, title };
+
+  switch (raw.type) {
+    case "text":
+      return { ...head, body: asI18n(raw.body, `${at}.body`, errors) };
+    case "list":
+      return {
+        ...head,
+        items: asNonEmptyList(raw.items, `${at}.items`, errors, (item, where) =>
+          asListItem(item, where, errors),
+        ),
+      };
+    case "table":
+      return {
+        ...head,
+        rows: asNonEmptyList(raw.rows, `${at}.rows`, errors, (row, where) =>
+          asTableRow(row, where, errors),
+        ),
+      };
+    case "image":
+      if (!isMediaUrl(raw.url)) {
+        errors.push(
+          `${at}.url must be an object on ${MEDIA_ORIGIN}/… — upload it to the media bucket first`,
+        );
+      }
+      return {
+        ...head,
+        url: raw.url,
+        caption: asOptionalI18n(raw.caption, `${at}.caption`, errors),
+      };
+    case "notice":
+      return {
+        ...head,
+        items: asNonEmptyList(raw.items, `${at}.items`, errors, (item, where) =>
+          asI18n(item, where, errors),
+        ),
+      };
+  }
+}
+
+function asDetailAction(raw, at, seenIds, errors) {
+  if (!isPlainObject(raw)) {
+    errors.push(`${at} must be an object`);
+    return null;
+  }
+  if (!DETAIL_ACTION_TYPES.includes(raw.type)) {
+    errors.push(`${at}.type must be one of [${DETAIL_ACTION_TYPES.join(", ")}]`);
+    return null;
+  }
+  const id = asUniqueId(raw.id, at, seenIds, errors);
+  const label = asI18n(raw.label, `${at}.label`, errors);
+
+  if (raw.type === "instagram") {
+    rejectUnknownKeys(raw, ["type", "id", "label", "profileUrl", "postUrl"], at, errors);
+    if (!isInstagramProfileUrl(raw.profileUrl)) {
+      errors.push(`${at}.profileUrl must be https://www.instagram.com/<username>`);
+    }
+    const postUrl = raw.postUrl === undefined || raw.postUrl === null ? null : raw.postUrl;
+    if (postUrl !== null && !isInstagramPostUrl(postUrl)) {
+      errors.push(`${at}.postUrl must be https://www.instagram.com/p/<code> (or /reel/), or null`);
+    }
+    return { type: "instagram", id, label, profileUrl: raw.profileUrl, postUrl };
+  }
+
+  rejectUnknownKeys(raw, ["type", "id", "label", "url"], at, errors);
+  // The app opens a link as `external`, so it has to be a complete https URL.
+  if (!isAbsoluteHttpsUrl(raw.url)) {
+    errors.push(`${at}.url must be an absolute https:// URL`);
+  }
+  return { type: "link", id, label, url: raw.url };
+}
+
+function asDetail(raw, where, errors) {
+  if (!isPlainObject(raw)) {
+    errors.push(`${where} must be an object`);
+    return null;
+  }
+  rejectUnknownKeys(
+    raw,
+    ["kind", "org", "isUnion", "locationLabel", "actions", "blocks"],
+    where,
+    errors,
+  );
+
+  // No default. The kind drives the list's filters, and a silent "etc" would
+  // file a truck under nothing while looking deliberate.
+  if (!PLACE_KINDS.includes(raw.kind)) {
+    errors.push(`${where}.kind must be one of [${PLACE_KINDS.join(", ")}]`);
+  }
+  let isUnion = false;
+  if (raw.isUnion !== undefined) {
+    if (typeof raw.isUnion !== "boolean") {
+      errors.push(`${where}.isUnion must be true or false`);
+    } else {
+      isUnion = raw.isUnion;
+    }
+  }
+
+  let actions = [];
+  if (raw.actions !== undefined && raw.actions !== null) {
+    if (!Array.isArray(raw.actions)) {
+      errors.push(`${where}.actions must be an array`);
+    } else {
+      const seen = new Set();
+      actions = raw.actions.map((a, i) => asDetailAction(a, `${where}.actions[${i}]`, seen, errors));
+      // The app follows the first one only; a second is authored and never shown.
+      if (actions.filter((a) => a && a.type === "instagram").length > 1) {
+        errors.push(`${where}.actions has more than one instagram action — the sheet shows one`);
+      }
+    }
+  }
+
+  let blocks = [];
+  if (raw.blocks !== undefined && raw.blocks !== null) {
+    if (!Array.isArray(raw.blocks)) {
+      errors.push(`${where}.blocks must be an array`);
+    } else {
+      const seen = new Set();
+      blocks = raw.blocks.map((b, i) => asBlock(b, `${where}.blocks[${i}]`, seen, errors));
+    }
+  }
+
+  return {
+    kind: raw.kind,
+    org: asOptionalI18n(raw.org, `${where}.org`, errors),
+    isUnion,
+    locationLabel: asOptionalI18n(raw.locationLabel, `${where}.locationLabel`, errors),
+    actions,
+    blocks,
+  };
+}
+
 function asPlace(raw, i, ctx, errors) {
   // Anything this place contributes lands here first, so a place with ANY
   // problem can be excluded whole. Pushing straight into `errors` and returning
@@ -286,6 +600,10 @@ function asPlace(raw, i, ctx, errors) {
   const hours = asHours(raw.hours, `${where2}.hours`, own);
   const fields = asFields(raw.fields, `${where2}.fields`, own);
   const actions = asActions(raw.actions, `${where2}.actions`, own);
+  const detail =
+    raw.detail === undefined || raw.detail === null
+      ? null
+      : asDetail(raw.detail, `${where2}.detail`, own);
 
   // ONE verdict per place. A document that failed any rule is not returned, so
   // `docs.length` is the number of places that would actually be written.
@@ -306,6 +624,7 @@ function asPlace(raw, i, ctx, errors) {
     fields,
     actions,
     order: raw.order,
+    detail,
     updatedAt: new Date(),
   };
 }
@@ -361,4 +680,15 @@ function parsePlacesFile(text, { layerSetId }) {
   return { docs, errors };
 }
 
-module.exports = { parsePlacesFile };
+module.exports = {
+  parsePlacesFile,
+  // Exported for the parity test only — each is a copy of a server value.
+  PLACE_KINDS,
+  BLOCK_TYPES,
+  DETAIL_ACTION_TYPES,
+  MEDIA_ORIGIN,
+  isMediaUrl,
+  isAbsoluteHttpsUrl,
+  isInstagramProfileUrl,
+  isInstagramPostUrl,
+};

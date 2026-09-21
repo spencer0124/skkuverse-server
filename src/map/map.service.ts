@@ -4,13 +4,14 @@ import logger from "../infra/logger";
 import type { SupportedLang } from "../infra/types";
 import { getMapConfig } from "./map-config.data";
 import { getEventOverlays } from "./map-event-overlays.data";
+import { getEventPlaceDetails } from "./map-event-details.data";
 import { getCampusOverlays } from "./map-campus-overlays.data";
 
 /**
  * MapService — thin @Injectable wrapper over the validated, read-only map/*
  * data modules (map-config.data, map-campus-overlays.data,
- * map-event-overlays.data). Every method delegates 1:1 — no reimplementation,
- * no defensive narrowing.
+ * map-event-overlays.data, map-event-details.data). Every method delegates
+ * 1:1 — no reimplementation, no defensive narrowing.
  *
  * Both overlay routes serve ONE heterogeneous collection per data source:
  * pins, zones and route lines together, told apart by `kind`. That replaced a
@@ -67,5 +68,9 @@ export class MapService implements OnModuleInit {
 
   getEventOverlays(): ReturnType<typeof getEventOverlays> {
     return getEventOverlays();
+  }
+
+  getEventPlaceDetails(): ReturnType<typeof getEventPlaceDetails> {
+    return getEventPlaceDetails();
   }
 }

@@ -36,6 +36,21 @@ export const WEBVIEW_ORIGIN = "https://webview.skkuverse.com";
 export const WEB_ORIGIN = "https://skkuverse.com";
 
 /**
+ * Uploaded media — the `skkuverse-media` R2 bucket behind a custom domain.
+ *
+ * The ONE host an image URL in authored content may name. Content is typed by
+ * hand, so without an allowlist any URL anyone pastes — a signed Notion link
+ * that expires in an hour, a hotlinked vendor page — would travel to every
+ * device and fail there, silently. See `media-url.ts` for the check.
+ *
+ * Images only. It must never join BRIDGE_ORIGINS or CORS_ORIGINS: nothing on it
+ * is a page, and nothing on it needs to read this API. Keys are content-hashed
+ * and served `immutable`, so an object is never overwritten — a replaced photo
+ * is a new key, and therefore a new URL.
+ */
+export const MEDIA_ORIGIN = "https://media.skkuverse.com";
+
+/**
  * Origins whose pages may reach the native bridge from the app's /webview shell.
  *
  * Published verbatim as `webview.bridgeOrigins` on GET /app/config. The client

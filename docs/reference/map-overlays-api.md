@@ -11,7 +11,7 @@ audience: internal
 
 > The one overlay schema every layer of the campus map draws — pins, zones and route lines alike —
 > the two layer flags that say when a layer is visible and who may change it, the chips that move the
-> camera and swap layer sets, and the three endpoints that carry them. Cross-repo ownership is
+> camera and swap layer sets, and the four endpoints that carry them. Cross-repo ownership is
 > [umbrella ADR 0004](https://github.com/spencer0124/skkuverse/blob/main/docs/decisions/0004-event-map-layer-ownership.md);
 > the festival's storage, authoring and ops tiers are [event-places.md](event-places.md).
 
@@ -19,11 +19,11 @@ audience: internal
 
 | | |
 | --- | --- |
-| Routes | `GET /map/config`, `GET /map/overlays/campus`, `GET /map/overlays/event` |
-| Auth | none on all three |
+| Routes | `GET /map/config`, `GET /map/overlays/campus`, `GET /map/overlays/event`, `GET /map/overlays/event/details` |
+| Auth | none on all four |
 | Rate limit | `BusRateLimitMiddleware`, applied to the `/map` prefixes in `MapModule.configure` |
 | Wire schema | `src/map/map-overlay.types.ts` (overlays), `src/map/geo/geojson.types.ts` (geometry), `src/map/map-chip.types.ts` (chips) |
-| Producers | `src/map/map-campus-overlays.data.ts` (buildings + campus geometry), `src/map/map-event-overlays.data.ts` (event places) |
+| Producers | `src/map/map-campus-overlays.data.ts` (buildings + campus geometry), `src/map/map-event-overlays.data.ts` (event places), `src/map/map-event-details.data.ts` (their sheet bodies) |
 | Layer catalogue | `src/map/map-layers.data.ts` — the base layers, and the projection of a festival's `layers[]` from its config |
 | Chips | `src/map/map-chips.data.ts` — the base chips, the projection of a festival's `chips[]`, the synthesised reset chip, and the one validator both go through |
 | Response builder | `src/map/map-config.data.ts` |
@@ -746,6 +746,77 @@ layer is on, with no `status` beside it to make that ambiguous.
 > hold — so only the envelope varies. Stripping the header to win edge caching would be a lie about
 > what the response depends on.
 
+### 5.4 `GET /map/overlays/event/details`
+
+`Cache-Control: public, max-age=60`.
+
+The sheet body behind each event pin — an operator, a menu, photos, notices — keyed by the id the
+overlay's `tap.placeId` carries. Only places that carry a detail appear; a place without one is simply
+absent, and the app draws its sheet from the overlay alone.
+
+```json
+{
+  "meta": { "lang": "ko" },
+  "data": {
+    "details": {
+      "eskara-2026-truck-oyabong": {
+        "placeId": "eskara-2026-truck-oyabong",
+        "kind": "foodTruck",
+        "org": null,
+        "isUnion": false,
+        "locationLabel": null,
+        "actions": [],
+        "blocks": [
+          {
+            "type": "table", "id": "menu", "title": null,
+            "rows": [{ "label": { "ko": "소고기 야끼소바", "en": "소고기 야끼소바" }, "value": { "ko": "11,000원", "en": "11,000원" } }]
+          },
+          {
+            "type": "image", "id": "photo-1", "title": null,
+            "url": "https://media.skkuverse.com/eskara-2026/food-trucks/truck-oyabong/01-9961d281.jpg",
+            "caption": { "ko": "소고기 야끼소바", "en": "소고기 야끼소바" }
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+The shape is the app's `PlaceDetail` (skkuverse-app `packages/shared/src/types/placeDetail.ts`),
+mirrored one-to-one in `src/map/map-place-detail.types.ts`. Text follows §2.1: every language, `en`
+filled from `ko`, `zh` only when authored.
+
+**A separate route, not a field on the overlay.** The overlay is what the map, the list and the
+collision ladder all read; the detail is read by the sheet alone. Folding it in would ship every menu
+and photo URL to a client that only wanted to draw pins, and widen a type every renderer touches. The
+app fetches this once beside the overlays and looks a place up when its sheet rises. Old builds never
+call it, so adding it changed nothing for them.
+
+**Same gate, same TTL as §5.3.** No live festival is `{ "details": {} }` without a Mongo read, and a
+menu correction is live on the same minute as a pin correction. It sits under `map/overlays` on
+purpose: the rate limit in `MapModule` covers the prefix, so the route needed no new entry there.
+
+Two enums, deliberately different:
+
+| Field | Openness | Consequence |
+| --- | --- | --- |
+| block `type` (`text`, `list`, `table`, `image`, `notice`) | **open** — the app drops a block type it does not know, alone | a new type can ship here before every installed app draws it |
+| `kind` (`pub`, `booth`, `promo`, `foodTruck`, `goods`, `facility`, `stage`, `etc`) | **closed** — the app's union has no fallback | a new kind ships in the app first |
+
+**Every image is on `https://media.skkuverse.com`** (`MEDIA_ORIGIN`, `src/infra/origins.ts`) — the R2
+media bucket. The importer refuses any other host, and this producer re-checks with the server's own
+`isMediaUrl` and drops an off-host image block alone. A `link` action is an absolute https URL; an
+`instagram` action's `profileUrl` is exactly `instagram.com/<username>` and its `postUrl` a
+`/p/`, `/reel/` or `/reels/` link or `null` — the forms the app actually opens.
+
+**Fail soft, as narrowly as possible, and logged.** The importer already refuses a malformed detail,
+so these checks exist for a hand edit in Mongo. A broken block or action is dropped on its own; a
+detail is dropped whole only when its `kind` or its lists are unreadable; a place the overlay route
+would not serve, or one on an inert category, gets no detail. One warning line per request names
+every drop. The one outcome ruled out is a 500: `toWire` dereferences `.ko`, so an unchecked block
+missing its body would take every sheet of the festival down with it.
+
 ## 6. Why layers share endpoints
 
 Both building layers point at `/map/overlays/campus`. Every festival layer points at
@@ -1215,6 +1286,9 @@ shape §4.0 exists to avoid — to buy a rollout ordering that a JS-only OTA can
 | Response builder, campuses, activation lookup | `src/map/map-config.data.ts` |
 | Buildings + campus geometry → overlays, empty-DB fallback | `src/map/map-campus-overlays.data.ts` |
 | Event places → overlays | `src/map/map-event-overlays.data.ts` |
+| Event places → sheet details, and the serve-time checks | `src/map/map-event-details.data.ts` |
+| Detail shape (stored and wire) | `src/map/map-place-detail.types.ts` |
+| Media host and its URL rule | `MEDIA_ORIGIN` in `src/infra/origins.ts`, `src/infra/media-url.ts` |
 | "Which layer set is live, and is its config usable" | `src/map/map-active-layerset.ts` |
 | Festival layers, chips, labels, colours, camera, category → layer table | `src/map/config/<layerSetId>.json` |
 | Category → presentation resolver (both producers) | `presentationFor` in `src/map/map-layerset.types.ts` |

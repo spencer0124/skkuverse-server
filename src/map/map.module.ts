@@ -8,7 +8,7 @@ import { BuildingModule } from "../building/building.module";
 import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middleware";
 
 /**
- * MapModule — the /map feature (3 HTTP endpoints across 2 mount prefixes; NO
+ * MapModule — the /map feature (4 HTTP endpoints across 2 mount prefixes; NO
  * poller — the feature is purely HTTP). Delegates to the read-only map/* data
  * modules via MapService.
  *
@@ -17,6 +17,7 @@ import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middlewa
  *                                                    festival layers while live)
  *  - MapOverlaysController: GET /map/overlays/campus (buildings + campus geometry)
  *                           GET /map/overlays/event  (festival places)
+ *                           GET /map/overlays/event/details (their sheet bodies)
  *
  * The overlay routes replaced /map/markers/*, and the legacy /map/overlays
  * handlers (a hardcoded building table behind ?category=, and a jongro

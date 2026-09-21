@@ -21,6 +21,7 @@
 import type { Campus } from "../building/types";
 import type { I18n } from "../infra/types";
 import type { OverlayGeometry } from "./geo/geojson.types";
+import type { PlaceDetailOf } from "./map-place-detail.types";
 
 // I18n is infra (`src/infra/types.ts`), because the map catalogue authors its
 // labels in the same shape and both halves share one resolver. Re-exported so
@@ -103,8 +104,21 @@ export interface MapPlaceDoc {
   actions: PlaceAction[];
   /** Sort position, and the last tiebreak when two places share a coordinate. */
   order: number;
+  /**
+   * What the sheet says beyond the pin — see `map-place-detail.types.ts`.
+   * Served on its own route, never on the overlay.
+   *
+   * Optional for the reason `subtitle` is: a document written before this field
+   * existed has no key at all until its next import. The reader always writes it
+   * (`null` when the sheet has none), so after one import the key is present on
+   * every place and "absent" and "null" mean the same thing.
+   */
+  detail?: PlaceDetailDoc | null;
   updatedAt: Date;
 }
+
+/** The stored detail: authored `I18n`, resolved to `I18nWire` at serve time. */
+export type PlaceDetailDoc = PlaceDetailOf<I18n>;
 
 /**
  * `activations` — the ops lever, and the only tier ops can change during the
