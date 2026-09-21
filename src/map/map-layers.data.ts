@@ -323,14 +323,18 @@ export const EVENT_LAYER_STYLE = {
  * same reason `EVENT_LAYER_STYLE` is: this is the map's business, not the
  * event's. Only `color` varies, and it is content.
  *
- * A translucent fill and a visible outline are not taste. The client's polygon
- * overlay defaults `color` to opaque black and `outlineWidth` to 0, so a zone
- * shipped without both would be a solid black blob with no border, hiding the
- * booths it is supposed to group.
+ * The translucent fill is not taste and has to stay: the client's polygon
+ * overlay defaults `color` to OPAQUE BLACK, so a zone shipped without
+ * `fillOpacity` is a solid blob over the booths it exists to group.
+ *
+ * The outline WAS taste, and the 총학생회 spent it — 2026-09-22, for the
+ * 통제구역 layers: fill only, no border. Written as an explicit `0` rather than
+ * by deleting the member, because the SDK's own default is also 0 and an absent
+ * field would spell "we chose this" and "nobody thought about it" identically.
  */
 export const EVENT_SHAPE_STYLE = {
   fillOpacity: 0.18,
-  outlineWidth: 2,
+  outlineWidth: 0,
 } as const satisfies MapLayerStyle;
 
 /**
@@ -373,15 +377,14 @@ export function eventLayerSpecs(config: EventMapConfig): LayerSpec[] {
     userConfigurable: true,
     endpoint: EVENT_OVERLAYS_ENDPOINT,
     chipGroupId: config.layerSetId,
-    // `outlineColor` is the category colour at full strength while `color`
-    // fills at EVENT_SHAPE_STYLE's opacity, so a zone reads as its category
-    // without hiding the booths inside it. Derived rather than authored: a
-    // second colour in the config would be a value that can only ever be
-    // wrong, since a zone outlined in one category's colour and filled in
-    // another's means nothing.
+    // No `outlineColor`. `EVENT_SHAPE_STYLE` draws no outline, so a colour for
+    // that stroke is a field that can only ever be inert — and the bar this
+    // file applies everywhere is that every combination of fields must be
+    // meaningful. It returns alongside the width if a festival wants a border
+    // again; it was never authored, only derived from `color`, so bringing it
+    // back costs one line and no config change.
     style: {
       color: layer.color,
-      outlineColor: layer.color,
       ...EVENT_LAYER_STYLE,
       ...EVENT_SHAPE_STYLE,
     },

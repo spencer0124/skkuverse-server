@@ -88,15 +88,27 @@
       }
     },
     {
-      "id": "eskara26_control",
+      "id": "eskara26_control_entry",
       "label": {
-        "ko": "통제구역",
-        "en": "Restricted",
-        "zh": "管制区"
+        "ko": "진입 통제",
+        "en": "Restricted entry",
+        "zh": "禁止进入"
       },
       "color": "C92A2A",
       "defaultVisibleWhen": {
-        "kind": "always"
+        "kind": "never"
+      }
+    },
+    {
+      "id": "eskara26_control_vehicle",
+      "label": {
+        "ko": "차량 통제",
+        "en": "Road closed",
+        "zh": "车辆管制"
+      },
+      "color": "1971C2",
+      "defaultVisibleWhen": {
+        "kind": "never"
       }
     },
     {
@@ -189,7 +201,8 @@
       "id": "eskara26_view_control",
       "emoji": "🚧",
       "layerIds": [
-        "eskara26_control"
+        "eskara26_control_entry",
+        "eskara26_control_vehicle"
       ],
       "label": {
         "ko": "통제구역",
@@ -233,11 +246,11 @@
         "pinPriority": 10
       },
       "control_entry": {
-        "layerId": "eskara26_control",
+        "layerId": "eskara26_control_entry",
         "pinPriority": 0
       },
       "control_vehicle": {
-        "layerId": "eskara26_control",
+        "layerId": "eskara26_control_vehicle",
         "pinPriority": 0
       },
       "entry": {
