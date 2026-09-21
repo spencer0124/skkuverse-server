@@ -194,7 +194,9 @@ export function resetChip(config: EventMapConfig): MapChipSpec {
  * Each authored chip is one tap for what otherwise costs opening the filter
  * sheet and toggling several things. A chip that names exactly one layer and
  * authored no label reads as that layer does — `map-layerset.config.ts` refuses a
- * wider chip without one. Every chip shares the config's camera.
+ * wider chip without one. An authored chip flies to its own `camera` when it has
+ * one and to the config's otherwise; the reset chip always takes the config's,
+ * because "back to the festival" has one meaning and no chip to author it on.
  *
  * Fresh objects per call: the config is frozen shallowly and shared across
  * every request, so nothing built from it may reach a response by reference.
@@ -210,7 +212,9 @@ export function eventChipSpecs(config: EventMapConfig): MapChipSpec[] {
     label: { ...(chip.label ?? layerById.get(chip.layerIds[0] ?? "")?.label ?? { ko: chip.id }) },
     action: {
       kind: "focus",
-      camera: { ...config.camera },
+      // A copy either way: the config is frozen shallowly, and the chip's camera
+      // is as much a shared object as the config's.
+      camera: { ...(chip.camera ?? config.camera) },
       layerIds: [...chip.layerIds],
     },
     // An authored chip narrows; only the synthesised one undoes it. Stated
