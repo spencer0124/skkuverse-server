@@ -98,7 +98,21 @@
     "still a simple closed ring. The same edit split the two zones onto their own",
     "layers so they could take the colours the council asked for — 진입 red, 차량",
     "blue — and turned both off by default, to be seen only when the 통제구역 chip",
-    "is tapped."
+    "is tapped.",
+    "",
+    "EACH ZONE CARRIES ITS NAME AS A SECOND, POINT-SHAPED PLACE. A polygon overlay",
+    "has no caption, so `control-entry-label` and `control-vehicle-label` are bare",
+    "captions (their layers are `markerStyle: textLabel`) standing on the zone's",
+    "OWN layer — which is the whole trick: the layer is what a toggle or a chip",
+    "switches, so the name comes and goes with the zone and nothing links them.",
+    "They take their own `*_label` categories only so they can be inert",
+    "(`interactive: false`) while the zones stay tappable.",
+    "",
+    "The 진입 label is NOT at the zone's centroid, because that centroid falls",
+    "OUTSIDE the zone — the ring is a U-shaped band. It sits at the interior point",
+    "farthest from every edge, the southern lobe, about 81 m wide there. The 차량",
+    "strip is convex, so its label is simply the centroid. Move either one with",
+    "the ring it names."
   ],
   "places": [
     {
@@ -1576,6 +1590,30 @@
           ]
         ]
       }
+    },
+    {
+      "id": "control-entry-label",
+      "category": "control_entry_label",
+      "lat": 37.2938986,
+      "lng": 126.9719732,
+      "title": {
+        "ko": "진입 통제",
+        "en": "Restricted entry"
+      },
+      "hours": [],
+      "order": 202
+    },
+    {
+      "id": "control-vehicle-label",
+      "category": "control_vehicle_label",
+      "lat": 37.2962298,
+      "lng": 126.9716456,
+      "title": {
+        "ko": "차량 통제",
+        "en": "Road closed"
+      },
+      "hours": [],
+      "order": 203
     },
 
     {

@@ -97,7 +97,8 @@
       "color": "C92A2A",
       "defaultVisibleWhen": {
         "kind": "never"
-      }
+      },
+      "markerStyle": "textLabel"
     },
     {
       "id": "eskara26_control_vehicle",
@@ -109,7 +110,8 @@
       "color": "1971C2",
       "defaultVisibleWhen": {
         "kind": "never"
-      }
+      },
+      "markerStyle": "textLabel"
     },
     {
       "id": "eskara26_entry",
@@ -256,6 +258,16 @@
       "entry": {
         "layerId": "eskara26_entry",
         "pinPriority": 35
+      },
+      "control_entry_label": {
+        "layerId": "eskara26_control_entry",
+        "pinPriority": 0,
+        "interactive": false
+      },
+      "control_vehicle_label": {
+        "layerId": "eskara26_control_vehicle",
+        "pinPriority": 0,
+        "interactive": false
       }
     },
     "fallback": {

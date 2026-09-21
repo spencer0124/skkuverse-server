@@ -136,13 +136,17 @@ describe("MapService", () => {
     expect(new Set(eventLayers.map((l) => l.endpoint))).toEqual(
       new Set(["/map/overlays/event"]),
     );
-    expect(eventLayers.every((l) => l.markerStyle === "placeDot")).toBe(true);
     // defaultVisibleWhen is the config's, layer by layer — 편의시설 ships
     // opt-in and 주점 ships scheduled, and both have to survive the projection
     // intact. It rides to the wire through the `...rest` spread rather than a
     // named copy, so a shape change here is what would catch a regression.
+    // markerStyle likewise: it used to be the constant "placeDot" on every
+    // festival layer, and the 통제구역 layers are where a config first chose
+    // otherwise, so the wire has to follow the file rather than the old default.
     for (const def of CONFIG.layers) {
-      expect(eventLayers.find((l) => l.id === def.id)!.defaultVisibleWhen).toEqual(
+      const served = eventLayers.find((l) => l.id === def.id)!;
+      expect(served.markerStyle).toBe(def.markerStyle);
+      expect(served.defaultVisibleWhen).toEqual(
         def.defaultVisibleWhen,
       );
     }
@@ -345,7 +349,7 @@ describe("MapService", () => {
 
   /**
    * Asserted on the WIRE rather than on the layer set JSON, and the difference
-   * is the point. `asEventLayer` in map-layerset.config.ts reads four named
+   * is the point. `asEventLayer` in map-layerset.config.ts reads five named
    * members out of each authored layer and builds a fresh object, so a "shape"
    * typed into eskara-2026.json is dropped and could never reach a response. A
    * test guarding the config file would pass while someone stamped a shape onto
@@ -362,8 +366,13 @@ describe("MapService", () => {
     // the rule covers — and it picks up next year's festival for free.
     const placeDotLayers = ko.layers.filter((l) => l.markerStyle === "placeDot");
 
-    // Guards the loop below, which would pass vacuously on an empty array.
-    expect(placeDotLayers).toHaveLength(CONFIG.layers.length);
+    // Guards the loop below, which would pass vacuously on an empty array. The
+    // count comes FROM the config rather than from its length, because a
+    // festival layer may now choose `textLabel` — and that is correctly outside
+    // this rule, since a bare caption has no pin for a shape to describe.
+    const authoredPlaceDots = CONFIG.layers.filter((l) => l.markerStyle === "placeDot");
+    expect(authoredPlaceDots.length).toBeGreaterThan(0);
+    expect(placeDotLayers).toHaveLength(authoredPlaceDots.length);
 
     for (const layer of placeDotLayers) {
       // A style object is always built, so an absent key below is the wire

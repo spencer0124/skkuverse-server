@@ -367,11 +367,13 @@ function copyVisibility(when: LayerDefaultVisibility): LayerDefaultVisibility {
 export function eventLayerSpecs(config: EventMapConfig): LayerSpec[] {
   return config.layers.map((layer) => ({
     id: layer.id,
-    // Every festival layer keeps a marker style, because a layer that draws no
-    // pins simply never uses it. That is cheaper than a config field saying
-    // which layers have pins — a claim that could disagree with the places
-    // actually stored, which is the second-discriminant problem again.
-    markerStyle: "placeDot",
+    // Every festival layer carries a marker style, because a layer that draws
+    // no points simply never uses it — cheaper than a config field claiming
+    // which layers HAVE points, which could disagree with the places actually
+    // stored (the second-discriminant problem again). What the config chooses is
+    // how a point draws, never whether there is one: `textLabel` is how a zone's
+    // name reaches the map, and it defaults to the pin.
+    markerStyle: layer.markerStyle,
     label: layer.label,
     defaultVisibleWhen: copyVisibility(layer.defaultVisibleWhen),
     userConfigurable: true,
