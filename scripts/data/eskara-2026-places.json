@@ -183,7 +183,11 @@
     "in its place), `isUnion` when the 단체명 joins two groups with X, a",
     "`N번 주점` location label, one Instagram action, and the three 대표 메뉴 as a",
     "list. A trailing parenthetical in a menu cell is its description; every",
-    "other word is as written. The council gave no emoji, so none are invented.",
+    "other word is as written. The council gave no emoji; each menu's emoji was",
+    "picked for the dish itself (not the pun in its name), and every one is",
+    "checked to have a glyph in the app's bundled TossFaceFontMac.ttf, which is",
+    "the font the menu list draws its emoji in. Without one the app falls back",
+    "to a ✨ for every item.",
     "",
     "Instagram links are cut to `https://www.instagram.com/<handle>/`. The sheet's",
     "links carried share tokens (`stkn=`), `utm_*` tags and trailing spaces, and a",
@@ -1273,17 +1277,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🍗",
                 "title": "왕갈비 통닭인 척 하는 치킨텐더",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🍝",
                 "title": "퍼스트 러브 하츠코이' 나폴리탄 파스타",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🫕",
                 "title": "치즈퐁듀에 빠진 감자빵",
                 "description": null
               }
@@ -1327,17 +1331,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🐙",
                 "title": "네기 타코야끼",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🌶️",
                 "title": "우삼겹 가래떡 떡볶이",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🍲",
                 "title": "어묵 버섯 전골",
                 "description": null
               }
@@ -1381,17 +1385,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🥖",
                 "title": "불닭이랑 바람났소바",
                 "description": "불닭 야끼소바빵"
               },
               {
-                "emoji": null,
+                "emoji": "🍙",
                 "title": "불량정식",
                 "description": "오뎅탕+주먹밥"
               },
               {
-                "emoji": null,
+                "emoji": "🥓",
                 "title": "숙주야 나랑 삼겹 볼래?",
                 "description": "삼겹숙주볶음"
               }
@@ -1435,17 +1439,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🌽",
                 "title": "콘치즈불닭을 낋여오너라",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🌶️",
                 "title": "완소 떡볶이♡",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🍢",
                 "title": "오늘 시간 오뎅?",
                 "description": null
               }
@@ -1489,17 +1493,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🌭",
                 "title": "바실리스크 소세지",
                 "description": "소세지"
               },
               {
-                "emoji": null,
+                "emoji": "🍜",
                 "title": "해그리드의 악성곱슬",
                 "description": "짜계치"
               },
               {
-                "emoji": null,
+                "emoji": "🍗",
                 "title": "불사조 닭강정",
                 "description": "닭강정"
               }
@@ -1543,17 +1547,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🔥",
                 "title": "불닭볶음면&맥앤치즈",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🍟",
                 "title": "감자튀김",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🥘",
                 "title": "칠리콘카르네",
                 "description": null
               }
@@ -1597,17 +1601,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🍢",
                 "title": "오뎅탕&두부김치",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🥞",
                 "title": "삼색전",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🐷",
                 "title": "제육볶음",
                 "description": null
               }
@@ -1651,17 +1655,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "⚡",
                 "title": "피카츄돈가스",
                 "description": "야 너 피..!카츄ㅎㅎ"
               },
               {
-                "emoji": null,
+                "emoji": "🌽",
                 "title": "마약옥수수",
                 "description": "중독돼도 책임 안져요"
               },
               {
-                "emoji": null,
+                "emoji": "🍜",
                 "title": "꼬꼬면",
                 "description": "국물 먹어야겠지..? 얼큰 해야겠지..?"
               }
@@ -1705,17 +1709,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🍚",
                 "title": "야채볶음밥+소세지",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🌶️",
                 "title": "떡볶이",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🍢",
                 "title": "오뎅탕",
                 "description": null
               }
@@ -1759,17 +1763,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🧀",
                 "title": "\"공포는 경험으로 생기는 거야\"",
                 "description": "불닭볶음면 + 체다 치즈"
               },
               {
-                "emoji": null,
+                "emoji": "🍢",
                 "title": "\"어묵꼬치 하나로 끝날 것 같아?\"",
                 "description": "어묵탕"
               },
               {
-                "emoji": null,
+                "emoji": "🍗",
                 "title": "\"저 날 수 있습니다. 고공 강하 준비!\"",
                 "description": "가라아게"
               }
@@ -1813,17 +1817,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🥣",
                 "title": "묵사발",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🥞",
                 "title": "김치전",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🐷",
                 "title": "제육볶음",
                 "description": null
               }
@@ -1867,17 +1871,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🍜",
                 "title": "다송이가 좋아하는 짜파구리",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🥬",
                 "title": "너나 잘하세요 두부김치",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🍚",
                 "title": "볶음밥과 안 헤어질 결심",
                 "description": null
               }
@@ -1925,17 +1929,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🌯",
                 "title": "미국에서 레시피 훔쳐온 마르코의 부리또볼",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🌭",
                 "title": "홈커밍 퀸을 꿈꾸는 줄리아의 소세지",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🍗",
                 "title": "마이클이 일하다가 훔쳐먹는 치킨",
                 "description": null
               }
@@ -1983,17 +1987,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🌶️",
                 "title": "마라샹궈",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🍤",
                 "title": "레몬크림새우",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🍳",
                 "title": "계란볶음밥",
                 "description": null
               }
@@ -2041,17 +2045,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🌹",
                 "title": "아프로디테의 장미 떡볶이",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🍢",
                 "title": "포세이돈의 심해 어묵탕",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🐷",
                 "title": "키르케의 저주 제육볶음",
                 "description": null
               }
@@ -2099,17 +2103,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🥓",
                 "title": "대패삼겹살&파채",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🍜",
                 "title": "김치어묵우동",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🥣",
                 "title": "묵사발",
                 "description": null
               }
@@ -2157,17 +2161,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🥓",
                 "title": "삼겹살",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🍜",
                 "title": "불닭 냉면",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🥬",
                 "title": "두부 김치",
                 "description": null
               }
@@ -2215,17 +2219,17 @@
             "title": "대표 메뉴",
             "items": [
               {
-                "emoji": null,
+                "emoji": "🐙",
                 "title": "닥터옥토퍼스 소시지 볶음",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🍢",
                 "title": "까칠한 MJ도 좋아하는 오뎅탕",
                 "description": null
               },
               {
-                "emoji": null,
+                "emoji": "🍤",
                 "title": "가수 거미가 부추기는 새우전",
                 "description": null
               }
