@@ -2,9 +2,11 @@
   "layerSetId": "eskara-2026",
   "campus": "nsc",
   "name": {
-    "ko": "26ESKARA"
+    "ko": "에스카라",
+    "en": "ESKARA",
+    "zh": "ESKARA"
   },
-  "emoji": "🎪",
+  "emoji": "🌊",
   "camera": {
     "lat": 37.295129,
     "lng": 126.971234,
@@ -140,26 +142,6 @@
   ],
   "chips": [
     {
-      "id": "eskara26_view_stage",
-      "emoji": "🎤",
-      "layerIds": [
-        "eskara26_stage"
-      ],
-      "label": {
-        "ko": "공연",
-        "en": "Stage",
-        "zh": "演出"
-      },
-      "camera": {
-        "lat": 37.295129,
-        "lng": 126.971234,
-        "zoom": 17.5,
-        "tilt": 0,
-        "bearing": 0,
-        "durationMs": 500
-      }
-    },
-    {
       "id": "eskara26_view_bar",
       "emoji": "🍺",
       "layerIds": [
@@ -180,15 +162,15 @@
       }
     },
     {
-      "id": "eskara26_view_food",
-      "emoji": "🍢",
+      "id": "eskara26_view_booth",
+      "emoji": "🎨",
       "layerIds": [
-        "eskara26_food"
+        "eskara26_booth"
       ],
       "label": {
-        "ko": "먹거리",
-        "en": "Food",
-        "zh": "美食"
+        "ko": "부스",
+        "en": "Booth",
+        "zh": "摊位"
       },
       "camera": {
         "lat": 37.295129,
@@ -200,15 +182,35 @@
       }
     },
     {
-      "id": "eskara26_view_booth",
-      "emoji": "🎨",
+      "id": "eskara26_view_food",
+      "emoji": "🚚",
       "layerIds": [
-        "eskara26_booth"
+        "eskara26_food"
       ],
       "label": {
-        "ko": "부스",
-        "en": "Booth",
-        "zh": "摊位"
+        "ko": "푸드트럭",
+        "en": "Food trucks",
+        "zh": "餐车"
+      },
+      "camera": {
+        "lat": 37.295129,
+        "lng": 126.971234,
+        "zoom": 17.5,
+        "tilt": 0,
+        "bearing": 0,
+        "durationMs": 500
+      }
+    },
+    {
+      "id": "eskara26_view_entry",
+      "emoji": "🎫",
+      "layerIds": [
+        "eskara26_entry"
+      ],
+      "label": {
+        "ko": "입장",
+        "en": "Entry",
+        "zh": "入场"
       },
       "camera": {
         "lat": 37.295129,
@@ -255,26 +257,6 @@
         "lat": 37.294555,
         "lng": 126.971921,
         "zoom": 16.2,
-        "tilt": 0,
-        "bearing": 0,
-        "durationMs": 500
-      }
-    },
-    {
-      "id": "eskara26_view_entry",
-      "emoji": "🎫",
-      "layerIds": [
-        "eskara26_entry"
-      ],
-      "label": {
-        "ko": "입장",
-        "en": "Entry",
-        "zh": "入场"
-      },
-      "camera": {
-        "lat": 37.295129,
-        "lng": 126.971234,
-        "zoom": 17.5,
         "tilt": 0,
         "bearing": 0,
         "durationMs": 500

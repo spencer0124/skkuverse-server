@@ -196,7 +196,7 @@ describe("assertValidConfig — structure→structure references block publicati
     const config = raw();
     config.chips[0].layerIds = ["nope"];
     expect(() => assertValidConfig(config)).toThrow(
-      /config.chips: chip "eskara26_view_stage": "nope" is not a layer/,
+      /config.chips: chip "eskara26_view_bar": "nope" is not a layer/,
     );
   });
 });
@@ -281,7 +281,7 @@ describe("assertValidConfig — identity and shape", () => {
   it("rejects duplicate chip ids", () => {
     const config = raw();
     config.chips.push({ ...config.chips[0] });
-    expect(() => assertValidConfig(config)).toThrow(/duplicate chip id "eskara26_view_stage"/);
+    expect(() => assertValidConfig(config)).toThrow(/duplicate chip id "eskara26_view_bar"/);
   });
 
   it("rejects a chip naming no layers", () => {
