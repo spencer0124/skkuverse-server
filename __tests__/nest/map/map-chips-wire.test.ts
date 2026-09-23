@@ -157,15 +157,14 @@ describe("GET /map/config (real MapService)", () => {
       res.body.data.chips.filter((c: { isReset: boolean }) => c.isReset),
     ).toHaveLength(1);
 
-    // A scheduled layer's windows survive serialization as authored — the
-    // wrap past midnight included, which is the one bound pair a "fix" would
-    // be tempted to normalise.
+    // A scheduled layer's windows survive serialization as authored: the
+    // council's 18:00-23:00 for every 2026 pub.
     const barLayer = res.body.data.layers.find(
       (l: { id: string }) => l.id === "eskara26_bar",
     );
     expect(barLayer.defaultVisibleWhen).toEqual({
       kind: "scheduled",
-      windows: [{ start: "18:00", end: "00:00" }],
+      windows: [{ start: "18:00", end: "23:00" }],
     });
 
     // No webview chip ships since 분실물 was removed, so there is no absolute

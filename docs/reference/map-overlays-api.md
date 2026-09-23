@@ -355,8 +355,8 @@ type LayerDefaultVisibility =
   | { kind: "scheduled"; windows: DailyWindow[] };      // >= 1 window
 ```
 
-`start > end` wraps past midnight, which is the natural spelling for 주점 —
-`{ start: "18:00", end: "00:00" }` — and needs no special case. Midnight is `"00:00"`; `"24:00"` is
+`start > end` wraps past midnight, which is the natural spelling for a night layer —
+`{ start: "18:00", end: "00:00" }`, as the 2025 주점 ran — and needs no special case. Midnight is `"00:00"`; `"24:00"` is
 rejected at load so there is one spelling of it.
 
 This replaced a `defaultVisible: boolean`, and it is a union rather than that boolean **beside** a
@@ -520,7 +520,7 @@ Response, abridged to two event layers of the six, `lang=ko`, with a window open
         "label": "주점",
         "defaultVisibleWhen": {
           "kind": "scheduled",
-          "windows": [{ "start": "18:00", "end": "00:00" }]
+          "windows": [{ "start": "18:00", "end": "23:00" }]
         },
         "userConfigurable": true,
         "endpoint": "/map/overlays/event",
