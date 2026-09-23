@@ -106,15 +106,29 @@ describe("GET /map/config (real MapService)", () => {
     expect(res.body.data.chips).toHaveLength(BASE_CHIPS.length + 1 + CONFIG.chips.length);
     expect(res.body.data.chips[BASE_CHIPS.length].id).toBe("eskara-2026_all");
 
-    const stageChip = res.body.data.chips.find(
-      (c: { id: string }) => c.id === "eskara26_view_stage",
+    // The row's order is authored copy too: 주점, 부스, 푸드트럭, 입장 lead,
+    // right after the festival's own chip. 공연 has no chip while it has no place.
+    expect(
+      res.body.data.chips.slice(BASE_CHIPS.length).map((c: { id: string }) => c.id),
+    ).toEqual([
+      "eskara-2026_all",
+      "eskara26_view_bar",
+      "eskara26_view_booth",
+      "eskara26_view_food",
+      "eskara26_view_entry",
+      "eskara26_view_facility",
+      "eskara26_view_control",
+    ]);
+
+    const foodChip = res.body.data.chips.find(
+      (c: { id: string }) => c.id === "eskara26_view_food",
     );
     // English, because the envelope is what varies on Accept-Language — and the
-    // chip's OWN label: the pill reads singular ("Stage") where the layer
-    // toggle reads plural ("Stages"), authored copy that a deploy must not
-    // quietly change.
-    expect(stageChip.label).toBe("Stage");
-    expect(stageChip.action).toEqual({
+    // chip's OWN label: the pill reads "Food trucks" where the layer toggle
+    // reads "Food", authored copy that a deploy must not quietly change.
+    expect(foodChip.label).toBe("Food trucks");
+    expect(foodChip.icon).toEqual({ kind: "emoji", emoji: "🚚" });
+    expect(foodChip.action).toEqual({
       kind: "focus",
       camera: {
         lat: 37.295129,
@@ -124,9 +138,9 @@ describe("GET /map/config (real MapService)", () => {
         bearing: 0,
         durationMs: 500,
       },
-      layerIds: ["eskara26_stage"],
+      layerIds: ["eskara26_food"],
     });
-    expect(stageChip.isReset).toBe(false);
+    expect(foodChip.isReset).toBe(false);
 
     // The reset chip's two halves, on the bytes: `isReset` says what the tap
     // means, `layerIds` still says which group it is scoped to. Serving the
@@ -135,6 +149,8 @@ describe("GET /map/config (real MapService)", () => {
       (c: { id: string }) => c.id === "eskara-2026_all",
     );
     expect(resetWire.isReset).toBe(true);
+    expect(resetWire.label).toBe("ESKARA");
+    expect(resetWire.icon).toEqual({ kind: "emoji", emoji: "🌊" });
     expect(resetWire.action.layerIds.length).toBeGreaterThan(0);
     expect(resetWire.action.layerIds).not.toContain("eskara26_facility");
     expect(
