@@ -106,25 +106,34 @@ describe("the shipped eskara-2026 config", () => {
     }
   });
 
-  it("frames 통제구역, 편의시설 and 입장 on their own centres, and moves no other chip", () => {
+  it("frames 주점, 부스, 편의시설, 입장 and 통제구역 on their own centres, and moves no other chip", () => {
     // Coordinates are the pairs /map/overlays/campus and the sheet serve.
     //
-    // 통제구역: the zones are long north-south bands, and between the chip row
-    // and the bottom sheet a phone shows about 511 pt of map — at the festival's
-    // zoom their southern tip sits under the sheet. So the chip steps back and
-    // recentres on 운용재 (building 49), nearer the middle of both zones than
-    // 대운동장.
+    // Zooms are set against the app, not a formula: a chip served at 17.5
+    // renders about 0.56 of a level tighter than 256-pt web-mercator arithmetic
+    // predicts, and a phone shows ~350 pt of map between the chip row and the
+    // bottom sheet, with the target in its upper half.
     //
-    // 편의시설: the ten points run ~350 m from 신관게이트 to 제1과학관, too wide
-    // for 17.5. It steps back to 16.5 on `toilet-welfare`, the middle of them.
+    // 주점 and 부스: centred on the 대운동장 label, a step back at 17.0 — at the
+    // festival's 17.5 the southern pubs sat under the sheet.
     //
-    // 입장: the three 팔찌 배부 부스 stand just south of 삼성학술정보관
-    // (building 48), so the chip centres on the library at the festival's zoom.
+    // 편의시설: the ten points run ~360 m from 화장실 (주점 구역) to 제2과학관.
+    // 16.0 on `toilet-welfare`, the middle of them, is the framing of a
+    // screenshot zoomed out by hand to show all ten.
+    //
+    // 입장: halfway between 삼성학술정보관 (building 48) and the centroid of the
+    // three 팔찌 배부 부스 south of it, so both read at 17.0.
+    //
+    // 통제구역: the zones are long north-south bands whose southern tip sat
+    // under the sheet, so the chip steps back and recentres on 운용재
+    // (building 49), nearer the middle of both zones than 대운동장.
     const config = assertValidConfig(raw());
     const framed: Record<string, { lat: number; lng: number; zoom: number }> = {
+      eskara26_view_bar: { lat: 37.295187, lng: 126.970977, zoom: 17 },
+      eskara26_view_booth: { lat: 37.295187, lng: 126.970977, zoom: 17 },
+      eskara26_view_facility: { lat: 37.294007, lng: 126.972575, zoom: 16 },
+      eskara26_view_entry: { lat: 37.293648, lng: 126.974831, zoom: 17 },
       eskara26_view_control: { lat: 37.294555, lng: 126.971921, zoom: 16.2 },
-      eskara26_view_facility: { lat: 37.294007, lng: 126.972575, zoom: 16.5 },
-      eskara26_view_entry: { lat: 37.293885, lng: 126.974906, zoom: config.camera.zoom },
     };
     for (const chip of config.chips) {
       const want = framed[chip.id];
