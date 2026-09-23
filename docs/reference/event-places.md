@@ -162,8 +162,8 @@ One file per layer set: `scripts/data/<layerSetId>-places.json`.
 - **A drawn-but-not-tappable shape** is authored by setting `interactive: false` on its **category**
   in the layer set's `itemDefaults`, which yields `tap: null` on the wire. Per category, because two
   categories may share a layer — so one 구역 layer holds tappable stage zones and an inert boundary.
-- **A window crossing midnight** is written with the next day's date. That is why the 주점 entries
-  end at `00:00` on the following morning.
+- **A window crossing midnight** is written with the next day's date — a stall open 18:00 to 00:00
+  ends at `00:00` on the following morning, as the 2025 주점 did.
 - **`order` has no default.** A silent `0` would make list order arbitrary while looking deliberate.
 - **A webview action stays root-relative.** Resolving it needs `WEBVIEW_ORIGIN`, which is server
   config; an importer holding its own copy would disagree with the server the moment it changed. The

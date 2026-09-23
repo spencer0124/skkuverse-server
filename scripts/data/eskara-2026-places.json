@@ -2,8 +2,8 @@
   "layerSetId": "eskara-2026",
   "campus": "nsc",
   "_readme": [
-    "VERIFICATION DATASET, not authored 2026 content — EXCEPT the facility block",
-    "and the food trucks. Every booth and bar name is the real 2025 ESKARA",
+    "VERIFICATION DATASET, not authored 2026 content — EXCEPT the facility block,",
+    "the food trucks and the night pubs. Every booth name is the real 2025 ESKARA",
     "line-up, mapped onto the surveyed plots; the 2026 line-up replaces those",
     "wholesale and the importer is unchanged.",
     "",
@@ -38,8 +38,8 @@
     "",
     "`hours` is a list of absolute intervals, both bounds required. An empty list",
     "means always open (화장실, 의무실, 배리어프리존) and means only that. A window",
-    "crossing midnight is written with the next day's date, which is why the 주점",
-    "entries end at 00:00 on the following morning.",
+    "crossing midnight is written with the next day's date. (The 2025 주점 ran to",
+    "00:00 and were written that way; the 2026 pubs close at 23:00.)",
     "",
     "`lat`/`lng` are named here and become GeoJSON [lng, lat] in the reader — one",
     "conversion site on the write path, mirroring the projection on the read path",
@@ -143,7 +143,49 @@
     "per the list. Names follow the council's list where the photo folders spell",
     "them differently (오야붕, 써니플, 피꼬브로, 팬팬마라). 우마이식당's salmon photo",
     "is filed as 크림연어초밥 but the list sells 생연어초밥 — captioned per the list.",
-    "제이푸드's 크레페메뉴판 photo is NOT published: its prices contradict the list."
+    "제이푸드's 크레페메뉴판 photo is NOT published: its prices contradict the list.",
+    "",
+    "THE 18 NIGHT PUBS ARE REAL 2026 DATA, handed over by the 총학생회 on",
+    "2026-09-23 as a sheet (운영 일시, 주점 위치, 주점명, 단체명, 대표 메뉴 1-3,",
+    "링크), 16 plot coordinates, and a plot drawing. They replace all 18 of the",
+    "2025 `bar-*` and `nightbar-*` entries. Ids are TENANT slugs",
+    "(`bar-chamgyoyuk`), never plot numbers: a plot changes hands between nights.",
+    "",
+    "All run 18:00-23:00. Six are 10/1 only, six 10/2 only, six (the 양 plots —",
+    "양일) both days, so each carries one or two windows and the app derives its",
+    "1일차 / 2일차 / 양일 label from them. Plots 1, 2, 3~4 and 5 hold a different",
+    "pub each night on ONE coordinate; their windows are disjoint, which is the",
+    "one way the clash test allows two places on a point. A pub on two plots",
+    "(3~4, 7~8, 6~7, 양5~6, 양7~8) stands at the midpoint of the two.",
+    "",
+    "The drawing is rotated: its top is EAST and its right is SOUTH. Fitted onto",
+    "the coordinates, 15 of 16 plots agree with it to within 10 m.",
+    "",
+    "PLOT 1 IS AS GIVEN AND IS PROBABLY WRONG. The council's point equals",
+    "`toilet-bar` to 0.04 m and sits 112 m from plot 2, where the drawing puts it",
+    "beside plot 2 — about 37.295469, 126.970908 by the same fit. It is kept as",
+    "sent by decision; ask the council to confirm it and move both plot-1 pubs",
+    "(`bar-72min-sogaeting`, `bar-gonggyeong-rodang`) together. This is also why",
+    "the council's coordinates are stored at FULL precision, unlike the rest of",
+    "the file: at six decimals plot 1 becomes identical to `toilet-bar`, whose",
+    "`hours: []` overlaps everything, and the clash test fails.",
+    "",
+    "Each pub carries a `detail`: kind `pub`, the 단체명 as `org` (also the",
+    "`subtitle`, which is the line the event list shows — the sheet shows `org`",
+    "in its place), `isUnion` when the 단체명 joins two groups with X, a",
+    "`N번 주점` location label, one Instagram action, and the three 대표 메뉴 as a",
+    "list. A trailing parenthetical in a menu cell is its description; every",
+    "other word is as written. The council gave no emoji, so none are invented.",
+    "",
+    "Instagram links are cut to `https://www.instagram.com/<handle>/`. The sheet's",
+    "links carried share tokens (`stkn=`), `utm_*` tags and trailing spaces, and a",
+    "trailing space fails the importer. 공경로당 (공과대학 X 경영대학) has the",
+    "same link as 酒情뱅이, `skku_science` — 자연과학대학's account, so probably",
+    "a copy error. It is kept as sent by decision; confirm it with the council.",
+    "",
+    "Line breaks inside the name cells are single spaces. The two 🕸 around",
+    "스 PHA×의 더맨 are dropped because plain app text draws emoji as boxes;",
+    "♡, ビ and the hanja are kept."
   ],
   "places": [
     {
@@ -1475,502 +1517,999 @@
       "order": 59
     },
     {
-      "id": "bar-01",
+      "id": "bar-72min-sogaeting",
       "category": "bar",
-      "lat": 37.294749,
-      "lng": 126.97076,
-      "title": "슈퍼 정통 X 경영 브라더스",
-      "subtitle": "연합 주점",
+      "lat": 37.29462981261586,
+      "lng": 126.97049636899862,
+      "title": "72분 소개팅: 수원편",
+      "subtitle": "제76대 국어국문학과 학생회 다움 X 제13대 전자전기공학부 학생회 시그널",
       "hours": [
         {
-          "startAt": "2026-08-27T18:00:00+09:00",
-          "endAt": "2026-08-28T00:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
+          "startAt": "2026-10-01T18:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         }
       ],
-      "fields": [
-        {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "골뱅이소면 · 감자튀김 · 하이볼"
-        }
-      ],
-      "actions": [
-        {
-          "id": "entry",
-          "label": "입장 안내",
-          "actionType": "webview",
-          "actionValue": "/eskara/entry",
-          "style": "primary"
-        }
-      ],
+      "detail": {
+        "kind": "pub",
+        "org": "제76대 국어국문학과 학생회 다움 X 제13대 전자전기공학부 학생회 시그널",
+        "isUnion": true,
+        "locationLabel": "1번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_eesc_signal/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "왕갈비 통닭인 척 하는 치킨텐더",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "퍼스트 러브 하츠코이' 나폴리탄 파스타",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "치즈퐁듀에 빠진 감자빵",
+                "description": null
+              }
+            ]
+          }
+        ]
+      },
       "order": 70
     },
     {
-      "id": "bar-02",
+      "id": "bar-jikuro-laksil",
       "category": "bar",
-      "lat": 37.294747,
-      "lng": 126.9709,
-      "title": "불가마 24시 스파동 숙/취/전/문",
-      "subtitle": "연합 주점",
+      "lat": 37.295454438801244,
+      "lng": 126.97121503661282,
+      "title": "지쿠로락실: 에스카라 특별편",
+      "subtitle": "쿠사 X 로타랙트",
       "hours": [
         {
-          "startAt": "2026-08-27T18:00:00+09:00",
-          "endAt": "2026-08-28T00:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
+          "startAt": "2026-10-01T18:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         }
       ],
-      "fields": [
-        {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "계란찜 · 미역국 · 식혜"
-        }
-      ],
+      "detail": {
+        "kind": "pub",
+        "org": "쿠사 X 로타랙트",
+        "isUnion": true,
+        "locationLabel": "2번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_kusa/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "네기 타코야끼",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "우삼겹 가래떡 떡볶이",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "어묵 버섯 전골",
+                "description": null
+              }
+            ]
+          }
+        ]
+      },
       "order": 71
     },
     {
-      "id": "bar-03",
+      "id": "bar-bullyang-seongdae",
       "category": "bar",
-      "lat": 37.294744,
-      "lng": 126.971039,
-      "title": "솦융이랑 유대랑 싸우나",
-      "subtitle": "연합 주점",
+      "lat": 37.2953261,
+      "lng": 126.9713659,
+      "title": "불량성대",
+      "subtitle": "제11대 화학공학부 학생회 C:ODE X 제37대 융합생명공학과 학생회 위드융",
       "hours": [
         {
-          "startAt": "2026-08-27T18:00:00+09:00",
-          "endAt": "2026-08-28T00:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
+          "startAt": "2026-10-01T18:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         }
       ],
-      "fields": [
-        {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "제육볶음 · 오뎅탕"
-        }
-      ],
+      "detail": {
+        "kind": "pub",
+        "org": "제11대 화학공학부 학생회 C:ODE X 제37대 융합생명공학과 학생회 위드융",
+        "isUnion": true,
+        "locationLabel": "3~4번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/with__yung/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "불닭이랑 바람났소바",
+                "description": "불닭 야끼소바빵"
+              },
+              {
+                "emoji": null,
+                "title": "불량정식",
+                "description": "오뎅탕+주먹밥"
+              },
+              {
+                "emoji": null,
+                "title": "숙주야 나랑 삼겹 볼래?",
+                "description": "삼겹숙주볶음"
+              }
+            ]
+          }
+        ]
+      },
       "order": 72
     },
     {
-      "id": "bar-04",
+      "id": "bar-s-angel",
       "category": "bar",
-      "lat": 37.294742,
-      "lng": 126.971178,
-      "title": "인어공酒(주)",
-      "subtitle": "연합 주점",
+      "lat": 37.29518190444774,
+      "lng": 126.97133638141378,
+      "title": "S♡ANGEL.NET에 접속하시겠습니까?",
+      "subtitle": "성균관대학교 공식 학교발전홍보대사 S-ANGEL",
       "hours": [
         {
-          "startAt": "2026-08-27T18:00:00+09:00",
-          "endAt": "2026-08-28T00:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
+          "startAt": "2026-10-01T18:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         }
       ],
-      "fields": [
-        {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "해물파전 · 조개탕"
-        }
-      ],
+      "detail": {
+        "kind": "pub",
+        "org": "성균관대학교 공식 학교발전홍보대사 S-ANGEL",
+        "isUnion": false,
+        "locationLabel": "5번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_angel/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "콘치즈불닭을 낋여오너라",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "완소 떡볶이♡",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "오늘 시간 오뎅?",
+                "description": null
+              }
+            ]
+          }
+        ]
+      },
       "order": 73
     },
     {
-      "id": "bar-05",
+      "id": "bar-harry-potter",
       "category": "bar",
-      "lat": 37.294675,
-      "lng": 126.970705,
-      "title": "'예스(yes), 크리스마스!'",
-      "subtitle": "연합 주점",
+      "lat": 37.294992679096445,
+      "lng": 126.97130543815885,
+      "title": "해리포터와 초록의 파도",
+      "subtitle": "제49대 한문교육과 학생회 개화(開花)",
       "hours": [
         {
-          "startAt": "2026-08-27T18:00:00+09:00",
-          "endAt": "2026-08-28T00:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
+          "startAt": "2026-10-01T18:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         }
       ],
-      "fields": [
-        {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "치킨 · 감바스 · 와인"
-        }
-      ],
+      "detail": {
+        "kind": "pub",
+        "org": "제49대 한문교육과 학생회 개화(開花)",
+        "isUnion": false,
+        "locationLabel": "6번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_hangyo/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "바실리스크 소세지",
+                "description": "소세지"
+              },
+              {
+                "emoji": null,
+                "title": "해그리드의 악성곱슬",
+                "description": "짜계치"
+              },
+              {
+                "emoji": null,
+                "title": "불사조 닭강정",
+                "description": "닭강정"
+              }
+            ]
+          }
+        ]
+      },
       "order": 74
     },
     {
-      "id": "bar-06",
+      "id": "bar-yes-some-noise",
       "category": "bar",
-      "lat": 37.294669,
-      "lng": 126.970799,
-      "title": "골 때리는 킥 호프",
-      "subtitle": "연합 · 단일 공통",
+      "lat": 37.2948372,
+      "lng": 126.9712815,
+      "title": "YES~ SOME NOISE",
+      "subtitle": "제58대 스포츠과학대학 학생회 SP:HERE X 제28대 예술대학 학생회 <예너지>",
       "hours": [
         {
-          "startAt": "2026-08-27T18:00:00+09:00",
-          "endAt": "2026-08-28T00:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
+          "startAt": "2026-10-01T18:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
         }
       ],
-      "fields": [
-        {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "닭발 · 나초 · 생맥주"
-        }
-      ],
+      "detail": {
+        "kind": "pub",
+        "org": "제58대 스포츠과학대학 학생회 SP:HERE X 제28대 예술대학 학생회 <예너지>",
+        "isUnion": true,
+        "locationLabel": "7~8번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_sportscience_official/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "불닭볶음면&맥앤치즈",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "감자튀김",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "칠리콘카르네",
+                "description": null
+              }
+            ]
+          }
+        ]
+      },
       "order": 75
     },
     {
-      "id": "bar-07",
+      "id": "bar-gonggyeong-rodang",
       "category": "bar",
-      "lat": 37.294663,
-      "lng": 126.970893,
-      "title": "이자카藥 (IZAKAYAK)",
-      "subtitle": "단일 주점",
+      "lat": 37.29462981261586,
+      "lng": 126.97049636899862,
+      "title": "공경로당(工經老堂)",
+      "subtitle": "제41대 공과대학 학생회 BETWE:EN X 제26대 경영대학 학생회 Be:hind",
       "hours": [
         {
-          "startAt": "2026-08-27T18:00:00+09:00",
-          "endAt": "2026-08-28T00:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
+          "startAt": "2026-10-02T18:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "fields": [
-        {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "야키토리 · 사케"
-        }
-      ],
+      "detail": {
+        "kind": "pub",
+        "org": "제41대 공과대학 학생회 BETWE:EN X 제26대 경영대학 학생회 Be:hind",
+        "isUnion": true,
+        "locationLabel": "1번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_science/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "오뎅탕&두부김치",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "삼색전",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "제육볶음",
+                "description": null
+              }
+            ]
+          }
+        ]
+      },
       "order": 76
     },
     {
-      "id": "bar-08",
+      "id": "bar-back-to-00-10",
       "category": "bar",
-      "lat": 37.294657,
-      "lng": 126.970987,
-      "title": "만병통취약",
-      "subtitle": "단일 주점",
+      "lat": 37.295454438801244,
+      "lng": 126.97121503661282,
+      "title": "BACK TO 00-10",
+      "subtitle": "제51대 식품생명공학과 학생회 푸렌즈 X 제57대 행정학과 학생회 PA:stel",
       "hours": [
         {
-          "startAt": "2026-08-27T18:00:00+09:00",
-          "endAt": "2026-08-28T00:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
+          "startAt": "2026-10-02T18:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "fields": [
-        {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "닭곰탕 · 약초주"
-        }
-      ],
+      "detail": {
+        "kind": "pub",
+        "org": "제51대 식품생명공학과 학생회 푸렌즈 X 제57대 행정학과 학생회 PA:stel",
+        "isUnion": true,
+        "locationLabel": "2번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_pa_stel/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "피카츄돈가스",
+                "description": "야 너 피..!카츄ㅎㅎ"
+              },
+              {
+                "emoji": null,
+                "title": "마약옥수수",
+                "description": "중독돼도 책임 안져요"
+              },
+              {
+                "emoji": null,
+                "title": "꼬꼬면",
+                "description": "국물 먹어야겠지..? 얼큰 해야겠지..?"
+              }
+            ]
+          }
+        ]
+      },
       "order": 77
     },
     {
-      "id": "bar-09",
+      "id": "bar-haus-cosmo",
       "category": "bar",
-      "lat": 37.294651,
-      "lng": 126.971081,
-      "title": "컴comm온! 산리오",
-      "subtitle": "단일 주점",
+      "lat": 37.2953261,
+      "lng": 126.9713659,
+      "title": "zl존건축 ♡ 오ビ소글융 | 일촌공개",
+      "subtitle": "제23대 건축학과 학생회 HAUS23 X 제8대 글로벌융합학부 학생회 COSMO",
       "hours": [
         {
-          "startAt": "2026-08-27T18:00:00+09:00",
-          "endAt": "2026-08-28T00:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
+          "startAt": "2026-10-02T18:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "fields": [
-        {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "타코야끼 · 딸기에이드"
-        }
-      ],
+      "detail": {
+        "kind": "pub",
+        "org": "제23대 건축학과 학생회 HAUS23 X 제8대 글로벌융합학부 학생회 COSMO",
+        "isUnion": true,
+        "locationLabel": "3~4번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_haus23/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "야채볶음밥+소세지",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "떡볶이",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "오뎅탕",
+                "description": null
+              }
+            ]
+          }
+        ]
+      },
       "order": 78
     },
     {
-      "id": "bar-10",
+      "id": "bar-chamgyoyuk",
       "category": "bar",
-      "lat": 37.294645,
-      "lng": 126.971175,
-      "title": "부추전, 김치전, 인자전, let's go",
-      "subtitle": "연합 주점",
+      "lat": 37.29518190444774,
+      "lng": 126.97133638141378,
+      "title": "참교육: 酒권보호국 성균관대학교 특별파견본부",
+      "subtitle": "제56대 사범대학 학생회 나래",
       "hours": [
         {
-          "startAt": "2026-08-27T18:00:00+09:00",
-          "endAt": "2026-08-28T00:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
+          "startAt": "2026-10-02T18:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "fields": [
-        {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "부추전 · 김치전 · 막걸리"
-        }
-      ],
+      "detail": {
+        "kind": "pub",
+        "org": "제56대 사범대학 학생회 나래",
+        "isUnion": false,
+        "locationLabel": "5번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skkucoe_narae/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "\"공포는 경험으로 생기는 거야\"",
+                "description": "불닭볶음면 + 체다 치즈"
+              },
+              {
+                "emoji": null,
+                "title": "\"어묵꼬치 하나로 끝날 것 같아?\"",
+                "description": "어묵탕"
+              },
+              {
+                "emoji": null,
+                "title": "\"저 날 수 있습니다. 고공 강하 준비!\"",
+                "description": "가라아게"
+              }
+            ]
+          }
+        ]
+      },
       "order": 79
     },
     {
-      "id": "nightbar-01",
+      "id": "bar-jujeongbaengi",
       "category": "bar",
-      "lat": 37.295494,
-      "lng": 126.970907,
-      "title": "헤라의 불시착",
-      "subtitle": "1일차 야간주점",
+      "lat": 37.2949454,
+      "lng": 126.9712984,
+      "title": "酒情뱅이",
+      "subtitle": "제42대 자연과학대학 학생회 SCeNe X 제40대 생명공학대학 학생회 Blink",
       "hours": [
         {
-          "startAt": "2026-08-27T18:00:00+09:00",
-          "endAt": "2026-08-28T00:00:00+09:00"
+          "startAt": "2026-10-02T18:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "fields": [
-        {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "치즈볼 · 하이볼"
-        }
-      ],
+      "detail": {
+        "kind": "pub",
+        "org": "제42대 자연과학대학 학생회 SCeNe X 제40대 생명공학대학 학생회 Blink",
+        "isUnion": true,
+        "locationLabel": "6~7번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_science/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "묵사발",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "김치전",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "제육볶음",
+                "description": null
+              }
+            ]
+          }
+        ]
+      },
       "order": 80
     },
     {
-      "id": "nightbar-02",
+      "id": "bar-seonggyun-theater",
       "category": "bar",
-      "lat": 37.295473,
-      "lng": 126.971096,
-      "title": "ㄴr는… ㄱr끔… 술을 흘린ㄷㅏ…",
-      "subtitle": "1일차 야간주점",
+      "lat": 37.29477642192593,
+      "lng": 126.97127168579507,
+      "title": "성균 시어터",
+      "subtitle": "성균극회 X 영상촌",
       "hours": [
         {
-          "startAt": "2026-08-27T18:00:00+09:00",
-          "endAt": "2026-08-28T00:00:00+09:00"
+          "startAt": "2026-10-02T18:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "fields": [
-        {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "떡볶이 · 소주"
-        }
-      ],
+      "detail": {
+        "kind": "pub",
+        "org": "성균극회 X 영상촌",
+        "isUnion": true,
+        "locationLabel": "8번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_dramaclub/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "다송이가 좋아하는 짜파구리",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "너나 잘하세요 두부김치",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "볶음밥과 안 헤어질 결심",
+                "description": null
+              }
+            ]
+          }
+        ]
+      },
       "order": 81
     },
     {
-      "id": "nightbar-03",
+      "id": "bar-homecoming-night",
       "category": "bar",
-      "lat": 37.295453,
-      "lng": 126.971286,
-      "title": "우끼끼친",
-      "subtitle": "1일차 야간주점",
+      "lat": 37.29440472755858,
+      "lng": 126.9712041584638,
+      "title": "SKKU HOMECOMING NIGHT",
+      "subtitle": "향실",
       "hours": [
         {
-          "startAt": "2026-08-27T18:00:00+09:00",
-          "endAt": "2026-08-28T00:00:00+09:00"
-        }
-      ],
-      "fields": [
+          "startAt": "2026-10-01T18:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
+        },
         {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "바나나튀김 · 몽키스파클"
+          "startAt": "2026-10-02T18:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
+      "detail": {
+        "kind": "pub",
+        "org": "향실",
+        "isUnion": false,
+        "locationLabel": "양1번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_hyangsil/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "미국에서 레시피 훔쳐온 마르코의 부리또볼",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "홈커밍 퀸을 꿈꾸는 줄리아의 소세지",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "마이클이 일하다가 훔쳐먹는 치킨",
+                "description": null
+              }
+            ]
+          }
+        ]
+      },
       "order": 82
     },
     {
-      "id": "nightbar-04",
+      "id": "bar-lemon-kung",
       "category": "bar",
-      "lat": 37.295498,
-      "lng": 126.970869,
-      "title": "엔젤항공",
-      "subtitle": "2일차 야간주점",
+      "lat": 37.2944069561024,
+      "lng": 126.97110547412659,
+      "title": "레몬 쿵! 신(New & Sour) 에너지연구소",
+      "subtitle": "에너지학과 제3대 학생회 효율 X 배터리학과 제1대 학생회 BATTON",
       "hours": [
         {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
-        }
-      ],
-      "fields": [
+          "startAt": "2026-10-01T18:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
+        },
         {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "기내식 플레이트 · 클라우드 하이볼"
+          "startAt": "2026-10-02T18:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
+      "detail": {
+        "kind": "pub",
+        "org": "에너지학과 제3대 학생회 효율 X 배터리학과 제1대 학생회 BATTON",
+        "isUnion": true,
+        "locationLabel": "양2번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_doe_official/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "마라샹궈",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "레몬크림새우",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "계란볶음밥",
+                "description": null
+              }
+            ]
+          }
+        ]
+      },
       "order": 83
     },
     {
-      "id": "nightbar-05",
+      "id": "bar-golden-apple",
       "category": "bar",
-      "lat": 37.295486,
-      "lng": 126.970983,
-      "title": "가면酒도회",
-      "subtitle": "2일차 야간주점",
+      "lat": 37.294420451674384,
+      "lng": 126.97102370263194,
+      "title": "황금사과 스캔들",
+      "subtitle": "학생사회공헌단 다소미",
       "hours": [
         {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
-        }
-      ],
-      "fields": [
+          "startAt": "2026-10-01T18:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
+        },
         {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "가면 칵테일 · 핑거푸드"
+          "startAt": "2026-10-02T18:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
+      "detail": {
+        "kind": "pub",
+        "org": "학생사회공헌단 다소미",
+        "isUnion": false,
+        "locationLabel": "양3번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_dasomi/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "아프로디테의 장미 떡볶이",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "포세이돈의 심해 어묵탕",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "키르케의 저주 제육볶음",
+                "description": null
+              }
+            ]
+          }
+        ]
+      },
       "order": 84
     },
     {
-      "id": "nightbar-06",
+      "id": "bar-goal-in-love",
       "category": "bar",
-      "lat": 37.295473,
-      "lng": 126.971096,
-      "title": "F1: AIimi Pit Stop",
-      "subtitle": "2일차 야간주점",
+      "lat": 37.294427192177515,
+      "lng": 126.9709532118222,
+      "title": "그대 마음에 골인럽",
+      "subtitle": "플러렌",
       "hours": [
         {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
-        }
-      ],
-      "fields": [
+          "startAt": "2026-10-01T18:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
+        },
         {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "피트스톱 버거 · 에너지드링크"
+          "startAt": "2026-10-02T18:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
+      "detail": {
+        "kind": "pub",
+        "org": "플러렌",
+        "isUnion": false,
+        "locationLabel": "양4번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku.fullerene/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "대패삼겹살&파채",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "김치어묵우동",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "묵사발",
+                "description": null
+              }
+            ]
+          }
+        ]
+      },
       "order": 85
     },
     {
-      "id": "nightbar-07",
+      "id": "bar-sync",
       "category": "bar",
-      "lat": 37.295461,
-      "lng": 126.97121,
-      "title": "1루수가 누구야",
-      "subtitle": "2일차 야간주점",
+      "lat": 37.2944395,
+      "lng": 126.9707967,
+      "title": "SYNC는 못말려",
+      "subtitle": "제3대 성균융합원 학생회 SYNC X 제44대 자연과학캠퍼스 동아리연합회 SYNC",
       "hours": [
         {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
-        }
-      ],
-      "fields": [
+          "startAt": "2026-10-01T18:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
+        },
         {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "야구장 핫도그 · 생맥주"
+          "startAt": "2026-10-02T18:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
+      "detail": {
+        "kind": "pub",
+        "org": "제3대 성균융합원 학생회 SYNC X 제44대 자연과학캠퍼스 동아리연합회 SYNC",
+        "isUnion": true,
+        "locationLabel": "양5~6번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_clubs_sync/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "삼겹살",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "불닭 냉면",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "두부 김치",
+                "description": null
+              }
+            ]
+          }
+        ]
+      },
       "order": 86
     },
     {
-      "id": "nightbar-08",
+      "id": "bar-spha-man",
       "category": "bar",
-      "lat": 37.295449,
-      "lng": 126.971324,
-      "title": "술과 취히로의 행방불명",
-      "subtitle": "2일차 야간주점",
+      "lat": 37.2944519,
+      "lng": 126.9706501,
+      "title": "스 PHA×의 더맨: SKKU MULTIVERSE",
+      "subtitle": "의과대학 제28대 학생회 Smile X 약학대학 제42대 학생회 PHA:DO",
       "hours": [
         {
-          "startAt": "2026-08-28T18:00:00+09:00",
-          "endAt": "2026-08-29T00:00:00+09:00"
-        }
-      ],
-      "fields": [
+          "startAt": "2026-10-01T18:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
+        },
         {
-          "label": {
-            "ko": "메뉴",
-            "en": "Menu",
-            "zh": "菜单"
-          },
-          "value": "가마솥 오뎅 · 유즈사와"
+          "startAt": "2026-10-02T18:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
+      "detail": {
+        "kind": "pub",
+        "org": "의과대학 제28대 학생회 Smile X 약학대학 제42대 학생회 PHA:DO",
+        "isUnion": true,
+        "locationLabel": "양7~8번 주점",
+        "actions": [
+          {
+            "type": "instagram",
+            "id": "instagram",
+            "label": "인스타그램",
+            "profileUrl": "https://www.instagram.com/skku_sphaidermed/",
+            "postUrl": null
+          }
+        ],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "menu",
+            "title": "대표 메뉴",
+            "items": [
+              {
+                "emoji": null,
+                "title": "닥터옥토퍼스 소시지 볶음",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "까칠한 MJ도 좋아하는 오뎅탕",
+                "description": null
+              },
+              {
+                "emoji": null,
+                "title": "가수 거미가 부추기는 새우전",
+                "description": null
+              }
+            ]
+          }
+        ]
+      },
       "order": 87
     },
     {
