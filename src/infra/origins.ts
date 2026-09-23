@@ -32,6 +32,16 @@
  */
 export const WEBVIEW_ORIGIN = "https://webview.skkuverse.com";
 
+/**
+ * The standalone ESKARA festival site (`miniapp/eskara`), a copy of the webview's
+ * ESKARA pages that also carries pages the webview does not, such as the
+ * wristband notice. The festival map's place links point here, and its pages
+ * post `web:open-url` for ticket-platform links, which is why it is a bridge
+ * origin. It embeds no iframes; on Android a child frame would inherit the
+ * top-level grant. Remove it from BRIDGE_ORIGINS once nothing links to it.
+ */
+export const ESKARA_MINIAPP_ORIGIN = "https://eskara.miniapp.skkuverse.com";
+
 /** Marketing/launcher site — mini-app share links, A2HS shortcuts, remote mini-app logos. */
 export const WEB_ORIGIN = "https://skkuverse.com";
 
@@ -51,26 +61,29 @@ export const WEB_ORIGIN = "https://skkuverse.com";
 export const MEDIA_ORIGIN = "https://media.skkuverse.com";
 
 /**
- * Origins whose pages may reach the native bridge from the app's /webview shell.
+ * Origins whose pages may reach the native bridge from the app's web shells — the
+ * generic /webview and the /mini-app shell both run the same per-message gate, so
+ * a first-party mini app (eskara) is granted exactly what its /webview twin is.
  *
  * Published verbatim as `webview.bridgeOrigins` on GET /app/config. The client
  * re-checks the loaded document's origin against this list on EVERY bridge
  * message (a webview navigates, so an open-time grant outlives the origin it was
  * granted for) and grants nothing when the list is absent or unmatched.
  *
- * One entry: the single host we build webview URLs from. Adding a second is a
- * trust decision rather than a config change — it hands `Linking.openURL` and
- * the map-select channel to every page that host serves — so an entry belongs
- * here only for a deployment we own, and only while clients actually address it.
+ * Two entries: the host we build webview URLs from, and the standalone ESKARA
+ * deployment. Every entry is a trust decision rather than a config change — it
+ * hands `Linking.openURL` and the map-select channel to every page that host
+ * serves — so an entry belongs here only for a deployment we own, and only while
+ * clients actually address it.
  *
- * It stays a list because the client contract is an array, and because a host
+ * It is a list because the client contract is an array, and because a host
  * move needs the old and the new granted at the same time: a released binary
  * carries whatever host its compiled-in offline SDUI fallback names, and an
  * over-the-air update only reaches binaries built at the current
- * runtimeVersion. The second entry comes out once the field no longer names the
- * old host — not on a schedule.
+ * runtimeVersion. An entry comes out once nothing names its host any more — not
+ * on a schedule.
  */
-export const BRIDGE_ORIGINS = [WEBVIEW_ORIGIN] as const;
+export const BRIDGE_ORIGINS = [WEBVIEW_ORIGIN, ESKARA_MINIAPP_ORIGIN] as const;
 
 /**
  * Origins a BROWSER may read this API from.

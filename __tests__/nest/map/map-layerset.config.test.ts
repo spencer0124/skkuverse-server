@@ -385,12 +385,23 @@ describe("assertValidConfig — defaultVisibleWhen, the WHEN axis", () => {
   it("keeps a scheduled layer's windows, wrapping past midnight included", () => {
     const config = assertValidConfig(raw());
     const bar = config.layers.find((l) => l.id === "eskara26_bar")!;
-    // 주점 is the wrapping case: 18:00 is after 00:00, and that is what says
-    // "past midnight" rather than being a swapped pair.
+    // The council's sheet runs every 2026 pub 18:00-23:00.
     expect(bar.defaultVisibleWhen).toEqual({
       kind: "scheduled",
-      windows: [{ start: "18:00", end: "00:00" }],
+      windows: [{ start: "18:00", end: "23:00" }],
     });
+
+    // No shipped layer wraps any more (the 2025 주점 ran to 00:00), so the
+    // wrap is authored here: 18:00 after 00:00 says "past midnight" rather
+    // than being a swapped pair.
+    const wrapping = raw();
+    wrapping.layers.find((l: { id: string }) => l.id === "eskara26_bar").defaultVisibleWhen = {
+      kind: "scheduled",
+      windows: [{ start: "18:00", end: "00:00" }],
+    };
+    expect(
+      assertValidConfig(wrapping).layers.find((l) => l.id === "eskara26_bar")!.defaultVisibleWhen,
+    ).toEqual({ kind: "scheduled", windows: [{ start: "18:00", end: "00:00" }] });
 
     const booth = config.layers.find((l) => l.id === "eskara26_booth")!;
     expect(booth.defaultVisibleWhen).toEqual({

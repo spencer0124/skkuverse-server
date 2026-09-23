@@ -91,7 +91,7 @@ describe("GET /app/config", () => {
     expect(res.body.data.webview.bridgeOrigins).toContain(WEBVIEW_ORIGIN);
   });
 
-  it("grants the bridge to exactly one host, spelled out", async () => {
+  it("grants the bridge to exactly these hosts, spelled out", async () => {
     const res = await request(httpServer).get("/app/config");
     const origins = res.body.data.webview.bridgeOrigins as string[];
     // Deliberately literal rather than derived from BRIDGE_ORIGINS. The
@@ -100,12 +100,15 @@ describe("GET /app/config", () => {
     // be caught after deploy, because a missing origin produces no error on
     // either side, just a page whose buttons stop doing anything.
     //
-    // The list is one host again: the older webview deployment was retired once
-    // no client in the field addressed it any more. Exact equality rather than
-    // `toContain`, because the other direction matters just as much — an origin
-    // added here hands `Linking.openURL` and the map-select channel to every
-    // page that host serves, so it has to be written down in this test too.
-    expect(origins).toEqual(["https://webview.skkuverse.com"]);
+    // The webview host, plus the standalone ESKARA site whose pages open ticket
+    // links through `web:open-url`. Exact equality rather than `toContain`,
+    // because the other direction matters just as much — an origin added here
+    // hands `Linking.openURL` and the map-select channel to every page that host
+    // serves, so it has to be written down in this test too.
+    expect(origins).toEqual([
+      "https://webview.skkuverse.com",
+      "https://eskara.miniapp.skkuverse.com",
+    ]);
   });
 
   it("lists only absolute https origins in bridgeOrigins", async () => {
