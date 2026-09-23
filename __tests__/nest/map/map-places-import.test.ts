@@ -98,20 +98,46 @@ describe("parsePlacesFile — the committed sheet", () => {
   it("leaves the always-open places with no windows at all", () => {
     const always = docs.filter((d: { hours: unknown[] }) => d.hours.length === 0);
 
-    // 화장실, 의무실, 배리어프리존 and the selfie booth.
+    // 화장실 and the shuttle queue.
     expect(always.length).toBeGreaterThan(0);
+  });
+
+  it("puts every window on a festival day, and 10/3 on the mock alone", () => {
+    // The app has no festival-dates setting. It builds its calendar from the
+    // start date of every window it is served, and a place's N일차 is that
+    // date's position in it — so one stray date shifts the label of EVERY
+    // place. The 2025 line-up on 8/27-28 placeholder dates did exactly that,
+    // and every real 10/1 place read 3일차.
+    //
+    // The one mock runs on 10/3 alone, so it is known by its date. That still
+    // makes the calendar three days long; the day it goes, remove 10/3 here.
+    const FESTIVAL_DAYS = ["2026-10-01", "2026-10-02"];
+    const MOCK_DAY = "2026-10-03";
+    const MOCKS = [`${LAYER_SET_ID}-daybooth-01`];
+    // The date a window counts toward is its START's KST date, as in the app.
+    const kstDate = (t: Date) => new Date(t.getTime() + 9 * 3600_000).toISOString().slice(0, 10);
+
+    const strays: string[] = [];
+    for (const d of docs) {
+      const allowed = MOCKS.includes(d._id) ? [MOCK_DAY] : FESTIVAL_DAYS;
+      for (const w of d.hours as { startAt: Date }[]) {
+        if (!allowed.includes(kstDate(w.startAt))) strays.push(`${d._id} @ ${kstDate(w.startAt)}`);
+      }
+    }
+    expect(strays).toEqual([]);
+
+    // Pin the list to the file, so a mock removed from the sheet is removed here.
+    const ids = docs.map((d: { _id: string }) => d._id);
+    expect(MOCKS.filter((id) => !ids.includes(id))).toEqual([]);
   });
 
   it("never puts two places with overlapping hours on one coordinate", () => {
     // The one collision the client cannot resolve. Two places may share a
-    // coordinate — the west strip is re-striped between the day booths and the
-    // night bars, and that IS one spot — but only if their windows are
-    // disjoint, because openness is what picks between them. Two stalls open at
-    // the same moment on the same point leave the tiebreak to `order`, which
-    // means one of them is simply never on the map.
-    //
-    // The 2025 sheet numbered two booths "2" and two booths "4", which is
-    // exactly this case and why the rule is enforced rather than assumed.
+    // coordinate — pub plots 1, 2, 3~4 and 5 hold a different pub each night,
+    // and each IS one spot — but only if their windows are disjoint, because
+    // openness is what picks between them. Two stalls open at the same moment
+    // on the same point leave the tiebreak to `order`, which means one of them
+    // is simply never on the map.
     const overlaps = (
       a: { startAt: Date; endAt: Date }[],
       b: { startAt: Date; endAt: Date }[],
