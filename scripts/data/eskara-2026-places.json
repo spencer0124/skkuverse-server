@@ -2,10 +2,22 @@
   "layerSetId": "eskara-2026",
   "campus": "nsc",
   "_readme": [
-    "VERIFICATION DATASET, not authored 2026 content — EXCEPT the facility block,",
-    "the food trucks and the night pubs. Every booth name is the real 2025 ESKARA",
-    "line-up, mapped onto the surveyed plots; the 2026 line-up replaces those",
-    "wholesale and the importer is unchanged.",
+    "THE FESTIVAL RUNS 2026-10-01 AND 10-02. Everything in this file is real 2026",
+    "data EXCEPT ONE MOCK: `daybooth-01` (부스), a name from the 2025 ESKARA",
+    "line-up (the Notion archive). It runs on 2026-10-03 ONLY, so it is known by",
+    "its date alone and no real place shares its day. Replace it the moment the",
+    "2026 부스 line-up arrives; the importer is unchanged. 공연 has no place at",
+    "all until the council sends one.",
+    "",
+    "The mocks used to be the whole 2025 line-up: 22 places, 19 of them on 8/27-28",
+    "placeholder dates. The app has no festival-dates setting: it builds its",
+    "calendar from the start date of every window served, and a place's N일차 is",
+    "that date's position in it. The two stray days made the calendar four days",
+    "long and every real 10/1 place read 3일차. On 2026-09-23 they were cut to this",
+    "one. Its 10/3 still adds a THIRD day, so until it goes a place open 10/1 and",
+    "10/2 reads 1·2일차, not 양일 (the app says 양일 only when the calendar is",
+    "exactly two days long), and the mock reads 3일차. A test pins every window to",
+    "10/1-10/2 and 10/3 to the mock.",
     "",
     "THE FACILITY BLOCK IS REAL 2026 DATA. The nine 화장실 and the one 야간 자인",
     "셔틀 대기 point were surveyed by the 총학생회 and handed over on 2026-09-19;",
@@ -22,9 +34,8 @@
     "",
     "The shuttle queue point carries `hours: []` because the council sent a POSITION",
     "ONLY. It is night-only in reality, so that empty list is the one place this",
-    "file stretches the rule below — fill `hours` the moment the 2026 dates and the",
-    "night shuttle timetable are confirmed, in the same edit that retires the 2025",
-    "line-up.",
+    "file stretches the rule below — fill `hours` the moment the night shuttle",
+    "timetable is confirmed.",
     "",
     "ONE ENTRY PER PLACE. A booth open on both festival days is one entry with two",
     "windows in `hours` — never two entries. The previous format had a `days: [1,2]`",
@@ -45,12 +56,9 @@
     "conversion site on the write path, mirroring the projection on the read path",
     "(umbrella ADR 0004 invariant 3).",
     "",
-    "daybooth-02a/02b and 04a/04b are TWO stalls each, because the 2025 부스전 sheet",
-    "numbered two booths 2 and two booths 4. They were surveyed as one interpolated",
-    "point apiece; the `b` of each pair now sits a quarter of the strip's own step",
-    "(~1.3 m) along it. Two places may share a coordinate only when their windows are",
-    "disjoint — the strip really is re-striped from day booths to night bars — and a",
-    "test enforces exactly that.",
+    "Two places may share a coordinate only when their windows are disjoint — plots",
+    "1, 2, 3~4 and 5 hold a different pub each night — and a test enforces exactly",
+    "that.",
     "",
     "THE TWO CONTROL ZONES ARE REAL 2026 DATA, and the first `geometry` entries in",
     "this file. The 총학생회 handed over 13 points for 진입 통제구역 and 4 for 차량",
@@ -188,96 +196,6 @@
     "♡, ビ and the hanja are kept."
   ],
   "places": [
-    {
-      "id": "main-stage",
-      "category": "stage",
-      "lat": 37.294452,
-      "lng": 126.971747,
-      "title": "응원제 '1398'",
-      "subtitle": "메인 스테이지",
-      "hours": [
-        {
-          "startAt": "2026-08-27T10:00:00+09:00",
-          "endAt": "2026-08-27T22:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T10:00:00+09:00",
-          "endAt": "2026-08-28T22:00:00+09:00"
-        }
-      ],
-      "actions": [
-        {
-          "id": "timetable",
-          "label": "타임테이블 보기",
-          "actionType": "webview",
-          "actionValue": "/eskara/timetable",
-          "style": "primary"
-        },
-        {
-          "id": "entry",
-          "label": "입장 안내",
-          "actionType": "webview",
-          "actionValue": "/eskara/entry",
-          "style": "secondary"
-        }
-      ],
-      "order": 0
-    },
-    {
-      "id": "eatzone-01",
-      "category": "food",
-      "lat": 37.295428,
-      "lng": 126.971411,
-      "title": "취식존 (북측)",
-      "hours": [
-        {
-          "startAt": "2026-08-27T10:00:00+09:00",
-          "endAt": "2026-08-27T22:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T10:00:00+09:00",
-          "endAt": "2026-08-28T22:00:00+09:00"
-        }
-      ],
-      "order": 10
-    },
-    {
-      "id": "eatzone-02",
-      "category": "food",
-      "lat": 37.29538,
-      "lng": 126.971401,
-      "title": "취식존 (동측)",
-      "hours": [
-        {
-          "startAt": "2026-08-27T10:00:00+09:00",
-          "endAt": "2026-08-27T22:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T10:00:00+09:00",
-          "endAt": "2026-08-28T22:00:00+09:00"
-        }
-      ],
-      "order": 11
-    },
-    {
-      "id": "delivery-zone",
-      "category": "food",
-      "lat": 37.295688,
-      "lng": 126.970752,
-      "title": "배달존",
-      "subtitle": "후문 앞 외부 구역",
-      "hours": [
-        {
-          "startAt": "2026-08-27T10:00:00+09:00",
-          "endAt": "2026-08-27T22:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T10:00:00+09:00",
-          "endAt": "2026-08-28T22:00:00+09:00"
-        }
-      ],
-      "order": 12
-    },
     {
       "id": "truck-oyabong",
       "category": "food",
@@ -1291,33 +1209,6 @@
       "order": 36
     },
     {
-      "id": "promo-01",
-      "category": "booth",
-      "lat": 37.295332,
-      "lng": 126.971391,
-      "title": "프로모션 부스 (북측)",
-      "hours": [
-        {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T18:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T18:00:00+09:00"
-        }
-      ],
-      "actions": [
-        {
-          "id": "sponsor",
-          "label": "후원사 안내",
-          "actionType": "external",
-          "actionValue": "https://www.skku.edu/",
-          "style": "secondary"
-        }
-      ],
-      "order": 40
-    },
-    {
       "id": "daybooth-01",
       "category": "booth",
       "lat": 37.295473,
@@ -1326,12 +1217,8 @@
       "subtitle": "도장판 교환 · 리워드",
       "hours": [
         {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T18:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T18:00:00+09:00"
+          "startAt": "2026-10-03T11:00:00+09:00",
+          "endAt": "2026-10-03T18:00:00+09:00"
         }
       ],
       "actions": [
@@ -1351,170 +1238,6 @@
         }
       ],
       "order": 50
-    },
-    {
-      "id": "daybooth-02a",
-      "category": "booth",
-      "lat": 37.295501,
-      "lng": 126.97084,
-      "title": "캠퍼스는 다르지만 응원은 하고싶어",
-      "hours": [
-        {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T18:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T18:00:00+09:00"
-        }
-      ],
-      "order": 51
-    },
-    {
-      "id": "daybooth-02b",
-      "category": "booth",
-      "lat": 37.295499,
-      "lng": 126.970854,
-      "title": "인생은 랜덤, 향기는 커스텀",
-      "subtitle": "같은 자리에서 함께 운영",
-      "hours": [
-        {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T18:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T18:00:00+09:00"
-        }
-      ],
-      "order": 52
-    },
-    {
-      "id": "daybooth-03",
-      "category": "booth",
-      "lat": 37.295495,
-      "lng": 126.970897,
-      "title": "수제로켓전문점 아레스",
-      "hours": [
-        {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T18:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T18:00:00+09:00"
-        }
-      ],
-      "order": 53
-    },
-    {
-      "id": "daybooth-04a",
-      "category": "booth",
-      "lat": 37.295489,
-      "lng": 126.970954,
-      "title": "실험실 탈출",
-      "hours": [
-        {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T18:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T18:00:00+09:00"
-        }
-      ],
-      "order": 54
-    },
-    {
-      "id": "daybooth-04b",
-      "category": "booth",
-      "lat": 37.295488,
-      "lng": 126.970968,
-      "title": "S-LINK",
-      "subtitle": "같은 자리에서 함께 운영",
-      "hours": [
-        {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T18:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T18:00:00+09:00"
-        }
-      ],
-      "order": 55
-    },
-    {
-      "id": "daybooth-05",
-      "category": "booth",
-      "lat": 37.295483,
-      "lng": 126.971011,
-      "title": "ROTC 부트캠프",
-      "hours": [
-        {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T18:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T18:00:00+09:00"
-        }
-      ],
-      "order": 56
-    },
-    {
-      "id": "daybooth-06",
-      "category": "booth",
-      "lat": 37.295464,
-      "lng": 126.971182,
-      "title": "잡았S:CATCH",
-      "hours": [
-        {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T18:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T18:00:00+09:00"
-        }
-      ],
-      "order": 57
-    },
-    {
-      "id": "daybooth-07",
-      "category": "booth",
-      "lat": 37.295458,
-      "lng": 126.971239,
-      "title": "[ESKARA 정복 미션] 코드네임: TYPE-S",
-      "hours": [
-        {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T18:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T18:00:00+09:00"
-        }
-      ],
-      "order": 58
-    },
-    {
-      "id": "daybooth-08",
-      "category": "booth",
-      "lat": 37.295452,
-      "lng": 126.971296,
-      "title": "돌잔치",
-      "hours": [
-        {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T18:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T18:00:00+09:00"
-        }
-      ],
-      "order": 59
     },
     {
       "id": "bar-72min-sogaeting",
@@ -2513,103 +2236,6 @@
       "order": 87
     },
     {
-      "id": "goods-shop",
-      "category": "booth",
-      "lat": 37.295093,
-      "lng": 126.971341,
-      "title": "총학생회 굿즈샵",
-      "hours": [
-        {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T20:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T20:00:00+09:00"
-        }
-      ],
-      "actions": [
-        {
-          "id": "goods",
-          "label": "굿즈 안내",
-          "actionType": "webview",
-          "actionValue": "/eskara/goods",
-          "style": "primary"
-        }
-      ],
-      "order": 90
-    },
-    {
-      "id": "preorder",
-      "category": "booth",
-      "lat": 37.295189,
-      "lng": 126.971361,
-      "title": "프리오더 현장 수령",
-      "hours": [
-        {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T18:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T18:00:00+09:00"
-        }
-      ],
-      "actions": [
-        {
-          "id": "goods",
-          "label": "굿즈 안내",
-          "actionType": "webview",
-          "actionValue": "/eskara/goods",
-          "style": "secondary"
-        }
-      ],
-      "order": 91
-    },
-    {
-      "id": "tshirt",
-      "category": "booth",
-      "lat": 37.295236,
-      "lng": 126.971371,
-      "title": "드레스코드 티셔츠 배부",
-      "subtitle": "소진 시 종료",
-      "hours": [
-        {
-          "startAt": "2026-08-27T12:00:00+09:00",
-          "endAt": "2026-08-27T18:00:00+09:00"
-        }
-      ],
-      "order": 92
-    },
-    {
-      "id": "photo-event",
-      "category": "booth",
-      "lat": 37.295141,
-      "lng": 126.971351,
-      "title": "총학생회 포토 이벤트 부스",
-      "hours": [
-        {
-          "startAt": "2026-08-27T11:00:00+09:00",
-          "endAt": "2026-08-27T18:00:00+09:00"
-        },
-        {
-          "startAt": "2026-08-28T11:00:00+09:00",
-          "endAt": "2026-08-28T18:00:00+09:00"
-        }
-      ],
-      "order": 93
-    },
-    {
-      "id": "selfie-booth",
-      "category": "facility",
-      "lat": 37.294853,
-      "lng": 126.971291,
-      "title": "셀프 촬영 부스",
-      "subtitle": "학생회관",
-      "hours": [],
-      "order": 100
-    },
-    {
       "id": "toilet-newgate",
       "category": "facility",
       "lat": 37.295897,
@@ -2725,33 +2351,6 @@
       },
       "hours": [],
       "order": 109
-    },
-    {
-      "id": "medical",
-      "category": "facility",
-      "lat": 37.294806,
-      "lng": 126.971281,
-      "title": "의무실 / 응급 부스",
-      "hours": [],
-      "order": 110
-    },
-    {
-      "id": "barrierfree",
-      "category": "facility",
-      "lat": 37.294758,
-      "lng": 126.971271,
-      "title": "배리어프리존",
-      "hours": [],
-      "actions": [
-        {
-          "id": "shuttle",
-          "label": "셔틀 증차 안내",
-          "actionType": "webview",
-          "actionValue": "/eskara/shuttle",
-          "style": "secondary"
-        }
-      ],
-      "order": 111
     },
 
     {
