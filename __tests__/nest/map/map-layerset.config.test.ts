@@ -106,26 +106,40 @@ describe("the shipped eskara-2026 config", () => {
     }
   });
 
-  it("frames the 통제구역 on 운용재 from further out, and moves no other chip", () => {
-    // The zones are long north-south bands, and between the chip row and the
-    // bottom sheet a phone shows about 511 pt of map — at the festival's zoom
-    // their southern tip sits under the sheet. So that ONE chip steps back and
-    // recentres on 운용재 (building 49), which sits nearer the middle of both
-    // zones than 대운동장 does; every other chip keeps the camera they shared.
+  it("frames 통제구역, 편의시설 and 입장 on their own centres, and moves no other chip", () => {
+    // Coordinates are the pairs /map/overlays/campus and the sheet serve.
+    //
+    // 통제구역: the zones are long north-south bands, and between the chip row
+    // and the bottom sheet a phone shows about 511 pt of map — at the festival's
+    // zoom their southern tip sits under the sheet. So the chip steps back and
+    // recentres on 운용재 (building 49), nearer the middle of both zones than
+    // 대운동장.
+    //
+    // 편의시설: the ten points run ~350 m from 신관게이트 to 제1과학관, too wide
+    // for 17.5. It steps back to 16.5 on `toilet-welfare`, the middle of them.
+    //
+    // 입장: the three 팔찌 배부 부스 stand just south of 삼성학술정보관
+    // (building 48), so the chip centres on the library at the festival's zoom.
     const config = assertValidConfig(raw());
-    const control = config.chips.find((c) => c.id === "eskara26_view_control")!;
-    expect(control.camera!.zoom).toBeLessThan(config.camera.zoom);
-    // 운용재 as /map/overlays/campus serves it, which is campusMap.do's pair.
-    expect([control.camera!.lat, control.camera!.lng]).toEqual([37.294555, 126.971921]);
-    // Only the framing moved. The motion is the festival's, not this chip's.
-    const { tilt, bearing, durationMs } = control.camera!;
-    expect({ tilt, bearing, durationMs }).toEqual({
-      tilt: config.camera.tilt,
-      bearing: config.camera.bearing,
-      durationMs: config.camera.durationMs,
-    });
-    for (const chip of config.chips.filter((c) => c.id !== "eskara26_view_control")) {
-      expect(chip.camera).toEqual(config.camera);
+    const framed: Record<string, { lat: number; lng: number; zoom: number }> = {
+      eskara26_view_control: { lat: 37.294555, lng: 126.971921, zoom: 16.2 },
+      eskara26_view_facility: { lat: 37.294007, lng: 126.972575, zoom: 16.5 },
+      eskara26_view_entry: { lat: 37.293885, lng: 126.974906, zoom: config.camera.zoom },
+    };
+    for (const chip of config.chips) {
+      const want = framed[chip.id];
+      if (!want) {
+        expect(chip.camera).toEqual(config.camera);
+        continue;
+      }
+      const { lat, lng, zoom, tilt, bearing, durationMs } = chip.camera!;
+      expect({ id: chip.id, lat, lng, zoom }).toEqual({ id: chip.id, ...want });
+      // Only the framing moved. The motion is the festival's, not the chip's.
+      expect({ tilt, bearing, durationMs }).toEqual({
+        tilt: config.camera.tilt,
+        bearing: config.camera.bearing,
+        durationMs: config.camera.durationMs,
+      });
     }
   });
 
