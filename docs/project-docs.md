@@ -158,25 +158,21 @@ docker compose up -d --build
 
 # Verify
 docker compose ps
-curl http://localhost:3001/health/ready
-curl http://localhost:3002/health/ready
+curl http://localhost:3001/health/ready   # and each other api replica's port
 ```
 
 ### 7. docker-compose.yml Port Binding
 
-The docker-compose.yml runs two API replicas with localhost-only ports (Nginx handles external traffic):
+The docker-compose.yml runs the API replicas (`api-1`, `api-2`, …) with localhost-only ports (Nginx handles external traffic). They share one `x-api` definition and differ only in the port:
 
 ```yaml
-# api-1
-ports:
-  - "127.0.0.1:3001:3000"
-
-# api-2
-ports:
-  - "127.0.0.1:3002:3000"
+api-1:
+  <<: *api
+  ports:
+    - "127.0.0.1:3001:3000"
 ```
 
-This prevents direct access to the Express app, forcing all traffic through Nginx. The Nginx upstream block load-balances between the two replicas.
+This prevents direct access to the app, forcing all traffic through Nginx. The Nginx upstream block load-balances across the replicas; the sizing rationale is the comment above `x-api`.
 
 ### 8. Swagger URL Update
 
@@ -883,7 +879,7 @@ Schedule endpoints use a different error format from the global `res.error()`:
 
 The cache stores the resolved week data. On cache hit, only `requestedFrom` is replaced (since it varies per call but the schedule data is the same).
 
-**When to invalidate**: After inserting/updating documents in `bus_schedules` or `bus_overrides`. No automatic invalidation, and **no endpoint reaches `clearCache()`** — nothing routes to it. The only lever in production is restarting the process: `docker compose restart api-1` then `api-2`, one at a time so nginx always has a live upstream. `ROLE=poller` is exempt — it never binds a listener (`src/main.ts`), so it never resolves a schedule and its cache stays empty. Use `docker compose restart`, not `up -d --no-deps`: with an unchanged image the latter is a no-op and leaves the stale cache in place.
+**When to invalidate**: After inserting/updating documents in `bus_schedules` or `bus_overrides`. No automatic invalidation, and **no endpoint reaches `clearCache()`** — nothing routes to it. The only lever in production is restarting the process: restart each api replica in turn (`docker compose restart api-1`, then the next), one at a time so nginx always has a live upstream. `ROLE=poller` is exempt — it never binds a listener (`src/main.ts`), so it never resolves a schedule and its cache stays empty. Use `docker compose restart`, not `up -d --no-deps`: with an unchanged image the latter is a no-op and leaves the stale cache in place.
 
 ### Bus config ETag cache (in-memory)
 
@@ -1105,7 +1101,7 @@ db.bus_overrides.insertOne({
 If the server is running, the in-memory cache may still serve stale data (up to 1 hour). Options:
 
 1. **Wait** — cache expires after 1 hour TTL
-2. **Restart the API replicas** — `docker compose restart api-1`, health-check, then `api-2`. This is the only
+2. **Restart the API replicas** — one at a time, health-checking each (`docker compose restart api-1`, then the next). This is the only
    lever that works on demand. There is no management endpoint: `clearCacheForService()` exists on the service
    but nothing routes to it.
 
@@ -1209,7 +1205,7 @@ parse/build/diff (no dotenv, no Mongo), which is what `__tests__/nest/bus/campus
 - **Writes to**: `bus_campus.bus_schedules` (`_dev` unless `--prod`)
 - **Never upserts**: `resolveWeek` picks a pattern with `patterns.find(...)` — first match over an unordered
   scan — so a typo'd key that created a fifth document could shadow a real one, nondeterministically and
-  possibly differently on api-1 and api-2. `matchedCount !== 1` aborts.
+  possibly differently on each api replica. `matchedCount !== 1` aborts.
 - `index` is derived from array position; a hand-written `index` key is rejected by name.
 
 ```bash
@@ -1219,7 +1215,7 @@ npm run schedule                       # apply to bus_campus_dev
 npm run schedule -- --prod             # apply to bus_campus
 ```
 
-Restart `api-1` and `api-2` afterwards — see §7.
+Restart every api replica afterwards, one at a time — see §7.
 
 ### `scripts/drop-legacy-schedule-collections.js`
 

@@ -38,6 +38,7 @@ real_ip_header CF-Connecting-IP;
 upstream skkubus_api_new {
     server 127.0.0.1:3001 max_fails=3 fail_timeout=10s;
     server 127.0.0.1:3002 max_fails=3 fail_timeout=10s;
+    server 127.0.0.1:3003 max_fails=3 fail_timeout=10s;
 
     # Reuse connections to the replicas instead of opening one per request.
     # The idle timeout stays under Node's default keepAliveTimeout (5 s), so

@@ -16,8 +16,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run lint` — Run ESLint (0 errors AND 0 warnings expected; pre-TS strict rules include `eqeqeq`/`no-var`/`prefer-const`/`curly`/`no-shadow`/`no-throw-literal`/`no-useless-concat` + `no-unused-vars: error`). Enforced by CI (`.github/workflows/ci.yml`) and the `~/.claude/hooks/skkuverse-gate.sh` Stop hook.
 - `npm run knip` — Audit unused files + dependencies (exports check off; see `knip.json`)
 - `npm run depcheck` — Audit unused npm dependencies (with curated ignore list for dynamic loaders)
-- `docker compose up --build` — Build and run via Docker (NODE_ENV=production, 3 services: poller + api-1:3001 + api-2:3002)
-- `npm run verify:serve` / `npm run verify:serve:down` — Run the **production container topology** (poller + api-1:3001 + api-2:3002) locally for serving verification, but **safely**. `docker-compose.local-verify.yml` keeps `NODE_ENV=production` (faithful prod runtime — JSON logging, swagger off, `USE_PROD_API` forced; note the slim image lacks `pino-pretty` so `NODE_ENV=development` would crash per `lib/logger.ts:8-10`) and isolates data by overriding the four writable DB *names* to their `_dev` variants (`bus_campus_dev`/`skkubus_ads_dev`/`skkumap_dev`/`skku_notices_dev`) plus `DISPATCH_SWEEP_ENABLED=false` (no real FCM dispatch). Use this to confirm runtime/serving behavior before a `dev → main` deploy without touching prod resources. Requires the external `skkuverse` docker network.
+- `docker compose up --build` — Build and run via Docker (NODE_ENV=production: poller + the api replicas on 127.0.0.1:3001… — see `docker-compose.yml`)
+- `npm run verify:serve` / `npm run verify:serve:down` — Run the **production container topology** (poller + every api replica) locally for serving verification, but **safely**. `docker-compose.local-verify.yml` keeps `NODE_ENV=production` (faithful prod runtime — JSON logging, swagger off, `USE_PROD_API` forced; note the slim image lacks `pino-pretty` so `NODE_ENV=development` would crash per `lib/logger.ts:8-10`) and isolates data by overriding the four writable DB *names* to their `_dev` variants (`bus_campus_dev`/`skkubus_ads_dev`/`skkumap_dev`/`skku_notices_dev`) plus `DISPATCH_SWEEP_ENABLED=false` (no real FCM dispatch). Use this to confirm runtime/serving behavior before a `dev → main` deploy without touching prod resources. Requires the external `skkuverse` docker network.
 
 ## TypeScript Migration: COMPLETE (PR1–7, 2026-05-28)
 
@@ -96,7 +96,7 @@ Architecture doc: `docs/notices-api-architecture.md`.
 `docker-compose.yml` runs three services backed by the same image:
 
 - `ROLE=poller` — polls external APIs and writes to `bus_cache`. No HTTP listener.
-- `ROLE=api` (api-1: 3001, api-2: 3002) — serves HTTP from `bus_cache`. Skips poller startup so two replicas can scale horizontally without duplicate polls.
+- `ROLE=api` (api-1, api-2, … on 3001, 3002, …) — serves HTTP from `bus_cache`. Skips poller startup so replicas scale horizontally without duplicate polls. Replica count and sizing rationale: the `x-api` block in `docker-compose.yml`; `__tests__/nest/infra/replica-topology.test.ts` keeps compose, nginx, the deploy workflow and local-verify in step.
 - `ROLE=combined` (default for single-container / local) — runs both poller and HTTP in one process.
 
 `/health/ready` returns 503 unless DB ping succeeds AND (`role === "api"` OR pollers are running).

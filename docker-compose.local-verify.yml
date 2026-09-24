@@ -1,6 +1,6 @@
 # docker-compose.local-verify.yml
 #
-# 로컬에서 production 컨테이너 토폴로지(poller + api-1:3001 + api-2:3002)를 그대로
+# 로컬에서 production 컨테이너 토폴로지(poller + api 레플리카 전부)를 그대로
 # 띄워서 "서버에 배포됐을 때 서비스 서빙이 제대로 되는가"를 검증하기 위한 override.
 # base docker-compose.yml 과 함께 -f 로 결합해 사용한다:
 #
@@ -44,6 +44,20 @@
 #    보낸다. 데이터 평면이 _dev 여도 FCM 은 _dev 가 아니다.
 #    → verify 용 activation 에는 notifyMiniAppId 를 비워 둘 것.
 
+# Every api replica gets the same _dev overrides. A replica missing from this
+# file would boot with the production database names from .env —
+# __tests__/nest/infra/replica-topology.test.ts fails if one is missing.
+x-api-dev-env: &api-dev-env
+  - NODE_ENV=production
+  - ROLE=api
+  - TZ=Asia/Seoul
+  - MONGO_DB_NAME_BUS_CAMPUS=bus_campus_dev
+  - MONGO_AD_DB_NAME=skkubus_ads_dev
+  - MONGO_BUILDING_DB_NAME=skkumap_dev
+  - MONGO_NOTICES_DB_NAME=skku_notices_dev
+  - MONGO_EVENTMAP_DB_NAME=eventmap_dev
+  - MONGO_MINIAPPS_DB_NAME=miniapps_dev
+
 services:
   poller:
     environment:
@@ -59,25 +73,10 @@ services:
       - MONGO_MINIAPPS_DB_NAME=miniapps_dev
 
   api-1:
-    environment:
-      - NODE_ENV=production
-      - ROLE=api
-      - TZ=Asia/Seoul
-      - MONGO_DB_NAME_BUS_CAMPUS=bus_campus_dev
-      - MONGO_AD_DB_NAME=skkubus_ads_dev
-      - MONGO_BUILDING_DB_NAME=skkumap_dev
-      - MONGO_NOTICES_DB_NAME=skku_notices_dev
-      - MONGO_EVENTMAP_DB_NAME=eventmap_dev
-      - MONGO_MINIAPPS_DB_NAME=miniapps_dev
+    environment: *api-dev-env
 
   api-2:
-    environment:
-      - NODE_ENV=production
-      - ROLE=api
-      - TZ=Asia/Seoul
-      - MONGO_DB_NAME_BUS_CAMPUS=bus_campus_dev
-      - MONGO_AD_DB_NAME=skkubus_ads_dev
-      - MONGO_BUILDING_DB_NAME=skkumap_dev
-      - MONGO_NOTICES_DB_NAME=skku_notices_dev
-      - MONGO_EVENTMAP_DB_NAME=eventmap_dev
-      - MONGO_MINIAPPS_DB_NAME=miniapps_dev
+    environment: *api-dev-env
+
+  api-3:
+    environment: *api-dev-env
