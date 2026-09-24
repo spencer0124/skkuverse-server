@@ -106,7 +106,7 @@ describe("the shipped eskara-2026 config", () => {
     }
   });
 
-  it("frames 주점, 부스, 편의시설, 입장 and 통제구역 on their own centres, and moves no other chip", () => {
+  it("frames 주점, 부스, 편의시설, 입장 팔찌 배부 and 통제구역 on their own centres, and moves no other chip", () => {
     // Coordinates are the pairs /map/overlays/campus and the sheet serve.
     //
     // Zooms are set against the app, not a formula: a chip served at 17.5
@@ -121,7 +121,7 @@ describe("the shipped eskara-2026 config", () => {
     // 16.0 on `toilet-welfare`, the middle of them, is the framing of a
     // screenshot zoomed out by hand to show all ten.
     //
-    // 입장: halfway between 삼성학술정보관 (building 48) and the centroid of the
+    // 입장 팔찌 배부: halfway between 삼성학술정보관 (building 48) and the centroid of the
     // three 팔찌 배부 부스 south of it, so both read at 17.0.
     //
     // 통제구역: the zones are long north-south bands whose southern tip sat
