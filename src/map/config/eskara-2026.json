@@ -274,9 +274,9 @@
         "zh": "餐车"
       },
       "camera": {
-        "lat": 37.295129,
-        "lng": 126.971234,
-        "zoom": 17.5,
+        "lat": 37.2962298,
+        "lng": 126.9716456,
+        "zoom": 17.2,
         "tilt": 0,
         "bearing": 0,
         "durationMs": 500
@@ -366,6 +366,15 @@
       "food": {
         "layerId": "eskara26_food",
         "pinPriority": 20
+      },
+      "food_zone": {
+        "layerId": "eskara26_food",
+        "pinPriority": 0,
+        "interactive": false
+      },
+      "food_zone_pin": {
+        "layerId": "eskara26_food",
+        "pinPriority": 25
       },
       "stage": {
         "layerId": "eskara26_stage",

@@ -162,6 +162,14 @@ One file per layer set: `scripts/data/<layerSetId>-places.json`.
 - **A drawn-but-not-tappable shape** is authored by setting `interactive: false` on its **category**
   in the layer set's `itemDefaults`, which yields `tap: null` on the wire. Per category, because two
   categories may share a layer — so one 구역 layer holds tappable stage zones and an inert boundary.
+- **Occupants with no fixed spot stack under a head.** When the council gives an area but no
+  per-occupant positions, the occupants all take the area's one point, together with a head place
+  that names the area. The 2026 food trucks share 신관A 앞길 with `food-zone-pin`, and the area is
+  drawn by an inert `food-zone` ring. The head's category needs a higher `pinPriority` than the
+  occupants', and its `hours` must cover theirs. Then the map always draws the head, and each
+  occupant stays reachable through its list row. The clash test allows a shared coordinate with
+  overlapping hours only under such a head
+  ([map-overlays-api.md §3.4](map-overlays-api.md)).
 - **A window crossing midnight** is written with the next day's date — a stall open 18:00 to 00:00
   ends at `00:00` on the following morning, as the 2025 주점 did.
 - **`order` has no default.** A silent `0` would make list order arbitrary while looking deliberate.

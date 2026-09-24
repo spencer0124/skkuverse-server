@@ -161,18 +161,37 @@
     "drop shadow and re-encoded at a 1280 px long edge; each key carries a hash of",
     "its content, so a replaced photo is a new URL and never an overwrite.",
     "",
-    "Ids are VENDOR slugs (`truck-oyabong`), not plot numbers. The plot",
-    "assignment was not given, so the 17 surveyed truck plots are reused in the",
-    "list's 순번 order as placeholders — when the assignment arrives only",
-    "`lat`/`lng` move, not a detail full of that vendor's photo URLs.",
+    "Ids are VENDOR slugs (`truck-oyabong`), not plot numbers, and they stay as",
+    "they are when a name is corrected: the R2 photo keys embed them.",
     "",
-    "NOT GIVEN, AND PLACEHOLDERS HERE: which truck stands on which plot; the",
-    "운영 시간 (11:00-23:00 is the 2025 trucks' window moved onto 10/1-10/2); the",
-    "council's Instagram post link. 다모아푸드 is 10/1 only and 판판마라 10/2 only,",
-    "per the list. Names follow the council's list where the photo folders spell",
-    "them differently (오야붕, 써니플, 피꼬브로, 팬팬마라). 우마이식당's salmon photo",
+    "CONFIRMED BY THE 총학생회 ON 2026-09-24. Names are the photo folders' spellings,",
+    "not the list's: 팬팬마라, 오야붕, 써니플, 피꼬브로 (the list said 판판마라,",
+    "오야봉, 써니쿡, 피꼬보로). Every truck runs 11:00-23:00 on both days, except",
+    "다모아푸드 (10/1 only) and 팬팬마라 (10/2 only) — the values already here.",
+    "",
+    "THE TRUCKS HAVE NO PLOTS. Each truck's spot is decided on the day, somewhere",
+    "along 신관A 앞길, and the council sent one point for the whole area. That",
+    "point lies inside the 차량 통제구역 ring, 61 m from its west end on the 신관",
+    "side. The 2025 page put the trucks on \"후문 - 신관 사이 도로\", drawn as one",
+    "row along a road that matches this one (inferred from the drawing, not",
+    "confirmed), and 17 trucks in a row need about 150 m of its 176.",
+    "So the area is drawn with that ring, reused verbatim, as `food-zone` — inert,",
+    "on the food layer, visible the way the 통제구역 are.",
+    "",
+    "ONE PIN STANDS FOR ALL 17. `food-zone-pin` and every truck share the",
+    "council's point, verbatim. The app draws one pin per coordinate, and the",
+    "zone pin always wins it: its `pinPriority` (25) beats a truck's (20) and its",
+    "windows cover every truck's, so it is never the closed one. The map therefore",
+    "says \"푸드트럭 구역\", never one vendor's name on a spot that vendor may not",
+    "have. The trucks lose the pin but keep their list rows — the 푸드트럭 chip's",
+    "list — and a truck chosen there is drawn on the spot and opens its own sheet.",
+    "This is the one sanctioned stack; the clash test allows a group on one",
+    "coordinate only under such a head.",
+    "",
+    "Still not given: the council's Instagram post link. 우마이식당's salmon photo",
     "is filed as 크림연어초밥 but the list sells 생연어초밥 — captioned per the list.",
-    "제이푸드's 크레페메뉴판 photo is NOT published: its prices contradict the list.",
+    "제이푸드's 크레페메뉴판 photo is NOT published: it is a 4-item \"BEST Pick!\"",
+    "board whose 바나나 + 누텔라 크레페 (6,000원) the list does not sell.",
     "",
     "THE 18 NIGHT PUBS ARE REAL 2026 DATA, handed over by the 총학생회 on",
     "2026-09-23 as a sheet (운영 일시, 주점 위치, 주점명, 단체명, 대표 메뉴 1-3,",
@@ -224,11 +243,163 @@
   ],
   "places": [
     {
+      "id": "food-zone",
+      "category": "food_zone",
+      "title": {
+        "ko": "푸드트럭 구역",
+        "en": "Food truck zone"
+      },
+      "hours": [],
+      "order": 18,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [126.97062824436703, 37.29628324893438],
+            [126.97067892281298, 37.29647473190478],
+            [126.97263020139258, 37.29616659396774],
+            [126.97257669861975, 37.295975111167664],
+            [126.97062824436703, 37.29628324893438]
+          ]
+        ]
+      }
+    },
+    {
+      "id": "food-zone-pin",
+      "category": "food_zone_pin",
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
+      "title": {
+        "ko": "푸드트럭 구역",
+        "en": "Food truck zone"
+      },
+      "subtitle": "자리는 당일 배치",
+      "hours": [
+        {
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T23:00:00+09:00"
+        },
+        {
+          "startAt": "2026-10-02T11:00:00+09:00",
+          "endAt": "2026-10-02T23:00:00+09:00"
+        }
+      ],
+      "detail": {
+        "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
+        "blocks": [
+          {
+            "type": "notice",
+            "id": "placement",
+            "title": "운영 안내",
+            "items": [
+              "트럭별 자리는 당일 현장에서 정해져요.",
+              "다모아푸드는 10/1(목), 팬팬마라는 10/2(금)에만 운영해요.",
+              "푸드트럭 칩을 누르면 트럭별 메뉴와 사진을 볼 수 있어요."
+            ]
+          },
+          {
+            "type": "list",
+            "id": "trucks",
+            "title": "푸드트럭 17대",
+            "items": [
+              {
+                "emoji": "🚚",
+                "title": "건강가족",
+                "description": "족발 · 닭발"
+              },
+              {
+                "emoji": "🚚",
+                "title": "냠냠쩝쩝",
+                "description": "타코 · 나초"
+              },
+              {
+                "emoji": "🚚",
+                "title": "다모아푸드",
+                "description": "야채곱창 · 순대곱창 · 10/1만"
+              },
+              {
+                "emoji": "🚚",
+                "title": "명품한입",
+                "description": "타코야끼 · 소떡소떡"
+              },
+              {
+                "emoji": "🚚",
+                "title": "보스닭",
+                "description": "닭강정"
+              },
+              {
+                "emoji": "🚚",
+                "title": "스테이킹",
+                "description": "팟타이"
+              },
+              {
+                "emoji": "🚚",
+                "title": "써니플",
+                "description": "칠리새우 · 크림새우"
+              },
+              {
+                "emoji": "🚚",
+                "title": "오야붕",
+                "description": "야끼소바 · 오꼬노미야끼"
+              },
+              {
+                "emoji": "🚚",
+                "title": "우마이식당",
+                "description": "불초밥 · 연어초밥"
+              },
+              {
+                "emoji": "🚚",
+                "title": "정우꼬치 맛있는꼬치",
+                "description": "닭꼬치"
+              },
+              {
+                "emoji": "🚚",
+                "title": "제이푸드",
+                "description": "크레페"
+              },
+              {
+                "emoji": "🚚",
+                "title": "톡톡팡팡",
+                "description": "구슬아이스크림"
+              },
+              {
+                "emoji": "🚚",
+                "title": "파라다이스 커피",
+                "description": "커피 · 음료"
+              },
+              {
+                "emoji": "🚚",
+                "title": "팬팬마라",
+                "description": "마라꼬치 · 10/2만"
+              },
+              {
+                "emoji": "🚚",
+                "title": "프라임팩토리",
+                "description": "스테이크"
+              },
+              {
+                "emoji": "🚚",
+                "title": "피꼬브로",
+                "description": "피자"
+              },
+              {
+                "emoji": "🚚",
+                "title": "희망츄러스",
+                "description": "츄러스 · 아이스크림"
+              }
+            ]
+          }
+        ]
+      },
+      "order": 19
+    },
+    {
       "id": "truck-oyabong",
       "category": "food",
-      "lat": 37.29542,
-      "lng": 126.971501,
-      "title": "오야봉",
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
+      "title": "오야붕",
       "subtitle": "야끼소바 · 오꼬노미야끼",
       "hours": [
         {
@@ -242,6 +413,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -286,8 +458,8 @@
     {
       "id": "truck-umai",
       "category": "food",
-      "lat": 37.29538,
-      "lng": 126.971492,
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
       "title": "우마이식당",
       "subtitle": "불초밥 · 연어초밥",
       "hours": [
@@ -302,6 +474,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -336,8 +509,8 @@
     {
       "id": "truck-bossdak",
       "category": "food",
-      "lat": 37.29534,
-      "lng": 126.971484,
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
       "title": "보스닭",
       "subtitle": "닭강정",
       "hours": [
@@ -352,6 +525,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -388,8 +562,8 @@
     {
       "id": "truck-paradise-coffee",
       "category": "food",
-      "lat": 37.2953,
-      "lng": 126.971476,
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
       "title": "파라다이스 커피",
       "subtitle": "커피 · 음료",
       "hours": [
@@ -404,6 +578,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -434,8 +609,8 @@
     {
       "id": "truck-jungwoo-kkochi",
       "category": "food",
-      "lat": 37.295221,
-      "lng": 126.971459,
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
       "title": "정우꼬치 맛있는꼬치",
       "subtitle": "닭꼬치",
       "hours": [
@@ -450,6 +625,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -474,8 +650,8 @@
     {
       "id": "truck-myeongpum-hanip",
       "category": "food",
-      "lat": 37.295181,
-      "lng": 126.971451,
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
       "title": "명품한입",
       "subtitle": "타코야끼 · 소떡소떡",
       "hours": [
@@ -490,6 +666,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -534,8 +711,8 @@
     {
       "id": "truck-toktok-pangpang",
       "category": "food",
-      "lat": 37.295141,
-      "lng": 126.971442,
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
       "title": "톡톡팡팡",
       "subtitle": "구슬아이스크림",
       "hours": [
@@ -550,6 +727,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -594,8 +772,8 @@
     {
       "id": "truck-huimang-churros",
       "category": "food",
-      "lat": 37.295101,
-      "lng": 126.971434,
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
       "title": "희망츄러스",
       "subtitle": "츄러스 · 아이스크림",
       "hours": [
@@ -610,6 +788,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -672,9 +851,9 @@
     {
       "id": "truck-sunnycook",
       "category": "food",
-      "lat": 37.295061,
-      "lng": 126.971426,
-      "title": "써니쿡",
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
+      "title": "써니플",
       "subtitle": "칠리새우 · 크림새우",
       "hours": [
         {
@@ -688,6 +867,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -722,8 +902,8 @@
     {
       "id": "truck-geongang-gajok",
       "category": "food",
-      "lat": 37.295021,
-      "lng": 126.971418,
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
       "title": "건강가족",
       "subtitle": "족발 · 닭발",
       "hours": [
@@ -738,6 +918,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -802,8 +983,8 @@
     {
       "id": "truck-jfood",
       "category": "food",
-      "lat": 37.294981,
-      "lng": 126.971409,
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
       "title": "제이푸드",
       "subtitle": "크레페",
       "hours": [
@@ -818,6 +999,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -866,8 +1048,8 @@
     {
       "id": "truck-staking",
       "category": "food",
-      "lat": 37.294941,
-      "lng": 126.971401,
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
       "title": "스테이킹",
       "subtitle": "팟타이",
       "hours": [
@@ -882,6 +1064,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -926,9 +1109,9 @@
     {
       "id": "truck-pikkoboro",
       "category": "food",
-      "lat": 37.294902,
-      "lng": 126.971393,
-      "title": "피꼬보로",
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
+      "title": "피꼬브로",
       "subtitle": "피자",
       "hours": [
         {
@@ -942,6 +1125,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -986,8 +1170,8 @@
     {
       "id": "truck-prime-factory",
       "category": "food",
-      "lat": 37.294862,
-      "lng": 126.971384,
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
       "title": "프라임팩토리",
       "subtitle": "스테이크",
       "hours": [
@@ -1002,6 +1186,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -1046,8 +1231,8 @@
     {
       "id": "truck-nyamnyam",
       "category": "food",
-      "lat": 37.294822,
-      "lng": 126.971376,
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
       "title": "냠냠쩝쩝",
       "subtitle": "타코 · 나초",
       "hours": [
@@ -1062,6 +1247,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -1140,8 +1326,8 @@
     {
       "id": "truck-damoa-food",
       "category": "food",
-      "lat": 37.294782,
-      "lng": 126.971367,
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
       "title": "다모아푸드",
       "subtitle": "야채곱창 · 순대곱창",
       "hours": [
@@ -1152,6 +1338,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",
@@ -1194,9 +1381,9 @@
     {
       "id": "truck-panpan-mala",
       "category": "food",
-      "lat": 37.294742,
-      "lng": 126.971359,
-      "title": "판판마라",
+      "lat": 37.296337486038695,
+      "lng": 126.97134158214834,
+      "title": "팬팬마라",
       "subtitle": "마라꼬치",
       "hours": [
         {
@@ -1206,6 +1393,7 @@
       ],
       "detail": {
         "kind": "foodTruck",
+        "locationLabel": "신관A 앞길",
         "blocks": [
           {
             "type": "table",

@@ -335,6 +335,16 @@ does not need to, because their windows are one night apart and step 1 has alrea
 > pairs were surveyed as a single interpolated point with identical hours — genuinely two stalls, so
 > the fix was two coordinates, a quarter of the strip's own step (~1.3 m) apart.
 
+**The one deliberate exception is a stack under a head.** The 2026 food trucks have no plots: the
+council places them along 신관A 앞길 on the day and sent one point for the whole area. All 17 share
+that point with `food-zone-pin` ("푸드트럭 구역"), whose `pinPriority` (25) beats a truck's (20) and
+whose windows cover every truck's. Step 1 therefore never ranks a truck above it, and step 2 always
+does. The pin names the area, never one vendor on a spot that vendor may not hold. The trucks lose
+the pin **on purpose** and keep their list rows. A truck chosen from the list is drawn on the spot,
+because the client ranks the selected place above the whole ladder. The import test allows a shared
+coordinate with overlapping hours only under such a head: a strictly higher `pinPriority` and
+windows covering every other member's. Anything else still fails.
+
 ## 4. Layer flags — `defaultVisibleWhen` and `userConfigurable`
 
 Two independent axes on every layer entry in `GET /map/config`:

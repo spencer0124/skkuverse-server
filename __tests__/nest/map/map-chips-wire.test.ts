@@ -141,9 +141,9 @@ describe("GET /map/config (real MapService)", () => {
     expect(foodChip.action).toEqual({
       kind: "focus",
       camera: {
-        lat: 37.295129,
-        lng: 126.971234,
-        zoom: 17.5,
+        lat: 37.2962298,
+        lng: 126.9716456,
+        zoom: 17.2,
         tilt: 0,
         bearing: 0,
         durationMs: 500,
