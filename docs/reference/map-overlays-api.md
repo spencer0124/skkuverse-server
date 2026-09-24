@@ -1166,11 +1166,11 @@ the client never does date arithmetic:
 
 **The client's rules:**
 
-- `optional`: a checklist. Any non-empty set of options can be checked, and it opens with every
-  option checked, which is "no filter" and reads 전체. ESKARA 2026 uses this for both 일자 and 운영.
-- `required`: a single choice, opening on the first option. Nothing uses it today.
-- No list opens on a time-dependent default, so a list looks the same before and during the
-  festival.
+- `required`: a single choice with no 전체. It opens on the option whose `window` contains now,
+  otherwise the nearest one still to come, otherwise the last. ESKARA 2026's 일자 is required
+  because a plot holds a different pub each night, so two days at once would stack two places on
+  one pin.
+- `optional`: a checklist headed by 전체, which it opens on. ESKARA 2026's 운영.
 - **Filter.** Keep an overlay when, for every facet not holding all its options,
   `overlay.facets[facet.id]` shares an option id with what is checked.
 - **Sort,** then by `id`:

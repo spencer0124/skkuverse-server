@@ -207,7 +207,7 @@ describe("GET /map/config (real MapService)", () => {
         {
           id: "day",
           label: "일자",
-          select: "optional",
+          select: "required",
           options: [
             {
               id: "day1",

@@ -189,10 +189,12 @@ export type EventFacetSource = "hours" | "tag";
 /**
  * How many options of a facet the user holds at once.
  *
- *  - `optional`: any non-empty subset, as a checklist. Opens with every
- *    option checked, which is "no filter" (전체). What ESKARA 2026 uses for
- *    both 일자 and 운영.
- *  - `required`: exactly one, as a single choice. Opens on the first option.
+ *  - `required`: exactly one, as a single choice with no 전체. Opens on the
+ *    option whose window contains now, else the nearest one still to come,
+ *    else the last. ESKARA 2026's 일자: a plot holds a different pub each
+ *    night, so two days at once would stack two places on one pin.
+ *  - `optional`: any non-empty subset, as a checklist headed by 전체, which it
+ *    opens on. ESKARA 2026's 운영.
  */
 export type EventFacetSelect = "required" | "optional";
 

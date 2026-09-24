@@ -149,7 +149,7 @@
         "zh": "日期"
       },
       "source": "hours",
-      "select": "optional",
+      "select": "required",
       "options": [
         {
           "id": "day1",
