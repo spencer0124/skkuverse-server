@@ -3,7 +3,7 @@ title: 프로젝트 문서 (통합 인덱스 · 미이관)
 type: reference
 status: deprecated
 owner: zoyoong124@gmail.com
-last-updated: 2026-07-22
+last-updated: 2026-09-24
 audience: internal
 ---
 
@@ -74,6 +74,10 @@ Three layers of firewall must ALL allow traffic:
 - SSH (port 22) is already open by default
 
 #### Layer 2: OS-level firewall (iptables)
+
+> [!WARNING]
+> **Superseded on the production VM (2026-09-24).** 80/443 now accept only Cloudflare's IPv4 ranges, applied at boot by `skkuverse-firewall.service`, and `/etc/iptables/rules.v4` is deliberately never rewritten — do **not** run `netfilter-persistent save` there. The block below is the one-time bootstrap of a fresh host; then lock it per [how-to/lock-origin-to-cloudflare.md](how-to/lock-origin-to-cloudflare.md).
+
 ```bash
 # Ubuntu on OCI comes with restrictive iptables
 # IMPORTANT: Insert rules BEFORE the REJECT rule, not after
@@ -115,9 +119,9 @@ Nginx config is version-controlled at `infra/nginx/api.skkuverse.com` in the rep
 sudo cp infra/nginx/api.skkuverse.com /etc/nginx/sites-available/
 ```
 
-The config uses an upstream block with passive health checks for load balancing between two API replicas. See `infra/nginx/api.skkuverse.com` for the full config.
+The config uses an upstream block with passive health checks for load balancing across the API replicas (the list lives in the file; `__tests__/nest/infra/replica-topology.test.ts` keeps it in step with `docker-compose.yml`). A catch-all default server (`infra/nginx/00-default-catchall`) answers every unknown host name or bare IP with no response. The deploy installs both, restoring the previous config if `nginx -t` fails.
 
-**Client IP.** The TCP peer is always a Cloudflare edge, so the file resolves the client from `CF-Connecting-IP` (`set_real_ip_from` Cloudflare's ranges + `real_ip_header`) and sends it upstream as the *only* `X-Forwarded-For` entry. That pairs with `trust proxy 1` in `src/main.ts`, which takes the rightmost entry as `req.ip` — the rate limiter's key. Change one half and the other stops holding: `__tests__/nest/infra/nginx-site.test.ts` pins the nginx side. The ranges are copied from Cloudflare's published lists, with the fetch date in the file; re-check them occasionally.
+**Client IP.** The TCP peer is always a Cloudflare edge, so the file resolves the client from `CF-Connecting-IP` (`set_real_ip_from` Cloudflare's ranges + `real_ip_header`) and sends it upstream as the *only* `X-Forwarded-For` entry. That pairs with `trust proxy 1` in `src/main.ts`, which takes the rightmost entry as `req.ip` — the rate limiter's key. Change one half and the other stops holding: `__tests__/nest/infra/nginx-site.test.ts` pins the nginx side. The ranges are generated from `infra/cloudflare/ips-v{4,6}.txt` (`npm run cloudflare-ips`; `npm test` fails when the snippet is stale) and a weekly workflow compares them with Cloudflare's published lists — see [how-to/lock-origin-to-cloudflare.md](how-to/lock-origin-to-cloudflare.md).
 
 Enable the site:
 ```bash
@@ -137,6 +141,10 @@ sudo nginx -t && sudo systemctl reload nginx
   - Download `.pem` and `-key.pem`, place on server at `/etc/ssl/cloudflare/`
 
 #### Recommended Cloudflare Settings
+
+> [!NOTE]
+> Recommendations, not a record of the live zone. As of 2026-09-24 the `skkuverse.com` zone has Always Use HTTPS off and a minimum TLS version of 1.0 (noted, not changed); check the dashboard for the current values.
+
 - **Always Use HTTPS**: ON
 - **Minimum TLS Version**: 1.2
 - **Auto Minify**: OFF (it's an API, not a website)
@@ -200,14 +208,16 @@ MongoDB is hosted on Atlas (cloud). No need to run MongoDB on the Oracle VM.
 
 - [ ] SSH key-only auth (disable password login)
 - [ ] `fail2ban` for SSH brute-force protection
-- [ ] Firewall only allows 22, 80, 443
+- [x] Firewall only allows 22, and 80/443 from Cloudflare's ranges only (2026-09-24, [how-to/lock-origin-to-cloudflare.md](how-to/lock-origin-to-cloudflare.md))
 - [ ] Docker port bound to 127.0.0.1 only
 - [ ] Cloudflare Origin Certificate for encrypted origin traffic
-- [ ] Consider: Cloudflare "Authenticated Origin Pulls" to ensure only Cloudflare can reach your Nginx
+- [ ] Consider: Cloudflare "Authenticated Origin Pulls" — the firewall already limits origin traffic to Cloudflare's ranges; this would also reject other Cloudflare customers' traffic
 
 ---
 
 ## Monitoring & Maintenance
+
+Alerting (UptimeRobot outside-in, a per-host Healthchecks.io heartbeat inside-out, both to Discord `#server-alerts` + email): [how-to/monitor-production.md](how-to/monitor-production.md).
 
 - [ ] `docker compose logs -f` for app logs
 - [ ] Nginx access/error logs: `/var/log/nginx/`

@@ -20,6 +20,7 @@ audience: internal
 | `deploy.yml` | main push | test → OCI 자동 배포 + auto rollback |
 | `claude-code-review.yml` | PR 생성/업데이트 | 자동 코드 리뷰 |
 | `claude.yml` | `@claude` 멘션 | 대화형 응답 |
+| `cloudflare-ips.yml` | Weekly schedule + manual | Compares `infra/cloudflare/ips-v{4,6}.txt` with Cloudflare's published ranges; a red run is the drift alert ([how-to/lock-origin-to-cloudflare.md](how-to/lock-origin-to-cloudflare.md)) |
 
 ---
 

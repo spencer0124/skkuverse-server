@@ -55,7 +55,7 @@ Express API server for SKKU (Sungkyunkwan University) campus. Serves real-time b
 - `docs/` — Architecture decisions and runbooks. `docs/archive/` holds dated incident reports.
 - `swagger/` — Swagger autogen config and generated OpenAPI spec
 - `scripts/` — One-off migration and data-collection utilities
-- `infra/nginx/` — Nginx site configs deployed to the Oracle VM by CI/CD
+- `infra/` — Host config the deploy installs on the Oracle VM: `nginx/` (sites, catch-all default server, generated Cloudflare real-IP snippet), `cloudflare/` (Cloudflare IP ranges, SSOT for nginx and the firewall), `firewall/` (80/443-from-Cloudflare-only script + boot unit), `monitoring/` (Healthchecks.io heartbeat + cron). Runbooks: `docs/how-to/lock-origin-to-cloudflare.md`, `docs/how-to/monitor-production.md`
 
 ### Feature Module Pattern
 
@@ -93,7 +93,7 @@ Architecture doc: `docs/notices-api-architecture.md`.
 
 ### Multi-Container Topology (`ROLE` env var)
 
-`docker-compose.yml` runs three services backed by the same image:
+`docker-compose.yml` runs the poller and the api replicas from one image; `ROLE` picks the boot path:
 
 - `ROLE=poller` — polls external APIs and writes to `bus_cache`. No HTTP listener.
 - `ROLE=api` (api-1, api-2, … on 3001, 3002, …) — serves HTTP from `bus_cache`. Skips poller startup so replicas scale horizontally without duplicate polls. Replica count and sizing rationale: the `x-api` block in `docker-compose.yml`; `__tests__/nest/infra/replica-topology.test.ts` keeps compose, nginx, the deploy workflow and local-verify in step.

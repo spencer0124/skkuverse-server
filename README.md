@@ -72,11 +72,12 @@ skkuverse-server/
 │   ├── app/                  # App version gate (iOS/Android min/update URL)
 │   └── ui/                   # SDUI fragments (bus list, campus list, scroll config)
 ├── __tests__/
-│   ├── nest/                 # Jest integration tests (34 suites, 368 tests)
+│   ├── nest/                 # Jest integration tests
 │   └── helpers/              # Shared mock factories + mini-app builders
 ├── docs/                     # Architecture decisions, runbooks
 ├── scripts/                  # One-off migration + data-collection utilities
-├── infra/nginx/              # Nginx site configs deployed by CI/CD
+├── infra/                    # Deployed to the VM by CI/CD: nginx sites, Cloudflare IP lists,
+│                             #   host firewall, heartbeat cron
 └── docker-compose.yml        # poller + api replicas (api-1…, 127.0.0.1:3001…)
 ```
 
@@ -228,20 +229,20 @@ Rate limits: notices (120/min, uid-keyed), everything else general (`RATE_LIMIT_
 
 ## Multi-Container Topology
 
-`docker-compose.yml` runs 3 services backed by the same image. The `ROLE` env var picks the boot path:
+`docker-compose.yml` runs the poller and the api replicas from one image. The `ROLE` env var picks the boot path:
 
 - **`poller`** — polls external APIs and writes snapshots to the `bus_cache` MongoDB collection. No HTTP listener.
 - **`api`** (api-1, api-2, … on 3001, 3002, …) — serves HTTP from `bus_cache`. Skips poller startup so replicas can scale horizontally.
 - **`combined`** (default for local) — runs both poller and HTTP in one process.
 
-Behind Nginx with TLS via Cloudflare. Deployed to Oracle Cloud Free Tier VM by `.github/workflows/deploy.yml` on push to `main`.
+Behind Nginx with TLS via Cloudflare. Deployed to Oracle Cloud Free Tier VM by `.github/workflows/deploy.yml` on push to `main`. The origin accepts HTTP(S) only from Cloudflare ([docs/how-to/lock-origin-to-cloudflare.md](docs/how-to/lock-origin-to-cloudflare.md)); how production is watched and alerted on: [docs/how-to/monitor-production.md](docs/how-to/monitor-production.md).
 
 ---
 
 ## Running Tests
 
 ```bash
-npm test              # all tests with coverage (368 tests, 34 suites)
+npm test              # all tests with coverage
 npx jest __tests__/nest/bus/schedule.routes.test.ts  # single file
 npm run lint          # ESLint (0 errors + 0 warnings expected)
 npm run typecheck     # tsc --noEmit for both src and test tsconfigs
@@ -253,6 +254,7 @@ npm run typecheck     # tsc --noEmit for both src and test tsconfigs
 
 - **`docs/README.md`** — documentation index & conventions (Diátaxis structure, frontmatter schema, writing rules). Start here.
 - **`docs/reference/notices-api.md`**, **`docs/explanation/notices-architecture.md`**, **`docs/decisions/`** — the notices feature, fully documented (contract, design rationale, ADRs, incident postmortem)
+- **`docs/how-to/monitor-production.md`**, **`docs/how-to/lock-origin-to-cloudflare.md`** — operations runbooks: alerts, onboarding a host, the origin firewall
 - **`CLAUDE.md`** — guidance for Claude Code (some Architecture sections are pre-NestJS, see the banner there)
 - **`docs/cicd-and-branch-protection.md`**, **`docs/project-docs.md`** — legacy docs pending migration (see backlog in `docs/README.md`)
 
