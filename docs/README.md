@@ -46,6 +46,7 @@ audience: internal
 | [configure-map-overlays.md](how-to/configure-map-overlays.md) | Everything the map can draw and how to add or change one — which tier you edit, whether it needs a deploy, and what to check when a shape does not appear |
 | [migrate-app-to-map-overlays.md](how-to/migrate-app-to-map-overlays.md) | The client half of the overlay change, for `skkuverse-app` — what changed on the wire, the ring winding the SDK needs reversed, and the fallback config that still points at a deleted route |
 | [monitor-production.md](how-to/monitor-production.md) | How production is watched (UptimeRobot outside-in, a per-host Healthchecks.io heartbeat inside-out), what each alert means, adding a host, and testing the alert path |
+| [lock-origin-to-cloudflare.md](how-to/lock-origin-to-cloudflare.md) | Closing an origin host to everything but Cloudflare — the nginx catch-all server, the host firewall and the shared Cloudflare IP lists; apply, verify, roll back, and refresh when Cloudflare's ranges change |
 
 ### reference (계약·스펙)
 
