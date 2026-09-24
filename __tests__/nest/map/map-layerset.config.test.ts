@@ -218,6 +218,30 @@ describe("assertValidConfig — structure→structure references block publicati
     );
   });
 
+  it("reads tapChip, absent meaning an ordinary place tap", () => {
+    const config = assertValidConfig(raw());
+    expect(config.itemDefaults.byCategory.food_zone!.tapChip).toBe("eskara26_view_food");
+    expect(config.itemDefaults.byCategory.food!.tapChip).toBeNull();
+    expect(config.itemDefaults.fallback.tapChip).toBeNull();
+  });
+
+  it("rejects a tapChip naming a chip that does not exist", () => {
+    // A tap that runs no chip does nothing, with nothing saying why.
+    const config = raw();
+    config.itemDefaults.byCategory.food_zone.tapChip = "nope";
+    expect(() => assertValidConfig(config)).toThrow(
+      /byCategory\["food_zone"\]\.tapChip "nope" is not in config.chips/,
+    );
+  });
+
+  it("rejects a tapChip on an inert category", () => {
+    const config = raw();
+    config.itemDefaults.byCategory.food_zone.interactive = false;
+    expect(() => assertValidConfig(config)).toThrow(
+      /byCategory\["food_zone"\]\.tapChip is set on a category with interactive: false/,
+    );
+  });
+
   it("rejects a chip naming a layer that does not exist — in the validator's words", () => {
     // The chip validator owns this rule, run over the row exactly as it will be
     // served; the config parser does not keep a second copy with a second

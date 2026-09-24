@@ -102,7 +102,8 @@ interface MarkerAction {
 
 type MarkerTap =
   | { kind: "skku_building"; placeId: string }
-  | { kind: "event"; placeId: string };
+  | { kind: "event"; placeId: string }
+  | { kind: "chip"; chipId: string };
 
 type MapOverlay =
   | (OverlayBase & { kind: "marker";  geometry: GeoJsonPoint; pinPriority: number })
@@ -198,6 +199,19 @@ Which places are inert is authored per **category**, in the layer set's
 than per layer, because two categories may map to one layer — so a single 구역 layer holds tappable
 stage zones and an inert boundary without inventing a second layer. And not derived from "has no
 `fields` or `actions`": adding one card row must never silently turn a backdrop into a button.
+
+### 2.6 `tap.kind: "chip"` runs a chip instead of opening a place
+
+Some shapes stand for a whole list rather than one place. The 2026 푸드트럭 구역 is the case: its
+17 trucks have no spots of their own. A tap on such an overlay carries
+`{ kind: "chip", chipId }`, and the client runs that chip exactly as the chip row would, with its
+layers, camera and list. No sheet opens and none is served: the details route skips the category.
+
+It is authored per category like `interactive`, as `itemDefaults.byCategory[…].tapChip` (absent or
+`null` means an ordinary place tap). The config refuses a `tapChip` that names no authored chip, or
+one set on an `interactive: false` category. A client built before the kind existed parses the tap as
+`null` (`parseMarkerTap`'s fail-soft) and draws the overlay inert, so shipping it breaks no installed
+app.
 
 ### 2.0 `actionValue` is always complete by the time it ships
 
@@ -339,7 +353,8 @@ does not need to, because their windows are one night apart and step 1 has alrea
 council places them along 신관A 앞길 on the day and sent one point for the whole area. All 17 share
 that point with `food-zone-pin` ("푸드트럭 구역"), whose `pinPriority` (25) beats a truck's (20) and
 whose windows cover every truck's. Step 1 therefore never ranks a truck above it, and step 2 always
-does. The pin names the area, never one vendor on a spot that vendor may not hold. The trucks lose
+does. The pin names the area, never one vendor on a spot that vendor may not hold. Tapping it,
+or the zone's ring, runs the 푸드트럭 chip (§2.6) rather than opening a sheet. The trucks lose
 the pin **on purpose** and keep their list rows. A truck chosen from the list is drawn on the spot,
 because the client ranks the selected place above the whole ladder. The import test allows a shared
 coordinate with overlapping hours only under such a head: a strictly higher `pinPriority` and

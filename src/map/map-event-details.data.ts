@@ -295,8 +295,14 @@ async function loadEventPlaceDetails(): Promise<EventPlaceDetails> {
       dropped.push(`${doc._id}: place is not renderable`);
       continue;
     }
-    if (!presentationFor(config, doc.category).interactive) {
+    const presentation = presentationFor(config, doc.category);
+    if (!presentation.interactive) {
       dropped.push(`${doc._id}: category "${doc.category}" is not tappable`);
+      continue;
+    }
+    if (presentation.tapChip) {
+      // Its tap runs a chip, so no sheet ever opens for it.
+      dropped.push(`${doc._id}: category "${doc.category}" taps to chip "${presentation.tapChip}"`);
       continue;
     }
     const detail = toWireDetail(doc, dropped);

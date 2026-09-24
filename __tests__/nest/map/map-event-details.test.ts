@@ -300,6 +300,16 @@ describe("getEventPlaceDetails", () => {
     expect(details).toEqual({});
     expect(warned()).toMatch(/is not tappable/);
   });
+
+  it("gives no detail to a place whose tap runs a chip, which opens no sheet", async () => {
+    // `food_zone` carries `tapChip: eskara26_view_food` in eskara-2026.json.
+    arrange([place(truckDetail(), { category: "food_zone" })]);
+
+    const { details } = await getEventPlaceDetails();
+
+    expect(details).toEqual({});
+    expect(warned()).toMatch(/taps to chip "eskara26_view_food"/);
+  });
 });
 
 describe("the committed sheet, importer to wire", () => {
@@ -335,7 +345,9 @@ describe("the committed sheet, importer to wire", () => {
     }
     expect(mockLogger.warn).not.toHaveBeenCalled();
 
-    const tapped = new Set(overlays.map((o) => o.tap?.placeId));
+    const tapped = new Set(
+      overlays.map((o) => (o.tap && o.tap.kind !== "chip" ? o.tap.placeId : undefined)),
+    );
     for (const id of Object.keys(details)) expect([id, tapped.has(id)]).toEqual([id, true]);
   });
 });

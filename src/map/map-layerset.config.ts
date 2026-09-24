@@ -410,6 +410,12 @@ function asItemPresentation(value: unknown, where: string): ItemPresentation {
       raw.interactive === undefined || raw.interactive === null
         ? true
         : asBoolean(raw.interactive, `${where}.interactive`),
+    // Absent or null means a place tap. The chip it names is checked against
+    // the authored chips in `assertValidConfig`, which holds both lists.
+    tapChip:
+      raw.tapChip === undefined || raw.tapChip === null
+        ? null
+        : asString(raw.tapChip, `${where}.tapChip`),
   };
 }
 
@@ -494,6 +500,16 @@ export function assertValidConfig(raw: unknown): EventMapConfig {
       // The whole point of the table: a category resolving to no layer is a
       // booth that is never drawn, with nothing anywhere saying why.
       fail(`${where}.layerId "${presentation.layerId}" is not in config.layers`);
+    }
+    if (presentation.tapChip !== null) {
+      // A tap that runs a chip nobody authored would do nothing, with nothing
+      // anywhere saying why — the same silent failure as a missing layer.
+      if (!chips.some((c) => c.id === presentation.tapChip)) {
+        fail(`${where}.tapChip "${presentation.tapChip}" is not in config.chips`);
+      }
+      if (!presentation.interactive) {
+        fail(`${where}.tapChip is set on a category with interactive: false`);
+      }
     }
   }
 

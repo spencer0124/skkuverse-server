@@ -370,11 +370,12 @@
       "food_zone": {
         "layerId": "eskara26_food",
         "pinPriority": 0,
-        "interactive": false
+        "tapChip": "eskara26_view_food"
       },
       "food_zone_pin": {
         "layerId": "eskara26_food",
-        "pinPriority": 25
+        "pinPriority": 25,
+        "tapChip": "eskara26_view_food"
       },
       "stage": {
         "layerId": "eskara26_stage",

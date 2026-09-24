@@ -175,8 +175,8 @@
     "side. The 2025 page put the trucks on \"후문 - 신관 사이 도로\", drawn as one",
     "row along a road that matches this one (inferred from the drawing, not",
     "confirmed), and 17 trucks in a row need about 150 m of its 176.",
-    "So the area is drawn with that ring, reused verbatim, as `food-zone` — inert,",
-    "on the food layer, visible the way the 통제구역 are.",
+    "So the area is drawn with that ring, reused verbatim, as `food-zone`, on",
+    "the food layer, visible the way the 통제구역 are.",
     "",
     "ONE PIN STANDS FOR ALL 17. `food-zone-pin` and every truck share the",
     "council's point, verbatim. The app draws one pin per coordinate, and the",
@@ -188,6 +188,13 @@
     "This is the one sanctioned stack; the clash test allows a group on one",
     "coordinate only under such a head.",
     "",
+    "THE AREA IS A WAY INTO THAT LIST, NOT A PLACE. Both `food_zone` and",
+    "`food_zone_pin` carry `tapChip: eskara26_view_food` in the layer set config,",
+    "so tapping the ring or the pin does what the 푸드트럭 chip does — its layers,",
+    "camera and list — and neither has a sheet (2026-09-24: the zone's own sheet,",
+    "a notice and a 17-row list, was dropped for this). An app build older than",
+    "the `chip` tap kind draws both inert.",
+   "",
     "Still not given: the council's Instagram post link. 우마이식당's salmon photo",
     "is filed as 크림연어초밥 but the list sells 생연어초밥 — captioned per the list.",
     "제이푸드's 크레페메뉴판 photo is NOT published: it is a 4-item \"BEST Pick!\"",
@@ -273,7 +280,6 @@
         "ko": "푸드트럭 구역",
         "en": "Food truck zone"
       },
-      "subtitle": "자리는 당일 배치",
       "hours": [
         {
           "startAt": "2026-10-01T11:00:00+09:00",
@@ -284,114 +290,6 @@
           "endAt": "2026-10-02T23:00:00+09:00"
         }
       ],
-      "detail": {
-        "kind": "foodTruck",
-        "locationLabel": "신관A 앞길",
-        "blocks": [
-          {
-            "type": "notice",
-            "id": "placement",
-            "title": "운영 안내",
-            "items": [
-              "트럭별 자리는 당일 현장에서 정해져요.",
-              "다모아푸드는 10/1(목), 팬팬마라는 10/2(금)에만 운영해요.",
-              "푸드트럭 칩을 누르면 트럭별 메뉴와 사진을 볼 수 있어요."
-            ]
-          },
-          {
-            "type": "list",
-            "id": "trucks",
-            "title": "푸드트럭 17대",
-            "items": [
-              {
-                "emoji": "🚚",
-                "title": "건강가족",
-                "description": "족발 · 닭발"
-              },
-              {
-                "emoji": "🚚",
-                "title": "냠냠쩝쩝",
-                "description": "타코 · 나초"
-              },
-              {
-                "emoji": "🚚",
-                "title": "다모아푸드",
-                "description": "야채곱창 · 순대곱창 · 10/1만"
-              },
-              {
-                "emoji": "🚚",
-                "title": "명품한입",
-                "description": "타코야끼 · 소떡소떡"
-              },
-              {
-                "emoji": "🚚",
-                "title": "보스닭",
-                "description": "닭강정"
-              },
-              {
-                "emoji": "🚚",
-                "title": "스테이킹",
-                "description": "팟타이"
-              },
-              {
-                "emoji": "🚚",
-                "title": "써니플",
-                "description": "칠리새우 · 크림새우"
-              },
-              {
-                "emoji": "🚚",
-                "title": "오야붕",
-                "description": "야끼소바 · 오꼬노미야끼"
-              },
-              {
-                "emoji": "🚚",
-                "title": "우마이식당",
-                "description": "불초밥 · 연어초밥"
-              },
-              {
-                "emoji": "🚚",
-                "title": "정우꼬치 맛있는꼬치",
-                "description": "닭꼬치"
-              },
-              {
-                "emoji": "🚚",
-                "title": "제이푸드",
-                "description": "크레페"
-              },
-              {
-                "emoji": "🚚",
-                "title": "톡톡팡팡",
-                "description": "구슬아이스크림"
-              },
-              {
-                "emoji": "🚚",
-                "title": "파라다이스 커피",
-                "description": "커피 · 음료"
-              },
-              {
-                "emoji": "🚚",
-                "title": "팬팬마라",
-                "description": "마라꼬치 · 10/2만"
-              },
-              {
-                "emoji": "🚚",
-                "title": "프라임팩토리",
-                "description": "스테이크"
-              },
-              {
-                "emoji": "🚚",
-                "title": "피꼬브로",
-                "description": "피자"
-              },
-              {
-                "emoji": "🚚",
-                "title": "희망츄러스",
-                "description": "츄러스 · 아이스크림"
-              }
-            ]
-          }
-        ]
-      },
       "order": 19
     },
     {

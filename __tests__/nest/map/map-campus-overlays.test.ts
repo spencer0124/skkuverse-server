@@ -112,7 +112,7 @@ describe("getCampusOverlays", () => {
     // String on the wire even though the building id is numeric — one addressing
     // scheme for both kinds. The app parses it back inside the building branch.
     expect(markers[0]!.tap).toEqual({ kind: "skku_building", placeId: "42" });
-    expect(typeof markers[0]!.tap!.placeId).toBe("string");
+    expect(typeof (markers[0]!.tap as { placeId: string }).placeId).toBe("string");
   });
 
   it("gives every building an empty window list, meaning always open", async () => {
