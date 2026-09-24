@@ -1,0 +1,35 @@
+# Catch-all: the server for every request whose Host (or TLS SNI) names no
+# site on this host — scans by bare IP, stale DNS, a retired host name.
+#
+# Without it nginx picks the FIRST server in load order for such requests, so
+# whichever site sorted first answered them as if they were its own; that is
+# how requests by IP got 200s from the API. `default_server` makes this block
+# the default explicitly, whatever the load order; the `00-` prefix only keeps
+# it first in `nginx -T` output. Known sites are unaffected: nginx matches
+# their server_name (and SNI) before falling back here.
+#
+# 444 is nginx's "close the connection without a response". A scanner gets
+# nothing, not even a status line; access.log records it with status 444.
+#
+# TLS: nginx 1.18 (Ubuntu 22.04's package) predates `ssl_reject_handshake`
+# (1.19.4), which would refuse the handshake outright. So this block needs a
+# certificate of its own. It is a self-signed one for CN=invalid that the
+# deploy generates once (.github/workflows/deploy.yml). Not the Cloudflare
+# origin certificate: that one names *.skkuverse.com, and serving it to anyone
+# who connects by IP tells a scanner which domain this origin is behind. When
+# the host runs nginx >= 1.19.4, replace the two ssl_certificate lines with
+# `ssl_reject_handshake on;`.
+#
+# IPv4 only, like every other site here: the host has no IPv6 address.
+server {
+    listen 80 default_server;
+    listen 443 ssl default_server;
+    server_name _;
+
+    ssl_certificate /etc/ssl/skkuverse/catchall.pem;
+    ssl_certificate_key /etc/ssl/skkuverse/catchall-key.pem;
+
+    # Logged on purpose (the distro's access.log): a real client landing here
+    # means a host name is missing from a site, which is worth seeing.
+    return 444;
+}
