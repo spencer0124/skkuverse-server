@@ -199,9 +199,9 @@ export function resetChip(config: EventMapConfig): MapChipSpec {
  * The live festival's chip row: the reset chip first, then every authored chip.
  *
  * Each authored chip is one tap for what otherwise costs opening the filter
- * sheet and toggling several things. A chip that names exactly one layer and
- * authored no label reads as that layer does — `map-layerset.config.ts` refuses a
- * wider chip without one. An authored chip flies to its own `camera` when it has
+ * sheet and toggling several things. A chip that names exactly one layer reads
+ * as that layer does — `map-layerset.config.ts` refuses a label on one, and
+ * refuses a wider chip without one. An authored chip flies to its own `camera` when it has
  * one and to the config's otherwise; the reset chip always takes the config's,
  * because "back to the festival" has one meaning and no chip to author it on.
  *

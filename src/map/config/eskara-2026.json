@@ -50,9 +50,9 @@
     {
       "id": "eskara26_food",
       "label": {
-        "ko": "먹거리",
-        "en": "Food",
-        "zh": "美食"
+        "ko": "푸드트럭",
+        "en": "Food trucks",
+        "zh": "餐车"
       },
       "color": "FFB800",
       "defaultVisibleWhen": {
@@ -209,11 +209,6 @@
       "layerIds": [
         "eskara26_bar"
       ],
-      "label": {
-        "ko": "주점",
-        "en": "Bar",
-        "zh": "酒吧"
-      },
       "camera": {
         "lat": 37.295187,
         "lng": 126.970977,
@@ -238,11 +233,6 @@
       "layerIds": [
         "eskara26_booth"
       ],
-      "label": {
-        "ko": "부스",
-        "en": "Booth",
-        "zh": "摊位"
-      },
       "camera": {
         "lat": 37.295187,
         "lng": 126.970977,
@@ -268,11 +258,6 @@
       "layerIds": [
         "eskara26_food"
       ],
-      "label": {
-        "ko": "푸드트럭",
-        "en": "Food trucks",
-        "zh": "餐车"
-      },
       "camera": {
         "lat": 37.2962298,
         "lng": 126.9716456,
@@ -297,11 +282,6 @@
       "layerIds": [
         "eskara26_entry"
       ],
-      "label": {
-        "ko": "입장 팔찌 배부",
-        "en": "Wristbands",
-        "zh": "入场手环发放"
-      },
       "camera": {
         "lat": 37.293648,
         "lng": 126.974831,
@@ -317,11 +297,6 @@
       "layerIds": [
         "eskara26_facility"
       ],
-      "label": {
-        "ko": "편의시설",
-        "en": "Facilities",
-        "zh": "便利设施"
-      },
       "camera": {
         "lat": 37.294007,
         "lng": 126.972575,

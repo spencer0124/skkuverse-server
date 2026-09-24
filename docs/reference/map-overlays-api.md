@@ -1095,11 +1095,12 @@ chip always takes the config's. A chip camera is **whole or absent** — validat
 other five fields. It exists because the layers a chip shows are not all in one place: ESKARA 2026's
 통제구역 chip steps back from the shared zoom and recentres on 운용재, because the zones are long
 north-south bands whose southern tip otherwise sits under the bottom sheet. (The values themselves
-live in the config, not here, so this sentence cannot drift from them.) `label` may be omitted for a
-single-layer chip, in which
-case the chip reads as its layer does; a chip spanning several layers has no such default and must
-say what it means. ESKARA 2026 authors every label, because its pills read singular (`Bar`) where its
-layer toggles read plural (`Bars`) — copy that a deploy must not quietly change.
+live in the config, not here, so this sentence cannot drift from them.) A single-layer chip authors
+no `label` and reads as its layer does, and the validator refuses one that does. The chip row and
+the filter sheet name the same layer, and two copies of that name drift: until 2026-09-25 the
+푸드트럭 chip sat over a layer the filter sheet called 먹거리, and the `Bar` pill over `Bars`. To
+rename a chip, rename its layer. A chip spanning several layers has no such default and must say
+what it means.
 
 Festival chips are gated by the **same activation window** as the festival layers, so a festival
 starts and ends with no deploy and its chips stop existing rather than lingering as dead buttons.
