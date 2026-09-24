@@ -150,9 +150,15 @@ describe("parsePlacesFile — the committed sheet", () => {
     // Points only. `pinPriority` lives on the marker arm alone because two
     // overlapping ZONES are a design choice rather than a collision to resolve
     // — see `map-overlay.types.ts` — so a ring has no business in this ladder.
+    //
+    // Keyed at six decimals, the way the app keys a pin (`coordKey` in
+    // skkuverse-app `packages/shared/src/map/pins.ts`), not on the exact pair.
+    // An exact key let plot 1 through while it sat 0.04 m from `toilet-bar`:
+    // distinct here, one pin on the device, and the pub hid the toilet all night.
     const byCoord = new Map<string, typeof docs>();
     for (const d of docs.filter((x) => x.location.type === "Point")) {
-      const key = d.location.coordinates.join(",");
+      const [lng, lat] = d.location.coordinates as [number, number];
+      const key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
       byCoord.set(key, [...(byCoord.get(key) ?? []), d]);
     }
 
