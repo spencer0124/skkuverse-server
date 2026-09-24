@@ -36,8 +36,14 @@ set_real_ip_from 2c0f:f248::/32;
 real_ip_header CF-Connecting-IP;
 
 upstream skkubus_api_new {
-    server 127.0.0.1:3001 max_fails=3 fail_timeout=30s;
-    server 127.0.0.1:3002 max_fails=3 fail_timeout=30s;
+    server 127.0.0.1:3001 max_fails=3 fail_timeout=10s;
+    server 127.0.0.1:3002 max_fails=3 fail_timeout=10s;
+
+    # Reuse connections to the replicas instead of opening one per request.
+    # The idle timeout stays under Node's default keepAliveTimeout (5 s), so
+    # nginx never sends on a socket the replica is already closing.
+    keepalive 32;
+    keepalive_timeout 4s;
 }
 
 server {
@@ -53,13 +59,30 @@ server {
     ssl_certificate /etc/ssl/cloudflare/skkuverse-origin.pem;
     ssl_certificate_key /etc/ssl/cloudflare/skkuverse-origin-key.pem;
 
+    # HTTP/1.1 with an empty Connection header is what lets the upstream
+    # keepalive pool above actually hold connections.
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    # Replaced, not appended: a client-supplied X-Forwarded-For would
+    # otherwise ride ahead of the real address.
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    # Fail fast and try the other replica once, rather than holding a request
+    # for the 60 s default while a replica is stuck. Non-idempotent requests
+    # (POST) are not retried — nginx's default.
+    proxy_connect_timeout 2s;
+    proxy_read_timeout 30s;
+    proxy_next_upstream error timeout;
+    proxy_next_upstream_tries 2;
+
+    # The API speaks JSON; the distro's gzip_types leaves it uncompressed.
+    gzip_types application/json;
+    gzip_proxied any;
+
     location / {
         proxy_pass http://skkubus_api_new;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        # Replaced, not appended: a client-supplied X-Forwarded-For would
-        # otherwise ride ahead of the real address.
-        proxy_set_header X-Forwarded-For $remote_addr;
-        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }

@@ -50,3 +50,22 @@ describe("infra/nginx/api.skkuverse.com — client IP", () => {
     expect(directives).not.toMatch(/\$proxy_add_x_forwarded_for/);
   });
 });
+
+describe("infra/nginx/api.skkuverse.com — upstream connections", () => {
+  it("keeps upstream connections alive, which needs HTTP/1.1 and no Connection header", () => {
+    expect(directives).toMatch(/^keepalive \d+;$/m);
+    expect(directives).toMatch(/^proxy_http_version 1\.1;$/m);
+    expect(directives).toMatch(/^proxy_set_header Connection "";$/m);
+  });
+
+  it("closes idle upstream connections before Node does (5 s default)", () => {
+    const m = directives.match(/^keepalive_timeout (\d+)s;$/m);
+    expect(m).not.toBeNull();
+    expect(Number(m![1])).toBeLessThan(5);
+  });
+
+  it("bounds how long a request may wait on a stuck replica", () => {
+    expect(directives).toMatch(/^proxy_connect_timeout \d+s;$/m);
+    expect(directives).toMatch(/^proxy_read_timeout \d+s;$/m);
+  });
+});
