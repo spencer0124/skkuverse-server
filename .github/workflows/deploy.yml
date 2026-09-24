@@ -55,6 +55,11 @@ jobs:
             sudo ln -sf /etc/nginx/sites-available/api.skkuverse.com /etc/nginx/sites-enabled/
             sudo nginx -t && sudo systemctl reload nginx
 
+            # Heartbeat cron (infra/monitoring/). It runs the script from this
+            # checkout. On a host without /etc/skkuverse/heartbeat.env it exits
+            # 1 without pinging, so installing it before onboarding is harmless.
+            sudo install -m 0644 infra/monitoring/skkuverse-heartbeat.cron /etc/cron.d/skkuverse-heartbeat
+
             # Build new images
             docker compose build
 
