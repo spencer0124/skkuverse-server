@@ -106,6 +106,7 @@ Architecture doc: `docs/notices-api-architecture.md`.
 - **asyncHandler** (`lib/asyncHandler.js`): Wraps all async route handlers to forward errors to Express error middleware. Always use this for new routes.
 - **Config** (`lib/config.js`): Centralized env var loading with environment separation. `NODE_ENV` controls DB suffix (`_dev`/`_test`/none), `USE_PROD_API` controls API endpoint selection independently. Required values are validated at startup — missing any one causes `process.exit(1)` (skipped in test mode). No silent defaults. Same fail-fast pattern is used by `features/notices/tabConfig.js` for JSON config validation.
 - **MongoDB singleton** (`lib/db.js`): Lazy-initialized MongoClient via `getClient()`. Closed on shutdown via `closeClient()`.
+- **Hot-read cache** (`src/common/cache/cached-loader.ts`): a single-flight TTL loader with an optional stale window. Use it for any read every client makes (the event map path and building/shape lists already do), so Mongo ops stay flat however many requests arrive — Atlas is a Flex cluster billed by peak ops/s band. Driver timeouts live in `mongoClientOptions()` (`src/infra/db.ts`); cap hot queries with `HOT_READ_MAX_TIME_MS`. `_dev` databases share the prod cluster: never load-test against them.
 - **Response format**: All endpoints use a standardized envelope: `{ meta: { lang, ... }, data: { ... } or [ ... ] }`. Errors return `{ error: { code, message } }`. Response helpers `res.success(data, meta)` and `res.error(statusCode, code, message)` are attached by `lib/responseHelper.js` middleware. Route handlers must never call `res.json(...)` directly.
 - **Language middleware** (`lib/langMiddleware.js`): Parses `Accept-Language` header, sets `req.lang` (ko/en/zh, default: ko). Auto-injected into `meta.lang` by `res.success()`.
 - **Auth middleware** (`lib/authMiddleware.js`): Verifies Firebase `Bearer <idToken>` when present, sets `req.uid`. Pass-through when no token or Firebase is not configured. 5-min token cache, capped at 10k entries.
@@ -155,7 +156,7 @@ Required at startup (missing → `process.exit(1)`, see `lib/config.js`):
 
 - **MongoDB**: `MONGO_URL`, `MONGO_DB_NAME_BUS_CAMPUS`, `MONGO_BUILDING_DB_NAME`, `MONGO_AD_DB_NAME`, `MONGO_NOTICES_DB_NAME`, `MONGO_EVENTMAP_DB_NAME`, `MONGO_MINIAPPS_DB_NAME`
 - **External bus APIs**: `API_HSSC_NEW_PROD` (+ `_DEV`), `SEOUL_BUS_SERVICE_KEY` (shared TOPIS key; per-route URLs composed at runtime from `features/bus/jongro-routes.json`), `API_STATION_HEWA`
-- **Naver Maps**: `NAVER_API_KEY_ID`, `NAVER_API_KEY`, `NAVER_MAP_STYLE_ID`
+- **Naver Maps**: `NAVER_MAP_STYLE_ID`
 - **Notices dispatch**: `NOTICES_SERVICE_START_DATE`, `FCM_FUNCTION_URL`, `FCM_API_KEY`, `INTERNAL_DISPATCH_TOKEN`
 
 Optional:

@@ -27,3 +27,6 @@ dist/
 
 # explain-diff plugin output — generated HTML walkthroughs, regenerable
 explain-diff/
+
+# Local-only ops notes: infrastructure snapshots with account-level detail
+docs/internal/2026-09-eskara-capacity-survey.md

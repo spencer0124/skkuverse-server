@@ -139,8 +139,6 @@ SEOUL_BUS_SERVICE_KEY=...               # URL-encoded — see .env.example
 API_STATION_HEWA=https://...
 
 # --- Naver Maps ---
-NAVER_API_KEY_ID=...
-NAVER_API_KEY=...
 NAVER_MAP_STYLE_ID=...
 
 # --- Notices dispatch (FCM via Cloud Function) ---
@@ -182,7 +180,6 @@ Every successful response uses the envelope `{ meta: { lang, ... }, data: ... }`
 |---|---|---|---|
 | GET | `/bus/realtime/*` | — | HSSC shuttle + 종로 bus positions |
 | GET | `/bus/station/*` | — | Station list with ETAs |
-| GET | `/bus/campus/*` | — | Driving ETA between Inja–Jain campuses |
 | GET | `/bus/schedule/*` | — | Inja/Jain intercampus shuttle schedules by service ID |
 | GET | `/bus/config/*` | — | Bus list config (lines, colors, ordering) |
 | GET | `/bus/route/*` | — | Route polyline overlays |
@@ -215,7 +212,7 @@ Every successful response uses the envelope `{ meta: { lang, ... }, data: ... }`
 | GET | `/ad/placements` | firebase | Active ads (weighted random) per placement |
 | POST | `/ad/events` | firebase | Record impression or click |
 
-Rate limits: notices (120/min, uid-keyed), everything else general (120/min, IP-keyed). All limiters fall back to IP when uid is absent.
+Rate limits: notices (120/min, uid-keyed), everything else general (`RATE_LIMIT_MAX_PER_MINUTE` in `src/common/rate-limit/rate-limit.middleware.ts`, keyed on the client IP that nginx resolves from `CF-Connecting-IP`). All limiters fall back to IP when uid is absent.
 
 ---
 
