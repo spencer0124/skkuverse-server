@@ -79,6 +79,11 @@ describe("GET /app/config", () => {
     expect(res.body.data.android).toHaveProperty("updateUrl");
   });
 
+  it("is cacheable by clients and shared caches: boot-time, language-independent", async () => {
+    const res = await request(httpServer).get("/app/config");
+    expect(res.headers["cache-control"]).toBe("public, max-age=300");
+  });
+
   it("publishes webview.bridgeOrigins derived from infra/origins", async () => {
     const res = await request(httpServer).get("/app/config");
     expect(res.status).toBe(200);

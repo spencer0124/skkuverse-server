@@ -89,6 +89,11 @@ describe("GET /miniapps", () => {
     expect(res.body.data.miniApps.length).toBeGreaterThan(0);
   });
 
+  it("is cacheable by clients and shared caches: static, language-independent", async () => {
+    const res = await request(httpServer).get("/miniapps");
+    expect(res.headers["cache-control"]).toBe("public, max-age=300");
+  });
+
   it("orders entries by `order` ascending", async () => {
     const res = await request(httpServer).get("/miniapps");
     const orders = res.body.data.miniApps.map(
@@ -139,10 +144,19 @@ describe("GET /miniapps/:id", () => {
     }
   });
 
+  it("marks a found detail cacheable", async () => {
+    const index = await request(httpServer).get("/miniapps");
+    const id = index.body.data.miniApps[0].id;
+    const res = await request(httpServer).get(`/miniapps/${id}`);
+    expect(res.headers["cache-control"]).toBe("public, max-age=300");
+  });
+
   it("404s on an unknown slug rather than returning null", async () => {
     const res = await request(httpServer).get("/miniapps/does-not-exist");
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("MINIAPP_NOT_FOUND");
+    // A slug that ships in a later deploy must not stay a cached 404.
+    expect(res.headers["cache-control"] ?? "").not.toMatch(/public/);
   });
 
   it("404s on a path-traversal-shaped slug", async () => {
