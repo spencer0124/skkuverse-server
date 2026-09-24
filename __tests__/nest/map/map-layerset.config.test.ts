@@ -234,6 +234,21 @@ describe("assertValidConfig — structure→structure references block publicati
     );
   });
 
+  it("reads locationAccuracy, absent meaning exact", () => {
+    const config = assertValidConfig(raw());
+    expect(config.itemDefaults.byCategory.food!.locationAccuracy).toBe("area");
+    expect(config.itemDefaults.byCategory.bar!.locationAccuracy).toBe("exact");
+    expect(config.itemDefaults.fallback.locationAccuracy).toBe("exact");
+  });
+
+  it("rejects a locationAccuracy outside exact and area", () => {
+    const config = raw();
+    config.itemDefaults.byCategory.food.locationAccuracy = "approximate";
+    expect(() => assertValidConfig(config)).toThrow(
+      /byCategory\["food"\]\.locationAccuracy must be one of \[exact, area\]/,
+    );
+  });
+
   it("rejects a tapChip on an inert category", () => {
     const config = raw();
     config.itemDefaults.byCategory.food_zone.interactive = false;

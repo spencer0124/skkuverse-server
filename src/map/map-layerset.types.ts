@@ -295,7 +295,23 @@ export interface ItemPresentation {
    * nothing and run a chip.
    */
   tapChip: string | null;
+  /**
+   * What a place's pin says about where it is. Absent means `"exact"`.
+   *
+   * `"area"` means the coordinate names only the area the place is somewhere
+   * in, not its spot — the 2026 food trucks, placed along 신관A 앞길 on the
+   * day and stacked on the council's one point. It is a FACT about the place,
+   * not a rendering instruction: the app decides what follows from it (today,
+   * a sheet that opens tall, since a map beside it would point at nothing).
+   *
+   * Per CATEGORY, like `interactive` and `tapChip`.
+   */
+  locationAccuracy: LocationAccuracy;
 }
+
+/** How precisely a place's pin locates it. See `ItemPresentation.locationAccuracy`. */
+export const LOCATION_ACCURACIES = ["exact", "area"] as const;
+export type LocationAccuracy = (typeof LOCATION_ACCURACIES)[number];
 
 export interface ItemDefaults {
   byCategory: Record<string, ItemPresentation>;

@@ -349,5 +349,17 @@ describe("the committed sheet, importer to wire", () => {
       overlays.map((o) => (o.tap && o.tap.kind !== "chip" ? o.tap.placeId : undefined)),
     );
     for (const id of Object.keys(details)) expect([id, tapped.has(id)]).toEqual([id, true]);
+
+    // The trucks' pins name an area, not a spot — the app opens their sheets tall
+    // for it. Every other pin on the map is exact.
+    const accuracy = (overlays as Array<{ id: string; kind: string; locationAccuracy?: string }>)
+      .filter((o) => o.kind === "marker")
+      .map((o) => [o.id, o.locationAccuracy]);
+    const trucks = accuracy.filter(([id]) => id!.includes("-truck-"));
+    expect(trucks).toHaveLength(17);
+    expect(new Set(trucks.map(([, a]) => a))).toEqual(new Set(["area"]));
+    expect(new Set(accuracy.filter(([id]) => !id!.includes("-truck-")).map(([, a]) => a))).toEqual(
+      new Set(["exact"]),
+    );
   });
 });

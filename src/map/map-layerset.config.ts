@@ -35,6 +35,7 @@ import type { MapCamera } from "./map-chip.types";
 import { BASE_CHIPS, eventChipSpecs, validateChipSpecs } from "./map-chips.data";
 import { BASE_LAYERS, eventLayerSpecs } from "./map-layers.data";
 import type { I18n } from "../infra/types";
+import { LOCATION_ACCURACIES } from "./map-layerset.types";
 import type {
   DailyWindow,
   EventChipDef,
@@ -416,6 +417,11 @@ function asItemPresentation(value: unknown, where: string): ItemPresentation {
       raw.tapChip === undefined || raw.tapChip === null
         ? null
         : asString(raw.tapChip, `${where}.tapChip`),
+    // Absent or null means exact — every pin was exact before this existed.
+    locationAccuracy:
+      raw.locationAccuracy === undefined || raw.locationAccuracy === null
+        ? "exact"
+        : asOneOf(raw.locationAccuracy, LOCATION_ACCURACIES, `${where}.locationAccuracy`),
   };
 }
 

@@ -365,7 +365,8 @@
       },
       "food": {
         "layerId": "eskara26_food",
-        "pinPriority": 20
+        "pinPriority": 20,
+        "locationAccuracy": "area"
       },
       "food_zone": {
         "layerId": "eskara26_food",

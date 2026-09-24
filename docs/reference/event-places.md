@@ -165,6 +165,9 @@ One file per layer set: `scripts/data/<layerSetId>-places.json`.
 - **A shape that should open a list, not a sheet**, sets `tapChip` to a chip id on its category. A
   tap then runs that chip (its layers, camera and list), and the place gets no sheet
   ([map-overlays-api.md §2.6](map-overlays-api.md)).
+- **A place with no spot of its own** (placed on the day, stacked on an area's point) sets
+  `locationAccuracy: "area"` on its category. The app then opens its sheet tall instead of low
+  beside the map ([map-overlays-api.md §2.7](map-overlays-api.md)).
 - **Occupants with no fixed spot stack under a head.** When the council gives an area but no
   per-occupant positions, the occupants all take the area's one point, together with a head place
   that names the area. The 2026 food trucks share 신관A 앞길 with `food-zone-pin`, and the area is

@@ -108,6 +108,7 @@ function formatFallback(): { overlays: MapOverlay[]; degraded: true } {
       facets: {},
       orderByOption: {},
       pinPriority: 0,
+      locationAccuracy: "exact",
       tap: null,
     } satisfies Partial<MapOverlay>;
 
@@ -182,6 +183,7 @@ async function getBuildingOverlays(): Promise<{
       facets: {},
       orderByOption: {},
       pinPriority: 0,
+      locationAccuracy: "exact",
       // A building is addressed exactly as a booth is. String, not number: one
       // scheme for both kinds, narrowed back to a number by the app.
       tap: { kind: "skku_building" as const, placeId: String(b._id) },
@@ -306,6 +308,7 @@ function toShapeOverlays(docs: CampusShapeDoc[]): MapOverlay[] {
           // and buildings never collide with each other, so the neutral value
           // is stated rather than invented.
           pinPriority: 0,
+          locationAccuracy: "exact",
         });
         break;
       default:
