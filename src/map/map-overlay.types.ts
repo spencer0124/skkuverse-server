@@ -1,4 +1,5 @@
 import type { Campus } from "../building/types";
+import type { LocationAccuracy } from "./map-layerset.types";
 import type {
   GeoJsonLineString,
   GeoJsonPoint,
@@ -264,6 +265,14 @@ export type MapOverlay =
        * must be meaningful. Contract: docs/reference/map-overlays-api.md §3.4.
        */
       pinPriority: number;
+      /**
+       * `"area"` when the point names only the area the place is somewhere in —
+       * the 2026 food trucks, placed on the day and stacked on one point. A fact
+       * for the client to act on, not a rendering instruction. Marker-only for
+       * the same reason as `pinPriority`: a zone is an area by construction.
+       * An older client ignores it. Contract: map-overlays-api.md §2.7.
+       */
+      locationAccuracy: LocationAccuracy;
     })
   | (OverlayBase & { kind: "polygon"; geometry: GeoJsonPolygon })
   | (OverlayBase & { kind: "path"; geometry: GeoJsonLineString });

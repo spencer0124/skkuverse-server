@@ -106,7 +106,8 @@ type MarkerTap =
   | { kind: "chip"; chipId: string };
 
 type MapOverlay =
-  | (OverlayBase & { kind: "marker";  geometry: GeoJsonPoint; pinPriority: number })
+  | (OverlayBase & { kind: "marker";  geometry: GeoJsonPoint; pinPriority: number;
+                    locationAccuracy: "exact" | "area" })
   | (OverlayBase & { kind: "polygon"; geometry: GeoJsonPolygon })
   | (OverlayBase & { kind: "path";    geometry: GeoJsonLineString });
 ```
@@ -212,6 +213,19 @@ It is authored per category like `interactive`, as `itemDefaults.byCategory[…]
 one set on an `interactive: false` category. A client built before the kind existed parses the tap as
 `null` (`parseMarkerTap`'s fail-soft) and draws the overlay inert, so shipping it breaks no installed
 app.
+
+### 2.7 `locationAccuracy`: whether a pin is the place's spot
+
+A marker's `locationAccuracy` is `"exact"` unless its point names only the area the place is somewhere
+in. The 2026 food trucks are the case. They are placed along 신관A 앞길 on the day and stacked on the
+council's one point, so they carry `"area"`.
+
+It states a fact about the place, not a rendering instruction; the client decides what follows. Today
+that is a place sheet that opens at its tallest detent: the lower detent exists to keep the pin in view
+beside the sheet, and an area pin has nothing to show there. It is authored per category as
+`itemDefaults.byCategory[…].locationAccuracy` (absent means `"exact"`). Buildings are always
+`"exact"`. It is marker-only, like `pinPriority`, because a zone is an area by construction. A
+client that predates the field ignores it and opens the sheet low, as before.
 
 ### 2.0 `actionValue` is always complete by the time it ships
 

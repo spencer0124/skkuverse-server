@@ -173,6 +173,7 @@ describe("getEventOverlays", () => {
       facets: { day: ["day1", "day2"], org: [] },
       orderByOption: {},
       pinPriority: presentationFor(CONFIG, "booth").pinPriority,
+      locationAccuracy: "exact",
       tap: { kind: "event", placeId: "eskara-2026-booth-01" },
     });
   });

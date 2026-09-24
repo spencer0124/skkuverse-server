@@ -404,7 +404,13 @@ async function loadEventOverlays(): Promise<{ overlays: MapOverlay[] }> {
     // reintroduce a swap.
     const kind = kindOf(doc.location.type);
     if (kind === "marker") {
-      return { ...base, kind, geometry: doc.location as GeoJsonPoint, pinPriority: presentation.pinPriority };
+      return {
+        ...base,
+        kind,
+        geometry: doc.location as GeoJsonPoint,
+        pinPriority: presentation.pinPriority,
+        locationAccuracy: presentation.locationAccuracy === "area" ? "area" : "exact",
+      };
     }
     if (kind === "polygon") {
       return { ...base, kind, geometry: toWirePolygon(doc.location as GeoJsonPolygon) };
