@@ -10,6 +10,7 @@
  * That asymmetry is deliberate. Fail loud where you can fix it; fail soft where
  * you can only render it.
  */
+import { isMediaUrl } from "../infra/media-url";
 import { isOnWebviewOrigin, toWebviewUrl } from "../infra/webview-url";
 import type { MiniAppDetail, MiniAppIndexRaw } from "./types";
 
@@ -30,7 +31,14 @@ export function assertValidRegistry(
     if (!SLUG_RE.test(entry.id)) {
       throw new Error(`miniapp registry: invalid id slug "${entry.id}"`);
     }
-    if (entry.logo.kind !== "remote" || !ROOT_PATH_RE.test(entry.logo.path)) {
+    const logo = entry.logo;
+    if (logo.kind === "media") {
+      if (!isMediaUrl(logo.url)) {
+        throw new Error(
+          `miniapp registry: logo.url for "${entry.id}" must be an object on the media bucket`,
+        );
+      }
+    } else if (logo.kind !== "remote" || !ROOT_PATH_RE.test(logo.path)) {
       throw new Error(
         `miniapp registry: logo.path for "${entry.id}" must be a site-root-relative path`,
       );

@@ -16,17 +16,28 @@
 export const MINIAPP_REGISTRY_VERSION = 1;
 
 /**
- * Logo as stored on disk — a site-root-relative path, NOT an absolute URL.
+ * Logo as stored on disk. Two spellings, one wire shape:
  *
- * The origin is deliberately absent here so `WEB_ORIGIN` stays the single place
- * the host is written (infra/origins.ts). The loader materializes `path` into
- * the absolute `uri` the client contract expects.
+ *  - `remote` — a site-root-relative path on WEB_ORIGIN. The origin is
+ *    deliberately absent so `WEB_ORIGIN` stays the single place that host is
+ *    written (infra/origins.ts).
+ *  - `media` — an absolute URL in the R2 media bucket (MEDIA_ORIGIN), which is
+ *    where every uploaded image goes now. Checked with `isMediaUrl`, so no other
+ *    host can slip in as a logo.
+ *
+ * The loader materializes either into the absolute `uri` the client expects.
  */
-export interface MiniAppLogoRaw {
-  kind: "remote";
-  /** Site-root-relative path under WEB_ORIGIN, e.g. "/miniapps/hssc.png". */
-  path: string;
-}
+export type MiniAppLogoRaw =
+  | {
+      kind: "remote";
+      /** Site-root-relative path under WEB_ORIGIN, e.g. "/miniapps/hssc.png". */
+      path: string;
+    }
+  | {
+      kind: "media";
+      /** Absolute URL on MEDIA_ORIGIN, content-hashed and immutable. */
+      url: string;
+    };
 
 /** Logo as served to clients — absolute URL, resolved from MiniAppLogoRaw. */
 export interface MiniAppLogo {

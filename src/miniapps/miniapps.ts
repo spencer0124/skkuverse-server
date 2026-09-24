@@ -2,7 +2,7 @@
  * Server-owned mini-app registry loader.
  *
  * Reads index.json + details/*.json, validates referential integrity (throws at
- * boot on malformed config), resolves logo paths against WEB_ORIGIN, freezes
+ * boot on malformed config), resolves logos to absolute URLs, freezes
  * everything, and exposes an ordered list + a Map for O(1) lookups.
  *
  * Mirrors notices/sources.ts, including the __dirname path resolution: at
@@ -51,7 +51,10 @@ export const list: ReadonlyArray<Readonly<MiniAppIndexEntry>> = Object.freeze(
         ...entry,
         logo: Object.freeze({
           kind: "remote" as const,
-          uri: `${WEB_ORIGIN}${entry.logo.path}`,
+          uri:
+            entry.logo.kind === "media"
+              ? entry.logo.url
+              : `${WEB_ORIGIN}${entry.logo.path}`,
         }),
       }),
     ),

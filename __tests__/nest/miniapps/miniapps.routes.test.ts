@@ -36,7 +36,7 @@ import express from "express";
 import pinoHttp from "pino-http";
 import request from "supertest";
 import logger from "../../../src/infra/logger";
-import { WEB_ORIGIN } from "../../../src/infra/origins";
+import { MEDIA_ORIGIN, WEB_ORIGIN } from "../../../src/infra/origins";
 import { ConfigModule } from "../../../src/config/config.module";
 import { MiniAppsModule } from "../../../src/miniapps/miniapps.module";
 import { LangMiddleware } from "../../../src/common/lang.middleware";
@@ -97,14 +97,17 @@ describe("GET /miniapps", () => {
     expect(orders).toEqual([...orders].sort((a, b) => a - b));
   });
 
-  it("resolves every logo to an absolute URL under WEB_ORIGIN", async () => {
+  it("resolves every logo to an absolute URL on WEB_ORIGIN or the media bucket", async () => {
     const res = await request(httpServer).get("/miniapps");
     for (const entry of res.body.data.miniApps) {
+      // Both on-disk spellings leave as one wire shape.
       expect(entry.logo.kind).toBe("remote");
-      expect(entry.logo.uri.startsWith(`${WEB_ORIGIN}/`)).toBe(true);
-      // The raw on-disk `path` must not leak — the client has no origin to
-      // join it against.
+      expect(
+        entry.logo.uri.startsWith(`${WEB_ORIGIN}/`) || entry.logo.uri.startsWith(`${MEDIA_ORIGIN}/`),
+      ).toBe(true);
+      // The raw on-disk `path`/`url` must not leak — the client reads `uri` only.
       expect(entry.logo).not.toHaveProperty("path");
+      expect(entry.logo).not.toHaveProperty("url");
     }
   });
 
