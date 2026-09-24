@@ -38,6 +38,9 @@ import type { I18n } from "../infra/types";
 import type {
   DailyWindow,
   EventChipDef,
+  EventChipListDef,
+  EventFacetDef,
+  EventFacetOption,
   EventLayerDef,
   EventMapConfig,
   EventMarkerStyle,
@@ -255,7 +258,122 @@ function asChip(value: unknown, where: string): EventChipDef {
   if (raw.camera !== undefined && raw.camera !== null) {
     chip.camera = asCamera(raw.camera, `${where}.camera`);
   }
+  if (raw.list !== undefined && raw.list !== null) {
+    chip.list = asChipList(raw.list, `${where}.list`);
+  }
   return chip;
+}
+
+/**
+ * Shape only. Whether `facetIds` and `scopeFacetId` name real facets is checked
+ * in `assertValidConfig`, which holds the facet list.
+ */
+function asChipList(value: unknown, where: string): EventChipListDef {
+  const raw = asRecord(value, where);
+  const facetIds = asArray(raw.facetIds, `${where}.facetIds`).map((id, i) =>
+    asString(id, `${where}.facetIds[${i}]`),
+  );
+  assertUnique(facetIds, `${where}.facetIds`);
+  const sortRaw = asRecord(raw.sort, `${where}.sort`);
+  const key = asOneOf(sortRaw.key, ["order", "title"] as const, `${where}.sort.key`);
+  // Required as a key, so `null` is written rather than implied — the same
+  // no-optional-field posture the wire takes.
+  if (!("scopeFacetId" in sortRaw)) fail(`${where}.sort.scopeFacetId is required (null for none)`);
+  if (key === "title") {
+    // A title has one order; scoping it to a day would mean nothing.
+    if (sortRaw.scopeFacetId !== null) fail(`${where}.sort.scopeFacetId must be null when key is "title"`);
+    return { facetIds, sort: { key, scopeFacetId: null } };
+  }
+  const scopeFacetId =
+    sortRaw.scopeFacetId === null
+      ? null
+      : asString(sortRaw.scopeFacetId, `${where}.sort.scopeFacetId`);
+  return { facetIds, sort: { key, scopeFacetId } };
+}
+
+/** An ISO instant WITH an explicit offset, so a bound never depends on the host's zone. */
+function asInstant(value: unknown, where: string): Date {
+  const text = asString(value, where);
+  if (!/(Z|[+-]\d{2}:\d{2})$/.test(text)) fail(`${where} must carry an explicit offset (e.g. +09:00)`);
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) fail(`${where} "${text}" is not an ISO instant`);
+  return date;
+}
+
+function asFacet(value: unknown, where: string): EventFacetDef {
+  const raw = asRecord(value, where);
+  const source = asOneOf(raw.source, ["hours", "tag"] as const, `${where}.source`);
+  const options = asArray(raw.options, `${where}.options`).map((o, i): EventFacetOption => {
+    const at = `${where}.options[${i}]`;
+    const opt = asRecord(o, at);
+    const base = { id: asString(opt.id, `${at}.id`), label: asI18n(opt.label, `${at}.label`) };
+    if (source === "tag") {
+      // A tag is authored per place; a window on it would be read by nothing.
+      if (opt.from !== undefined || opt.until !== undefined) {
+        fail(`${at} is a tag option and must not carry from/until`);
+      }
+      return { ...base, window: null };
+    }
+    const from = asInstant(opt.from, `${at}.from`);
+    const until = asInstant(opt.until, `${at}.until`);
+    if (from >= until) fail(`${at}.from must be before until`);
+    return { ...base, window: { from, until } };
+  });
+  if (options.length === 0) fail(`${where}.options must not be empty`);
+  if (source === "hours") {
+    // Overlapping days would put one opening in two tabs for a reason nobody
+    // wrote down. A place open on both days is in both because it has two
+    // windows, not because the days overlap.
+    const sorted = [...options].sort((a, b) => a.window!.from.getTime() - b.window!.from.getTime());
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i]!.window!.from < sorted[i - 1]!.window!.until) {
+        fail(`${where}.options "${sorted[i - 1]!.id}" and "${sorted[i]!.id}" overlap`);
+      }
+    }
+  }
+  return {
+    id: asString(raw.id, `${where}.id`),
+    label: asI18n(raw.label, `${where}.label`),
+    source,
+    select: asOneOf(raw.select, ["required", "optional"] as const, `${where}.select`),
+    options,
+  };
+}
+
+/**
+ * Facet and list references, structure → structure, so a PR fixes them.
+ *
+ * Option ids are unique across EVERY facet, not per facet: a place's
+ * `orderByOption` is keyed by bare option id, and two facets both offering
+ * "day1" would make that key ambiguous.
+ */
+function assertValidFacets(facets: EventFacetDef[], chips: EventChipDef[]): void {
+  assertUnique(
+    facets.map((f) => f.id),
+    "config.facets",
+  );
+  assertUnique(
+    facets.flatMap((f) => f.options.map((o) => o.id)),
+    "config.facets[].options",
+  );
+  const byId = new Map(facets.map((f) => [f.id, f]));
+  chips.forEach((chip, i) => {
+    if (!chip.list) return;
+    const where = `config.chips[${i}].list`;
+    chip.list.facetIds.forEach((id, j) => {
+      if (!byId.has(id)) fail(`${where}.facetIds[${j}] "${id}" is not in config.facets`);
+    });
+    const scope = chip.list.sort.scopeFacetId;
+    if (scope === null) return;
+    if (!chip.list.facetIds.includes(scope)) {
+      fail(`${where}.sort.scopeFacetId "${scope}" is not one of this list's facetIds`);
+    }
+    // An optional facet can have nothing selected, and then there is no option
+    // to read an order for.
+    if (byId.get(scope)!.select !== "required") {
+      fail(`${where}.sort.scopeFacetId "${scope}" must name a "required" facet`);
+    }
+  });
 }
 
 /**
@@ -356,6 +474,12 @@ export function assertValidConfig(raw: unknown): EventMapConfig {
     asChip(c, `config.chips[${i}]`),
   );
 
+  // Required, `[]` allowed: a festival without list filters says so.
+  const facets = asArray(root.facets, "config.facets").map((f, i) =>
+    asFacet(f, `config.facets[${i}]`),
+  );
+  assertValidFacets(facets, chips);
+
   const itemDefaults = asItemDefaults(root.itemDefaults, "config.itemDefaults");
 
   // Referential integrity, structure → structure only.
@@ -391,6 +515,7 @@ export function assertValidConfig(raw: unknown): EventMapConfig {
     // axis gave it something to be wrong about; "Asia/Seuol" passed.
     timezone: asOneOf(root.timezone, ["Asia/Seoul"] as const, "config.timezone"),
     layers,
+    facets,
     chips,
     itemDefaults,
   };

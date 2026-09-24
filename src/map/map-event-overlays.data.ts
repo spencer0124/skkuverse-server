@@ -5,7 +5,7 @@ import { ROOT_RELATIVE_PATH_RE, toWebviewUrl } from "../infra/webview-url";
 import { isKnownMiniAppTarget } from "../miniapps/miniapp-target";
 import { activeEventConfig } from "./map-active-layerset";
 import { EVENT_CACHE_TTL_MS, EVENT_STALE_WINDOW_MS } from "./map-event-cache";
-import { presentationFor } from "./map-layerset.types";
+import { presentationFor, type EventMapConfig } from "./map-layerset.types";
 import type { MapPlaceDoc, PlaceAction } from "./map-places.types";
 import { getPlacesCollection } from "./map-places.data";
 import { HOT_READ_MAX_TIME_MS } from "../infra/db";
@@ -252,6 +252,84 @@ function isRenderable(doc: MapPlaceDoc): boolean {
 }
 
 /**
+ * Which option of each list facet a place is in. Every facet gets a key.
+ *
+ * `hours`: an option holds the place when one of its windows STARTS inside the
+ * option's window. The start, not any overlap, so a pub opening 18:00 and
+ * closing past the cut-over stays on the night it opened, and a two-day pub is
+ * in both days because it has two windows. `hours: []` is always open, so it is
+ * in every option. Instants against instants: no timezone arithmetic, which is
+ * the invariant `OpeningWindow` exists for.
+ *
+ * `tag`: what the place authored under `facets.<id>`, minus any value the
+ * config does not offer. Dropped values are collected into `dropped` rather
+ * than thrown — one mistyped tag must not take the festival down, and a silent
+ * skip would leave a booth missing from a filter with nothing saying why.
+ */
+function facetsOf(
+  doc: MapPlaceDoc,
+  config: EventMapConfig,
+  dropped: string[],
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  const authored = isPlainObject(doc.facets) ? doc.facets : {};
+  for (const facet of config.facets) {
+    if (facet.source === "hours") {
+      out[facet.id] = facet.options
+        .filter(({ window }) =>
+          doc.hours.length === 0 ||
+          doc.hours.some((w) => window !== null && w.startAt >= window.from && w.startAt < window.until),
+        )
+        .map((option) => option.id);
+      continue;
+    }
+    const known = new Set(facet.options.map((option) => option.id));
+    const values: unknown = Object.hasOwn(authored, facet.id) ? authored[facet.id] : [];
+    const list = Array.isArray(values) ? values : [];
+    if (!Array.isArray(values)) dropped.push(`${doc._id}: facets.${facet.id} is not a list`);
+    out[facet.id] = [];
+    for (const value of list) {
+      if (typeof value === "string" && known.has(value)) {
+        if (!out[facet.id]!.includes(value)) out[facet.id]!.push(value);
+      } else {
+        dropped.push(`${doc._id}: facets.${facet.id} has no option ${JSON.stringify(value)}`);
+      }
+    }
+  }
+  // A key the config has no facet for — a typo, or an `hours` facet authored
+  // by hand, which the importer refuses but a Mongo edit would not.
+  for (const key of Object.keys(authored)) {
+    const facet = config.facets.find((f) => f.id === key);
+    if (!facet) dropped.push(`${doc._id}: facets.${key} is not a facet`);
+    else if (facet.source === "hours") dropped.push(`${doc._id}: facets.${key} is derived from hours, not authored`);
+  }
+  return out;
+}
+
+/** Only keys that name a real option and values that are finite numbers survive. */
+function orderByOptionOf(
+  doc: MapPlaceDoc,
+  config: EventMapConfig,
+  dropped: string[],
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!isPlainObject(doc.orderByOption)) return out;
+  const known = new Set(config.facets.flatMap((f) => f.options.map((o) => o.id)));
+  for (const [key, value] of Object.entries(doc.orderByOption)) {
+    if (known.has(key) && typeof value === "number" && Number.isFinite(value)) {
+      out[key] = value;
+    } else {
+      dropped.push(`${doc._id}: orderByOption.${key} = ${JSON.stringify(value)}`);
+    }
+  }
+  return out;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
  * Every place of the currently active layer set, as overlays.
  *
  * Returns an empty list rather than throwing when no event is live — the app
@@ -277,6 +355,7 @@ async function loadEventOverlays(): Promise<{ overlays: MapOverlay[] }> {
   }
 
   const droppedActions: string[] = [];
+  const droppedFacets: string[] = [];
 
   const overlays: MapOverlay[] = docs.map((doc) => {
     // `category` is an OPEN string, so an unmapped value lands on the config's
@@ -300,6 +379,8 @@ async function loadEventOverlays(): Promise<{ overlays: MapOverlay[] }> {
       })),
       actions: toWireActions(doc.actions, droppedActions),
       order: doc.order,
+      facets: facetsOf(doc, config, droppedFacets),
+      orderByOption: orderByOptionOf(doc, config, droppedFacets),
       // The PLACE's own id. Two booths sharing a plot are two taps — they were
       // one, back when the plot was the addressable thing. `null` where the
       // category is authored inert, which is how a backdrop is drawn without
@@ -331,6 +412,12 @@ async function loadEventOverlays(): Promise<{ overlays: MapOverlay[] }> {
   if (droppedActions.length > 0) {
     logger.warn(
       `[map] ${droppedActions.length} sheet button(s) dropped in "${config.layerSetId}": ${droppedActions.join("; ")}`,
+    );
+  }
+
+  if (droppedFacets.length > 0) {
+    logger.warn(
+      `[map] ${droppedFacets.length} list facet value(s) dropped in "${config.layerSetId}": ${droppedFacets.join("; ")}`,
     );
   }
 

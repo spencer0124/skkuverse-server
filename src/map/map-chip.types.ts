@@ -161,4 +161,58 @@ export interface MapChip {
    * `icon: null` rather than omitting it.
    */
   isReset: boolean;
+  /**
+   * The filters and sort of the list this chip opens, or `null` for a chip
+   * whose list is unfiltered and in `order` — the reset chip, and any chip a
+   * festival authored no list for.
+   *
+   * On the chip because the app shows a list exactly while a chip is narrowed:
+   * the chip is the list's identity. Membership is NOT here — every overlay
+   * carries its own `facets`, so this says which axes to draw and the client
+   * only matches ids. `null` rather than absent, the way `icon` is.
+   */
+  list: MapChipList | null;
+}
+
+export interface MapChipFacetOption {
+  id: string;
+  /** Resolved per language, like the chip's own label. */
+  label: string;
+  /**
+   * Present on an `hours` facet's options, `null` on a tag's. The client uses
+   * it for one thing: opening a `required` facet on the option containing now.
+   * Membership was already decided by the server and rides on each overlay.
+   */
+  window: { startAt: string; endAt: string } | null;
+}
+
+export interface MapChipFacet {
+  id: string;
+  label: string;
+  /**
+   * `required`: exactly one option selected (tabs), opening on the option whose
+   * `window` contains now, else the first. `optional`: zero or one (toggles),
+   * none meaning every place.
+   */
+  select: "required" | "optional";
+  options: MapChipFacetOption[];
+}
+
+/**
+ * Filter: keep an overlay when, for every facet with a selection,
+ * `overlay.facets[facet.id]` includes the selected option id.
+ *
+ * Sort, then by overlay `id`:
+ *  - `order`: `overlay.orderByOption[<selected option of scopeFacetId>] ??
+ *    overlay.order`, ascending. With `scopeFacetId: null`, just `order`.
+ *  - `title`: `overlay.text.ko` in code-point order, which is 가나다 order for
+ *    Hangul syllables and needs no `Intl`.
+ *
+ * Contract: docs/reference/map-overlays-api.md §8.
+ */
+export interface MapChipList {
+  facets: MapChipFacet[];
+  sort:
+    | { key: "order"; scopeFacetId: string | null }
+    | { key: "title"; scopeFacetId: null };
 }

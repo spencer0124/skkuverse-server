@@ -140,6 +140,68 @@
       }
     }
   ],
+  "facets": [
+    {
+      "id": "day",
+      "label": {
+        "ko": "일자",
+        "en": "Day",
+        "zh": "日期"
+      },
+      "source": "hours",
+      "select": "required",
+      "options": [
+        {
+          "id": "day1",
+          "label": {
+            "ko": "1일차",
+            "en": "Day 1",
+            "zh": "第一天"
+          },
+          "from": "2026-10-01T06:00:00+09:00",
+          "until": "2026-10-02T06:00:00+09:00"
+        },
+        {
+          "id": "day2",
+          "label": {
+            "ko": "2일차",
+            "en": "Day 2",
+            "zh": "第二天"
+          },
+          "from": "2026-10-02T06:00:00+09:00",
+          "until": "2026-10-03T06:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "id": "org",
+      "label": {
+        "ko": "운영",
+        "en": "Run by",
+        "zh": "主办"
+      },
+      "source": "tag",
+      "select": "optional",
+      "options": [
+        {
+          "id": "council",
+          "label": {
+            "ko": "총학생회",
+            "en": "Student Council",
+            "zh": "总学生会"
+          }
+        },
+        {
+          "id": "club",
+          "label": {
+            "ko": "학생단체",
+            "en": "Student groups",
+            "zh": "学生团体"
+          }
+        }
+      ]
+    }
+  ],
   "chips": [
     {
       "id": "eskara26_view_bar",
@@ -159,6 +221,15 @@
         "tilt": 0,
         "bearing": 0,
         "durationMs": 500
+      },
+      "list": {
+        "facetIds": [
+          "day"
+        ],
+        "sort": {
+          "key": "order",
+          "scopeFacetId": null
+        }
       }
     },
     {
@@ -179,6 +250,16 @@
         "tilt": 0,
         "bearing": 0,
         "durationMs": 500
+      },
+      "list": {
+        "facetIds": [
+          "day",
+          "org"
+        ],
+        "sort": {
+          "key": "order",
+          "scopeFacetId": "day"
+        }
       }
     },
     {
@@ -199,6 +280,15 @@
         "tilt": 0,
         "bearing": 0,
         "durationMs": 500
+      },
+      "list": {
+        "facetIds": [
+          "day"
+        ],
+        "sort": {
+          "key": "title",
+          "scopeFacetId": null
+        }
       }
     },
     {

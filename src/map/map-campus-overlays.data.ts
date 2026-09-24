@@ -104,6 +104,9 @@ function formatFallback(): { overlays: MapOverlay[]; degraded: true } {
       fields: [],
       actions: [],
       order: 0,
+      // Campus overlays are in no list facet.
+      facets: {},
+      orderByOption: {},
       pinPriority: 0,
       tap: null,
     } satisfies Partial<MapOverlay>;
@@ -175,6 +178,9 @@ async function getBuildingOverlays(): Promise<{
       // omitted because the schema is shared, and an optional field is a second
       // thing for the app to branch on.
       order: 0,
+      // Campus overlays are in no list facet.
+      facets: {},
+      orderByOption: {},
       pinPriority: 0,
       // A building is addressed exactly as a booth is. String, not number: one
       // scheme for both kinds, narrowed back to a number by the app.
@@ -266,6 +272,8 @@ function toShapeOverlays(docs: CampusShapeDoc[]): MapOverlay[] {
       fields: [],
       actions: [],
       order: doc.order,
+      facets: {},
+      orderByOption: {},
       // A footprint addresses its building exactly as the number pin does, so
       // both taps open the same sheet. `null` for geometry that is not a
       // building — a boundary, a path — which is how it stays a backdrop.
