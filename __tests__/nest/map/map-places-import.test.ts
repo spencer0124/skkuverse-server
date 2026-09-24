@@ -559,16 +559,15 @@ describe("parsePlacesFile — the committed sheet against the list facets", () =
     ]);
   });
 
-  it("gives every listed place at least one option of every required facet", () => {
-    // A place in no day tab is in no tab of a list that always has one selected.
+  it("puts every listed place on at least one day", () => {
+    // A place on no day shows under 전체 and vanishes the moment anyone checks
+    // a single day — with nothing saying why.
     const missing: string[] = [];
     for (const chip of listChips) {
       for (const d of placesOf(chip.layerIds)) {
         for (const id of chip.list!.facetIds) {
-          const facet = facetById.get(id)!;
-          if (facet.select !== "required") continue;
-          const held = facet.source === "hours" ? daysOf(d) : (d.facets[id] ?? []);
-          if (held.length === 0) missing.push(`${chip.id}: ${d._id} has no ${id}`);
+          if (facetById.get(id)!.source !== "hours") continue;
+          if (daysOf(d).length === 0) missing.push(`${chip.id}: ${d._id} has no ${id}`);
         }
       }
     }

@@ -1166,21 +1166,24 @@ the client never does date arithmetic:
 
 **The client's rules:**
 
-- `required`: exactly one option is selected, shown as tabs. It opens on the option whose `window`
-  contains now, otherwise the first.
-- `optional`: zero or one is selected, shown as toggles. None means every place.
-- **Filter.** Keep an overlay when, for every facet with a selection, `overlay.facets[facet.id]`
-  includes the selected option id.
+- `optional`: a checklist. Any non-empty set of options can be checked, and it opens with every
+  option checked, which is "no filter" and reads 전체. ESKARA 2026 uses this for both 일자 and 운영.
+- `required`: a single choice, opening on the first option. Nothing uses it today.
+- No list opens on a time-dependent default, so a list looks the same before and during the
+  festival.
+- **Filter.** Keep an overlay when, for every facet not holding all its options,
+  `overlay.facets[facet.id]` shares an option id with what is checked.
 - **Sort,** then by `id`:
-  - `order`: `overlay.orderByOption[<selected option of scopeFacetId>] ?? overlay.order`, ascending.
-    With `scopeFacetId: null` it is just `order`.
+  - `order`: with a scope, sort first by the index of the first CHECKED option of `scopeFacetId` the
+    overlay is in, then by `overlay.orderByOption[that option] ?? overlay.order`. With one day
+    checked, that is the day's running order. With both checked, it is day 1's order followed by
+    the day-2-only places in day 2's order. With `scopeFacetId: null` it is just `order`.
   - `title`: `overlay.text.ko` in code-point order. Hangul syllables are encoded in 가나다 order, so
     this needs no `Intl`.
 
 Option ids are unique across the whole config, not just within a facet, so an `orderByOption` key
-names one option without a facet prefix. A sort scope must be a `required` facet in the same list,
-so there is always a selected option to read an order for. Both rules are enforced at config load
-(§8.6).
+names one option without a facet prefix. A sort scope must be one of the same list's facets. Both
+rules are enforced at config load (§8.6).
 
 Everything here is additive. An app that predates it drops `list`, `facets` and `orderByOption` in
 its parsers and keeps listing places unfiltered in `order`.

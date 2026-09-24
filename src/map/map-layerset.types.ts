@@ -189,9 +189,10 @@ export type EventFacetSource = "hours" | "tag";
 /**
  * How many options of a facet the user holds at once.
  *
- *  - `required`: exactly one, as tabs. The app opens on the option whose window
- *    contains now, else the first.
- *  - `optional`: zero or one, as toggles. None selected means every place.
+ *  - `optional`: any non-empty subset, as a checklist. Opens with every
+ *    option checked, which is "no filter" (전체). What ESKARA 2026 uses for
+ *    both 일자 and 운영.
+ *  - `required`: exactly one, as a single choice. Opens on the first option.
  */
 export type EventFacetSelect = "required" | "optional";
 
@@ -216,9 +217,11 @@ export interface EventFacetDef {
  * How a chip's list sorts. The tiebreak is always the overlay id.
  *
  *  - `order` with `scopeFacetId: null`: the place's `order`.
- *  - `order` with a scope: the place's `orderByOption[<selected option of that
- *    facet>]`, else its `order`. How booths get a separate running order per
- *    day. The scope must be a `required` facet, so an option is always selected.
+ *  - `order` with a scope: by the first checked option of that facet the
+ *    place is in, then by its `orderByOption` for that option, else its
+ *    `order`. How booths get a separate running order per day: one day checked
+ *    lists that day's order; both checked list day 1's order, then the booths
+ *    that open only on day 2 in day 2's order.
  *  - `title`: the Korean title in code-point order, which is 가나다 order for
  *    Hangul syllables. Never scoped.
  */

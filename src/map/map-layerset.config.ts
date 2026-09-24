@@ -368,11 +368,6 @@ function assertValidFacets(facets: EventFacetDef[], chips: EventChipDef[]): void
     if (!chip.list.facetIds.includes(scope)) {
       fail(`${where}.sort.scopeFacetId "${scope}" is not one of this list's facetIds`);
     }
-    // An optional facet can have nothing selected, and then there is no option
-    // to read an order for.
-    if (byId.get(scope)!.select !== "required") {
-      fail(`${where}.sort.scopeFacetId "${scope}" must name a "required" facet`);
-    }
   });
 }
 

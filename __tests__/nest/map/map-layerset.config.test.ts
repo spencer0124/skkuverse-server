@@ -725,10 +725,10 @@ describe("assertValidConfig — list facets, the FILTER axis", () => {
     expect(() => assertValidConfig(r)).toThrow(/"org" is not one of this list's facetIds/);
   });
 
-  it("rejects a sort scoped to an optional facet — with nothing selected there is no order to read", () => {
+  it("accepts a sort scoped to a checklist facet — the order follows the first checked option", () => {
     const r = raw();
     chipById(r, "eskara26_view_booth").list.sort.scopeFacetId = "org";
-    expect(() => assertValidConfig(r)).toThrow(/must name a "required" facet/);
+    expect(() => assertValidConfig(r)).not.toThrow();
   });
 
   it("rejects a scoped title sort, and requires scopeFacetId to be written", () => {
