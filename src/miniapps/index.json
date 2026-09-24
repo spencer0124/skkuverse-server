@@ -6,7 +6,10 @@
       "name": "ESKARA 2026",
       "shortName": "ESKARA",
       "order": 5,
-      "logo": { "kind": "remote", "path": "/miniapps/eskara-2026.png" }
+      "logo": {
+        "kind": "media",
+        "url": "https://media.skkuverse.com/miniapps/eskara-2026/logo-03a86934.jpg"
+      }
     },
     {
       "id": "hssc",

@@ -70,6 +70,22 @@ describe("assertValidRegistry", () => {
     );
   });
 
+  it("accepts a logo on the media bucket", () => {
+    const ok = index({
+      logo: { kind: "media", url: "https://media.skkuverse.com/miniapps/a/logo-01234567.jpg" },
+    });
+    expect(() => assertValidRegistry(ok, details())).not.toThrow();
+  });
+
+  it.each([
+    ["another host", "https://evil.com/a.jpg"],
+    ["the web origin", "https://skkuverse.com/miniapps/a.png"],
+    ["a relative path", "/miniapps/a.png"],
+  ])("rejects a media logo on %s", (_label, url) => {
+    const bad = index({ logo: { kind: "media", url } });
+    expect(() => assertValidRegistry(bad, details())).toThrow(/media bucket/);
+  });
+
   it("rejects an index entry with no matching detail", () => {
     expect(() => assertValidRegistry(index(), {})).toThrow(/has no detail/);
   });
