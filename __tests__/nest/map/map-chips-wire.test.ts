@@ -207,16 +207,16 @@ describe("GET /map/config (real MapService)", () => {
         {
           id: "day",
           label: "일자",
-          select: "required",
+          select: "optional",
           options: [
             {
               id: "day1",
-              label: "1일차",
+              label: "10/1(목)",
               window: { startAt: "2026-09-30T21:00:00.000Z", endAt: "2026-10-01T21:00:00.000Z" },
             },
             {
               id: "day2",
-              label: "2일차",
+              label: "10/2(금)",
               window: { startAt: "2026-10-01T21:00:00.000Z", endAt: "2026-10-02T21:00:00.000Z" },
             },
           ],
@@ -242,7 +242,7 @@ describe("GET /map/config (real MapService)", () => {
     expect(byId(ko, "eskara26_view_facility").list).toBeNull();
 
     const en = await chipsIn("en");
-    expect(byId(en, "eskara26_view_booth").list.facets[0].options[0].label).toBe("Day 1");
+    expect(byId(en, "eskara26_view_booth").list.facets[0].options[0].label).toBe("Oct 1 (Thu)");
     expect(byId(en, "eskara26_view_booth").list.facets[1].options[1].label).toBe("Student groups");
   });
 });

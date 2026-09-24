@@ -179,9 +179,9 @@ export interface MapChipFacetOption {
   /** Resolved per language, like the chip's own label. */
   label: string;
   /**
-   * Present on an `hours` facet's options, `null` on a tag's. The client uses
-   * it for one thing: opening a `required` facet on the option containing now.
-   * Membership was already decided by the server and rides on each overlay.
+   * Present on an `hours` facet's options, `null` on a tag's. Informational:
+   * membership was already decided by the server and rides on each overlay,
+   * and no list opens on a time-dependent default.
    */
   window: { startAt: string; endAt: string } | null;
 }
@@ -190,21 +190,22 @@ export interface MapChipFacet {
   id: string;
   label: string;
   /**
-   * `required`: exactly one option selected (tabs), opening on the option whose
-   * `window` contains now, else the first. `optional`: zero or one (toggles),
-   * none meaning every place.
+   * `optional`: a checklist of any non-empty subset, opening with every option
+   * checked — "no filter", shown as 전체. `required`: a single choice, opening
+   * on the first option.
    */
   select: "required" | "optional";
   options: MapChipFacetOption[];
 }
 
 /**
- * Filter: keep an overlay when, for every facet with a selection,
- * `overlay.facets[facet.id]` includes the selected option id.
+ * Filter: keep an overlay when, for every facet not holding all its options,
+ * `overlay.facets[facet.id]` shares an option id with what is held.
  *
  * Sort, then by overlay `id`:
- *  - `order`: `overlay.orderByOption[<selected option of scopeFacetId>] ??
- *    overlay.order`, ascending. With `scopeFacetId: null`, just `order`.
+ *  - `order` with a scope: by the index of the first HELD option of
+ *    `scopeFacetId` that the overlay is in, then `overlay.orderByOption[that
+ *    option] ?? overlay.order`. With `scopeFacetId: null`, just `order`.
  *  - `title`: `overlay.text.ko` in code-point order, which is 가나다 order for
  *    Hangul syllables and needs no `Intl`.
  *
