@@ -182,7 +182,7 @@
     "council's point, verbatim. The app draws one pin per coordinate, and the",
     "zone pin always wins it: its `pinPriority` (25) beats a truck's (20) and its",
     "windows cover every truck's, so it is never the closed one. The map therefore",
-    "says \"푸드트럭 구역\", never one vendor's name on a spot that vendor may not",
+    "says \"푸드트럭\", never one vendor's name on a spot that vendor may not",
     "have. The trucks lose the pin but keep their list rows — the 푸드트럭 chip's",
     "list — and a truck chosen there is drawn on the spot and opens its own sheet.",
     "This is the one sanctioned stack; the clash test allows a group on one",
@@ -277,8 +277,8 @@
       "lat": 37.296337486038695,
       "lng": 126.97134158214834,
       "title": {
-        "ko": "푸드트럭 구역",
-        "en": "Food truck zone"
+        "ko": "푸드트럭",
+        "en": "Food trucks"
       },
       "hours": [
         {

@@ -351,7 +351,7 @@ does not need to, because their windows are one night apart and step 1 has alrea
 
 **The one deliberate exception is a stack under a head.** The 2026 food trucks have no plots: the
 council places them along 신관A 앞길 on the day and sent one point for the whole area. All 17 share
-that point with `food-zone-pin` ("푸드트럭 구역"), whose `pinPriority` (25) beats a truck's (20) and
+that point with `food-zone-pin` (captioned "푸드트럭"), whose `pinPriority` (25) beats a truck's (20) and
 whose windows cover every truck's. Step 1 therefore never ranks a truck above it, and step 2 always
 does. The pin names the area, never one vendor on a spot that vendor may not hold. Tapping it,
 or the zone's ring, runs the 푸드트럭 chip (§2.6) rather than opening a sheet. The trucks lose
