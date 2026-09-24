@@ -183,8 +183,8 @@ config load rather than coerced, because `"false"` is truthy.
 
 ### Make a category's tap run a chip
 
-A shape that stands for a whole list rather than one place — the 2026 푸드트럭
-구역, whose trucks have no spots of their own — should open that list, not a
+A shape that stands for a whole list rather than one place — the 2026 food-truck
+zone, whose trucks have no spots of their own — should open that list, not a
 sheet. Set `tapChip` to a chip id on its **category**:
 
 ```jsonc

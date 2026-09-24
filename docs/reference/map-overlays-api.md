@@ -204,7 +204,7 @@ stage zones and an inert boundary without inventing a second layer. And not deri
 
 ### 2.6 `tap.kind: "chip"` runs a chip instead of opening a place
 
-Some shapes stand for a whole list rather than one place. The 2026 푸드트럭 구역 is the case: its
+Some shapes stand for a whole list rather than one place. The 2026 food-truck zone is the case: its
 17 trucks have no spots of their own. A tap on such an overlay carries
 `{ kind: "chip", chipId }`, and the client runs that chip exactly as the chip row would, with its
 layers, camera and list. No sheet opens and none is served: the details route skips the category.
@@ -218,7 +218,7 @@ app.
 ### 2.7 `locationAccuracy`: whether a pin is the place's spot
 
 A marker's `locationAccuracy` is `"exact"` unless its point names only the area the place is somewhere
-in. The 2026 food trucks are the case. They are placed along 신관A 앞길 on the day and stacked on the
+in. The 2026 food trucks are the case. They are placed along the road in front of dormitory Shin-gwan A on the day and stacked on the
 council's one point, so they carry `"area"`.
 
 It states a fact about the place, not a rendering instruction; the client decides what follows. Today
@@ -365,11 +365,11 @@ does not need to, because their windows are one night apart and step 1 has alrea
 > the fix was two coordinates, a quarter of the strip's own step (~1.3 m) apart.
 
 **The one deliberate exception is a stack under a head.** The 2026 food trucks have no plots: the
-council places them along 신관A 앞길 on the day and sent one point for the whole area. All 17 share
+council places them along the road in front of dormitory Shin-gwan A on the day and sent one point for the whole area. All 17 share
 that point with `food-zone-pin` (captioned "푸드트럭"), whose `pinPriority` (25) beats a truck's (20) and
 whose windows cover every truck's. Step 1 therefore never ranks a truck above it, and step 2 always
 does. The pin names the area, never one vendor on a spot that vendor may not hold. Tapping it,
-or the zone's ring, runs the 푸드트럭 chip (§2.6) rather than opening a sheet. The trucks lose
+or the zone's ring, runs the food-truck chip (§2.6) rather than opening a sheet. The trucks lose
 the pin **on purpose** and keep their list rows. A truck chosen from the list is drawn on the spot,
 because the client ranks the selected place above the whole ladder. The import test allows a shared
 coordinate with overlapping hours only under such a head: a strictly higher `pinPriority` and

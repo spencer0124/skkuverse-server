@@ -141,7 +141,7 @@ Four things to understand before anything else:
 is a string for every kind, including buildings whose id is numeric in Mongo. One addressing scheme is
 the point, and it makes the deep link literally the two fields of the tap. Its `chip` arm carries a
 `chipId` instead. It is for a shape that stands for a list rather than being a place, like the
-2026 푸드트럭 구역: the tap runs that chip. `tap: null` is how a backdrop is expressed: drawn, not
+2026 food-truck zone: the tap runs that chip. `tap: null` is how a backdrop is expressed: drawn, not
 pressable.
 
 - `locationAccuracy` — whether a marker's point is the place's spot (`"exact"`) or only names the area
@@ -399,7 +399,7 @@ test is often faster than reading the file it covers.
 | `map-campus-overlays.test.ts` | Both building layers from one call, campus geometry beside them, the degraded fallback |
 | `map-geometry.test.ts` | Winding and closure — the one guarantee Mongo does not give |
 | `map-overlay-interactive.test.ts` | `interactive: false` → `tap: null`, `tapChip` → a chip tap, one layer holding all three |
-| `map-places-import.test.ts` | The committed sheet: the clash test and its one sanctioned stack (the 푸드트럭 구역 head over 17 trucks) |
+| `map-places-import.test.ts` | The committed sheet: the clash test and its one sanctioned stack (the food-truck zone's head over 17 trucks) |
 | `campus-shapes-import.test.ts` | The campus authoring reader |
 | `building-indexes.test.ts` | The `campus_shapes` 2dsphere exists, on the right collection |
 | `map-config-assets.test.ts` | That every declared layer set is also in the build-asset copy list |
