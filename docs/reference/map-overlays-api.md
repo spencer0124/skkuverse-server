@@ -3,7 +3,7 @@ title: Map Overlays API Reference
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-22
+last-updated: 2026-09-24
 audience: internal
 ---
 
@@ -79,7 +79,8 @@ on.
 | `facets` | `Record<string, string[]>` | The list-facet options this overlay is in, keyed by facet id — `{ "day": ["day1", "day2"], "org": ["council"] }`. Every facet of the live layer set has a key, `[]` where the overlay is in none. `{}` on every campus overlay. See §8.8 |
 | `orderByOption` | `Record<string, number>` | Sort position inside one facet option — a booth's running order per day. Read only by a list whose sort is scoped to that facet; `{}` when none was authored. See §8.8 |
 | `pinPriority` | `number` | **`kind: "marker"` only.** Second step of the collision ladder, from the layer set's category table. Higher wins. `0` for a building |
-| `tap` | `MarkerTap \| null` | What a tap resolves to, or `null` for a backdrop — see §2.5 |
+| `locationAccuracy` | `"exact" \| "area"` | **`kind: "marker"` only.** Whether the point is the place's spot or only names the area it is in, from the layer set's category table. `"exact"` for a building — see §2.7 |
+| `tap` | `MarkerTap \| null` | What a tap resolves to: a place to open, a chip to run (§2.6), or `null` for a backdrop (§2.5) |
 
 `pinPriority` is on the marker arm alone rather than present-and-ignored elsewhere. Two overlapping
 zones are a design choice, not a collision to resolve, so a union makes the field *unrepresentable* on

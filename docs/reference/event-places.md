@@ -3,7 +3,7 @@ title: Event Places — Storage, Authoring and Operations
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-22
+last-updated: 2026-09-24
 audience: internal
 ---
 

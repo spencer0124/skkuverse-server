@@ -3,7 +3,7 @@ title: The Map Module, In Reading Order
 type: explanation
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-22
+last-updated: 2026-09-24
 audience: internal
 ---
 
@@ -137,9 +137,17 @@ Four things to understand before anything else:
   overlapping zones are a design choice, not a collision, and a union makes it unrepresentable
   elsewhere rather than merely unused.
 
-`MarkerTap` is a discriminated union whose `placeId` is a string for every kind, including buildings
-whose id is numeric in Mongo. One addressing scheme is the point, and it makes the deep link literally
-the two fields of the tap. `tap: null` is how a backdrop is expressed — drawn, not pressable.
+`MarkerTap` is a discriminated union. Its place arms (`skku_building`, `event`) carry a `placeId` that
+is a string for every kind, including buildings whose id is numeric in Mongo. One addressing scheme is
+the point, and it makes the deep link literally the two fields of the tap. Its `chip` arm carries a
+`chipId` instead. It is for a shape that stands for a list rather than being a place, like the
+2026 푸드트럭 구역: the tap runs that chip. `tap: null` is how a backdrop is expressed: drawn, not
+pressable.
+
+- `locationAccuracy` — whether a marker's point is the place's spot (`"exact"`) or only names the area
+  it is somewhere in (`"area"`: the food trucks, placed on the day). It is a fact, not a rendering
+  instruction; the app opens an area pin's sheet tall. It is marker-only for the same reason as
+  `pinPriority`.
 
 ### `geo/geojson.types.ts` and `geo/ring-winding.ts`
 
@@ -352,6 +360,8 @@ The practical index. The last column is section 3's ownership split, applied.
 | Move a booth, fix a title, add a sheet button | `places` collection | No — live within the event route's TTL |
 | Add a festival zone or route line | the sheet's `geometry` key → `npm run eventmap:import` | No |
 | Make a category a backdrop rather than a tap target | the layer set JSON → `itemDefaults` → `interactive: false` | Yes |
+| Make a category's tap run a chip instead of opening a sheet | the layer set JSON → `itemDefaults` → `tapChip: "<chip id>"` | Yes, plus an app release for builds to act on it (older ones draw it inert) |
+| Say a category's pins name an area, not a spot | the layer set JSON → `itemDefaults` → `locationAccuracy: "area"` | Yes, plus an app release (older builds ignore it) |
 | Add a building footprint, a boundary, a path | `scripts/data/campus-shapes.json` → `npm run campus:shapes` | No |
 | Change festival dates | `activations` → `activeFrom` / `activeUntil` | No |
 | Add, rename or recolour a festival layer | the layer set JSON → `layers[]` | Yes |
@@ -388,7 +398,8 @@ test is often faster than reading the file it covers.
 | `eventmap-db.test.ts` | The import diff: a detail-only edit is written, an unchanged re-import writes nothing |
 | `map-campus-overlays.test.ts` | Both building layers from one call, campus geometry beside them, the degraded fallback |
 | `map-geometry.test.ts` | Winding and closure — the one guarantee Mongo does not give |
-| `map-overlay-interactive.test.ts` | `interactive: false` → `tap: null`, one layer holding both |
+| `map-overlay-interactive.test.ts` | `interactive: false` → `tap: null`, `tapChip` → a chip tap, one layer holding all three |
+| `map-places-import.test.ts` | The committed sheet: the clash test and its one sanctioned stack (the 푸드트럭 구역 head over 17 trucks) |
 | `campus-shapes-import.test.ts` | The campus authoring reader |
 | `building-indexes.test.ts` | The `campus_shapes` 2dsphere exists, on the right collection |
 | `map-config-assets.test.ts` | That every declared layer set is also in the build-asset copy list |

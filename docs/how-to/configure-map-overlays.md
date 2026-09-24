@@ -3,7 +3,7 @@ title: Configure Map Overlays
 type: how-to
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-08-31
+last-updated: 2026-09-24
 audience: internal
 ---
 
@@ -181,6 +181,30 @@ so a single 구역 layer can hold tappable stage zones and an inert boundary. An
 absent value means `true` — never fail closed — and a non-boolean is rejected at
 config load rather than coerced, because `"false"` is truthy.
 
+### Make a category's tap run a chip
+
+A shape that stands for a whole list rather than one place — the 2026 푸드트럭
+구역, whose trucks have no spots of their own — should open that list, not a
+sheet. Set `tapChip` to a chip id on its **category**:
+
+```jsonc
+"food_zone": { "layerId": "eskara26_food", "pinPriority": 0, "tapChip": "eskara26_view_food" }
+```
+
+The wire carries `tap: { "kind": "chip", "chipId": … }`, and the app runs that
+chip exactly as the chip row would. The details route serves no sheet for the
+category. Config load refuses a `tapChip` naming no authored chip, and one on an
+`interactive: false` category. App builds older than the kind draw the shape
+inert. Contract: [map-overlays-api.md §2.6](../reference/map-overlays-api.md).
+
+### Say a category's pins name an area, not a spot
+
+When a category's places have no spot of their own — placed on the day,
+stacked on one point for an area — set `locationAccuracy: "area"` on the
+category. Absent means `"exact"`. The app opens such a place's sheet at its
+tallest detent, since the low one only keeps a pin in view that points at
+nothing. Contract: [map-overlays-api.md §2.7](../reference/map-overlays-api.md).
+
 ### Style a layer
 
 Every style knob is optional; a layer sending none renders exactly as one that
@@ -254,6 +278,7 @@ Work top-down — the earlier entries are far more common.
 | Shape imported, never appears | `layerId` names no layer | The server logs a warn naming the id it could not resolve. Campus shapes must name a `BASE_LAYERS` entry |
 | Festival shape imported, lands on the wrong layer | Its `category` is not in the category table | An unmapped category silently falls back rather than dropping the booth — check the table in the layer set JSON |
 | Shape appears but cannot be tapped | The category is authored `interactive: false`, or a campus shape has `skkuId: null` | Both resolve to `tap: null`, which is the intended spelling for a backdrop |
+| Tapping a shape does nothing on one phone and runs a chip on another | Its category has `tapChip`, and the first phone's app predates the `chip` tap kind | Expected: an older build parses the tap as `null` and draws the shape inert |
 | Zone renders as a dark blob covering the booths | Its layer has no `fillOpacity` | The client defaults the fill to opaque — see [Style a layer](#style-a-layer) |
 | Zone has no border | Its layer has no `outlineWidth` | The client defaults it to zero |
 | Nothing on the campus route but a dozen buildings | The buildings collection read empty and the fallback engaged | The response is `no-store` in that state, so it self-heals; check the buildings sync |
