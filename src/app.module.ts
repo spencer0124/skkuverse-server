@@ -1,6 +1,5 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "./config/config.module";
-import { DatabaseModule } from "./database/database.module";
 import { SchedulingModule } from "./scheduling/scheduling.module";
 import { HealthModule } from "./health/health.module";
 import { BusModule } from "./bus/bus.module";
@@ -16,7 +15,8 @@ import { MiniAppsModule } from "./miniapps/miniapps.module";
  * Root module.
  *
  * Order of imports mirrors the boot-time concerns: config (fail-loud validation)
- * → database (connection lifecycle) → scheduling (poller registry) → health.
+ * → scheduling (poller registry) → health. The MongoDB client is not a module:
+ * it is the lazy singleton in infra/db, closed by main.ts on shutdown.
  *
  * LangMiddleware is NOT applied here via consumer.forRoutes("*"): Nest's
  * wildcard forRoutes binding does NOT fire against the pre-built ExpressAdapter
@@ -32,7 +32,6 @@ import { MiniAppsModule } from "./miniapps/miniapps.module";
 @Module({
   imports: [
     ConfigModule,
-    DatabaseModule,
     SchedulingModule,
     HealthModule,
     BusModule,

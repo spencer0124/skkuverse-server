@@ -27,7 +27,7 @@ import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middlewa
  * the services for byte-parity.
  *
  * PollerRegistryService comes from the @Global SchedulingModule; DB access is
- * driver-level via lib/db (no Mongoose forFeature for bus — see DatabaseModule).
+ * driver-level via infra/db.
  *
  * jongroRoutesProvider (token JONGRO_ROUTES) surfaces the registry fail-loud
  * (service-key + jongro-routes.json validation) at bootstrap via its useFactory.

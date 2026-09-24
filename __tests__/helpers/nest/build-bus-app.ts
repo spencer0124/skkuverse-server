@@ -13,8 +13,7 @@
  *     → HttpExceptionFilter (global)
  *
  * It imports BusModule + a SchedulingModule providing PollerRegistryService
- * (the @Global dep the poller services inject), but deliberately does NOT import
- * DatabaseModule (no Mongoose connection). DB/axios-touching providers are
+ * (the @Global dep the poller services inject). DB/axios-touching providers are
  * replaced via the `overrides` map. trust proxy is set so byIp can read req.ip.
  *
  * The poller services' onModuleInit will register against the (real) registry,
