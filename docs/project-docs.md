@@ -117,6 +117,8 @@ sudo cp infra/nginx/api.skkuverse.com /etc/nginx/sites-available/
 
 The config uses an upstream block with passive health checks for load balancing between two API replicas. See `infra/nginx/api.skkuverse.com` for the full config.
 
+**Client IP.** The TCP peer is always a Cloudflare edge, so the file resolves the client from `CF-Connecting-IP` (`set_real_ip_from` Cloudflare's ranges + `real_ip_header`) and sends it upstream as the *only* `X-Forwarded-For` entry. That pairs with `trust proxy 1` in `src/main.ts`, which takes the rightmost entry as `req.ip` — the rate limiter's key. Change one half and the other stops holding: `__tests__/nest/infra/nginx-site.test.ts` pins the nginx side. The ranges are copied from Cloudflare's published lists, with the fetch date in the file; re-check them occasionally.
+
 Enable the site:
 ```bash
 sudo ln -s /etc/nginx/sites-available/api.skkuverse.com /etc/nginx/sites-enabled/

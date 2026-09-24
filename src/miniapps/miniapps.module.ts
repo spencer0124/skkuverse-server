@@ -12,7 +12,7 @@ import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middlewa
  * The registry half is public config with no auth and no DB. The broadcast feed
  * added in skkuverse#17 brings one Mongo collection and one internal route.
  *
- * configure() applies the shared byIp limiter (120/60s) to "miniapps" only —
+ * configure() applies the shared byIp limiter to "miniapps" only —
  * deliberately NOT to the "internal" prefix, matching notices and the event map:
  * the internal caller is ops during an incident and must not be throttled.
  */

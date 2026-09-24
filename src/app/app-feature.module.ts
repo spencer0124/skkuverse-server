@@ -13,7 +13,7 @@ import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middlewa
  * AppConfigService comes from the @Global ConfigModule, so no import is needed.
  *
  * configure() applies the same express-rate-limit middleware used by the bus
- * routes (byIp, 120/60s) to /app, matching index.ts's generalLimiter.
+ * routes (byIp) to /app, matching index.ts's generalLimiter.
  * LangMiddleware is applied globally (raw app-level) and runs first.
  *
  * Named *FeatureModule / the controller *FeatureController to avoid colliding

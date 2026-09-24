@@ -31,8 +31,8 @@ import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middlewa
  * dependency graph — BuildingService.onModuleInit ensureIndexes runs once, and
  * is what creates the campus_shapes indexes.
  *
- * configure() applies the shared generalLimiter (BusRateLimitMiddleware: byIp,
- * 120/60s) to the two /map prefixes. The list is explicit, so a new prefix that
+ * configure() applies the shared generalLimiter (BusRateLimitMiddleware: byIp)
+ * to the two /map prefixes. The list is explicit, so a new prefix that
  * forgets to appear here is unthrottled. LangMiddleware is
  * applied globally (main.ts) and runs first, so req.lang is set before the
  * limiter + controllers.
