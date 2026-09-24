@@ -685,6 +685,14 @@ only open a sheet that fails.
 
 `Cache-Control: public, max-age=60`.
 
+> [!NOTE]
+> **Origin cache.** Each api replica also caches this body, the details body (§5.4) and the
+> activation lookup `/map/config` shares, for `EVENT_CACHE_TTL_MS` (`src/map/map-event-cache.ts`).
+> Concurrent requests share one load, so the database sees at most one scan per replica per TTL
+> however many clients open the map. A failed reload serves the last good body, with a warning, for
+> up to `EVENT_STALE_IF_ERROR_MS` — during a database blip nobody can change the places either, so
+> that body is still the freshest one there is.
+
 Every place of the currently active layer set. An empty list rather than an error when no festival is live — the app asks for this endpoint whenever
 the layer is configured, and "no festival today" is an ordinary answer. When nothing is active it does
 not touch Mongo at all. The same answer, with one warning per process, when an activation names a

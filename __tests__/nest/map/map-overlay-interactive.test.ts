@@ -28,6 +28,12 @@ jest.mock("../../../src/infra/logger", () => ({
 import { getPlacesCollection } from "../../../src/map/map-places.data";
 import { activeEventConfig } from "../../../src/map/map-active-layerset";
 import { getEventOverlays } from "../../../src/map/map-event-overlays.data";
+import { clearEventOverlaysCache } from "../../../src/map/map-event-overlays.data";
+
+// The event read path is cached per process; each test starts cold.
+beforeEach(() => {
+  clearEventOverlaysCache();
+});
 
 const mockActiveEventConfig = activeEventConfig as jest.MockedFunction<
   typeof activeEventConfig

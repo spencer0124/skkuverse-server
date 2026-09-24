@@ -1,4 +1,6 @@
+import { createCachedLoader } from "../common/cache/cached-loader";
 import logger from "../infra/logger";
+import { EVENT_CACHE_TTL_MS, EVENT_STALE_IF_ERROR_MS } from "./map-event-cache";
 import { getLayerSetConfig } from "./map-layerset.config";
 import { findActiveActivation } from "./map-places.data";
 import type { EventMapConfig } from "./map-layerset.types";
@@ -18,17 +20,34 @@ import type { EventMapConfig } from "./map-layerset.types";
  * build has no file for (`CONFIG_FILES` not updated), or a file that failed
  * validation (already logged at import by `map-layerset.config`, with the path).
  * Neither is a reason to fail a request — `/map/config` serves the buildings,
- * the markers route serves nothing — but a warn per request at 120 req/min/IP
- * would bury the one that matters, so each layer set is reported once per
- * process.
+ * the markers route serves nothing — but a warn per request would bury the one
+ * that matters, so each layer set is reported once per process.
+ *
+ * The activation read is cached (`map-event-cache.ts`): every route that draws
+ * the festival asks this on every request, and the answer changes only when ops
+ * edit the activation. A cached activation is still checked against `now`, so
+ * its window closes on time even between reloads.
  */
 
 /** Layer sets already complained about in this process. */
 const reported = new Set<string>();
 
+const activationCache = createCachedLoader({
+  name: "event activation",
+  ttlMs: EVENT_CACHE_TTL_MS,
+  staleIfErrorMs: EVENT_STALE_IF_ERROR_MS,
+  load: () => findActiveActivation(new Date()),
+});
+
+/** Drops the cached activation. For tests, and for nothing else today. */
+export function clearActiveEventCache(): void {
+  activationCache.clear();
+}
+
 export async function activeEventConfig(now: Date): Promise<EventMapConfig | null> {
-  const activation = await findActiveActivation(now);
+  const activation = await activationCache.get();
   if (!activation) return null;
+  if (activation.activeUntil && activation.activeUntil <= now) return null;
 
   const loaded = getLayerSetConfig(activation._id);
   if (loaded?.config) return loaded.config;

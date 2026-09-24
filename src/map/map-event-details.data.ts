@@ -1,8 +1,11 @@
+import { createCachedLoader } from "../common/cache/cached-loader";
+import { HOT_READ_MAX_TIME_MS } from "../infra/db";
 import { hasAnyText } from "../infra/i18n";
 import logger from "../infra/logger";
 import { isMediaUrl } from "../infra/media-url";
 import type { I18n } from "../infra/types";
 import { activeEventConfig } from "./map-active-layerset";
+import { EVENT_CACHE_TTL_MS, EVENT_STALE_IF_ERROR_MS } from "./map-event-cache";
 import { isAbsoluteHttpsUrl, isRenderable, toWire } from "./map-event-overlays.data";
 import { presentationFor } from "./map-layerset.types";
 import type { I18nWire } from "./map-overlay.types";
@@ -274,12 +277,15 @@ function toWireDetail(doc: MapPlaceDoc, dropped: string[]): PlaceDetailWire | nu
  * Mongo is not consulted. Only a place the overlay route would also serve, on a
  * category a tap can reach, gets a detail — anything else has no sheet to open.
  */
-async function getEventPlaceDetails(): Promise<EventPlaceDetails> {
+async function loadEventPlaceDetails(): Promise<EventPlaceDetails> {
   const config = await activeEventConfig(new Date());
   if (!config) return { details: {} };
 
   const docs = await getPlacesCollection()
-    .find({ layerSetId: config.layerSetId, detail: { $ne: null } })
+    .find(
+      { layerSetId: config.layerSetId, detail: { $ne: null } },
+      { maxTimeMS: HOT_READ_MAX_TIME_MS },
+    )
     .toArray();
 
   const dropped: string[] = [];
@@ -305,4 +311,26 @@ async function getEventPlaceDetails(): Promise<EventPlaceDetails> {
   return { details };
 }
 
-export { getEventPlaceDetails, isInstagramPostUrl, isInstagramProfileUrl };
+// Cached whole, like the overlays it pairs with (map-event-cache.ts).
+const detailsCache = createCachedLoader({
+  name: "event place details",
+  ttlMs: EVENT_CACHE_TTL_MS,
+  staleIfErrorMs: EVENT_STALE_IF_ERROR_MS,
+  load: loadEventPlaceDetails,
+});
+
+function getEventPlaceDetails(): Promise<EventPlaceDetails> {
+  return detailsCache.get();
+}
+
+/** Drops the cached details. For tests. */
+function clearEventDetailsCache(): void {
+  detailsCache.clear();
+}
+
+export {
+  clearEventDetailsCache,
+  getEventPlaceDetails,
+  isInstagramPostUrl,
+  isInstagramProfileUrl,
+};

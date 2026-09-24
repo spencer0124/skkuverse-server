@@ -1,11 +1,14 @@
+import { createCachedLoader } from "../common/cache/cached-loader";
 import { hasAnyText } from "../infra/i18n";
 import logger from "../infra/logger";
 import { ROOT_RELATIVE_PATH_RE, toWebviewUrl } from "../infra/webview-url";
 import { isKnownMiniAppTarget } from "../miniapps/miniapp-target";
 import { activeEventConfig } from "./map-active-layerset";
+import { EVENT_CACHE_TTL_MS, EVENT_STALE_IF_ERROR_MS } from "./map-event-cache";
 import { presentationFor } from "./map-layerset.types";
 import type { MapPlaceDoc, PlaceAction } from "./map-places.types";
 import { getPlacesCollection } from "./map-places.data";
+import { HOT_READ_MAX_TIME_MS } from "../infra/db";
 import type { I18n } from "../infra/types";
 import {
   isDrawableGeometry,
@@ -255,12 +258,12 @@ function isRenderable(doc: MapPlaceDoc): boolean {
  * asks for this endpoint whenever the layer is configured, and "no festival
  * today" is an ordinary answer, not an error.
  */
-async function getEventOverlays(): Promise<{ overlays: MapOverlay[] }> {
+async function loadEventOverlays(): Promise<{ overlays: MapOverlay[] }> {
   const config = await activeEventConfig(new Date());
   if (!config) return { overlays: [] };
 
   const all = await getPlacesCollection()
-    .find({ layerSetId: config.layerSetId })
+    .find({ layerSetId: config.layerSetId }, { maxTimeMS: HOT_READ_MAX_TIME_MS })
     .toArray();
 
   const docs = all.filter(isRenderable);
@@ -334,7 +337,32 @@ async function getEventOverlays(): Promise<{ overlays: MapOverlay[] }> {
   return { overlays };
 }
 
+// The whole projection is cached, not just the query: every client that opens
+// the map asks for the identical body, so the scan and the transform run once
+// per TTL per replica (map-event-cache.ts). The warnings above fire per load.
+const overlaysCache = createCachedLoader({
+  name: "event overlays",
+  ttlMs: EVENT_CACHE_TTL_MS,
+  staleIfErrorMs: EVENT_STALE_IF_ERROR_MS,
+  load: loadEventOverlays,
+});
+
+function getEventOverlays(): Promise<{ overlays: MapOverlay[] }> {
+  return overlaysCache.get();
+}
+
+/** Drops the cached overlays. For tests. */
+function clearEventOverlaysCache(): void {
+  overlaysCache.clear();
+}
+
 // `toWire`, `isRenderable` and `isAbsoluteHttpsUrl` are shared with the
 // place-detail producer (`map-event-details.data.ts`), which serves the same
 // documents and must resolve text and judge a document exactly as this one does.
-export { getEventOverlays, isAbsoluteHttpsUrl, isRenderable, toWire };
+export {
+  clearEventOverlaysCache,
+  getEventOverlays,
+  isAbsoluteHttpsUrl,
+  isRenderable,
+  toWire,
+};

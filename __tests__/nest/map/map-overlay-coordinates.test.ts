@@ -30,6 +30,14 @@ import {
   getPlacesCollection,
 } from "../../../src/map/map-places.data";
 import { getEventOverlays } from "../../../src/map/map-event-overlays.data";
+import { clearActiveEventCache } from "../../../src/map/map-active-layerset";
+import { clearEventOverlaysCache } from "../../../src/map/map-event-overlays.data";
+
+// The event read path is cached per process; each test starts cold.
+beforeEach(() => {
+  clearActiveEventCache();
+  clearEventOverlaysCache();
+});
 
 // scripts/ is excluded from tsconfig (plain CommonJS operator tooling), so this
 // is a require rather than an import — same as map-places-import.test.ts.

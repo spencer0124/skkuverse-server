@@ -33,6 +33,7 @@ const collection = jest.fn(() => ({
 }));
 
 jest.mock("../../../src/infra/db", () => ({
+  HOT_READ_MAX_TIME_MS: jest.requireActual("../../../src/infra/db").HOT_READ_MAX_TIME_MS,
   getClient: jest.fn(() => ({ db: jest.fn(() => ({ collection })) })),
 }));
 
@@ -44,6 +45,7 @@ jest.mock("../../../src/infra/logger", () => ({
 }));
 
 import { findActiveActivation } from "../../../src/map/map-places.data";
+import { HOT_READ_MAX_TIME_MS } from "../../../src/infra/db";
 
 const NOW = new Date("2026-09-16T09:00:00.000Z");
 
@@ -73,6 +75,9 @@ describe("findActiveActivation", () => {
     // would let the poller and each api replica pick a different one, flapping
     // the advertised activeLayerSetId between requests.
     await findActiveActivation(NOW);
-    expect(findOne.mock.calls[0]![1]).toEqual({ sort: { activeFrom: -1, _id: 1 } });
+    expect(findOne.mock.calls[0]![1]).toEqual({
+      sort: { activeFrom: -1, _id: 1 },
+      maxTimeMS: HOT_READ_MAX_TIME_MS,
+    });
   });
 });

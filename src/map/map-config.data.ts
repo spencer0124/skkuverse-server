@@ -92,6 +92,11 @@ interface MapConfigResponse {
  * activation whose config this build cannot use answers the same way, and
  * `activeEventConfig` has already said so once in the log.
  *
+ * That fallback is the last resort now. The activation is cached with a stale
+ * window (`map-event-cache.ts`), so a hiccup after the first successful read
+ * keeps serving the festival; only a replica that has never read it — a cold
+ * start while the database is down — lands here.
+ *
  * Called ONCE per request and handed to both the layer list and the chip list.
  * Asking separately would be two reads for one answer, and — worse — the two
  * could disagree if the window closed between them, serving chips that point at
