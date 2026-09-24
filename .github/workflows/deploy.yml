@@ -74,25 +74,28 @@ jobs:
               exit 1
             fi
 
+            # Every api replica as service:port. Must match docker-compose.yml
+            # and the nginx upstream — replica-topology.test.ts checks all three.
+            REPLICAS="api-1:3001 api-2:3002 api-3:3003"
+            SERVICES=$(for r in $REPLICAS; do printf '%s ' "${r%%:*}"; done)
+
             rollback() {
               echo "Deployment failed — rolling back to $PREV_COMMIT"
               git checkout "$PREV_COMMIT"
               docker compose build
-              docker compose up -d --no-deps api-1 api-2 poller
+              docker compose up -d --no-deps $SERVICES poller
               sleep 15
               curl -sf http://localhost:3001/health/ready || echo "WARNING: rollback also failed"
             }
 
-            # Rolling update: one replica at a time
-            docker compose up -d --no-deps api-1
-            HEALTHY=false
-            for i in $(seq 1 6); do sleep 5; curl -sf http://localhost:3001/health/ready && HEALTHY=true && break; done
-            if [ "$HEALTHY" = false ]; then rollback; exit 1; fi
-
-            docker compose up -d --no-deps api-2
-            HEALTHY=false
-            for i in $(seq 1 6); do sleep 5; curl -sf http://localhost:3002/health/ready && HEALTHY=true && break; done
-            if [ "$HEALTHY" = false ]; then rollback; exit 1; fi
+            # Rolling update: one replica at a time, each healthy before the next
+            for r in $REPLICAS; do
+              svc="${r%%:*}"; port="${r##*:}"
+              docker compose up -d --no-deps "$svc"
+              HEALTHY=false
+              for i in $(seq 1 6); do sleep 5; curl -sf "http://localhost:$port/health/ready" && HEALTHY=true && break; done
+              if [ "$HEALTHY" = false ]; then rollback; exit 1; fi
+            done
 
             # Update poller last (no downtime impact)
             docker compose up -d --no-deps poller

@@ -77,7 +77,7 @@ skkuverse-server/
 ├── docs/                     # Architecture decisions, runbooks
 ├── scripts/                  # One-off migration + data-collection utilities
 ├── infra/nginx/              # Nginx site configs deployed by CI/CD
-└── docker-compose.yml        # poller + api-1 (3001) + api-2 (3002)
+└── docker-compose.yml        # poller + api replicas (api-1…, 127.0.0.1:3001…)
 ```
 
 ---
@@ -112,7 +112,7 @@ npm start
 docker compose up --build
 ```
 
-Runs 3 services on the same image: `poller` (no HTTP), `api-1` (127.0.0.1:3001), `api-2` (127.0.0.1:3002). `NODE_ENV=production`, distinguished by `ROLE` env var.
+Runs on one image: `poller` (no HTTP) and the api replicas `api-1`, `api-2`, … on 127.0.0.1:3001, 3002, … (the list lives in `docker-compose.yml`). `NODE_ENV=production`, distinguished by `ROLE` env var.
 
 ---
 
@@ -231,7 +231,7 @@ Rate limits: notices (120/min, uid-keyed), everything else general (`RATE_LIMIT_
 `docker-compose.yml` runs 3 services backed by the same image. The `ROLE` env var picks the boot path:
 
 - **`poller`** — polls external APIs and writes snapshots to the `bus_cache` MongoDB collection. No HTTP listener.
-- **`api`** (api-1 / api-2 on 3001 / 3002) — serves HTTP from `bus_cache`. Skips poller startup so replicas can scale horizontally.
+- **`api`** (api-1, api-2, … on 3001, 3002, …) — serves HTTP from `bus_cache`. Skips poller startup so replicas can scale horizontally.
 - **`combined`** (default for local) — runs both poller and HTTP in one process.
 
 Behind Nginx with TLS via Cloudflare. Deployed to Oracle Cloud Free Tier VM by `.github/workflows/deploy.yml` on push to `main`.

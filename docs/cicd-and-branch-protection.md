@@ -47,7 +47,7 @@ main push
        ├→ docker compose build
        ├→ Pre-deploy config validation  ← lib/config.js dry-load on the new image (2초)
        │    └→ 실패 시 git revert → exit 1 (running containers 안 건드림, 0 downtime)
-       ├→ Rolling update (api-1 → api-2 → poller)
+       ├→ Rolling update (each api replica in REPLICAS order → poller)
        │    └→ 각 서비스 health check retry (5초 × 6회)
        ├→ 성공 → 완료
        └→ 실패 → rollback() → 전체 복원 (자동 rollback)
@@ -65,11 +65,10 @@ main push
 
 ### Rolling Update 순서
 
-1. `api-1` 재시작 → health check retry → 통과 시 다음
-2. `api-2` 재시작 → health check retry → 통과 시 다음
-3. `poller` 재시작 → 상태 확인
+1. Each api replica in the workflow's `REPLICAS` list, one at a time: restart → health-check retry → next on success
+2. `poller` restart → state check
 
-api-1, api-2가 순차 배포되므로 다운타임 없음. 어느 단계에서든 실패 시 전체 rollback.
+Replicas roll one by one, so there is no downtime. Any failure rolls everything back.
 
 ### 배포 대상
 
@@ -86,8 +85,7 @@ api-1, api-2가 순차 배포되므로 다운타임 없음. 어느 단계에서�
 
 | 서비스 | 포트 | 리소스 | 역할 |
 |---|---|---|---|
-| api-1 | 127.0.0.1:3001 | 384MB / 0.75 CPU | API (로드밸런싱) |
-| api-2 | 127.0.0.1:3002 | 384MB / 0.75 CPU | API (로드밸런싱) |
+| api-1…api-N | 127.0.0.1:3001… | 384MB / 1.0 CPU each (`x-api` in `docker-compose.yml`) | API (load-balanced) |
 | poller | — | 256MB / 0.5 CPU | 백그라운드 작업 |
 
 ### AI 서비스 연동
@@ -138,8 +136,8 @@ feature branch 생성
 배포 스크립트에 자동 rollback 내장. rolling update 중 health check 실패 시:
 
 1. 배포 전 커밋 해시 저장 (`PREV_COMMIT`)
-2. api-1 또는 api-2 health check 30초간 retry (5초 × 6회)
-3. 실패 시 `git checkout $PREV_COMMIT` → 이전 이미지로 api-1, api-2, poller 전체 복원
+2. Any api replica's health check retries for 30 s (5 s × 6)
+3. On failure: `git checkout $PREV_COMMIT` → every api replica and the poller restored on the previous image
 4. CI는 실패로 표시 (GitHub에서 확인 가능)
 
 ### 긴급 hotfix
