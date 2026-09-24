@@ -179,9 +179,10 @@ export interface MapChipFacetOption {
   /** Resolved per language, like the chip's own label. */
   label: string;
   /**
-   * Present on an `hours` facet's options, `null` on a tag's. Informational:
-   * membership was already decided by the server and rides on each overlay,
-   * and no list opens on a time-dependent default.
+   * Present on an `hours` facet's options, `null` on a tag's. The client uses
+   * it for one thing: opening a `required` facet on the option that is on
+   * now, else the nearest one to come. Membership was already decided by the
+   * server and rides on each overlay.
    */
   window: { startAt: string; endAt: string } | null;
 }
@@ -190,9 +191,9 @@ export interface MapChipFacet {
   id: string;
   label: string;
   /**
-   * `optional`: a checklist of any non-empty subset, opening with every option
-   * checked — "no filter", shown as 전체. `required`: a single choice, opening
-   * on the first option.
+   * `required`: a single choice with no 전체, opening on the option whose
+   * `window` contains now, else the nearest one to come, else the last.
+   * `optional`: a checklist of any non-empty subset, opening on 전체.
    */
   select: "required" | "optional";
   options: MapChipFacetOption[];
