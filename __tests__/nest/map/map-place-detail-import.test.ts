@@ -25,6 +25,7 @@ import {
   isInstagramProfileUrl,
 } from "../../../src/map/map-event-details.data";
 import { getLayerSetConfig } from "../../../src/map/map-layerset.config";
+import { parseMiniAppTarget } from "../../../src/miniapps/miniapp-target";
 import { presentationFor } from "../../../src/map/map-layerset.types";
 
 // scripts/ is plain CommonJS excluded from tsconfig, so this is a require.
@@ -278,6 +279,27 @@ describe("the importer's copies agree with the server", () => {
   ])("%s gives the same verdict on every URL", (_name, copy, source) => {
     for (const url of URLS) {
       expect([url, copy(url)]).toEqual([url, (source as (v: unknown) => boolean)(url)]);
+    }
+  });
+
+  it("parseMiniAppTarget gives the same parse on every value", () => {
+    const TARGETS = [
+      ...URLS,
+      "eskara-2026",
+      "eskara-2026/",
+      "eskara-2026/eskara/wristband",
+      "eskara-2026/eskara/lineup?day=2#top",
+      "eskara-2026//evil.com",
+      "eskara-2026/\\evil.com",
+      "eskara-2026/a b",
+      "eskara-2026/x\n",
+      "Eskara-2026/x",
+      "eskara_2026/x",
+      "/eskara-2026/x",
+      "eskara-2026?x=1",
+    ];
+    for (const value of TARGETS) {
+      expect([value, reader.parseMiniAppTarget(value)]).toEqual([value, parseMiniAppTarget(value)]);
     }
   });
 });

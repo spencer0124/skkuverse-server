@@ -131,13 +131,34 @@ describe("send — validation happens before anything is written", () => {
   });
 
   it("rejects an actionType the app cannot navigate, rather than recording a dead destination", async () => {
-    // 'miniapp' is a real wire value but is deliberately unwired on the device
-    // (skkuverse#34), so accepting it here would put a destination in the feed
-    // that no tap can reach.
+    const result = await service.send("eskara-2026", {
+      ...validDraft,
+      actionType: "content",
+      actionValue: "some prose",
+    });
+    expect("problems" in result).toBe(true);
+    expect(insertSentNotification).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["the bare mini app", "eskara-2026"],
+    ["one of its pages", "eskara-2026/eskara/wristband"],
+  ])("accepts a miniapp target naming %s and forwards it verbatim", async (_l, actionValue) => {
+    await service.send("eskara-2026", { ...validDraft, actionType: "miniapp", actionValue });
+    const payload = postToFcmFunction.mock.calls[0][0];
+    expect(payload.actionType).toBe("miniapp");
+    expect(payload.actionValue).toBe(actionValue);
+  });
+
+  it.each([
+    ["another mini app", "hssc/notice"],
+    ["a URL rather than a target", "https://eskara.miniapp.skkuverse.com/eskara"],
+    ["a path that escapes the origin", "eskara-2026//evil.com"],
+  ])("rejects a miniapp value naming %s", async (_l, actionValue) => {
     const result = await service.send("eskara-2026", {
       ...validDraft,
       actionType: "miniapp",
-      actionValue: "https://x.test/a",
+      actionValue,
     });
     expect("problems" in result).toBe(true);
     expect(insertSentNotification).not.toHaveBeenCalled();
