@@ -69,9 +69,16 @@ describe("deploy.yml — one host at a time, oracle first", () => {
     hostJobs.forEach(([, body], i) => {
       expect(needs(body)).toContain("test");
       if (i > 0) expect(needs(body)).toContain(hostJobs[i - 1]![0]);
-      // A condition like `if: always()` would deploy after a failed host.
-      expect(body).not.toMatch(/^ {4}if:/m);
     });
+  });
+
+  // A condition like `if: always()` would deploy after a failed host, so the
+  // only condition allowed is the on/off switch for the second host — which
+  // keeps the implicit success() and so still stops after a failed oracle.
+  it("oracle is never gated; mnemosyne runs only when MNEMOSYNE_ENABLED is 'true'", () => {
+    const ifs = (body: string) => [...body.matchAll(/^ {4}if: (.*)$/gm)].map((m) => m[1]);
+    expect(ifs(jobs.get("deploy-oracle")!)).toEqual([]);
+    expect(ifs(jobs.get("deploy-mnemosyne")!)).toEqual(["${{ vars.MNEMOSYNE_ENABLED == 'true' }}"]);
   });
 
   it("passes each host its own secrets", () => {

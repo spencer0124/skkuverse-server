@@ -14,6 +14,8 @@ audience: internal
 Accepted — 2026-09-24. Phase A (two hosts) is to be in place before the ESKARA
 festival on 2026-10-01/02; Phase B (N identical hosts) follows it.
 
+Rollout in progress (2026-09-25).
+
 ## Context
 
 The API ran on one host, the OCI VM in Chuncheon. Capacity was not the

@@ -55,8 +55,15 @@ jobs:
       VM_USER: ${{ secrets.ORACLE_VM_USER }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
+  # Switchable: runs only when the repo variable MNEMOSYNE_ENABLED is `true`
+  # (Settings → Secrets and variables → Actions → Variables). Unset or `false`
+  # pauses deploys to this host without a code change; the job then shows as
+  # skipped and the run stays green. A job-level `if` can read `vars` but not
+  # `secrets`, hence a variable. The implicit success() still applies, so a
+  # failed deploy-oracle stops the rollout here as before.
   deploy-mnemosyne:
     needs: [test, deploy-oracle]
+    if: ${{ vars.MNEMOSYNE_ENABLED == 'true' }}
     uses: ./.github/workflows/deploy-host.yml
     with:
       host: mnemosyne
