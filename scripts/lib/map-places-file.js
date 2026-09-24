@@ -186,6 +186,20 @@ function asActions(value, where, errors) {
       errors.push(`${at}.style must be one of [${STYLES.join(", ")}]`);
       return;
     }
+    // A mini-app target is checked here rather than left to the serve-time drop:
+    // a typo'd id would import clean and ship a sheet with the button silently
+    // missing, which nobody would know to look for.
+    if (raw.actionType === "miniapp") {
+      const target = parseMiniAppTarget(raw.actionValue);
+      if (!target) {
+        errors.push(`${at}.actionValue must be a mini-app target: <miniAppId>[/path]`);
+        return;
+      }
+      if (!REGISTERED_MINIAPP_IDS.includes(target.id)) {
+        errors.push(`${at}.actionValue names an unregistered mini app "${target.id}"`);
+        return;
+      }
+    }
     const label = asI18n(raw.label, `${at}.label`, errors);
     if (!label) return;
 
@@ -255,6 +269,30 @@ function isMediaUrl(value) {
 function isAbsoluteHttpsUrl(value) {
   return typeof value === "string" && !WHITESPACE_RE.test(value) && ABSOLUTE_HTTPS_RE.test(value);
 }
+
+/** src/infra/webview-url.ts ROOT_RELATIVE_PATH_RE. */
+const ROOT_RELATIVE_PATH_RE = /^\/(?![/\\])[^\s]*$/;
+/** src/miniapps/miniapp-target.ts TARGET_RE. */
+const MINIAPP_TARGET_RE = /^([a-z0-9-]+)(\/.*)?$/;
+
+/** Copy of src/miniapps/miniapp-target.ts `parseMiniAppTarget` — see there for the grammar. */
+function parseMiniAppTarget(value) {
+  if (typeof value !== "string" || value === "" || WHITESPACE_RE.test(value)) return null;
+  const match = MINIAPP_TARGET_RE.exec(value);
+  if (!match) return null;
+  const [, id, path] = match;
+  if (!id) return null;
+  if (path === undefined) return { id };
+  if (!ROOT_RELATIVE_PATH_RE.test(path)) return null;
+  return { id, path };
+}
+
+/**
+ * The ids the server registers, read from the registry's own file rather than
+ * copied: this is data that changes whenever a mini app is added, and a copy
+ * would go stale silently. The importer runs from a checkout, where src/ exists.
+ */
+const REGISTERED_MINIAPP_IDS = require("../../src/miniapps/index.json").miniApps.map((m) => m.id);
 
 /** The path segments of an https Instagram URL, or null for anything else. */
 function instagramSegments(value) {
@@ -691,4 +729,5 @@ module.exports = {
   isAbsoluteHttpsUrl,
   isInstagramProfileUrl,
   isInstagramPostUrl,
+  parseMiniAppTarget,
 };

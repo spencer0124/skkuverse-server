@@ -204,6 +204,15 @@ at serve time, so the client only ever sees an absolute URL — a relative strin
 opener is the shape of an open redirect. `route` is the exception and stays root-relative, because it
 reaches the app's own navigator rather than an opener.
 
+`miniapp` is the other exception: its value is a **mini-app target**, `<miniAppId>[<root-relative
+path>]` — `eskara-2026` opens that mini app at its registered `startUrl`, and
+`eskara-2026/eskara/wristband` opens that page inside the mini-app shell. It ships exactly as
+authored; the app resolves the path against the `startUrl` it fetched from `GET /miniapps/:id` and
+falls back to `startUrl` if the result leaves that origin. The server drops a target whose id is not
+registered, or whose path could name another host (`//…`, `/\…`). The grammar lives in
+`src/miniapps/miniapp-target.ts` and is shared with the app's `/m/<target>` deep link and with
+mini-app pushes.
+
 A button whose label is blank in every language, or whose value is wrong for its type, is **dropped**
 and the booth is served without it. Ops authored the value; losing a button is recoverable in a way
 that dropping the booth is not.

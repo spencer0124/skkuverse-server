@@ -84,8 +84,11 @@ export interface MarkerAction {
   label: I18nWire;
   actionType: "content" | "route" | "webview" | "external" | "miniapp";
   /**
-   * ALWAYS a complete URL, except for `content` where it is the body itself.
-   * A relative string handed to a URL opener is the shape of an open redirect.
+   * A complete URL for `webview`/`external` (`webview` may be root-relative on
+   * WEBVIEW_ORIGIN), an in-app path for `route`, the body itself for `content`,
+   * and a mini-app target (`<miniAppId>[/path]`, src/miniapps/miniapp-target.ts)
+   * for `miniapp`. A relative string handed to a URL opener is the shape of an
+   * open redirect, which is why each type has its own rule.
    */
   actionValue: string;
   style?: "primary" | "secondary";

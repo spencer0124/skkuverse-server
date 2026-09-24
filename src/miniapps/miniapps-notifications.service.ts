@@ -3,6 +3,7 @@ import { Injectable, type OnModuleInit } from "@nestjs/common";
 import config from "../infra/config";
 import logger from "../infra/logger";
 import { postToFcmFunction } from "../common/fcm-client";
+import { parseMiniAppTarget } from "./miniapp-target";
 import {
   ensureIndexes,
   insertSentNotification,
@@ -32,7 +33,7 @@ export interface SendOutcome {
 }
 
 /** Action types the APP can actually navigate. Anything else falls back on-device. */
-const NAVIGABLE_ACTION_TYPES = new Set(["route", "webview", "external"]);
+const NAVIGABLE_ACTION_TYPES = new Set(["route", "webview", "external", "miniapp"]);
 const MAX_TEXT = 500;
 
 function asText(value: unknown, max = MAX_TEXT): string | null {
@@ -106,10 +107,6 @@ export class MiniAppNotificationsService implements OnModuleInit {
 
     if (actionType !== undefined) {
       if (!NAVIGABLE_ACTION_TYPES.has(actionType)) {
-        // 'miniapp' is deliberately excluded: it is not wired on the device
-        // (its value shape is unsettled — see skkuverse#34) and sending it just
-        // lands on the mini app itself. Rejecting here means the sender finds
-        // out now rather than from a tap that went somewhere unintended.
         problems.push(
           `actionType must be one of [${[...NAVIGABLE_ACTION_TYPES].join(", ")}]`,
         );
@@ -123,7 +120,18 @@ export class MiniAppNotificationsService implements OnModuleInit {
         if (actionType === "route" && !actionValue.startsWith("/")) {
           problems.push("actionValue for route must start with /");
         }
-        if (actionType !== "route" && !actionValue.startsWith("https://")) {
+        if (actionType === "miniapp") {
+          // A mini app's push may open a page of that mini app and nothing else.
+          // Naming another id would let one service's announcement open a
+          // different service under the second one's name and badge.
+          const target = parseMiniAppTarget(actionValue);
+          if (!target) {
+            problems.push("actionValue for miniapp must be a mini-app target: <miniAppId>[/path]");
+          } else if (target.id !== miniAppId) {
+            problems.push(`actionValue for miniapp must target this mini app ("${miniAppId}")`);
+          }
+        }
+        if ((actionType === "webview" || actionType === "external") && !actionValue.startsWith("https://")) {
           problems.push(`actionValue for ${actionType} must be an https:// URL`);
         }
       }

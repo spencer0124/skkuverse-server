@@ -362,6 +362,30 @@ describe("getEventOverlays", () => {
       ).toHaveLength(1);
     });
 
+    it("keeps a mini-app target naming a registered mini app, verbatim", async () => {
+      const kept = await actionsFor({
+        id: "wristband",
+        label,
+        actionType: "miniapp",
+        actionValue: "eskara-2026/eskara/wristband",
+      });
+
+      expect(kept).toHaveLength(1);
+      // Not resolved to a URL: the device resolves the path against the startUrl
+      // it fetched, so the wire carries the target exactly as authored.
+      expect(kept[0]!.actionValue).toBe("eskara-2026/eskara/wristband");
+    });
+
+    it.each([
+      ["an unregistered mini app", "no-such-app/x"],
+      ["a URL instead of a target", "https://eskara.miniapp.skkuverse.com/eskara"],
+      ["a path that names another host", "eskara-2026//evil.example.com"],
+    ])("drops a miniapp action naming %s", async (_l, actionValue) => {
+      expect(
+        await actionsFor({ id: "m", label, actionType: "miniapp", actionValue }),
+      ).toEqual([]);
+    });
+
     it("keeps content prose, which may hold spaces and newlines", async () => {
       const kept = await actionsFor({
         id: "reward",

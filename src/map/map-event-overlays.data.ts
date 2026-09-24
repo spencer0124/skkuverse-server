@@ -1,6 +1,7 @@
 import { hasAnyText } from "../infra/i18n";
 import logger from "../infra/logger";
 import { ROOT_RELATIVE_PATH_RE, toWebviewUrl } from "../infra/webview-url";
+import { isKnownMiniAppTarget } from "../miniapps/miniapp-target";
 import { activeEventConfig } from "./map-active-layerset";
 import { presentationFor } from "./map-layerset.types";
 import type { MapPlaceDoc, PlaceAction } from "./map-places.types";
@@ -128,8 +129,12 @@ function isValidActionValue(action: PlaceAction): boolean {
     case "webview":
       return toWebviewUrl(value) !== null;
     case "external":
-    case "miniapp":
       return isAbsoluteHttpsUrl(value);
+    // A mini-app target, not a URL: `<miniAppId>[/path]`, naming a mini app this
+    // server registers. A typo'd id drops the button rather than shipping one
+    // whose tap the app can only refuse.
+    case "miniapp":
+      return isKnownMiniAppTarget(value);
     default:
       return false;
   }

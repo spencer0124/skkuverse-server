@@ -362,6 +362,29 @@ describe("parsePlacesFile — text and cards", () => {
     ).toMatch(/actionType/);
   });
 
+  it("keeps a mini-app target as authored", () => {
+    const { docs, errors } = parse({}, {
+      actions: [
+        { id: "w", label: "팔찌 안내", actionType: "miniapp", actionValue: "eskara-2026/eskara/wristband" },
+      ],
+    });
+
+    expect(errors).toEqual([]);
+    expect(docs[0].actions[0].actionValue).toBe("eskara-2026/eskara/wristband");
+  });
+
+  it.each([
+    ["an unregistered mini app", "no-such-app/x", /unregistered/],
+    ["a URL rather than a target", "https://eskara.miniapp.skkuverse.com/eskara", /mini-app target/],
+    ["a path that names another host", "eskara-2026//evil.com", /mini-app target/],
+  ])("fails the import on a miniapp value naming %s", (_l, actionValue, message) => {
+    expect(
+      soleError(
+        parse({}, { actions: [{ id: "m", label: "가기", actionType: "miniapp", actionValue }] }),
+      ),
+    ).toMatch(message);
+  });
+
   it("keeps a root-relative webview value for the server to resolve", () => {
     // Deliberately NOT resolved here: the rule depends on WEBVIEW_ORIGIN, which
     // is server config, and an importer holding its own copy would disagree with

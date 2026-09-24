@@ -95,6 +95,8 @@
     "and 개별 (14:00-) split is deliberately NOT two windows: they are contiguous,",
     "so the client would render 12:00-14:00 / 14:00-22:00 with nothing to say which",
     "is which — a window carries no label. The webview explains the split.",
+    "Its 팔찌 배부 안내 button is a `miniapp` action (`eskara-2026/eskara/wristband`),",
+    "so the page opens inside the ESKARA mini app rather than the generic web view.",
     "",
     "The council wrote that a 티켓 부스 already existed here under another name.",
     "It did not — 팔찌/티켓/매표/발권 matched nothing in this repository. What they",
@@ -2492,8 +2494,8 @@
         {
           "id": "wristband",
           "label": "팔찌 배부 안내",
-          "actionType": "external",
-          "actionValue": "https://eskara.miniapp.skkuverse.com/eskara/wristband"
+          "actionType": "miniapp",
+          "actionValue": "eskara-2026/eskara/wristband"
         }
       ],
       "hours": [
@@ -2518,8 +2520,8 @@
         {
           "id": "wristband",
           "label": "팔찌 배부 안내",
-          "actionType": "external",
-          "actionValue": "https://eskara.miniapp.skkuverse.com/eskara/wristband"
+          "actionType": "miniapp",
+          "actionValue": "eskara-2026/eskara/wristband"
         }
       ],
       "hours": [
@@ -2544,8 +2546,8 @@
         {
           "id": "wristband",
           "label": "팔찌 배부 안내",
-          "actionType": "external",
-          "actionValue": "https://eskara.miniapp.skkuverse.com/eskara/wristband"
+          "actionType": "miniapp",
+          "actionValue": "eskara-2026/eskara/wristband"
         }
       ],
       "hours": [
