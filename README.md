@@ -235,7 +235,7 @@ Rate limits: notices (120/min, uid-keyed), everything else general (`RATE_LIMIT_
 - **`api`** (api-1, api-2, … on 3001, 3002, …) — serves HTTP from `bus_cache`. Skips poller startup so replicas can scale horizontally.
 - **`combined`** (default for local) — runs both poller and HTTP in one process.
 
-Behind Nginx with TLS via Cloudflare. Deployed to Oracle Cloud Free Tier VM by `.github/workflows/deploy.yml` on push to `main`. The origin accepts HTTP(S) only from Cloudflare ([docs/how-to/lock-origin-to-cloudflare.md](docs/how-to/lock-origin-to-cloudflare.md)); how production is watched and alerted on: [docs/how-to/monitor-production.md](docs/how-to/monitor-production.md).
+Behind Nginx with TLS via Cloudflare. Deployed on push to `main` by `.github/workflows/deploy.yml`, one origin host at a time (the OCI Free Tier VM first, then the rented Naver host; the per-host steps are `.github/workflows/deploy-host.yml`). Cloudflare Load Balancing spreads traffic across the hosts ([docs/decisions/0009-multi-origin-active-active.md](docs/decisions/0009-multi-origin-active-active.md)); only the host whose `/etc/skkuverse/host.env` says `POLLER_ROLE=active` runs the poller ([docs/how-to/fail-over-poller.md](docs/how-to/fail-over-poller.md)). The origin accepts HTTP(S) only from Cloudflare ([docs/how-to/lock-origin-to-cloudflare.md](docs/how-to/lock-origin-to-cloudflare.md)); how production is watched and alerted on: [docs/how-to/monitor-production.md](docs/how-to/monitor-production.md).
 
 ---
 

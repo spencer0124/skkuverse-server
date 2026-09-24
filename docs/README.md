@@ -47,6 +47,7 @@ audience: internal
 | [migrate-app-to-map-overlays.md](how-to/migrate-app-to-map-overlays.md) | The client half of the overlay change, for `skkuverse-app` — what changed on the wire, the ring winding the SDK needs reversed, and the fallback config that still points at a deleted route |
 | [monitor-production.md](how-to/monitor-production.md) | How production is watched (UptimeRobot outside-in, a per-host Healthchecks.io heartbeat inside-out), what each alert means, adding a host, and testing the alert path |
 | [lock-origin-to-cloudflare.md](how-to/lock-origin-to-cloudflare.md) | Closing an origin host to everything but Cloudflare — the nginx catch-all server, the host firewall and the shared Cloudflare IP lists; apply, verify, roll back, refresh when Cloudflare's ranges change, reach a locked origin, and onboard another origin host |
+| [fail-over-poller.md](how-to/fail-over-poller.md) | Moving the poller between origin hosts by hand — the `/etc/skkuverse/host.env` role file, the start-before-stop order, checking that bus data is fresh, and moving it back |
 
 ### reference (계약·스펙)
 
@@ -75,6 +76,7 @@ audience: internal
 | [0006-building-search-relevance-ranking.md](decisions/0006-building-search-relevance-ranking.md) | accepted |
 | [0007-notice-ordering-key.md](decisions/0007-notice-ordering-key.md) | accepted |
 | [0008-dispatch-age-gate-on-publication-date.md](decisions/0008-dispatch-age-gate-on-publication-date.md) | accepted |
+| [0009-multi-origin-active-active.md](decisions/0009-multi-origin-active-active.md) | accepted |
 
 ### internal (포스트모템)
 
