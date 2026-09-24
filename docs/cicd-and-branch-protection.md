@@ -3,7 +3,7 @@ title: CI/CD 및 브랜치 보호 전략 (미이관)
 type: reference
 status: deprecated
 owner: zoyoong124@gmail.com
-last-updated: 2026-08-16
+last-updated: 2026-09-24
 audience: internal
 ---
 
@@ -43,7 +43,9 @@ main push
   └→ deploy job (test 통과 후, SSH → OCI)
        ├→ PREV_COMMIT 저장
        ├→ git pull origin main          ← VM 워킹트리 dirty 시 abort
-       ├→ Nginx 설정 업데이트            ← (api.skkuverse.com만 copy + symlink)
+       ├→ Nginx config                  ← real-IP snippet, then api.skkuverse.com + 00-default-catchall;
+       │    └→ `nginx -t` fails → previous config restored, git revert → exit 1
+       ├→ Heartbeat cron + firewall unit ← installed only; the firewall is enabled by hand
        ├→ docker compose build
        ├→ Pre-deploy config validation  ← lib/config.js dry-load on the new image (2초)
        │    └→ 실패 시 git revert → exit 1 (running containers 안 건드림, 0 downtime)
@@ -78,7 +80,7 @@ Replicas roll one by one, so there is no downtime. Any failure rolls everything 
 | 유저 | ubuntu |
 | 경로 | `/home/ubuntu/skkumap-server-express` *(legacy folder name retained; matches `DEPLOY_PATH` secret. 변경 시 secret + 모든 컨테이너 재빌드 필요해 의도적으로 유지.)* |
 | 활성 도메인 | `api.skkuverse.com` (Cloudflare → Nginx → Docker) |
-| Legacy 도메인 | `api.skkuuniverse.com` — **폐기 진행 중.** vhost 파일과 이를 복사하던 배포 단계는 레포에서 제거됨. 다만 서버의 `sites-enabled` symlink는 과거에 수동으로 걸린 것이라 CI가 만들지도 지우지도 않으며, **지금도 살아서 서빙 중이다.** 실제 종료는 서버에서 symlink + `sites-available` 파일을 수동으로 지워야 한다 |
+| Legacy domain | `api.skkuuniverse.com` — **removed 2026-09-24.** Its Cloudflare DNS records (`api`, `ota` in the `skkuuniverse.com` zone) are deleted and the VM site was removed by hand; the zone and its `webview` record stay because shipped app binaries use them. Requests for any host name nginx does not serve now land on the catch-all server (`infra/nginx/00-default-catchall`) and get no response. Runbook: [how-to/lock-origin-to-cloudflare.md](how-to/lock-origin-to-cloudflare.md) |
 | Docker 네트워크 | `skkuverse` (external, AI 서비스 공유) |
 
 ### 서비스 구성

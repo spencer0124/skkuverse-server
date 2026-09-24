@@ -50,10 +50,48 @@ jobs:
             PREV_COMMIT=$(git rev-parse HEAD)
             git pull origin main
 
-            # Update Nginx config
-            sudo cp infra/nginx/api.skkuverse.com /etc/nginx/sites-available/
-            sudo ln -sf /etc/nginx/sites-available/api.skkuverse.com /etc/nginx/sites-enabled/
-            sudo nginx -t && sudo systemctl reload nginx
+            # --- Nginx config ---
+            # Snapshot what is there now: if the new config fails `nginx -t`,
+            # it is put back, so a later reload (or a reboot) never meets a
+            # config nginx cannot load.
+            NGINX_BAK=$(mktemp -d)
+            sudo cp -a /etc/nginx/sites-available /etc/nginx/sites-enabled /etc/nginx/snippets "$NGINX_BAK/"
+
+            # The real-IP snippet goes in BEFORE the site that includes it.
+            sudo install -m 0644 infra/nginx/cloudflare-realip.conf /etc/nginx/snippets/skkuverse-cloudflare-realip.conf
+
+            # The catch-all server needs a certificate of its own (see
+            # infra/nginx/00-default-catchall). Generated once, self-signed for
+            # CN=invalid; nobody is meant to trust it, so it never needs renewal.
+            if ! sudo test -f /etc/ssl/skkuverse/catchall.pem; then
+              sudo install -d -m 0755 /etc/ssl/skkuverse
+              sudo openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj /CN=invalid \
+                -keyout /etc/ssl/skkuverse/catchall-key.pem -out /etc/ssl/skkuverse/catchall.pem
+              sudo chmod 0600 /etc/ssl/skkuverse/catchall-key.pem
+            fi
+
+            for site in api.skkuverse.com 00-default-catchall; do
+              sudo install -m 0644 "infra/nginx/$site" "/etc/nginx/sites-available/$site"
+              sudo ln -sf "/etc/nginx/sites-available/$site" /etc/nginx/sites-enabled/
+            done
+
+            if ! sudo nginx -t; then
+              echo "ERROR: nginx rejected the new config — restoring the previous one and aborting."
+              for d in sites-available sites-enabled snippets; do
+                sudo rm -rf "/etc/nginx/$d"
+                sudo cp -a "$NGINX_BAK/$d" /etc/nginx/
+              done
+              git checkout "$PREV_COMMIT"
+              exit 1
+            fi
+            sudo systemctl reload nginx
+            sudo rm -rf "$NGINX_BAK"
+
+            # Firewall unit (infra/firewall/). Installed only: enabling it,
+            # which locks 80/443 to Cloudflare, is a manual step —
+            # docs/how-to/lock-origin-to-cloudflare.md.
+            sudo install -m 0644 infra/firewall/skkuverse-firewall.service /etc/systemd/system/skkuverse-firewall.service
+            sudo systemctl daemon-reload
 
             # Heartbeat cron (infra/monitoring/). It runs the script from this
             # checkout. On a host without /etc/skkuverse/heartbeat.env it exits

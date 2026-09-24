@@ -1,0 +1,27 @@
+# /etc/systemd/system/skkuverse-firewall.service — installed by
+# .github/workflows/deploy.yml from infra/firewall/skkuverse-firewall.service.
+# Edit the repo copy; the next deploy overwrites this one.
+#
+# Re-applies infra/firewall/cloudflare-only.sh at boot, after
+# netfilter-persistent has loaded /etc/iptables/rules.v4 (which still carries
+# the open 80/443 rules — it is never rewritten). The deploy installs this
+# file but never enables or starts it: turning the lock on is a manual step,
+# docs/how-to/lock-origin-to-cloudflare.md.
+#
+# Fails open by design: if the script fails (list missing, INPUT not shaped as
+# expected), the open rules from rules.v4 stay and the site keeps serving.
+#
+# Re-apply after a list change: `sudo systemctl restart skkuverse-firewall`.
+# Stopping the unit does NOT reopen the ports; `cloudflare-only.sh --undo` does.
+# The script path must match the deploy's DEPLOY_PATH.
+[Unit]
+Description=Accept HTTP(S) only from Cloudflare (skkuverse)
+After=netfilter-persistent.service local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/home/ubuntu/skkumap-server-express/infra/firewall/cloudflare-only.sh
+
+[Install]
+WantedBy=multi-user.target

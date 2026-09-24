@@ -35,6 +35,7 @@ const sharedGlobals = {
   // Node 18+ globals
   fetch: "readonly",
   AbortController: "readonly",
+  AbortSignal: "readonly",
 };
 
 const jestGlobals = {
