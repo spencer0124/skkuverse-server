@@ -384,10 +384,13 @@ async function loadEventOverlays(): Promise<{ overlays: MapOverlay[] }> {
       // The PLACE's own id. Two booths sharing a plot are two taps — they were
       // one, back when the plot was the addressable thing. `null` where the
       // category is authored inert, which is how a backdrop is drawn without
-      // becoming a tap target.
-      tap: presentation.interactive
-        ? { kind: "event", placeId: doc._id }
-        : null,
+      // becoming a tap target. A `tapChip` category runs that chip instead of
+      // opening a place.
+      tap: !presentation.interactive
+        ? null
+        : presentation.tapChip
+          ? { kind: "chip", chipId: presentation.tapChip }
+          : { kind: "event", placeId: doc._id },
     };
 
     // Points and lines are passed through BY REFERENCE, exactly as stored, and

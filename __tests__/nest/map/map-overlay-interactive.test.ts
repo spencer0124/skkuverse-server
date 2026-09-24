@@ -48,16 +48,17 @@ const RING: [number, number][] = [
   [126.9714, 37.2944],
 ];
 
-/** Two categories on ONE layer: one tappable, one a backdrop. */
+/** Three categories on ONE layer: one tappable, one a backdrop, one that runs a chip. */
 const CONFIG = {
   layerSetId: "test-set",
   facets: [],
   itemDefaults: {
     byCategory: {
-      zone: { layerId: "test_zones", pinPriority: 0, interactive: true },
-      "zone-bg": { layerId: "test_zones", pinPriority: 0, interactive: false },
+      zone: { layerId: "test_zones", pinPriority: 0, interactive: true, tapChip: null },
+      "zone-bg": { layerId: "test_zones", pinPriority: 0, interactive: false, tapChip: null },
+      "zone-chip": { layerId: "test_zones", pinPriority: 0, interactive: true, tapChip: "view_zones" },
     },
-    fallback: { layerId: "test_zones", pinPriority: 0, interactive: true },
+    fallback: { layerId: "test_zones", pinPriority: 0, interactive: true, tapChip: null },
   },
 } as unknown as NonNullable<Awaited<ReturnType<typeof activeEventConfig>>>;
 
@@ -85,7 +86,11 @@ beforeEach(() => {
     find: jest.fn().mockReturnValue({
       toArray: jest
         .fn()
-        .mockResolvedValue([place("z-tappable", "zone"), place("z-backdrop", "zone-bg")]),
+        .mockResolvedValue([
+          place("z-tappable", "zone"),
+          place("z-backdrop", "zone-bg"),
+          place("z-chip", "zone-chip"),
+        ]),
     }),
   } as never);
 });
@@ -121,7 +126,27 @@ describe("interactive", () => {
   it("lets one layer hold both, which is why the flag is per category", async () => {
     const { overlays } = await getEventOverlays();
 
-    expect(overlays.map((o) => o.layerId)).toEqual(["test_zones", "test_zones"]);
-    expect(overlays.map((o) => o.tap === null)).toEqual([false, true]);
+    expect(overlays.map((o) => o.layerId)).toEqual(["test_zones", "test_zones", "test_zones"]);
+    expect(overlays.map((o) => o.tap === null)).toEqual([false, true, false]);
+  });
+});
+
+describe("tapChip", () => {
+  it("makes a tap run the named chip instead of opening the place", async () => {
+    const { overlays } = await getEventOverlays();
+    const zone = overlays.find((o) => o.id === "z-chip")!;
+
+    // No placeId: the 푸드트럭 구역 is a way into a list, not a place with a sheet.
+    expect(zone.tap).toEqual({ kind: "chip", chipId: "view_zones" });
+    expect(zone.kind).toBe("polygon");
+  });
+
+  it("leaves the categories without one on the ordinary event tap", async () => {
+    const { overlays } = await getEventOverlays();
+
+    expect(overlays.find((o) => o.id === "z-tappable")!.tap).toEqual({
+      kind: "event",
+      placeId: "z-tappable",
+    });
   });
 });

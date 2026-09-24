@@ -46,10 +46,18 @@ import type {
  * For an event marker `placeId` is the PLACE's own id, so two booths sharing one
  * plot are two taps. They used to be two sessions collapsing onto one plot id,
  * which is what made a tap ambiguous and needed a stack to resolve.
+ *
+ * `chip` opens no place. The tap runs the named chip exactly as the chip row
+ * would — its layers, its camera, its list — for a shape that stands for a
+ * whole list rather than one place: the 푸드트럭 구역, whose trucks have no
+ * spots of their own. It comes from the category's `tapChip`
+ * (`map-layerset.types.ts`). A client that predates the kind parses it as
+ * `null` and draws the overlay inert, so shipping it breaks no installed app.
  */
 export type MarkerTap =
   | { kind: "skku_building"; placeId: string }
-  | { kind: "event"; placeId: string };
+  | { kind: "event"; placeId: string }
+  | { kind: "chip"; chipId: string };
 
 /**
  * A string in every language the producer holds.

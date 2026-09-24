@@ -216,12 +216,17 @@ describe("parsePlacesFile — the committed sheet", () => {
       presentationFor(CONFIG, "food").pinPriority,
     );
 
-    // The zone is a backdrop: a tappable ring would be an 18th list row.
+    // The ring and the pin are a way into the trucks' list, not places: a tap on
+    // either runs the 푸드트럭 chip, and neither carries a sheet of its own.
     expect(zone.location.type).toBe("Polygon");
-    expect(presentationFor(CONFIG, zone.category).interactive).toBe(false);
-    expect(presentationFor(CONFIG, zone.category).layerId).toBe(
-      presentationFor(CONFIG, "food").layerId,
-    );
+    const foodChip = CONFIG.chips.find((c) => c.layerIds.includes("eskara26_food"))!;
+    for (const head of [zone, pin]) {
+      const presentation = presentationFor(CONFIG, head.category);
+      expect(presentation.layerId).toBe(presentationFor(CONFIG, "food").layerId);
+      expect(presentation.interactive).toBe(true);
+      expect(presentation.tapChip).toBe(foodChip.id);
+      expect(head.detail ?? null).toBeNull();
+    }
 
     // Ray casting on the zone's outer ring.
     const [x, y] = pin.location.coordinates as [number, number];

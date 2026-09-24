@@ -281,6 +281,20 @@ export interface ItemPresentation {
    * backdrop into a button.
    */
   interactive: boolean;
+  /**
+   * A chip id, or `null`. When set, a tap on a place in this category runs that
+   * chip — its layers, camera and list — instead of opening the place's sheet,
+   * and the wire says `tap: { kind: "chip", chipId }`.
+   *
+   * For a shape that stands for a list rather than being a place: the 푸드트럭
+   * 구역 and the pin that names it, whose 17 trucks have no spots of their own.
+   * Such a place has no sheet, so the details route serves none for it.
+   *
+   * Per CATEGORY, like `interactive`, and validated against the authored chips
+   * at load. Setting it on an inert category is refused: a tap cannot both do
+   * nothing and run a chip.
+   */
+  tapChip: string | null;
 }
 
 export interface ItemDefaults {
