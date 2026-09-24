@@ -5,7 +5,7 @@ import logger from "../infra/logger";
 import { isMediaUrl } from "../infra/media-url";
 import type { I18n } from "../infra/types";
 import { activeEventConfig } from "./map-active-layerset";
-import { EVENT_CACHE_TTL_MS, EVENT_STALE_IF_ERROR_MS } from "./map-event-cache";
+import { EVENT_CACHE_TTL_MS, EVENT_STALE_WINDOW_MS } from "./map-event-cache";
 import { isAbsoluteHttpsUrl, isRenderable, toWire } from "./map-event-overlays.data";
 import { presentationFor } from "./map-layerset.types";
 import type { I18nWire } from "./map-overlay.types";
@@ -315,7 +315,7 @@ async function loadEventPlaceDetails(): Promise<EventPlaceDetails> {
 const detailsCache = createCachedLoader({
   name: "event place details",
   ttlMs: EVENT_CACHE_TTL_MS,
-  staleIfErrorMs: EVENT_STALE_IF_ERROR_MS,
+  staleWindowMs: EVENT_STALE_WINDOW_MS,
   load: loadEventPlaceDetails,
 });
 

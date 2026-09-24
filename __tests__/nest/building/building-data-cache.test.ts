@@ -106,6 +106,8 @@ describe("getAllCampusShapes", () => {
     toArrayFor.campus_shapes!.mockRejectedValue(new Error("mongo down"));
     clock += FIVE_MIN;
     await expect(getAllCampusShapes()).resolves.toEqual([SHAPE]);
+    // Answered from the old shapes at once; the failed reload logs behind it.
+    await new Promise((resolve) => setImmediate(resolve));
     expect(mockLogger.warn).toHaveBeenCalledTimes(1);
   });
 

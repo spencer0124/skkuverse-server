@@ -1,6 +1,6 @@
 import { createCachedLoader } from "../common/cache/cached-loader";
 import logger from "../infra/logger";
-import { EVENT_CACHE_TTL_MS, EVENT_STALE_IF_ERROR_MS } from "./map-event-cache";
+import { EVENT_CACHE_TTL_MS, EVENT_STALE_WINDOW_MS } from "./map-event-cache";
 import { getLayerSetConfig } from "./map-layerset.config";
 import { findActiveActivation } from "./map-places.data";
 import type { EventMapConfig } from "./map-layerset.types";
@@ -35,7 +35,7 @@ const reported = new Set<string>();
 const activationCache = createCachedLoader({
   name: "event activation",
   ttlMs: EVENT_CACHE_TTL_MS,
-  staleIfErrorMs: EVENT_STALE_IF_ERROR_MS,
+  staleWindowMs: EVENT_STALE_WINDOW_MS,
   load: () => findActiveActivation(new Date()),
 });
 

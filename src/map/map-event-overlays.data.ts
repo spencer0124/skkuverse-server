@@ -4,7 +4,7 @@ import logger from "../infra/logger";
 import { ROOT_RELATIVE_PATH_RE, toWebviewUrl } from "../infra/webview-url";
 import { isKnownMiniAppTarget } from "../miniapps/miniapp-target";
 import { activeEventConfig } from "./map-active-layerset";
-import { EVENT_CACHE_TTL_MS, EVENT_STALE_IF_ERROR_MS } from "./map-event-cache";
+import { EVENT_CACHE_TTL_MS, EVENT_STALE_WINDOW_MS } from "./map-event-cache";
 import { presentationFor } from "./map-layerset.types";
 import type { MapPlaceDoc, PlaceAction } from "./map-places.types";
 import { getPlacesCollection } from "./map-places.data";
@@ -343,7 +343,7 @@ async function loadEventOverlays(): Promise<{ overlays: MapOverlay[] }> {
 const overlaysCache = createCachedLoader({
   name: "event overlays",
   ttlMs: EVENT_CACHE_TTL_MS,
-  staleIfErrorMs: EVENT_STALE_IF_ERROR_MS,
+  staleWindowMs: EVENT_STALE_WINDOW_MS,
   load: loadEventOverlays,
 });
 

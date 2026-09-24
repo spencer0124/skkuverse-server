@@ -27,7 +27,7 @@ import { findActiveActivation } from "../../../src/map/map-places.data";
 import { clearActiveEventCache } from "../../../src/map/map-active-layerset";
 import {
   EVENT_CACHE_TTL_MS,
-  EVENT_STALE_IF_ERROR_MS,
+  EVENT_STALE_WINDOW_MS,
 } from "../../../src/map/map-event-cache";
 
 // The event read path is cached per process; each test starts cold.
@@ -136,6 +136,8 @@ describe("activeEventConfig — origin cache", () => {
     mockFindActiveActivation.mockRejectedValue(new Error("pool wait timed out"));
     clock += EVENT_CACHE_TTL_MS;
     const config = await activeEventConfig(NOW);
+    // The expired activation answers at once; the failed reload logs behind it.
+    await new Promise((resolve) => setImmediate(resolve));
 
     expect(config?.layerSetId).toBe("eskara-2026");
     expect(mockLogger.warn).toHaveBeenCalledTimes(1);
@@ -147,7 +149,18 @@ describe("activeEventConfig — origin cache", () => {
     await activeEventConfig(NOW);
 
     mockFindActiveActivation.mockRejectedValue(new Error("down"));
-    clock += EVENT_CACHE_TTL_MS + EVENT_STALE_IF_ERROR_MS;
+    clock += EVENT_CACHE_TTL_MS + EVENT_STALE_WINDOW_MS;
     await expect(activeEventConfig(NOW)).rejects.toThrow("down");
+  });
+
+  it("never holds a request on a slow re-read inside the window", async () => {
+    mockFindActiveActivation.mockResolvedValueOnce(activation("eskara-2026"));
+    await activeEventConfig(NOW);
+
+    // A database that never answers: the old activation still answers now.
+    mockFindActiveActivation.mockReturnValue(new Promise(() => undefined));
+    clock += EVENT_CACHE_TTL_MS;
+    const config = await activeEventConfig(NOW);
+    expect(config?.layerSetId).toBe("eskara-2026");
   });
 });

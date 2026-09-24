@@ -18,6 +18,9 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+/** Lets a reload nobody awaits run to completion. */
+const settle = () => new Promise((resolve) => setImmediate(resolve));
+
 /** A load whose resolution the test controls. */
 function deferred<T>() {
   let resolve!: (v: T) => void;
@@ -70,7 +73,7 @@ describe("createCachedLoader", () => {
       name: "t",
       ttlMs: 5_000,
       load,
-      staleIfErrorMs: 60_000,
+      staleWindowMs: 60_000,
     });
 
     await expect(cache.get()).rejects.toThrow("down");
@@ -79,7 +82,7 @@ describe("createCachedLoader", () => {
     expect(load).toHaveBeenCalledTimes(2);
   });
 
-  it("without staleIfErrorMs, a failed reload propagates even with an old value", async () => {
+  it("without staleWindowMs, a failed reload propagates even with an old value", async () => {
     const load = jest
       .fn()
       .mockResolvedValueOnce("a")
@@ -101,23 +104,52 @@ describe("createCachedLoader", () => {
       name: "places",
       ttlMs: 5_000,
       load,
-      staleIfErrorMs: 60_000,
+      staleWindowMs: 60_000,
     });
 
     await cache.get();
     now += 5_000;
     await expect(cache.get()).resolves.toBe("a");
+    await settle();
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn.mock.calls[0]![1]).toMatch(/\[cache\] places: reload failed/);
 
     // Inside the back-off window: no new load, no new warning.
     now += 4_999;
     await expect(cache.get()).resolves.toBe("a");
+    await settle();
     expect(load).toHaveBeenCalledTimes(2);
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
-  it("stops serving stale past ttlMs + staleIfErrorMs", async () => {
+  it("answers from an expired value at once, reloading behind it", async () => {
+    const slow = deferred<string>();
+    const load = jest
+      .fn()
+      .mockResolvedValueOnce("a")
+      .mockImplementationOnce(() => slow.promise);
+    const cache = createCachedLoader({
+      name: "t",
+      ttlMs: 5_000,
+      load,
+      staleWindowMs: 60_000,
+    });
+
+    await cache.get();
+    now += 5_000;
+    // The reload is still pending, yet every caller is answered right away —
+    // a slow or unreachable database never holds a request inside the window.
+    await expect(cache.get()).resolves.toBe("a");
+    await expect(cache.get()).resolves.toBe("a");
+    expect(load).toHaveBeenCalledTimes(2);
+
+    slow.resolve("b");
+    await settle();
+    await expect(cache.get()).resolves.toBe("b");
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops serving stale past ttlMs + staleWindowMs", async () => {
     const load = jest
       .fn()
       .mockResolvedValueOnce("a")
@@ -126,7 +158,7 @@ describe("createCachedLoader", () => {
       name: "t",
       ttlMs: 5_000,
       load,
-      staleIfErrorMs: 60_000,
+      staleWindowMs: 60_000,
     });
 
     await cache.get();
@@ -143,12 +175,13 @@ describe("createCachedLoader", () => {
       name: "t",
       ttlMs: 5_000,
       load,
-      staleIfErrorMs: 60_000,
+      staleWindowMs: 60_000,
     });
 
     await cache.get();
     now += 63_000; // stale, 2 s left on the bound
     await expect(cache.get()).resolves.toBe("a");
+    await settle();
     now += 2_000; // back-off would run to +5 s, but the bound ends here
     await expect(cache.get()).rejects.toThrow("down");
   });
@@ -190,7 +223,7 @@ describe("createCachedLoader", () => {
       createCachedLoader({ name: "t", ttlMs: undefined as unknown as number, load }),
     ).toThrow(/ttlMs must be > 0/);
     expect(() =>
-      createCachedLoader({ name: "t", ttlMs: 1, load, staleIfErrorMs: -1 }),
-    ).toThrow(/staleIfErrorMs must be >= 0/);
+      createCachedLoader({ name: "t", ttlMs: 1, load, staleWindowMs: -1 }),
+    ).toThrow(/staleWindowMs must be >= 0/);
   });
 });

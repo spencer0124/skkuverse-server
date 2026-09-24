@@ -267,7 +267,7 @@ async function getConnectionsForBuilding(
 const campusShapesCache = createCachedLoader({
   name: "campus shapes",
   ttlMs: CACHE_TTL_MS,
-  staleIfErrorMs: 60 * 60 * 1000,
+  staleWindowMs: 60 * 60 * 1000,
   load: () =>
     getCampusShapesCollection()
       .find({}, { maxTimeMS: HOT_READ_MAX_TIME_MS })

@@ -329,8 +329,8 @@ is the only thing standing between "we meant to leave it up" and "nobody remembe
 **This is why the activation stayed in Mongo.** `close` is the kill switch for a rain cancellation or
 anything else going wrong, and it takes effect without a deploy. Each api replica caches the
 activation, the overlays and the details for a few seconds (`EVENT_CACHE_TTL_MS` in
-`src/map/map-event-cache.ts`), so `/map/config` turns over within one TTL and the overlay routes
-within two. An `activeUntil` passing is exact — a cached activation is re-checked against the clock
+`src/map/map-event-cache.ts`), so `/map/config` turns over about one TTL later and the overlay
+routes about two. An `activeUntil` passing is exact — a cached activation is re-checked against the clock
 on every request. On top of that, `/map/overlays/event` is `public, max-age=60`, so a booth already
 fetched can linger on a device for up to a minute. **Rehearse before the festival**, not during one.
 
