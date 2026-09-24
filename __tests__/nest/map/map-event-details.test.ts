@@ -26,6 +26,17 @@ import {
 import { MEDIA_ORIGIN } from "../../../src/infra/origins";
 import { getEventPlaceDetails } from "../../../src/map/map-event-details.data";
 import { getEventOverlays } from "../../../src/map/map-event-overlays.data";
+import { clearActiveEventCache } from "../../../src/map/map-active-layerset";
+import { clearEventOverlaysCache } from "../../../src/map/map-event-overlays.data";
+import { clearEventDetailsCache } from "../../../src/map/map-event-details.data";
+import { HOT_READ_MAX_TIME_MS } from "../../../src/infra/db";
+
+// The event read path is cached per process; each test starts cold.
+beforeEach(() => {
+  clearActiveEventCache();
+  clearEventOverlaysCache();
+  clearEventDetailsCache();
+});
 
 // scripts/ is plain CommonJS excluded from tsconfig, so this is a require.
 const { parsePlacesFile } = require("../../../scripts/lib/map-places-file");
@@ -92,6 +103,12 @@ describe("getEventPlaceDetails", () => {
     } as Awaited<ReturnType<typeof findActiveActivation>>);
   });
 
+  it("reads once for any number of concurrent requests", async () => {
+    const find = arrange([]);
+    await Promise.all([getEventPlaceDetails(), getEventPlaceDetails(), getEventPlaceDetails()]);
+    expect(find).toHaveBeenCalledTimes(1);
+  });
+
   it("returns nothing, and reads nothing, when no festival is live", async () => {
     mockFindActiveActivation.mockResolvedValue(null);
     await expect(getEventPlaceDetails()).resolves.toEqual({ details: {} });
@@ -103,7 +120,10 @@ describe("getEventPlaceDetails", () => {
     await getEventPlaceDetails();
     // `$ne: null` also excludes a document with no `detail` key at all — one
     // written before the field existed.
-    expect(find).toHaveBeenCalledWith({ layerSetId: "eskara-2026", detail: { $ne: null } });
+    expect(find).toHaveBeenCalledWith(
+      { layerSetId: "eskara-2026", detail: { $ne: null } },
+      { maxTimeMS: HOT_READ_MAX_TIME_MS },
+    );
   });
 
   it("projects a detail onto the app's PlaceDetail, keyed by the tap id", async () => {

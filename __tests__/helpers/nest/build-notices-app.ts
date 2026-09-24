@@ -12,7 +12,7 @@
  *     → ResponseInterceptor (global) + HttpExceptionFilter (global)
  *
  * Imports NoticesModule + SchedulingModule (PollerRegistryService — the @Global
- * dep NoticesDispatchPollerService injects) but NOT DatabaseModule. The real
+ * dep NoticesDispatchPollerService injects). The real
  * NoticesDataService.onModuleInit calls ensureNoticeIndexes() → lib/db, and the
  * dispatcher hits lib/db, so callers override those services with stubs to keep
  * init DB-free. ROLE=api during init prevents the dispatch-sweep poller from

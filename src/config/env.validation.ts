@@ -58,8 +58,6 @@ export function findMissingRequired(): string[] {
     ["api.seoulBusServiceKey", process.env.SEOUL_BUS_SERVICE_KEY, "SEOUL_BUS_SERVICE_KEY"],
     ["api.stationHyehwa", process.env.API_STATION_HEWA, "API_STATION_HEWA"],
     ["naver.styleId", process.env.NAVER_MAP_STYLE_ID, "NAVER_MAP_STYLE_ID"],
-    ["naver.apiKeyId", process.env.NAVER_API_KEY_ID, "NAVER_API_KEY_ID"],
-    ["naver.apiKey", process.env.NAVER_API_KEY, "NAVER_API_KEY"],
     ["building.dbName", devDbName(process.env.MONGO_BUILDING_DB_NAME), "MONGO_BUILDING_DB_NAME"],
     ["ad.dbName", devDbName(process.env.MONGO_AD_DB_NAME), "MONGO_AD_DB_NAME"],
     ["notices.dbName", devDbName(process.env.MONGO_NOTICES_DB_NAME), "MONGO_NOTICES_DB_NAME"],

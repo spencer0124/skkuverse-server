@@ -132,8 +132,9 @@ export interface ActivationDoc {
   activeFrom: Date | null; // null = unbounded
   activeUntil: Date | null;
   /**
-   * One-field kill switch. `false` takes the event map down immediately — the
-   * layers leave `/map/config` and `/map/overlays/event` returns nothing.
+   * One-field kill switch. `false` takes the event map down within the origin
+   * cache TTL (`map-event-cache.ts`) — the layers leave `/map/config` and
+   * `/map/overlays/event` returns nothing.
    *
    * This document is the whole reason the activation tier survived the snapshot
    * deletion. The window could have moved into the config file, which would have

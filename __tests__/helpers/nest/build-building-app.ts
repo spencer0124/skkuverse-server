@@ -11,7 +11,7 @@
  *     → HttpExceptionFilter (global)
  *
  * Imports BuildingModule + a SchedulingModule (PollerRegistryService — the
- * @Global dep BuildingSyncService injects) but NOT DatabaseModule. The real
+ * @Global dep BuildingSyncService injects). The real
  * BuildingService.onModuleInit calls ensureIndexes() → lib/db.getClient(), so
  * callers override BuildingService with a stub to keep init DB-free. ROLE=api
  * during init prevents the building-sync poller from firing.

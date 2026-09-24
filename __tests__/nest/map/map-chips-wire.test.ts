@@ -28,6 +28,16 @@ import { findActiveActivation } from "../../../src/map/map-places.data";
 import { BuildingService } from "../../../src/building/building.service";
 import { BASE_CHIPS } from "../../../src/map/map-chips.data";
 import { buildMapApp } from "../../helpers/nest/build-map-app";
+import { clearActiveEventCache } from "../../../src/map/map-active-layerset";
+import { clearEventOverlaysCache } from "../../../src/map/map-event-overlays.data";
+import { clearEventDetailsCache } from "../../../src/map/map-event-details.data";
+
+// The event read path is cached per process; each test starts cold.
+beforeEach(() => {
+  clearActiveEventCache();
+  clearEventOverlaysCache();
+  clearEventDetailsCache();
+});
 
 const mockFindActiveActivation = findActiveActivation as jest.MockedFunction<
   typeof findActiveActivation

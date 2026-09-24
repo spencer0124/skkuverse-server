@@ -10,7 +10,7 @@
  *
  * UiModule has no pollers and no DB providers (UiService delegates to the pure
  * features/ui/* functions, which read static config/i18n), so no SchedulingModule
- * or DatabaseModule import is needed — nothing async touches a real resource.
+ * import is needed — nothing async touches a real resource.
  * trust proxy is set so byIp can read req.ip.
  */
 import { Module } from "@nestjs/common";

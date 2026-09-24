@@ -19,8 +19,6 @@ const defaults: Record<string, string> = {
   MONGO_EVENTMAP_DB_NAME: "eventmap",
   MONGO_MINIAPPS_DB_NAME: "miniapps",
   NOTICES_SERVICE_START_DATE: "2026-03-09",
-  NAVER_API_KEY_ID: "test-naver-id",
-  NAVER_API_KEY: "test-naver-key",
   NAVER_MAP_STYLE_ID: "test-naver-style",
   API_HSSC_NEW_PROD: "http://test-hssc",
   // Shape-validated by jongro.registry.validateServiceKey: matches

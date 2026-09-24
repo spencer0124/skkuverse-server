@@ -36,6 +36,17 @@ import type { EventMapConfig } from "../../../src/map/map-layerset.types";
 import { BASE_CHIPS } from "../../../src/map/map-chips.data";
 import { EVENT_LAYER_STYLE, EVENT_SHAPE_STYLE } from "../../../src/map/map-layers.data";
 import { MapService } from "../../../src/map/map.service";
+import { clearActiveEventCache } from "../../../src/map/map-active-layerset";
+import { EVENT_CACHE_TTL_MS } from "../../../src/map/map-event-cache";
+import { clearEventOverlaysCache } from "../../../src/map/map-event-overlays.data";
+import { clearEventDetailsCache } from "../../../src/map/map-event-details.data";
+
+// The event read path is cached per process; each test starts cold.
+beforeEach(() => {
+  clearActiveEventCache();
+  clearEventOverlaysCache();
+  clearEventDetailsCache();
+});
 
 /** 건물번호 + 건물이름. The bus polyline layers are commented out upstream. */
 // 건물번호, 건물이름, and the inert `campus_geometry` layer that exists so
@@ -190,6 +201,29 @@ describe("MapService", () => {
     expect(ko.chips.map((c) => c.id)).toEqual(BASE_CHIPS.map((c) => c.id));
   });
 
+  it("getMapConfig keeps the festival through a database blip after a good read", async () => {
+    // The app caches a festival-less /map/config for minutes, so dropping the
+    // event layers on one failed read would hide the festival long after the
+    // database recovered. The cached activation covers the gap instead.
+    let clock = Date.now();
+    const spy = jest.spyOn(Date, "now").mockImplementation(() => clock);
+    try {
+      mockFindActiveActivation.mockResolvedValue({
+        _id: "eskara-2026",
+      } as Awaited<ReturnType<typeof findActiveActivation>>);
+      const before = await svc.getMapConfig("ko");
+
+      mockFindActiveActivation.mockRejectedValue(new Error("mongo down"));
+      clock += EVENT_CACHE_TTL_MS;
+      const during = await svc.getMapConfig("ko");
+
+      expect(during.layers.map((l) => l.id)).toEqual(before.layers.map((l) => l.id));
+      expect(during.layers.some((l) => EVENT_LAYER_IDS.has(l.id))).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("getMapConfig keeps the base layers when the activation lookup throws", async () => {
     mockFindActiveActivation.mockRejectedValue(new Error("mongo down"));
 
@@ -234,6 +268,8 @@ describe("MapService", () => {
     mockFindActiveActivation.mockResolvedValue({
       _id: "eskara-2026",
     } as Awaited<ReturnType<typeof findActiveActivation>>);
+    // The activation is cached; drop it so the second request sees the change.
+    clearActiveEventCache();
 
     const live = await svc.getMapConfig("ko");
     // Reset chip plus every authored one.

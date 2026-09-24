@@ -28,6 +28,16 @@ import {
 import { getLayerSetConfig } from "../../../src/map/map-layerset.config";
 import { presentationFor } from "../../../src/map/map-layerset.types";
 import { getEventOverlays } from "../../../src/map/map-event-overlays.data";
+import { clearActiveEventCache } from "../../../src/map/map-active-layerset";
+import { clearEventOverlaysCache } from "../../../src/map/map-event-overlays.data";
+import { HOT_READ_MAX_TIME_MS } from "../../../src/infra/db";
+import { EVENT_CACHE_TTL_MS } from "../../../src/map/map-event-cache";
+
+// The event read path is cached per process; each test starts cold.
+beforeEach(() => {
+  clearActiveEventCache();
+  clearEventOverlaysCache();
+});
 
 const loaded = getLayerSetConfig("eskara-2026");
 if (!loaded?.config) throw new Error(`eskara-2026 failed to load: ${loaded?.error}`);
@@ -86,6 +96,31 @@ describe("getEventOverlays", () => {
     mockFindActiveActivation.mockResolvedValue({
       _id: "eskara-2026",
     } as Awaited<ReturnType<typeof findActiveActivation>>);
+  });
+
+  it("scans once for any number of concurrent requests", async () => {
+    const { placesFind } = arrange([place()]);
+    await Promise.all([getEventOverlays(), getEventOverlays(), getEventOverlays()]);
+    await getEventOverlays();
+    expect(placesFind).toHaveBeenCalledTimes(1);
+    expect(mockFindActiveActivation).toHaveBeenCalledTimes(1);
+  });
+
+  it("serves the last projection when a re-scan fails", async () => {
+    let clock = Date.now();
+    const spy = jest.spyOn(Date, "now").mockImplementation(() => clock);
+    try {
+      const { placesFind } = arrange([place()]);
+      const first = await getEventOverlays();
+
+      placesFind.mockImplementation(() => ({
+        toArray: jest.fn().mockRejectedValue(new Error("mongo down")),
+      }));
+      clock += 2 * EVENT_CACHE_TTL_MS;
+      await expect(getEventOverlays()).resolves.toBe(first);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("returns nothing when no activation is live", async () => {
@@ -147,7 +182,10 @@ describe("getEventOverlays", () => {
     // No lifecycle filter: a cancelled booth is DELETED, not flagged, so there
     // is no state left for a filter to exclude.
     expect(placesFind).toHaveBeenCalledTimes(1);
-    expect(placesFind).toHaveBeenCalledWith({ layerSetId: "eskara-2026" });
+    expect(placesFind).toHaveBeenCalledWith(
+      { layerSetId: "eskara-2026" },
+      { maxTimeMS: HOT_READ_MAX_TIME_MS },
+    );
   });
 
   it("keeps every opening window, in the order it was authored", async () => {
@@ -313,6 +351,8 @@ describe("getEventOverlays", () => {
   describe("action validation — one bad button, not one lost booth", () => {
     async function actionsFor(action: Record<string, unknown>) {
       arrange([place({ actions: [action] })]);
+      // Some cases call this twice with different documents; start each cold.
+      clearEventOverlaysCache();
       const { overlays: markers } = await getEventOverlays();
       return markers[0]!.actions;
     }

@@ -117,6 +117,8 @@ sudo cp infra/nginx/api.skkuverse.com /etc/nginx/sites-available/
 
 The config uses an upstream block with passive health checks for load balancing between two API replicas. See `infra/nginx/api.skkuverse.com` for the full config.
 
+**Client IP.** The TCP peer is always a Cloudflare edge, so the file resolves the client from `CF-Connecting-IP` (`set_real_ip_from` Cloudflare's ranges + `real_ip_header`) and sends it upstream as the *only* `X-Forwarded-For` entry. That pairs with `trust proxy 1` in `src/main.ts`, which takes the rightmost entry as `req.ip` — the rate limiter's key. Change one half and the other stops holding: `__tests__/nest/infra/nginx-site.test.ts` pins the nginx side. The ranges are copied from Cloudflare's published lists, with the fetch date in the file; re-check them occasionally.
+
 Enable the site:
 ```bash
 sudo ln -s /etc/nginx/sites-available/api.skkuverse.com /etc/nginx/sites-enabled/
@@ -300,7 +302,6 @@ MongoDB (bus_campus_dev / bus_campus)
 | `features/bus/schedule.data.js` | `resolveWeek()` + `resolveSmartSchedule()` — resolution engine |
 | `features/bus/schedule.routes.js` | `/smart` (main) + `/week` (deprecated) — HTTP handlers |
 | `features/bus/schedule-db.js` | `ensureScheduleIndexes()` — creates DB indexes at startup |
-| `features/bus/campus-eta.routes.js` | `GET /bus/campus/eta` — driving ETA between campuses (separate) |
 | `lib/i18n.js` | Translation keys for group labels, service tabs, badges |
 
 ---
@@ -404,10 +405,9 @@ screen: {
       endpoint: "/bus/schedule/data/campus-jain/smart"
     }
   ],
-  heroCard: {                            // optional — real-time ETA card above schedule
-    etaEndpoint: "/bus/campus/eta",
-    showUntilMinutesBefore: 0
-  },
+  heroCard: null,                        // optional ETA card above the schedule; null hides it.
+                                         // Campus served { etaEndpoint: "/bus/campus/eta", ... }
+                                         // until that endpoint was retired (Naver Directions).
   routeBadges: [                         // color-coded route type labels
     { id: "regular", label: "일반", color: "003626" },
     { id: "hakbu", label: "학부대학", color: "1565C0" }
@@ -1262,7 +1262,6 @@ node scripts/seed-eskara.js
 | `/bus/schedule/data/:serviceId/smart` | GET | **Main** — Smart schedule with status + auto-selected date |
 | `/bus/schedule/data/:serviceId/week` | GET | **Deprecated** — Raw 7-day resolved schedule |
 | `/bus/schedule/data/:serviceId/week?from=YYYY-MM-DD` | GET | **Deprecated** — 7-day schedule for specific week |
-| `/bus/campus/eta` | GET | Driving ETA between campuses |
 
 ### Headers
 

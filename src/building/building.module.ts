@@ -23,8 +23,8 @@ import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middlewa
  *   registry). The legacy lib/pollers registration triggered by importing
  *   building.sync is inert (Nest never calls lib/pollers.startAll()).
  *
- * configure() applies the shared generalLimiter (BusRateLimitMiddleware: byIp,
- * 120/60s) to /building, matching index.ts. LangMiddleware is applied globally
+ * configure() applies the shared generalLimiter (BusRateLimitMiddleware: byIp)
+ * to /building, matching index.ts. LangMiddleware is applied globally
  * (main.ts) and runs first, so req.lang is set before the limiter + controller.
  */
 @Module({

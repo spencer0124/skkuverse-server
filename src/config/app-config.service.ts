@@ -36,18 +36,6 @@ export class AppConfigService {
     return config.port;
   }
 
-  get mongo(): {
-    url: string | undefined;
-    dbName: string | undefined;
-    collections: typeof config.mongo.collections;
-  } {
-    return {
-      url: config.mongo.url,
-      dbName: config.mongo.dbName,
-      collections: config.mongo.collections,
-    };
-  }
-
   get api(): {
     hsscNew: string | undefined;
     seoulBusServiceKey: string | undefined;
@@ -60,16 +48,8 @@ export class AppConfigService {
     };
   }
 
-  get naver(): {
-    apiKeyId: string | undefined;
-    apiKey: string | undefined;
-    styleId: string | undefined;
-  } {
-    return {
-      apiKeyId: config.naver.apiKeyId,
-      apiKey: config.naver.apiKey,
-      styleId: config.naver.styleId,
-    };
+  get naver(): { styleId: string | undefined } {
+    return { styleId: config.naver.styleId };
   }
 
   get firebase(): { serviceAccount: string | null } {

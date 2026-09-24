@@ -1,5 +1,6 @@
 import type { Collection } from "mongodb";
-import { getClient } from "../infra/db";
+import { createCachedLoader } from "../common/cache/cached-loader";
+import { getClient, HOT_READ_MAX_TIME_MS } from "../infra/db";
 import config from "../infra/config";
 import type {
   BuildingDoc,
@@ -14,8 +15,6 @@ import type {
 
 // --- In-memory cache (5 min TTL) ---
 const CACHE_TTL_MS = 5 * 60 * 1000;
-let allBuildingsCache: BuildingDoc[] | null = null;
-let allBuildingsCacheTime = 0;
 
 // --- Collection helpers ---
 
@@ -141,22 +140,27 @@ function escapeRegex(str: string): string {
 
 // --- Query functions ---
 
+// Every /building/* request and the campus overlay route read this list, so it
+// is cached, and concurrent misses share one scan. No stale window: a failed
+// read still reaches the caller, which is what marks the overlay degraded.
+const allBuildingsCache = createCachedLoader({
+  name: "all buildings",
+  ttlMs: CACHE_TTL_MS,
+  load: () =>
+    getBuildingsCollection()
+      .find(
+        {},
+        {
+          projection: { extensions: 0, sync: 0, enrichVersion: 0 },
+          maxTimeMS: HOT_READ_MAX_TIME_MS,
+        },
+      )
+      .sort({ _id: 1 })
+      .toArray(),
+});
+
 async function getAllBuildings(campus?: Campus | null): Promise<BuildingDoc[]> {
-  const now = Date.now();
-  if (allBuildingsCache && now - allBuildingsCacheTime < CACHE_TTL_MS) {
-    if (!campus) return allBuildingsCache;
-    return allBuildingsCache.filter((b) => b.campus === campus);
-  }
-
-  const col = getBuildingsCollection();
-  const docs = await col
-    .find({}, { projection: { extensions: 0, sync: 0, enrichVersion: 0 } })
-    .sort({ _id: 1 })
-    .toArray();
-
-  allBuildingsCache = docs;
-  allBuildingsCacheTime = now;
-
+  const docs = await allBuildingsCache.get();
   if (!campus) return docs;
   return docs.filter((b) => b.campus === campus);
 }
@@ -248,23 +252,38 @@ async function getConnectionsForBuilding(
   });
 }
 
-// --- Cache invalidation (for testing) ---
-
-function clearCache(): void {
-  allBuildingsCache = null;
-  allBuildingsCacheTime = 0;
-}
-
 /**
  * Every campus shape, in authored order.
  *
- * No in-process cache, unlike `getAllBuildings`. That cache exists because
- * every /building/* request hits it; this is read once per client per day
- * behind the overlay route's own 24-hour TTL, so a second layer of staleness
- * would buy nothing and delay an ops correction.
+ * Cached like `getAllBuildings`. The overlay route's 24-hour `Cache-Control`
+ * only helps a client that keeps an HTTP cache, and not every client does, so
+ * the database would otherwise see one read per map open. A correction reaches
+ * the route within one TTL, which is small next to that 24-hour client TTL. A
+ * failed reload serves the last good shapes for up to an hour, with a warning.
+ * Without that, the overlay route would drop the shapes from a response it
+ * still marks cacheable for a day (a shapes failure is not `degraded`), and the
+ * shapes change only a few times a year.
  */
+const campusShapesCache = createCachedLoader({
+  name: "campus shapes",
+  ttlMs: CACHE_TTL_MS,
+  staleWindowMs: 60 * 60 * 1000,
+  load: () =>
+    getCampusShapesCollection()
+      .find({}, { maxTimeMS: HOT_READ_MAX_TIME_MS })
+      .sort({ order: 1, _id: 1 })
+      .toArray(),
+});
+
 async function getAllCampusShapes(): Promise<CampusShapeDoc[]> {
-  return getCampusShapesCollection().find({}).sort({ order: 1, _id: 1 }).toArray();
+  return campusShapesCache.get();
+}
+
+// --- Cache invalidation (building sync, and tests) ---
+
+function clearCache(): void {
+  allBuildingsCache.clear();
+  campusShapesCache.clear();
 }
 
 export {

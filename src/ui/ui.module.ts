@@ -13,7 +13,7 @@ import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middlewa
  * getBusGroups from bus/bus-config.data at the module level — the same
  * shared singleton, so bus-group bytes are identical without DI coupling.
  *
- * configure() applies the generalLimiter (BusRateLimitMiddleware: byIp, 120/60s —
+ * configure() applies the generalLimiter (BusRateLimitMiddleware: byIp —
  * the exact express-rate-limit config index.ts uses for both /bus and /ui) to
  * all /ui routes. LangMiddleware is applied globally in main.ts and runs first,
  * so req.lang is set before the limiter — matching the Express ordering

@@ -162,8 +162,6 @@ const config = {
   },
 
   naver: {
-    apiKeyId: process.env.NAVER_API_KEY_ID,
-    apiKey: process.env.NAVER_API_KEY,
     styleId: process.env.NAVER_MAP_STYLE_ID,
   },
 
@@ -197,8 +195,6 @@ const required: ReadonlyArray<readonly [string, unknown, string]> = [
   ["api.seoulBusServiceKey", config.api.seoulBusServiceKey, "SEOUL_BUS_SERVICE_KEY"],
   ["api.stationHyehwa", config.api.stationHyehwa, "API_STATION_HEWA"],
   ["naver.styleId", config.naver.styleId, "NAVER_MAP_STYLE_ID"],
-  ["naver.apiKeyId", config.naver.apiKeyId, "NAVER_API_KEY_ID"],
-  ["naver.apiKey", config.naver.apiKey, "NAVER_API_KEY"],
   ["building.dbName", config.building.dbName, "MONGO_BUILDING_DB_NAME"],
   ["ad.dbName", config.ad.dbName, "MONGO_AD_DB_NAME"],
   ["notices.dbName", config.notices.dbName, "MONGO_NOTICES_DB_NAME"],

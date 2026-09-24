@@ -10,6 +10,14 @@ import type {
 } from "./types";
 import type { SupportedLang } from "../infra/types";
 
+/**
+ * The registry is JSON shipped with the build, identical for every client and
+ * every language, and it changes only on deploy — so it may be cached by the
+ * client and by a shared cache in front of the origin. Five minutes bounds how
+ * long a deploy that edits it takes to be seen.
+ */
+const REGISTRY_CACHE_CONTROL = "public, max-age=300";
+
 interface MiniAppIndexResponse {
   version: number;
   miniApps: ReadonlyArray<Readonly<MiniAppIndexEntry>>;
@@ -38,7 +46,8 @@ export class MiniAppsController {
 
   // GET /miniapps
   @Get()
-  getIndex(): MiniAppIndexResponse {
+  getIndex(@Res({ passthrough: true }) res: Response): MiniAppIndexResponse {
+    res.set("Cache-Control", REGISTRY_CACHE_CONTROL);
     return { version: this.miniApps.version, miniApps: this.miniApps.list };
   }
 
@@ -72,11 +81,16 @@ export class MiniAppsController {
 
   // GET /miniapps/:id
   @Get(":id")
-  getDetail(@Param("id") id: string): Readonly<MiniAppDetail> {
+  getDetail(
+    @Param("id") id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Readonly<MiniAppDetail> {
     const detail = this.miniApps.getDetail(id);
     if (!detail) {
       throw new AppError("MINIAPP_NOT_FOUND", `Unknown mini-app id: ${id}`, 404);
     }
+    // Set only on success, so a 404 for a slug that ships later is not kept.
+    res.set("Cache-Control", REGISTRY_CACHE_CONTROL);
     return detail;
   }
 }

@@ -1,5 +1,5 @@
 import type { Collection } from "mongodb";
-import { getClient } from "../infra/db";
+import { getClient, HOT_READ_MAX_TIME_MS } from "../infra/db";
 import config from "../infra/config";
 import logger from "../infra/logger";
 import type { ActivationDoc, MapPlaceDoc } from "./map-places.types";
@@ -88,7 +88,7 @@ async function findActiveActivation(now: Date): Promise<ActivationDoc | null> {
         { $or: [{ activeUntil: null }, { activeUntil: { $gt: now } }] },
       ],
     },
-    { sort: { activeFrom: -1, _id: 1 } },
+    { sort: { activeFrom: -1, _id: 1 }, maxTimeMS: HOT_READ_MAX_TIME_MS },
   );
 }
 

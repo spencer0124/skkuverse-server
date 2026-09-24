@@ -35,10 +35,13 @@ export const WEBVIEW_ORIGIN = "https://webview.skkuverse.com";
 /**
  * The standalone ESKARA festival site (`miniapp/eskara`), a copy of the webview's
  * ESKARA pages that also carries pages the webview does not, such as the
- * wristband notice. The festival map's place links point here, and its pages
- * post `web:open-url` for ticket-platform links, which is why it is a bridge
- * origin. It embeds no iframes; on Android a child frame would inherit the
- * top-level grant. Remove it from BRIDGE_ORIGINS once nothing links to it.
+ * wristband notice. It is the registered start URL of the `eskara-2026` mini
+ * app, and the festival map's `miniapp` buttons open its pages. Its pages post
+ * `web:open-url` for ticket-platform links and `web:action` for "view on map"
+ * buttons (the app allows a page only `map` and `miniapp` actions), which is why
+ * it is a bridge origin. It embeds no iframes; on Android a child frame would
+ * inherit the top-level grant. Remove it from BRIDGE_ORIGINS once nothing links
+ * to it.
  */
 export const ESKARA_MINIAPP_ORIGIN = "https://eskara.miniapp.skkuverse.com";
 
