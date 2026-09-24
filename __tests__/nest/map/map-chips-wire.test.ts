@@ -116,7 +116,7 @@ describe("GET /map/config (real MapService)", () => {
     expect(res.body.data.chips).toHaveLength(BASE_CHIPS.length + 1 + CONFIG.chips.length);
     expect(res.body.data.chips[BASE_CHIPS.length].id).toBe("eskara-2026_all");
 
-    // The row's order is authored copy too: 주점, 부스, 푸드트럭, 입장 lead,
+    // The row's order is authored copy too: 주점, 부스, 푸드트럭, 입장 팔찌 배부 lead,
     // right after the festival's own chip. 공연 has no chip while it has no place.
     expect(
       res.body.data.chips.slice(BASE_CHIPS.length).map((c: { id: string }) => c.id),

@@ -118,9 +118,9 @@
     {
       "id": "eskara26_entry",
       "label": {
-        "ko": "입장",
-        "en": "Entry",
-        "zh": "入场"
+        "ko": "입장 팔찌 배부",
+        "en": "Wristbands",
+        "zh": "入场手环发放"
       },
       "color": "7048E8",
       "defaultVisibleWhen": {
@@ -234,7 +234,7 @@
     },
     {
       "id": "eskara26_view_booth",
-      "emoji": "🎨",
+      "emoji": "🎪",
       "layerIds": [
         "eskara26_booth"
       ],
@@ -298,9 +298,9 @@
         "eskara26_entry"
       ],
       "label": {
-        "ko": "입장",
-        "en": "Entry",
-        "zh": "入场"
+        "ko": "입장 팔찌 배부",
+        "en": "Wristbands",
+        "zh": "入场手环发放"
       },
       "camera": {
         "lat": 37.293648,
