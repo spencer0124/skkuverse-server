@@ -106,7 +106,7 @@ describe("the shipped eskara-2026 config", () => {
     }
   });
 
-  it("frames 주점, 부스, 편의시설, 입장 팔찌 배부 and 통제구역 on their own centres, and moves no other chip", () => {
+  it("frames 주점, 부스, 푸드트럭, 편의시설, 입장 팔찌 배부 and 통제구역 on their own centres, and moves no other chip", () => {
     // Coordinates are the pairs /map/overlays/campus and the sheet serve.
     //
     // Zooms are set against the app, not a formula: a chip served at 17.5
@@ -116,6 +116,11 @@ describe("the shipped eskara-2026 config", () => {
     //
     // 주점 and 부스: centred on the 대운동장 label, a step back at 17.0 — at the
     // festival's 17.5 the southern pubs sat under the sheet.
+    //
+    // 푸드트럭: the trucks have no plots — they stand anywhere along 신관A 앞길 —
+    // so the chip frames the whole road, the 차량 통제 ring the zone reuses: on
+    // its centroid (the 차량 통제 label's own point), 176 m end to end. 17.2 shows
+    // ~220 m across, from the 17.5 = 0.199 m/px calibration.
     //
     // 편의시설: the ten points run ~360 m from 화장실 (주점 구역) to 제2과학관.
     // 16.0 on `toilet-welfare`, the middle of them, is the framing of a
@@ -131,6 +136,7 @@ describe("the shipped eskara-2026 config", () => {
     const framed: Record<string, { lat: number; lng: number; zoom: number }> = {
       eskara26_view_bar: { lat: 37.295187, lng: 126.970977, zoom: 17 },
       eskara26_view_booth: { lat: 37.295187, lng: 126.970977, zoom: 17 },
+      eskara26_view_food: { lat: 37.2962298, lng: 126.9716456, zoom: 17.2 },
       eskara26_view_facility: { lat: 37.294007, lng: 126.972575, zoom: 16 },
       eskara26_view_entry: { lat: 37.293648, lng: 126.974831, zoom: 17 },
       eskara26_view_control: { lat: 37.294555, lng: 126.971921, zoom: 16.2 },

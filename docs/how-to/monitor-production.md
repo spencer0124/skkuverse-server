@@ -20,7 +20,9 @@ Two layers hide failures from users, so two layers watch for them. nginx retries
 | Outside-in | UptimeRobot (free, 5-minute checks) | The public host names, through Cloudflare, as a user reaches them | A public URL stops answering, or answers without the expected keyword |
 | Inside-out | Healthchecks.io (free), one check per host | Each host, from the host itself: every compose service, nginx, and the other containers on it | The host posts a failure, or stops pinging at all |
 
-Both deliver to `#server-alerts` on the SKKUVERSE Discord server (Healthchecks.io through its Discord integration, UptimeRobot through a channel webhook), plus email. The crawler's webhook posts elsewhere and is not part of this.
+Both deliver to `#server-alerts` on the SKKUVERSE Discord server (Healthchecks.io through its Discord integration, UptimeRobot through a channel webhook), plus email. The crawler's webhook posts elsewhere and is not part of this. Cloudflare's own notifications are not used: on the Free plan they are email-only, and Cloudflare Pro was evaluated for them and declined (2026-09-24).
+
+As of 2026-09-24 UptimeRobot watches `https://api.skkuverse.com/health/ready` (keyword) and `https://ota.skkuverse.com/hc` (HTTP), and Healthchecks.io has one check, for the OCI VM; the dashboards are the current list.
 
 ### The per-host heartbeat
 
@@ -53,6 +55,8 @@ Period, grace and check intervals are set in each service's dashboard, not in th
 
 ### Add a host to the heartbeat
 
+This is one step of onboarding a new origin host; the full order (checkout, heartbeat, firewall, nginx, outside-in monitor) is in [lock-origin-to-cloudflare.md](lock-origin-to-cloudflare.md#onboard-another-origin-host).
+
 1. In Healthchecks.io, create a check for the host, with a 1-minute period and a grace period of a few minutes, and the Discord integration enabled. Name it by provider and region (for example `oracle-chuncheon`): the alert body carries the machine's `hostname`, which on cloud VMs is a generated `instance-…` name. Copy its ping URL.
 2. On the host, create the env file. It holds the ping URL, which is a secret, so it is not in the repo:
 
@@ -70,15 +74,15 @@ Period, grace and check intervals are set in each service's dashboard, not in th
    <deploy-checkout>/infra/monitoring/heartbeat.sh
    ```
 
-The cron file names one user and one checkout path. A host whose deploy user or checkout differs needs that line adjusted.
+The cron file names one user and one checkout path. A host whose deploy user or checkout differs needs that line adjusted. The script also expects a container for **every** service in `docker-compose.yml`, the poller included, so a host that runs only api replicas reports the missing services as failures until the expected set is made per-host.
 
 ### Add a public URL to UptimeRobot
 
 Use a keyword monitor where the endpoint returns a body, so a proxy error page with status 200 still counts as down. `https://api.skkuverse.com/health/ready` returns `{"status":"ready",…}`; use the keyword `"ready"` with the quotes, alerting when it does not exist. The quotes matter: the 503 body `{"status":"unavailable",…}` contains no quoted `"ready"`, while other bodies might contain the bare word.
 
-Where an endpoint returns an empty body (`https://ota.skkuverse.com/hc`), use a plain HTTP monitor. `files.skkuverse.com` has no health path, so it is not monitored. Health endpoints must not be cached at the edge — check that `cf-cache-status` is `DYNAMIC` or `BYPASS`.
+Where an endpoint returns an empty body (`https://ota.skkuverse.com/hc`), use a plain HTTP monitor. That monitor sends `HEAD`, so the endpoint must answer it: the OTA server returned 405 to `HEAD /hc` until its nginx forwarded the probe as `GET` (`proxy_method GET`, skkuverse-codepush PR #1). `files.skkuverse.com` has no health path, so it is not monitored. Health endpoints must not be cached at the edge — check that `cf-cache-status` is `DYNAMIC` or `BYPASS`.
 
-When there is more than one origin behind a load balancer, add one monitor per origin host name as well, so a dead origin is not hidden by the healthy one.
+When there is more than one origin behind a load balancer, add one monitor per origin host name as well, so a dead origin is not hidden by the healthy one. Every monitor must go through Cloudflare: the origins accept 80/443 from Cloudflare's ranges only ([lock-origin-to-cloudflare.md](lock-origin-to-cloudflare.md)), so a check against an origin IP fails by design.
 
 ### Test the alert path
 
@@ -107,5 +111,6 @@ Neither test stops a container.
 ## Related
 
 - [infra/monitoring/heartbeat.sh](../../infra/monitoring/heartbeat.sh) — the checks, and why a broken setup never pings
+- [lock-origin-to-cloudflare.md](lock-origin-to-cloudflare.md) — the origin firewall, onboarding another origin host, and reaching a locked origin
 - [.github/workflows/deploy.yml](../../.github/workflows/deploy.yml) — installs the cron file
 - [docs/README.md](../README.md) — writing rules

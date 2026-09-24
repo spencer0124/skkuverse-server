@@ -156,8 +156,34 @@ describe("parsePlacesFile — the committed sheet", () => {
       byCoord.set(key, [...(byCoord.get(key) ?? []), d]);
     }
 
+    // The one sanctioned stack: a group under a HEAD. The 17 food trucks have no
+    // plots, so they share the council's 신관A 앞길 point with `food-zone-pin`.
+    // The head must win the pin at every moment — a strictly higher
+    // `pinPriority`, and windows covering every other member's, so it is never
+    // the closed one while a member is open. Then the map always names the zone,
+    // and the members, which lose the pin, stay reachable through their list rows.
+    const priorityOf = (category: string) => presentationFor(CONFIG, category).pinPriority;
+    const covers = (
+      head: { startAt: Date; endAt: Date }[],
+      member: { startAt: Date; endAt: Date }[],
+    ) =>
+      head.length === 0 ||
+      (member.length > 0 &&
+        member.every((w) => head.some((h) => h.startAt <= w.startAt && w.endAt <= h.endAt)));
+    const hasHead = (group: typeof docs) =>
+      group.some((head) =>
+        group.every(
+          (d) =>
+            d === head ||
+            (priorityOf(head.category) > priorityOf(d.category) && covers(head.hours, d.hours)),
+        ),
+      );
+
     const clashes: string[] = [];
     for (const [key, group] of byCoord) {
+      if (hasHead(group)) {
+        continue;
+      }
       for (let i = 0; i < group.length; i++) {
         for (let j = i + 1; j < group.length; j++) {
           if (overlaps(group[i].hours, group[j].hours)) {
@@ -168,6 +194,45 @@ describe("parsePlacesFile — the committed sheet", () => {
     }
 
     expect(clashes).toEqual([]);
+  });
+
+  it("stacks every food truck under the 푸드트럭 구역 pin, inside the drawn zone", () => {
+    // The trucks have no plots — the council places them on the day — so the
+    // map names the AREA and the list carries the trucks. That only holds while
+    // the head stays on the same coordinate as every truck and above them in the
+    // pin ladder, and while the area it names actually contains it.
+    const byId = new Map<string, (typeof docs)[number]>(docs.map((d) => [d._id, d]));
+    const pin = byId.get(`${LAYER_SET_ID}-food-zone-pin`)!;
+    const zone = byId.get(`${LAYER_SET_ID}-food-zone`)!;
+    const trucks = docs.filter((d) => d.category === "food");
+    expect(trucks.length).toBe(17);
+
+    const keyOf = (d: (typeof docs)[number]) => {
+      const [lng, lat] = d.location.coordinates as [number, number];
+      return `${lat.toFixed(6)},${lng.toFixed(6)}`;
+    };
+    expect(new Set(trucks.map(keyOf))).toEqual(new Set([keyOf(pin)]));
+    expect(presentationFor(CONFIG, pin.category).pinPriority).toBeGreaterThan(
+      presentationFor(CONFIG, "food").pinPriority,
+    );
+
+    // The zone is a backdrop: a tappable ring would be an 18th list row.
+    expect(zone.location.type).toBe("Polygon");
+    expect(presentationFor(CONFIG, zone.category).interactive).toBe(false);
+    expect(presentationFor(CONFIG, zone.category).layerId).toBe(
+      presentationFor(CONFIG, "food").layerId,
+    );
+
+    // Ray casting on the zone's outer ring.
+    const [x, y] = pin.location.coordinates as [number, number];
+    const ring = (zone.location.coordinates as [number, number][][])[0]!;
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i]!;
+      const [xj, yj] = ring[j]!;
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    expect(inside).toBe(true);
   });
 
   it("puts every place on the Korean peninsula, not in the ocean", () => {

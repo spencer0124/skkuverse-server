@@ -50,7 +50,7 @@ server {
     proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header X-Forwarded-Proto $scheme;
 
-    # Fail fast and try the other replica once, rather than holding a request
+    # Fail fast and try one other replica, rather than holding a request
     # for the 60 s default while a replica is stuck. Non-idempotent requests
     # (POST) are not retried — nginx's default.
     proxy_connect_timeout 2s;
