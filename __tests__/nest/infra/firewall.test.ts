@@ -14,6 +14,10 @@
  * version on the VM, when the script was written.
  *
  * The starting state is the VM's INPUT chain, verbatim from `iptables -S`.
+ *
+ * infra/firewall/apply-baseline.sh, which gives a fresh host that same INPUT
+ * chain from infra/firewall/baseline-rules.v4, runs against the same stub
+ * further down — ending with cloudflare-only.sh applied on top of its result.
  */
 import { spawnSync } from "child_process";
 import fs from "fs";
@@ -22,6 +26,8 @@ import path from "path";
 
 const root = path.join(__dirname, "../../..");
 const script = path.join(root, "infra/firewall/cloudflare-only.sh");
+const baselineScript = path.join(root, "infra/firewall/apply-baseline.sh");
+const baselineFile = path.join(root, "infra/firewall/baseline-rules.v4");
 const unitFile = path.join(root, "infra/firewall/skkuverse-firewall.service");
 const ipsFile = path.join(root, "infra/cloudflare/ips-v4.txt");
 
@@ -72,7 +78,7 @@ check_target() {
 case $op in
   -S)
     [ -f "$f" ] || nochain
-    if builtin "$chain"; then echo "-P $chain ACCEPT"; else echo "-N $chain"; fi
+    if builtin "$chain"; then echo "-P $chain $(cat "$STUB_DIR/policy-$chain" 2>/dev/null || echo ACCEPT)"; else echo "-N $chain"; fi
     while IFS= read -r l; do echo "-A $chain $l"; done < "$f" ;;
   -C) [ -f "$f" ] || nochain; grep -qxF -- "$*" "$f" || { echo "iptables: Bad rule." >&2; exit 1; } ;;
   -N) [ -f "$f" ] && { echo "iptables: Chain already exists." >&2; exit 1; }; : > "$f" ;;
@@ -132,14 +138,14 @@ function log(): string[] {
   return fs.existsSync(p) ? fs.readFileSync(p, "utf8").split("\n").filter(Boolean) : [];
 }
 
-function run(args: string[] = [], opts: { ips?: string } = {}) {
-  const env: Record<string, string> = { PATH: `${dir}/bin:${process.env.PATH}`, STUB_DIR: dir };
+function run(args: string[] = [], opts: { ips?: string; script?: string; env?: Record<string, string> } = {}) {
+  const env: Record<string, string> = { PATH: `${dir}/bin:${process.env.PATH}`, STUB_DIR: dir, ...opts.env };
   if (opts.ips !== undefined) {
     const p = path.join(dir, "ips.txt");
     fs.writeFileSync(p, opts.ips);
     env.CF_IPS_V4_FILE = p;
   }
-  const res = spawnSync("bash", [script, ...args], { encoding: "utf8", env });
+  const res = spawnSync("bash", [opts.script ?? script, ...args], { encoding: "utf8", env });
   return { status: res.status, stdout: res.stdout, stderr: res.stderr };
 }
 
@@ -337,9 +343,206 @@ describe("skkuverse-firewall.service + deploy", () => {
     expect(deploy).toMatch(/^\s*sudo systemctl daemon-reload$/m);
     expect(deploy).not.toMatch(/systemctl (enable|start|restart)[^\n]*skkuverse-firewall/);
     expect(deploy).not.toMatch(/cloudflare-only\.sh/);
+    expect(deploy).not.toMatch(/apply-baseline\.sh|iptables/);
   });
 
-  it("the script is executable", () => {
+  it("the scripts are executable", () => {
     expect(fs.statSync(script).mode & 0o111).not.toBe(0);
+    expect(fs.statSync(baselineScript).mode & 0o111).not.toBe(0);
+  });
+});
+
+// --- apply-baseline.sh + baseline-rules.v4 ---------------------------------
+
+const baselineText = fs.readFileSync(baselineFile, "utf8");
+const BASELINE = baselineText
+  .split("\n")
+  .filter((l) => l.startsWith("-A INPUT "))
+  .map((l) => l.slice("-A INPUT ".length));
+const F2B = VM_INPUT.filter((rule) => rule.includes("f2b-sshd"));
+const LOCKED = [...BASELINE.slice(0, 4), JUMP, REJECT];
+
+const runBaseline = (args: string[] = [], env: Record<string, string> = {}) =>
+  run(args, { script: baselineScript, env: { BASELINE_PERSIST_PATH: path.join(dir, "iptables/rules.v4"), ...env } });
+
+describe("infra/firewall/baseline-rules.v4", () => {
+  it("is the VM's INPUT chain without fail2ban's jumps, in the same order", () => {
+    expect(BASELINE).toEqual(VM_INPUT.filter((rule) => !rule.includes("f2b-sshd")));
+  });
+
+  it("accepts replies first and ends in the REJECT, with SSH before it", () => {
+    expect(BASELINE[0]).toBe("-m state --state RELATED,ESTABLISHED -j ACCEPT");
+    expect(BASELINE[BASELINE.length - 1]).toBe(REJECT);
+    expect(BASELINE.indexOf(SSH)).toBeGreaterThan(-1);
+  });
+
+  it("is a filter-table-only iptables-restore file with no FORWARD or OUTPUT rules", () => {
+    const body = baselineText.split("\n").filter((l) => l && !l.startsWith("#"));
+    expect(body[0]).toBe("*filter");
+    expect(body[body.length - 1]).toBe("COMMIT");
+    expect(body.filter((l) => l.startsWith("*"))).toEqual(["*filter"]);
+    expect(body.filter((l) => l.startsWith(":"))).toEqual([
+      ":INPUT ACCEPT [0:0]",
+      ":FORWARD ACCEPT [0:0]",
+      ":OUTPUT ACCEPT [0:0]",
+    ]);
+    expect(body.filter((l) => l.startsWith("-A ") && !l.startsWith("-A INPUT "))).toEqual([]);
+    expect(baselineText.endsWith("\n")).toBe(true);
+  });
+});
+
+describe("apply-baseline.sh", () => {
+  beforeEach(() => setChains({ INPUT: [] }));
+
+  it("gives an empty INPUT the baseline, appended one rule at a time in file order", () => {
+    const r = runBaseline();
+    expect(r.stderr).toBe("");
+    expect(r.status).toBe(0);
+    expect(chains().INPUT).toEqual(BASELINE);
+    expect(log()).toEqual(BASELINE.map((rule) => `-A INPUT ${rule}`));
+  });
+
+  it("touches no chain but INPUT", () => {
+    const before = chains();
+    runBaseline();
+    const after = chains();
+    for (const name of Object.keys(before)) if (name !== "INPUT") expect(after[name]).toEqual(before[name]);
+    expect(log().every((l) => l.startsWith("-A INPUT "))).toBe(true);
+  });
+
+  it("is idempotent: a second run changes nothing", () => {
+    runBaseline();
+    fs.rmSync(path.join(dir, "log"));
+    const r = runBaseline();
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/already has the baseline/);
+    expect(log()).toEqual([]);
+    expect(chains().INPUT).toEqual(BASELINE);
+  });
+
+  it("finishes an interrupted run: appends only what is missing", () => {
+    setChains({ INPUT: BASELINE.slice(0, 3) });
+    expect(runBaseline().status).toBe(0);
+    expect(chains().INPUT).toEqual(BASELINE);
+    expect(log()).toEqual(BASELINE.slice(3).map((rule) => `-A INPUT ${rule}`));
+  });
+
+  it("ignores fail2ban's jumps and leaves them where they are", () => {
+    setChains({ INPUT: F2B });
+    expect(runBaseline().status).toBe(0);
+    expect(chains().INPUT).toEqual([...F2B, ...BASELINE]);
+  });
+
+  it.each([
+    ["the OCI VM as it was (open 80/443)", VM_INPUT],
+    ["the OCI VM locked by cloudflare-only.sh", [...F2B, ...LOCKED]],
+  ])("does nothing on %s", (_label, input) => {
+    setChains({ INPUT: input });
+    const r = runBaseline();
+    expect(r.status).toBe(0);
+    expect(log()).toEqual([]);
+    expect(chains().INPUT).toEqual(input);
+  });
+
+  it("--dry-run prints the commands and changes nothing", () => {
+    const r = runBaseline(["--dry-run"]);
+    expect(r.status).toBe(0);
+    expect(log()).toEqual([]);
+    expect(chains().INPUT).toEqual([]);
+    expect(r.stdout.trim().split("\n")).toEqual(BASELINE.map((rule) => `+ iptables -w -A INPUT ${rule}`));
+  });
+
+  it("leaves the host ready for cloudflare-only.sh, which then locks it", () => {
+    expect(runBaseline().status).toBe(0);
+    const r = run();
+    expect(r.stderr).toBe("");
+    expect(r.status).toBe(0);
+    expect(chains().INPUT).toEqual(LOCKED);
+    expect(chains()[CHAIN]).toEqual(realRanges.map(rangeRule));
+    // And the locked shape is still one apply-baseline.sh accepts.
+    fs.rmSync(path.join(dir, "log"));
+    expect(runBaseline().status).toBe(0);
+    expect(log()).toEqual([]);
+  });
+
+  describe("refuses before changing anything, and shows what INPUT holds", () => {
+    const expectRefusal = (input: string[], message: RegExp, env: Record<string, string> = {}) => {
+      setChains({ INPUT: input });
+      const r = runBaseline([], env);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toMatch(message);
+      for (const rule of input) expect(r.stderr).toContain(`-A INPUT ${rule}`);
+      expect(log()).toEqual([]);
+      expect(chains().INPUT).toEqual(input);
+    };
+
+    it("on a rule the baseline does not have", () => {
+      expectRefusal(["-p tcp -m tcp --dport 8080 -j ACCEPT"], /not the baseline/);
+    });
+
+    it("on baseline rules out of order", () => {
+      expectRefusal([BASELINE[1]!, BASELINE[0]!], /not the baseline/);
+    });
+
+    it("on a REJECT already in place (appending would land after it)", () => {
+      expectRefusal([REJECT], /not the baseline/);
+    });
+
+    it("on a duplicated baseline rule", () => {
+      expectRefusal([...BASELINE, BASELINE[0]!], /not the baseline/);
+    });
+
+    it("when the INPUT policy is not ACCEPT", () => {
+      fs.writeFileSync(path.join(dir, "policy-INPUT"), "DROP\n");
+      expectRefusal([], /INPUT policy is 'DROP'/);
+    });
+
+    it("on an unknown argument", () => {
+      const r = runBaseline(["--force"]);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toMatch(/unknown argument/);
+      expect(log()).toEqual([]);
+    });
+  });
+
+  describe("--persist", () => {
+    const persistPath = () => path.join(dir, "iptables/rules.v4");
+
+    it("is off by default: nothing is written", () => {
+      fs.mkdirSync(path.join(dir, "iptables"));
+      expect(runBaseline().status).toBe(0);
+      expect(fs.existsSync(persistPath())).toBe(false);
+    });
+
+    it("installs the repo's file, not the live ruleset", () => {
+      fs.mkdirSync(path.join(dir, "iptables"));
+      expect(runBaseline(["--persist"]).status).toBe(0);
+      expect(fs.readFileSync(persistPath(), "utf8")).toBe(baselineText);
+    });
+
+    it("keeps a differing old file as a backup", () => {
+      fs.mkdirSync(path.join(dir, "iptables"));
+      fs.writeFileSync(persistPath(), "*filter\nCOMMIT\n");
+      expect(runBaseline(["--persist"]).status).toBe(0);
+      expect(fs.readFileSync(persistPath(), "utf8")).toBe(baselineText);
+      const backups = fs.readdirSync(path.join(dir, "iptables")).filter((f) => f.startsWith("rules.v4.bak."));
+      expect(backups).toHaveLength(1);
+      expect(fs.readFileSync(path.join(dir, "iptables", backups[0]!), "utf8")).toBe("*filter\nCOMMIT\n");
+    });
+
+    it("fails before changing INPUT when iptables-persistent is not installed (no /etc/iptables)", () => {
+      const r = runBaseline(["--persist"]);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toMatch(/install iptables-persistent first/);
+      expect(log()).toEqual([]);
+    });
+
+    it("with --dry-run writes nothing", () => {
+      fs.mkdirSync(path.join(dir, "iptables"));
+      const r = runBaseline(["--persist", "--dry-run"]);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toContain(`+ install -m 0644 ${baselineFile} ${persistPath()}`);
+      expect(fs.existsSync(persistPath())).toBe(false);
+    });
   });
 });
