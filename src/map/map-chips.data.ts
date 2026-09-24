@@ -1,8 +1,8 @@
-import type { EventMapConfig } from "./map-layerset.types";
+import type { EventFacetDef, EventListSort, EventMapConfig } from "./map-layerset.types";
 import { pick } from "../infra/i18n";
 import type { I18n, SupportedLang } from "../infra/types";
 import { toWebviewUrl } from "../infra/webview-url";
-import type { MapCamera, MapChip, MapChipAction } from "./map-chip.types";
+import type { MapCamera, MapChip, MapChipAction, MapChipList } from "./map-chip.types";
 import { BASE_LAYERS, chipGroupOf, type LayerSpec } from "./map-layers.data";
 
 /**
@@ -48,6 +48,11 @@ export interface MapChipSpec {
   action: MapChipActionSpec;
   /** See `MapChip.isReset`. Only the synthesised reset chip carries `true`. */
   isReset: boolean;
+  /**
+   * The list's facets, resolved from the config's ids to their definitions but
+   * with labels still in every language. `null` for a chip with no list.
+   */
+  list: { facets: EventFacetDef[]; sort: EventListSort } | null;
 }
 
 /**
@@ -185,6 +190,8 @@ export function resetChip(config: EventMapConfig): MapChipSpec {
         .map((layer) => layer.id),
     },
     isReset: true,
+    // "Back to the festival" lists everything, unfiltered.
+    list: null,
   };
 }
 
@@ -203,6 +210,7 @@ export function resetChip(config: EventMapConfig): MapChipSpec {
  */
 export function eventChipSpecs(config: EventMapConfig): MapChipSpec[] {
   const layerById = new Map(config.layers.map((layer) => [layer.id, layer]));
+  const facetById = new Map(config.facets.map((facet) => [facet.id, facet]));
   const authored = config.chips.map((chip): MapChipSpec => ({
     id: chip.id,
     emoji: chip.emoji,
@@ -220,6 +228,16 @@ export function eventChipSpecs(config: EventMapConfig): MapChipSpec[] {
     // An authored chip narrows; only the synthesised one undoes it. Stated
     // rather than left absent, so the wire carries no optional field.
     isReset: false,
+    // Every id resolves after assertValidConfig; the filter keeps the type
+    // honest rather than serving a facet that is not there.
+    list: chip.list
+      ? {
+          facets: chip.list.facetIds
+            .map((id) => facetById.get(id))
+            .filter((facet): facet is EventFacetDef => facet !== undefined),
+          sort: { ...chip.list.sort },
+        }
+      : null,
   }));
   return [resetChip(config), ...authored];
 }
@@ -235,6 +253,28 @@ function toWireAction(action: MapChipActionSpec): MapChipAction {
     kind: "focus",
     camera: { ...action.camera },
     layerIds: [...action.layerIds],
+  };
+}
+
+function toWireList(list: MapChipSpec["list"], lang: SupportedLang): MapChipList | null {
+  if (!list) return null;
+  return {
+    facets: list.facets.map((facet) => ({
+      id: facet.id,
+      label: pick(facet.label, lang) ?? facet.id,
+      select: facet.select,
+      options: facet.options.map((option) => ({
+        id: option.id,
+        label: pick(option.label, lang) ?? option.id,
+        window: option.window
+          ? {
+              startAt: option.window.from.toISOString(),
+              endAt: option.window.until.toISOString(),
+            }
+          : null,
+      })),
+    })),
+    sort: { ...list.sort },
   };
 }
 
@@ -259,5 +299,6 @@ export function getChips(lang: SupportedLang, event: EventMapConfig | null): Map
     icon: { kind: "emoji", emoji: spec.emoji },
     action: toWireAction(spec.action),
     isReset: spec.isReset,
+    list: toWireList(spec.list, lang),
   }));
 }

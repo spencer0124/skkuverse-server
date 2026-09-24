@@ -558,6 +558,59 @@ function asDetail(raw, where, errors) {
   };
 }
 
+/**
+ * `facets`: tag values per list facet — `{ "org": ["council"] }`. Shape only:
+ * which facet ids and option ids exist is the layer set config's business, and
+ * the test over the committed sheet checks this file against it
+ * (`map-places-import.test.ts`). The server drops, and logs, anything the
+ * config does not offer.
+ *
+ * Absent means `{}`, stated rather than omitted, so the importer's `$set`
+ * clears a tag that was removed from the sheet.
+ */
+function asFacets(value, where, errors) {
+  if (value === undefined || value === null) return {};
+  if (typeof value !== "object" || Array.isArray(value)) {
+    errors.push(`${where} must be an object of facet id → option ids`);
+    return {};
+  }
+  const out = {};
+  for (const [key, list] of Object.entries(value)) {
+    if (!Array.isArray(list) || list.length === 0) {
+      errors.push(`${where}.${key} must be a non-empty array of option ids`);
+      continue;
+    }
+    if (list.some((v) => typeof v !== "string" || v.trim() === "")) {
+      errors.push(`${where}.${key} must hold only non-empty strings`);
+      continue;
+    }
+    if (new Set(list).size !== list.length) {
+      errors.push(`${where}.${key} repeats an option id`);
+      continue;
+    }
+    out[key] = [...list];
+  }
+  return out;
+}
+
+/** `orderByOption`: `{ "day1": 3 }`, option id → finite number. Absent means `{}`. */
+function asOrderByOption(value, where, errors) {
+  if (value === undefined || value === null) return {};
+  if (typeof value !== "object" || Array.isArray(value)) {
+    errors.push(`${where} must be an object of option id → number`);
+    return {};
+  }
+  const out = {};
+  for (const [key, n] of Object.entries(value)) {
+    if (typeof n !== "number" || !Number.isFinite(n)) {
+      errors.push(`${where}.${key} must be a finite number`);
+      continue;
+    }
+    out[key] = n;
+  }
+  return out;
+}
+
 function asPlace(raw, i, ctx, errors) {
   // Anything this place contributes lands here first, so a place with ANY
   // problem can be excluded whole. Pushing straight into `errors` and returning
@@ -642,6 +695,8 @@ function asPlace(raw, i, ctx, errors) {
     raw.detail === undefined || raw.detail === null
       ? null
       : asDetail(raw.detail, `${where2}.detail`, own);
+  const facets = asFacets(raw.facets, `${where2}.facets`, own);
+  const orderByOption = asOrderByOption(raw.orderByOption, `${where2}.orderByOption`, own);
 
   // ONE verdict per place. A document that failed any rule is not returned, so
   // `docs.length` is the number of places that would actually be written.
@@ -662,6 +717,8 @@ function asPlace(raw, i, ctx, errors) {
     fields,
     actions,
     order: raw.order,
+    facets,
+    orderByOption,
     detail,
     updatedAt: new Date(),
   };

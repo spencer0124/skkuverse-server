@@ -2,22 +2,28 @@
   "layerSetId": "eskara-2026",
   "campus": "nsc",
   "_readme": [
-    "THE FESTIVAL RUNS 2026-10-01 AND 10-02. Everything in this file is real 2026",
-    "data EXCEPT ONE MOCK: `daybooth-01` (부스), a name from the 2025 ESKARA",
-    "line-up (the Notion archive). It runs on 2026-10-03 ONLY, so it is known by",
-    "its date alone and no real place shares its day. Replace it the moment the",
-    "2026 부스 line-up arrives; the importer is unchanged. 공연 has no place at",
-    "all until the council sends one.",
+    "THE FESTIVAL RUNS 2026-10-01 AND 10-02, and everything in this file is real",
+    "2026 data. 부스 and 공연 have no place at all until the council sends them.",
     "",
-    "The mocks used to be the whole 2025 line-up: 22 places, 19 of them on 8/27-28",
-    "placeholder dates. The app has no festival-dates setting: it builds its",
-    "calendar from the start date of every window served, and a place's N일차 is",
-    "that date's position in it. The two stray days made the calendar four days",
-    "long and every real 10/1 place read 3일차. On 2026-09-23 they were cut to this",
-    "one. Its 10/3 still adds a THIRD day, so until it goes a place open 10/1 and",
-    "10/2 reads 1·2일차, not 양일 (the app says 양일 only when the calendar is",
-    "exactly two days long), and the mock reads 3일차. A test pins every window to",
-    "10/1-10/2 and 10/3 to the mock.",
+    "WHICH DAY A PLACE IS ON IS NOT WRITTEN HERE. The list's 1일차 / 2일차 tabs are",
+    "defined once, as absolute instants, in the layer set config",
+    "(src/map/config/eskara-2026.json, `facets` → `day`), and the server puts a",
+    "place in a day when one of its `hours` windows STARTS inside it. A pub open",
+    "both nights is in both tabs because it has two windows. A test fails on an",
+    "authored `facets.day` (and the server ignores one); only `tag` facets are",
+    "written here — today that is",
+    "`facets.org` on a 부스, `[\"council\"]` (총학생회) or `[\"club\"]` (학생단체).",
+    "",
+    "A 부스 also carries `orderByOption` — `{\"day1\": 3, \"day2\": 11}` — because",
+    "the council orders booths separately for each day; `order` is still required",
+    "and is what every other list sorts by. 푸드트럭 sort by title (가나다), so their",
+    "`order` decides only a pin collision.",
+    "",
+    "Until 2026-09-24 the app inferred the days from the dates in this file, so a",
+    "single stray date renumbered every place; the one mock booth (`daybooth-01`,",
+    "10/3) made every two-day place read 1·2일차 instead of 양일 for exactly that",
+    "reason. It was removed when the",
+    "days moved into the config. A test pins every window to a configured day.",
     "",
     "THE FACILITY BLOCK IS REAL 2026 DATA. The nine 화장실 and the one 야간 자인",
     "셔틀 대기 point were surveyed by the 총학생회 and handed over on 2026-09-19;",
@@ -1215,37 +1221,6 @@
         ]
       },
       "order": 36
-    },
-    {
-      "id": "daybooth-01",
-      "category": "booth",
-      "lat": 37.295473,
-      "lng": 126.971096,
-      "title": "ESKARA 부스전 운영 본부",
-      "subtitle": "도장판 교환 · 리워드",
-      "hours": [
-        {
-          "startAt": "2026-10-03T11:00:00+09:00",
-          "endAt": "2026-10-03T18:00:00+09:00"
-        }
-      ],
-      "actions": [
-        {
-          "id": "entry",
-          "label": "입장 안내",
-          "actionType": "webview",
-          "actionValue": "/eskara/entry",
-          "style": "primary"
-        },
-        {
-          "id": "reward",
-          "label": "리워드 안내",
-          "actionType": "content",
-          "actionValue": "부스 체험 후 도장을 모아 오세요.\n\n도장 4개 — 추첨 볼 1개\n도장 5개 — 추첨 볼 1개 + ESKARA 한정판 키링\n도장 6개 이상 — 추첨 볼 1개 + 키링 + 룰렛 기회",
-          "style": "secondary"
-        }
-      ],
-      "order": 50
     },
     {
       "id": "bar-72min-sogaeting",

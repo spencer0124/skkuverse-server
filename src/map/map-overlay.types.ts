@@ -170,6 +170,23 @@ export interface OverlayBase {
    */
   order: number;
   /**
+   * Which option of each list facet this overlay belongs to, keyed by facet id —
+   * `{ day: ["day1", "day2"], org: ["council"] }`. Every facet of the live
+   * layer set has a key, with `[]` where the overlay is in no option, so a
+   * missing key never has to be read as a filter answer. `{}` off-festival and
+   * on every campus overlay.
+   *
+   * Decided by the server, including the day an opening window falls on, so
+   * the client matches ids against `MapChip.list` and does no date arithmetic.
+   */
+  facets: Record<string, string[]>;
+  /**
+   * The sort position within one facet option, keyed by option id — a booth's
+   * running order on each day. Read only by a list whose sort is scoped to that
+   * option's facet, falling back to `order`. `{}` when none was authored.
+   */
+  orderByOption: Record<string, number>;
+  /**
    * What a tap opens, or `null` for an overlay that is inert.
    *
    * `null` is how background geometry is expressed — a 통제 구간 outline that is

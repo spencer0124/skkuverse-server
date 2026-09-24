@@ -189,4 +189,60 @@ describe("GET /map/config (real MapService)", () => {
       ),
     ).toHaveLength(0);
   });
+  it("serves each list's facets and sort, labels in the request's language", async () => {
+    mockFindActiveActivation.mockResolvedValue({
+      _id: "eskara-2026",
+    } as Awaited<ReturnType<typeof findActiveActivation>>);
+
+    const chipsIn = async (lang: string) =>
+      (await request(httpServer).get("/map/config").set("Accept-Language", lang)).body.data
+        .chips as Array<{ id: string; list: any }>;
+    const byId = (chips: Array<{ id: string; list: any }>, id: string) =>
+      chips.find((c) => c.id === id)!;
+
+    const ko = await chipsIn("ko");
+    const booth = byId(ko, "eskara26_view_booth").list;
+    expect(booth).toEqual({
+      facets: [
+        {
+          id: "day",
+          label: "일자",
+          select: "required",
+          options: [
+            {
+              id: "day1",
+              label: "1일차",
+              window: { startAt: "2026-09-30T21:00:00.000Z", endAt: "2026-10-01T21:00:00.000Z" },
+            },
+            {
+              id: "day2",
+              label: "2일차",
+              window: { startAt: "2026-10-01T21:00:00.000Z", endAt: "2026-10-02T21:00:00.000Z" },
+            },
+          ],
+        },
+        {
+          id: "org",
+          label: "운영",
+          select: "optional",
+          options: [
+            { id: "council", label: "총학생회", window: null },
+            { id: "club", label: "학생단체", window: null },
+          ],
+        },
+      ],
+      sort: { key: "order", scopeFacetId: "day" },
+    });
+    expect(byId(ko, "eskara26_view_food").list.sort).toEqual({ key: "title", scopeFacetId: null });
+    expect(byId(ko, "eskara26_view_bar").list.facets.map((f: { id: string }) => f.id)).toEqual(["day"]);
+
+    // `null`, not absent: the reset chip lists everything, and so does a chip
+    // with no authored list.
+    expect(byId(ko, "eskara-2026_all").list).toBeNull();
+    expect(byId(ko, "eskara26_view_facility").list).toBeNull();
+
+    const en = await chipsIn("en");
+    expect(byId(en, "eskara26_view_booth").list.facets[0].options[0].label).toBe("Day 1");
+    expect(byId(en, "eskara26_view_booth").list.facets[1].options[1].label).toBe("Student groups");
+  });
 });

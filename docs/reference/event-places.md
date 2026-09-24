@@ -165,6 +165,20 @@ One file per layer set: `scripts/data/<layerSetId>-places.json`.
 - **A window crossing midnight** is written with the next day's date — a stall open 18:00 to 00:00
   ends at `00:00` on the following morning, as the 2025 주점 did.
 - **`order` has no default.** A silent `0` would make list order arbitrary while looking deliberate.
+- **Which day a place is on is never written.** The list's 1일차 / 2일차 tabs are the layer set
+  config's `day` facet, and the server puts a place in a day when one of its `hours` windows starts
+  inside it ([map-overlays-api.md §8.8](map-overlays-api.md)). A place's windows must each start
+  inside a configured day, or it appears in no day tab; a test over the committed sheet enforces
+  that.
+- **`facets` carries the `tag` filters**, as option ids per facet: `"facets": { "org": ["council"] }`
+  (총학생회) or `["club"]` (학생단체) on a 부스. The reader checks only the shape. A test over the
+  committed sheet checks it against the config: every booth tagged exactly once with an offered
+  value, and no `hours` facet authored. The server drops, and logs, a value the config does not
+  offer.
+- **`orderByOption` is a per-option `order`**, for a list the council orders separately per day:
+  `"orderByOption": { "day1": 3, "day2": 11 }`. `order` is still required, because it is the
+  fallback and the pin tiebreak. A 부스 needs an entry for every day it is on; the same test
+  enforces it.
 - **A webview action stays root-relative.** Resolving it needs `WEBVIEW_ORIGIN`, which is server
   config; an importer holding its own copy would disagree with the server the moment it changed. The
   projection resolves at serve time, and drops a button it cannot resolve.

@@ -76,6 +76,8 @@ on.
 | `fields` | `{ label: I18nWire; value: I18nWire }[]` | Card rows in authored order, each carrying its own label. Empty for a building |
 | `actions` | `MarkerAction[]` | Sheet buttons in authored order. Empty for a building |
 | `order` | `number` | Author's sort position, and the last tiebreak in a coordinate collision. Lower wins |
+| `facets` | `Record<string, string[]>` | The list-facet options this overlay is in, keyed by facet id — `{ "day": ["day1", "day2"], "org": ["council"] }`. Every facet of the live layer set has a key, `[]` where the overlay is in none. `{}` on every campus overlay. See §8.8 |
+| `orderByOption` | `Record<string, number>` | Sort position inside one facet option — a booth's running order per day. Read only by a list whose sort is scoped to that facet; `{}` when none was authored. See §8.8 |
 | `pinPriority` | `number` | **`kind: "marker"` only.** Second step of the collision ladder, from the layer set's category table. Higher wins. `0` for a building |
 | `tap` | `MarkerTap \| null` | What a tap resolves to, or `null` for a backdrop — see §2.5 |
 
@@ -309,8 +311,8 @@ everything the client needs to disambiguate. The client keeps one pin per coordi
 
 **Openness comes first, and the ordering is load-bearing rather than arbitrary.** A coordinate is
 shared for exactly one reason on this map: a spot is used by different occupants at different times.
-The west strip is booths from 11:00 and bars from 18:00, and `daybooth-01` shares
-`126.971096, 37.295473` with two bars precisely because it is the same stall re-striped at dusk. Only
+The west strip was booths from 11:00 and bars from 18:00, and the mock `daybooth-01` shared
+`126.971096, 37.295473` with two bars precisely because it was the same stall re-striped at dusk. Only
 step 1 knows that. With `pinPriority` first, the operations desk would spend its entire 11:00–18:00
 window hidden behind a bar that is shut, because `bar` outranks `booth` on a number that cannot see
 the clock.
@@ -943,6 +945,7 @@ interface MapChip {
   icon: { kind: "emoji"; emoji: string } | null;
   action: MapChipAction;
   isReset: boolean;                               // true on exactly the synthesised chip
+  list: MapChipList | null;                       // the list this chip opens — §8.8
 }
 ```
 
@@ -1114,6 +1117,73 @@ that adding it stays additive:
 `origin` is on the wire rather than fixed in the client because one chip can reasonably mean "near
 me" and another "near what I am looking at", and only the server knows which. See §9.6 for the client
 constraint it will run into.
+
+### 8.8 Lists — facets and sort
+
+The app lists places while a chip is narrowed, so a list's filters and sort ride on its **chip**
+as `list`. `null` means an unfiltered list in `order`: the reset chip, and any chip a festival
+authored no list for.
+
+```ts
+interface MapChipList {
+  facets: {
+    id: string;
+    label: string;                                 // pick(label, lang)
+    select: "required" | "optional";
+    options: {
+      id: string;
+      label: string;
+      window: { startAt: string; endAt: string } | null;   // hours facets only
+    }[];
+  }[];
+  sort:
+    | { key: "order"; scopeFacetId: string | null }
+    | { key: "title"; scopeFacetId: null };
+}
+```
+
+**A facet is defined once per festival and chosen per list.** "1일차 / 2일차" means the same thing
+for booths, pubs and trucks, so the layer set config holds one `day` facet and each chip's `list`
+names the facets it shows and how it sorts. ESKARA 2026:
+
+| Chip | Facets | Sort |
+| --- | --- | --- |
+| 부스 | `day`, `org` (총학생회 / 학생단체) | `order` scoped to `day` — the council orders booths per day |
+| 주점 | `day` | `order` |
+| 푸드트럭 | `day` | `title` — 가나다 |
+
+**The server decides membership; the client matches ids.** Each overlay carries `facets` (§2), so
+the client never does date arithmetic:
+
+- An `hours` facet's option holds a place when one of its windows **starts** inside the option's
+  window. Starting, not overlapping, so a pub closing past the cut-over stays on the night it
+  opened; a pub open both nights has two windows and is in both days. `hours: []` is always open,
+  so it is in every option. The option windows are absolute instants in the config, so the server
+  compares instants with no timezone arithmetic (§3).
+- A `tag` facet's option holds a place when the place authored it under `facets.<id>`
+  ([event-places.md §5](event-places.md)). A value the config does not offer is dropped from the
+  wire and logged.
+
+**The client's rules:**
+
+- `required`: exactly one option is selected, shown as tabs. It opens on the option whose `window`
+  contains now, otherwise the first.
+- `optional`: zero or one is selected, shown as toggles. None means every place.
+- **Filter.** Keep an overlay when, for every facet with a selection, `overlay.facets[facet.id]`
+  includes the selected option id.
+- **Sort,** then by `id`:
+  - `order`: `overlay.orderByOption[<selected option of scopeFacetId>] ?? overlay.order`, ascending.
+    With `scopeFacetId: null` it is just `order`.
+  - `title`: `overlay.text.ko` in code-point order. Hangul syllables are encoded in 가나다 order, so
+    this needs no `Intl`.
+
+Option ids are unique across the whole config, not just within a facet, so an `orderByOption` key
+names one option without a facet prefix. A sort scope must be a `required` facet in the same list,
+so there is always a selected option to read an order for. Both rules are enforced at config load
+(§8.6).
+
+Everything here is additive. An app that predates it drops `list`, `facets` and `orderByOption` in
+its parsers and keeps listing places unfiltered in `order`.
 
 ## 9. Known gaps
 
@@ -1311,6 +1381,8 @@ shape §4.0 exists to avoid — to buy a rollout ordering that a JS-only OTA can
 | Festival layers, chips, labels, colours, camera, category → layer table | `src/map/config/<layerSetId>.json` |
 | Category → presentation resolver (both producers) | `presentationFor` in `src/map/map-layerset.types.ts` |
 | `DailyWindow`, `LayerDefaultVisibility`, and why this axis is wall-clock | `src/map/map-layerset.types.ts` |
+| List facets and sort (`EventFacetDef`, `EventChipListDef`), and their wire form (`MapChipList`) | `src/map/map-layerset.types.ts`, `src/map/map-chip.types.ts` |
+| Facet membership per overlay (`facetsOf`) | `src/map/map-event-overlays.data.ts` |
 | HTTP + `Cache-Control` | `src/map/controllers/map-config.controller.ts`, `src/map/controllers/map-overlays.controller.ts` |
 | Module wiring, rate limit, endpoint inventory | `src/map/map.module.ts` |
 | Campus labels | `src/infra/i18n.ts` (`map.campus.*`) — layer and chip labels are inline `{ko, en?, zh?}` on their specs, resolved with `pick()` from the same module |

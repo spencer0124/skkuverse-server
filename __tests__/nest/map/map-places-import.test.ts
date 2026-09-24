@@ -18,6 +18,12 @@ import path from "path";
 // is a require rather than an import.
 const { parsePlacesFile } = require("../../../scripts/lib/map-places-file");
 
+import { getLayerSetConfig } from "../../../src/map/map-layerset.config";
+import { presentationFor } from "../../../src/map/map-layerset.types";
+
+const CONFIG = getLayerSetConfig("eskara-2026")!.config!;
+const DAY_FACET = CONFIG.facets.find((f) => f.id === "day")!;
+
 const LAYER_SET_ID = "eskara-2026";
 const REAL_FILE = path.join(__dirname, "../../../scripts/data/eskara-2026-places.json");
 
@@ -102,33 +108,21 @@ describe("parsePlacesFile — the committed sheet", () => {
     expect(always.length).toBeGreaterThan(0);
   });
 
-  it("puts every window on a festival day, and 10/3 on the mock alone", () => {
-    // The app has no festival-dates setting. It builds its calendar from the
-    // start date of every window it is served, and a place's N일차 is that
-    // date's position in it — so one stray date shifts the label of EVERY
-    // place. The 2025 line-up on 8/27-28 placeholder dates did exactly that,
-    // and every real 10/1 place read 3일차.
-    //
-    // The one mock runs on 10/3 alone, so it is known by its date. That still
-    // makes the calendar three days long; the day it goes, remove 10/3 here.
-    const FESTIVAL_DAYS = ["2026-10-01", "2026-10-02"];
-    const MOCK_DAY = "2026-10-03";
-    const MOCKS = [`${LAYER_SET_ID}-daybooth-01`];
-    // The date a window counts toward is its START's KST date, as in the app.
-    const kstDate = (t: Date) => new Date(t.getTime() + 9 * 3600_000).toISOString().slice(0, 10);
-
+  it("starts every window inside a configured festival day", () => {
+    // The days are the layer set config's `day` facet, not the dates this file
+    // happens to hold. A window starting outside every day would put its place
+    // in no day tab — served, drawn, and absent from every list the council
+    // asked for. That is what the old 10/3 mock was, and why it went.
+    const days = DAY_FACET.options.map((o) => o.window!);
     const strays: string[] = [];
     for (const d of docs) {
-      const allowed = MOCKS.includes(d._id) ? [MOCK_DAY] : FESTIVAL_DAYS;
       for (const w of d.hours as { startAt: Date }[]) {
-        if (!allowed.includes(kstDate(w.startAt))) strays.push(`${d._id} @ ${kstDate(w.startAt)}`);
+        if (!days.some((day) => w.startAt >= day.from && w.startAt < day.until)) {
+          strays.push(`${d._id} @ ${w.startAt.toISOString()}`);
+        }
       }
     }
     expect(strays).toEqual([]);
-
-    // Pin the list to the file, so a mock removed from the sheet is removed here.
-    const ids = docs.map((d: { _id: string }) => d._id);
-    expect(MOCKS.filter((id) => !ids.includes(id))).toEqual([]);
   });
 
   it("never puts two places with overlapping hours on one coordinate", () => {
@@ -526,5 +520,143 @@ describe("parsePlacesFile — pasted geometry", () => {
 
     expect(errors).toEqual([]);
     expect(docs[0].location.coordinates[0]).toEqual(backwards);
+  });
+});
+
+/**
+ * The sheet against the layer set config's list facets — the rules that make
+ * the council's filters answer correctly, checked here because the importer is
+ * config-agnostic and the server only drops, and logs, what does not fit.
+ */
+describe("parsePlacesFile — the committed sheet against the list facets", () => {
+  const { docs } = parsePlacesFile(fs.readFileSync(REAL_FILE, "utf8"), {
+    layerSetId: LAYER_SET_ID,
+  });
+  type Doc = {
+    _id: string;
+    category: string;
+    hours: { startAt: Date }[];
+    facets: Record<string, string[]>;
+    orderByOption: Record<string, number>;
+  };
+  const facetById = new Map(CONFIG.facets.map((f) => [f.id, f]));
+  const listChips = CONFIG.chips.filter((c) => c.list);
+  /** The places a chip's list shows: those whose category lands on its layers. */
+  const placesOf = (layerIds: string[]): Doc[] =>
+    (docs as Doc[]).filter((d) => layerIds.includes(presentationFor(CONFIG, d.category).layerId));
+  const daysOf = (d: Doc) =>
+    d.hours.length === 0
+      ? DAY_FACET.options.map((o) => o.id)
+      : DAY_FACET.options
+          .filter((o) => d.hours.some((w) => w.startAt >= o.window!.from && w.startAt < o.window!.until))
+          .map((o) => o.id);
+
+  it("ships lists for 주점, 부스 and 푸드트럭", () => {
+    expect(listChips.map((c) => c.id).sort()).toEqual([
+      "eskara26_view_bar",
+      "eskara26_view_booth",
+      "eskara26_view_food",
+    ]);
+  });
+
+  it("gives every listed place at least one option of every required facet", () => {
+    // A place in no day tab is in no tab of a list that always has one selected.
+    const missing: string[] = [];
+    for (const chip of listChips) {
+      for (const d of placesOf(chip.layerIds)) {
+        for (const id of chip.list!.facetIds) {
+          const facet = facetById.get(id)!;
+          if (facet.select !== "required") continue;
+          const held = facet.source === "hours" ? daysOf(d) : (d.facets[id] ?? []);
+          if (held.length === 0) missing.push(`${chip.id}: ${d._id} has no ${id}`);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+
+  it("gives every place of a day-ordered list an order for each day it is on", () => {
+    // Otherwise it falls back to `order` and lands among the council's running
+    // order by accident.
+    const missing: string[] = [];
+    for (const chip of listChips) {
+      const scope = chip.list!.sort.scopeFacetId;
+      if (scope === null) continue;
+      expect(scope).toBe("day");
+      for (const d of placesOf(chip.layerIds)) {
+        for (const day of daysOf(d)) {
+          if (!Object.hasOwn(d.orderByOption, day)) missing.push(`${d._id} has no orderByOption.${day}`);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+
+  it("tags every place of a list with a tag facet exactly once, with an offered value", () => {
+    // An untagged booth vanishes the moment someone filters on 총학생회 or
+    // 학생단체, with nothing saying why.
+    const wrong: string[] = [];
+    for (const chip of listChips) {
+      for (const id of chip.list!.facetIds) {
+        const facet = facetById.get(id)!;
+        if (facet.source !== "tag") continue;
+        const offered = new Set(facet.options.map((o) => o.id));
+        for (const d of placesOf(chip.layerIds)) {
+          const values = d.facets[id] ?? [];
+          if (values.length !== 1 || !offered.has(values[0]!)) {
+            wrong.push(`${d._id}: facets.${id} = ${JSON.stringify(values)}`);
+          }
+        }
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  it("authors only tag facets, and only option ids the config offers", () => {
+    const wrong: string[] = [];
+    const optionIds = new Set(CONFIG.facets.flatMap((f) => f.options.map((o) => o.id)));
+    for (const d of docs as Doc[]) {
+      for (const key of Object.keys(d.facets)) {
+        const facet = facetById.get(key);
+        if (!facet) wrong.push(`${d._id}: facets.${key} is not a facet`);
+        else if (facet.source !== "tag") wrong.push(`${d._id}: facets.${key} is derived from hours`);
+      }
+      for (const key of Object.keys(d.orderByOption)) {
+        if (!optionIds.has(key)) wrong.push(`${d._id}: orderByOption.${key} is not an option`);
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+});
+
+describe("parsePlacesFile — list facet keys", () => {
+  it("defaults both to stated emptiness, so an import clears a removed tag", () => {
+    const { docs } = parse();
+    expect(docs[0].facets).toEqual({});
+    expect(docs[0].orderByOption).toEqual({});
+  });
+
+  it("keeps authored tags and per-option orders", () => {
+    const { docs, errors } = parse({}, { facets: { org: ["council"] }, orderByOption: { day1: 3, day2: 11 } });
+    expect(errors).toEqual([]);
+    expect(docs[0].facets).toEqual({ org: ["council"] });
+    expect(docs[0].orderByOption).toEqual({ day1: 3, day2: 11 });
+  });
+
+  it("rejects a bare string where a list of option ids belongs", () => {
+    expect(soleError(parse({}, { facets: { org: "council" } }))).toMatch(
+      /facets\.org must be a non-empty array of option ids/,
+    );
+  });
+
+  it("rejects an empty or repeated tag list", () => {
+    expect(soleError(parse({}, { facets: { org: [] } }))).toMatch(/non-empty array/);
+    expect(soleError(parse({}, { facets: { org: ["club", "club"] } }))).toMatch(/repeats an option id/);
+  });
+
+  it("rejects a non-numeric per-option order rather than coercing it", () => {
+    expect(soleError(parse({}, { orderByOption: { day1: "3" } }))).toMatch(
+      /orderByOption\.day1 must be a finite number/,
+    );
   });
 });

@@ -626,3 +626,117 @@ describe("assertValidConfig — markerStyle, the HOW axis", () => {
     },
   );
 });
+
+describe("assertValidConfig — list facets, the FILTER axis", () => {
+  const chipById = (r: Record<string, any>, id: string) =>
+    r.chips.find((c: { id: string }) => c.id === id);
+
+  it("ships the council's three lists: days everywhere, org on booths, per-day booth order, 가나다 trucks", () => {
+    const config = assertValidConfig(raw());
+    const listOf = (id: string) => config.chips.find((c) => c.id === id)!.list;
+    expect(listOf("eskara26_view_booth")).toEqual({
+      facetIds: ["day", "org"],
+      sort: { key: "order", scopeFacetId: "day" },
+    });
+    expect(listOf("eskara26_view_bar")).toEqual({
+      facetIds: ["day"],
+      sort: { key: "order", scopeFacetId: null },
+    });
+    expect(listOf("eskara26_view_food")).toEqual({
+      facetIds: ["day"],
+      sort: { key: "title", scopeFacetId: null },
+    });
+  });
+
+  it("parses day bounds as instants and keeps tag options windowless", () => {
+    const config = assertValidConfig(raw());
+    const day = config.facets.find((f) => f.id === "day")!;
+    expect(day.options[0]!.window).toEqual({
+      from: new Date("2026-09-30T21:00:00.000Z"),
+      until: new Date("2026-10-01T21:00:00.000Z"),
+    });
+    const org = config.facets.find((f) => f.id === "org")!;
+    expect(org.options.every((o) => o.window === null)).toBe(true);
+  });
+
+  it("requires the facets key — [] is how a festival says it has none", () => {
+    const r = raw();
+    delete r.facets;
+    expect(() => assertValidConfig(r)).toThrow(/config\.facets must be an array/);
+    r.facets = [];
+    for (const chip of r.chips) delete chip.list;
+    expect(() => assertValidConfig(r)).not.toThrow();
+  });
+
+  it("rejects duplicate facet ids", () => {
+    const r = raw();
+    r.facets.push({ ...r.facets[1], options: [{ id: "x", label: { ko: "x" } }] });
+    expect(() => assertValidConfig(r)).toThrow(/config\.facets has a duplicate id "org"/);
+  });
+
+  it("rejects an option id reused in another facet — orderByOption keys must be unambiguous", () => {
+    const r = raw();
+    r.facets[1].options[0].id = "day1";
+    expect(() => assertValidConfig(r)).toThrow(/duplicate id "day1"/);
+  });
+
+  it("rejects overlapping day windows", () => {
+    const r = raw();
+    r.facets[0].options[1].from = "2026-10-02T05:00:00+09:00";
+    expect(() => assertValidConfig(r)).toThrow(/"day1" and "day2" overlap/);
+  });
+
+  it("rejects a bound without an explicit offset — it would depend on the host's zone", () => {
+    const r = raw();
+    r.facets[0].options[0].from = "2026-10-01T06:00:00";
+    expect(() => assertValidConfig(r)).toThrow(/must carry an explicit offset/);
+  });
+
+  it("rejects from not before until", () => {
+    const r = raw();
+    r.facets[0].options[0].until = r.facets[0].options[0].from;
+    expect(() => assertValidConfig(r)).toThrow(/from must be before until/);
+  });
+
+  it("rejects a window on a tag option, which nothing would read", () => {
+    const r = raw();
+    r.facets[1].options[0].from = "2026-10-01T06:00:00+09:00";
+    expect(() => assertValidConfig(r)).toThrow(/is a tag option and must not carry from\/until/);
+  });
+
+  it("rejects an unknown source or select rather than defaulting one", () => {
+    const r = raw();
+    r.facets[0].source = "date";
+    expect(() => assertValidConfig(r)).toThrow(/source must be one of \[hours, tag\]/);
+    const r2 = raw();
+    delete r2.facets[1].select;
+    expect(() => assertValidConfig(r2)).toThrow(/select must be one of \[required, optional\]/);
+  });
+
+  it("rejects a list naming a facet that does not exist", () => {
+    const r = raw();
+    chipById(r, "eskara26_view_bar").list.facetIds = ["day", "price"];
+    expect(() => assertValidConfig(r)).toThrow(/facetIds\[1\] "price" is not in config\.facets/);
+  });
+
+  it("rejects a sort scope the list does not show", () => {
+    const r = raw();
+    chipById(r, "eskara26_view_bar").list.sort.scopeFacetId = "org";
+    expect(() => assertValidConfig(r)).toThrow(/"org" is not one of this list's facetIds/);
+  });
+
+  it("rejects a sort scoped to an optional facet — with nothing selected there is no order to read", () => {
+    const r = raw();
+    chipById(r, "eskara26_view_booth").list.sort.scopeFacetId = "org";
+    expect(() => assertValidConfig(r)).toThrow(/must name a "required" facet/);
+  });
+
+  it("rejects a scoped title sort, and requires scopeFacetId to be written", () => {
+    const r = raw();
+    chipById(r, "eskara26_view_food").list.sort.scopeFacetId = "day";
+    expect(() => assertValidConfig(r)).toThrow(/must be null when key is "title"/);
+    const r2 = raw();
+    delete chipById(r2, "eskara26_view_bar").list.sort.scopeFacetId;
+    expect(() => assertValidConfig(r2)).toThrow(/scopeFacetId is required/);
+  });
+});

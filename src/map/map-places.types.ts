@@ -108,6 +108,14 @@ export interface MapPlaceDoc {
   /** Sort position, and the last tiebreak when two places share a coordinate. */
   order: number;
   /**
+   * Option ids per `tag`-sourced list facet — `{ org: ["council"] }`. Never an
+   * `hours` facet: a day is derived from `hours`, not authored twice. Absent on
+   * documents imported before list facets existed. See `EventFacetDef`.
+   */
+  facets?: Record<string, string[]>;
+  /** Per-option sort position — `{ day1: 3, day2: 11 }`. See `OverlayBase.orderByOption`. */
+  orderByOption?: Record<string, number>;
+  /**
    * What the sheet says beyond the pin — see `map-place-detail.types.ts`.
    * Served on its own route, never on the overlay.
    *

@@ -57,12 +57,12 @@ function collectionOf(docs: unknown[]) {
 }
 
 const DAY_1 = {
-  startAt: new Date("2026-08-27T09:00:00.000Z"),
-  endAt: new Date("2026-08-27T15:00:00.000Z"),
+  startAt: new Date("2026-10-01T09:00:00.000Z"),
+  endAt: new Date("2026-10-01T15:00:00.000Z"),
 };
 const DAY_2 = {
-  startAt: new Date("2026-08-28T09:00:00.000Z"),
-  endAt: new Date("2026-08-28T15:00:00.000Z"),
+  startAt: new Date("2026-10-02T09:00:00.000Z"),
+  endAt: new Date("2026-10-02T15:00:00.000Z"),
 };
 
 function place(over: Record<string, unknown> = {}) {
@@ -163,12 +163,15 @@ describe("getEventOverlays", () => {
       text: { ko: "우끼끼친", en: "Ukkikki" },
       subtitle: { ko: "생명공학대학 학생회", en: "생명공학대학 학생회" },
       hours: [
-        { startAt: "2026-08-27T09:00:00.000Z", endAt: "2026-08-27T15:00:00.000Z" },
-        { startAt: "2026-08-28T09:00:00.000Z", endAt: "2026-08-28T15:00:00.000Z" },
+        { startAt: "2026-10-01T09:00:00.000Z", endAt: "2026-10-01T15:00:00.000Z" },
+        { startAt: "2026-10-02T09:00:00.000Z", endAt: "2026-10-02T15:00:00.000Z" },
       ],
       fields: [],
       actions: [],
       order: 10,
+      // Every facet of the config is keyed, `[]` where the place is in none.
+      facets: { day: ["day1", "day2"], org: [] },
+      orderByOption: {},
       pinPriority: presentationFor(CONFIG, "booth").pinPriority,
       tap: { kind: "event", placeId: "eskara-2026-booth-01" },
     });
@@ -197,8 +200,8 @@ describe("getEventOverlays", () => {
     const { overlays: markers } = await getEventOverlays();
 
     expect(markers[0]!.hours).toEqual([
-      { startAt: "2026-08-27T09:00:00.000Z", endAt: "2026-08-27T15:00:00.000Z" },
-      { startAt: "2026-08-28T09:00:00.000Z", endAt: "2026-08-28T15:00:00.000Z" },
+      { startAt: "2026-10-01T09:00:00.000Z", endAt: "2026-10-01T15:00:00.000Z" },
+      { startAt: "2026-10-02T09:00:00.000Z", endAt: "2026-10-02T15:00:00.000Z" },
     ]);
   });
 
@@ -695,5 +698,96 @@ describe("getEventOverlays — zones and route lines", () => {
     expect(mockLogger.warn).toHaveBeenCalledWith(
       expect.stringContaining("not renderable"),
     );
+  });
+});
+
+describe("getEventOverlays — list facets", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockFindActiveActivation.mockResolvedValue({
+      _id: "eskara-2026",
+    } as Awaited<ReturnType<typeof findActiveActivation>>);
+  });
+
+  /** KST wall-clock → a window starting then, one hour long. */
+  const at = (kst: string) => {
+    const startAt = new Date(`${kst}+09:00`);
+    return { startAt, endAt: new Date(startAt.getTime() + 3_600_000) };
+  };
+
+  async function facetsFor(over: Record<string, unknown>) {
+    arrange([place(over)]);
+    const { overlays } = await getEventOverlays();
+    return overlays[0]!;
+  }
+
+  it("puts a one-night pub on its night only", async () => {
+    const o = await facetsFor({ hours: [at("2026-10-02T18:00:00")] });
+    expect(o.facets.day).toEqual(["day2"]);
+  });
+
+  it("puts a pub open both nights under both days — the council's 양일 rule", async () => {
+    const o = await facetsFor({ hours: [at("2026-10-01T18:00:00"), at("2026-10-02T18:00:00")] });
+    expect(o.facets.day).toEqual(["day1", "day2"]);
+  });
+
+  it("keeps a window running past midnight on the night it opened", async () => {
+    // 23:00 → 02:00 overlaps day2's window; only the START decides.
+    const o = await facetsFor({
+      hours: [{ startAt: new Date("2026-10-01T23:00:00+09:00"), endAt: new Date("2026-10-02T02:00:00+09:00") }],
+    });
+    expect(o.facets.day).toEqual(["day1"]);
+  });
+
+  it("treats each day's window as half-open at the cut-over", async () => {
+    expect((await facetsFor({ hours: [at("2026-10-02T05:59:59")] })).facets.day).toEqual(["day1"]);
+    clearEventOverlaysCache();
+    expect((await facetsFor({ hours: [at("2026-10-02T06:00:00")] })).facets.day).toEqual(["day2"]);
+  });
+
+  it("puts an always-open place in every day", async () => {
+    const o = await facetsFor({ hours: [] });
+    expect(o.facets.day).toEqual(["day1", "day2"]);
+  });
+
+  it("puts a place outside every day in none — still served, just in no day tab", async () => {
+    const o = await facetsFor({ hours: [at("2026-10-03T11:00:00")] });
+    expect(o.facets.day).toEqual([]);
+  });
+
+  it("carries an authored tag through, and keys every facet even when untagged", async () => {
+    expect((await facetsFor({ facets: { org: ["council"] } })).facets).toEqual({
+      day: ["day1", "day2"],
+      org: ["council"],
+    });
+    clearEventOverlaysCache();
+    expect((await facetsFor({})).facets.org).toEqual([]);
+  });
+
+  it("drops and logs a tag the config does not offer, keeping the rest", async () => {
+    const o = await facetsFor({ facets: { org: ["council", "sponsor", "council"], price: ["cheap"] } });
+    expect(o.facets.org).toEqual(["council"]);
+    expect(o.facets).not.toHaveProperty("price");
+    const [message] = mockLogger.warn.mock.calls.at(-1)!;
+    expect(message).toMatch(/facets\.org has no option "sponsor"/);
+    expect(message).toMatch(/facets\.price is not a facet/);
+  });
+
+  it("ignores a hand-authored day — the day comes from hours, never twice", async () => {
+    const o = await facetsFor({ hours: [at("2026-10-01T18:00:00")], facets: { day: ["day2"] } });
+    expect(o.facets.day).toEqual(["day1"]);
+    expect(mockLogger.warn.mock.calls.at(-1)![0]).toMatch(/facets\.day is derived from hours/);
+  });
+
+  it("carries orderByOption through, dropping keys that name no option and non-numbers", async () => {
+    const o = await facetsFor({ orderByOption: { day1: 3, day2: 11, day3: 1, org: 2, council: "x" } });
+    expect(o.orderByOption).toEqual({ day1: 3, day2: 11 });
+    expect(mockLogger.warn.mock.calls.at(-1)![0]).toMatch(/orderByOption\.day3/);
+  });
+
+  it("does not choke on a malformed facets value typed straight into Mongo", async () => {
+    const o = await facetsFor({ facets: { org: "council" }, orderByOption: [1, 2] });
+    expect(o.facets.org).toEqual([]);
+    expect(o.orderByOption).toEqual({});
   });
 });

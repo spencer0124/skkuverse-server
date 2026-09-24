@@ -151,6 +151,85 @@ export interface EventChipDef {
    * and a silent inheritance is precisely what a motion value may not have.
    */
   camera?: MapCamera;
+  /**
+   * The list this chip opens, and how it filters and sorts. Absent means the
+   * chip narrows the map and the app lists what it shows unfiltered, in `order`
+   * — what every chip meant before this existed.
+   */
+  list?: EventChipListDef;
+}
+
+/**
+ * One option of a list facet. `window` is present exactly when the facet is
+ * `hours`-sourced: it is the interval a place's window must START in for the
+ * place to count as open on this option.
+ *
+ * Absolute instants, not a calendar date. A "1일차" is not midnight to
+ * midnight — a pub opening 18:00 and closing 02:00 belongs to the night it
+ * opened — so the author picks the cut-over, and the server compares instants
+ * with no timezone arithmetic, keeping the invariant `OpeningWindow` states.
+ */
+export interface EventFacetOption {
+  id: string;
+  label: I18n;
+  window: { from: Date; until: Date } | null;
+}
+
+/**
+ * How a place's membership in a facet's options is decided.
+ *
+ *  - `hours`: derived from the place's own `hours`, never authored. A day is
+ *    already written there once per day, and a second spelling of it is the
+ *    `days: [1, 2]` key the importer rejects by name.
+ *  - `tag`: authored per place under `facets.<id>`, for what `hours` cannot
+ *    say — who runs a booth.
+ */
+export type EventFacetSource = "hours" | "tag";
+
+/**
+ * How many options of a facet the user holds at once.
+ *
+ *  - `required`: exactly one, as tabs. The app opens on the option whose window
+ *    contains now, else the first.
+ *  - `optional`: zero or one, as toggles. None selected means every place.
+ */
+export type EventFacetSelect = "required" | "optional";
+
+/**
+ * A filter axis, defined ONCE per festival and chosen by any list that wants
+ * it. "1일차 / 2일차" means the same thing for booths, pubs and trucks, so it
+ * has one definition; what varies per list is which axes it shows and how it
+ * sorts (`EventChipListDef`).
+ *
+ * Option ids are unique across the whole config, not just this facet, so a
+ * place's `orderByOption` key names one option without a facet prefix.
+ */
+export interface EventFacetDef {
+  id: string;
+  label: I18n;
+  source: EventFacetSource;
+  select: EventFacetSelect;
+  options: EventFacetOption[];
+}
+
+/**
+ * How a chip's list sorts. The tiebreak is always the overlay id.
+ *
+ *  - `order` with `scopeFacetId: null`: the place's `order`.
+ *  - `order` with a scope: the place's `orderByOption[<selected option of that
+ *    facet>]`, else its `order`. How booths get a separate running order per
+ *    day. The scope must be a `required` facet, so an option is always selected.
+ *  - `title`: the Korean title in code-point order, which is 가나다 order for
+ *    Hangul syllables. Never scoped.
+ */
+export type EventListSort =
+  | { key: "order"; scopeFacetId: string | null }
+  | { key: "title"; scopeFacetId: null };
+
+export interface EventChipListDef {
+  /** Facets shown, in display order. Every id names a `EventMapConfig.facets` entry. */
+  facetIds: string[];
+  sort: EventListSort;
 }
 
 /**
@@ -238,6 +317,8 @@ export interface EventMapConfig {
   camera: MapCamera;
   timezone: string;
   layers: EventLayerDef[];
+  /** The list filter axes chips choose from. Empty when no chip has a `list`. */
+  facets: EventFacetDef[];
   chips: EventChipDef[];
   itemDefaults: ItemDefaults;
 }

@@ -51,6 +51,7 @@ const RING: [number, number][] = [
 /** Two categories on ONE layer: one tappable, one a backdrop. */
 const CONFIG = {
   layerSetId: "test-set",
+  facets: [],
   itemDefaults: {
     byCategory: {
       zone: { layerId: "test_zones", pinPriority: 0, interactive: true },
