@@ -98,8 +98,12 @@
     "2026-09-24: THE COUNCIL ANSWERED, AND THE END HAS NO FIXED TIME. Distribution",
     "closes when the artist stage does, and the council announces it on its",
     "Instagram story. 22:00 stays as the window's ceiling because a window cannot",
-    "be open-ended, not because anyone confirmed it. The webview's 입장 팔찌 배부",
-    "page carries the council's sentence about the story; the map cannot.",
+    "be open-ended, not because anyone confirmed it. So each booth's sheet says",
+    "so right under 운영시간: a `detail` whose only block is a 운영 안내 `notice`",
+    "(the end varies; the council posts it on its Instagram story). The facts card",
+    "is always first and the body follows it, which is what puts the notice under",
+    "the hours row. `kind: etc` rather than `facility`, so a kind filter on 편의시설",
+    "never picks the booths up. The webview's 입장 팔찌 배부 page says the same.",
     "",
     "Distribution is 2일차 (10. 2.) ONLY — these booths do not run on 1일차 at",
     "all, and they only hand out wristbands. 짐 검사 is a separate booth at the",
@@ -2490,6 +2494,20 @@
           "endAt": "2026-10-02T22:00:00+09:00"
         }
       ],
+      "detail": {
+        "kind": "etc",
+        "blocks": [
+          {
+            "type": "notice",
+            "id": "closing",
+            "title": "운영 안내",
+            "items": [
+              "종료 시각은 아티스트 무대가 끝나는 시간에 따라 달라져요.",
+              "입장 팔찌 배부가 끝나면 총학생회 인스타그램 스토리로 알려 드려요."
+            ]
+          }
+        ]
+      },
       "order": 94
     },
     {
@@ -2516,6 +2534,20 @@
           "endAt": "2026-10-02T22:00:00+09:00"
         }
       ],
+      "detail": {
+        "kind": "etc",
+        "blocks": [
+          {
+            "type": "notice",
+            "id": "closing",
+            "title": "운영 안내",
+            "items": [
+              "종료 시각은 아티스트 무대가 끝나는 시간에 따라 달라져요.",
+              "입장 팔찌 배부가 끝나면 총학생회 인스타그램 스토리로 알려 드려요."
+            ]
+          }
+        ]
+      },
       "order": 95
     },
     {
@@ -2542,6 +2574,20 @@
           "endAt": "2026-10-02T22:00:00+09:00"
         }
       ],
+      "detail": {
+        "kind": "etc",
+        "blocks": [
+          {
+            "type": "notice",
+            "id": "closing",
+            "title": "운영 안내",
+            "items": [
+              "종료 시각은 아티스트 무대가 끝나는 시간에 따라 달라져요.",
+              "입장 팔찌 배부가 끝나면 총학생회 인스타그램 스토리로 알려 드려요."
+            ]
+          }
+        ]
+      },
       "order": 96
     }
   ]
