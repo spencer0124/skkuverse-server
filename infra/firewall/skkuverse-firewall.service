@@ -1,5 +1,5 @@
-# /etc/systemd/system/skkuverse-firewall.service — installed by
-# .github/workflows/deploy.yml from infra/firewall/skkuverse-firewall.service.
+# /etc/systemd/system/skkuverse-firewall.service — installed on every host by
+# .github/workflows/deploy-host.yml from infra/firewall/skkuverse-firewall.service.
 # Edit the repo copy; the next deploy overwrites this one.
 #
 # Re-applies infra/firewall/cloudflare-only.sh at boot, after
@@ -13,7 +13,8 @@
 #
 # Re-apply after a list change: `sudo systemctl restart skkuverse-firewall`.
 # Stopping the unit does NOT reopen the ports; `cloudflare-only.sh --undo` does.
-# The script path must match the deploy's DEPLOY_PATH.
+# The script path must match DEPLOY_PATH in deploy-host.yml
+# (deploy-workflow.test.ts checks it).
 [Unit]
 Description=Accept HTTP(S) only from Cloudflare (skkuverse)
 After=netfilter-persistent.service local-fs.target

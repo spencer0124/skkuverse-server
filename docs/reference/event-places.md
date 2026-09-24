@@ -3,7 +3,7 @@ title: Event Places — Storage, Authoring and Operations
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-22
+last-updated: 2026-09-24
 audience: internal
 ---
 
@@ -170,15 +170,15 @@ One file per layer set: `scripts/data/<layerSetId>-places.json`.
   beside the map ([map-overlays-api.md §2.7](map-overlays-api.md)).
 - **Occupants with no fixed spot stack under a head.** When the council gives an area but no
   per-occupant positions, the occupants all take the area's one point, together with a head place
-  that names the area. The 2026 food trucks share 신관A 앞길 with `food-zone-pin`, and the area is
+  that names the area. The 2026 food trucks share the road in front of dormitory Shin-gwan A with `food-zone-pin`, and the area is
   drawn by the `food-zone` ring. Both categories carry `tapChip: eskara26_view_food`, so tapping
-  either runs the 푸드트럭 chip instead of opening a sheet. The head's category needs a higher `pinPriority` than the
+  either runs the food-truck chip instead of opening a sheet. The head's category needs a higher `pinPriority` than the
   occupants', and its `hours` must cover theirs. Then the map always draws the head, and each
   occupant stays reachable through its list row. The clash test allows a shared coordinate with
   overlapping hours only under such a head
   ([map-overlays-api.md §3.4](map-overlays-api.md)).
 - **A window crossing midnight** is written with the next day's date — a stall open 18:00 to 00:00
-  ends at `00:00` on the following morning, as the 2025 주점 did.
+  ends at `00:00` on the following morning, as the 2025 pubs did.
 - **`order` has no default.** A silent `0` would make list order arbitrary while looking deliberate.
 - **Which day a place is on is never written.** The list's 1일차 / 2일차 tabs are the layer set
   config's `day` facet, and the server puts a place in a day when one of its `hours` windows starts

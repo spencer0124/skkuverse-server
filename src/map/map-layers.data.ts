@@ -58,7 +58,7 @@ import type { I18n } from "../infra/types";
  * design token that resolves per theme; a hex from here cannot. Geometry is
  * theme-independent and belongs on the wire, colour that comes from a token
  * does not. The festival layers do send `color`, because a category colour
- * (주점 red, 먹거리 amber) is content rather than theme — and it is authored in
+ * (주점 red, 푸드트럭 amber) is content rather than theme — and it is authored in
  * the festival's config for exactly that reason.
  */
 export interface MapLayerStyle {

@@ -10,6 +10,9 @@
  * infra/cloudflare/ips-v{4,6}.txt) that the site includes; the deploy has to
  * install it before the site, or `nginx -t` meets an include with no target.
  *
+ * X-Served-By names the origin host on every response, so a response seen
+ * through the Cloudflare load balancer can be traced to the host that sent it.
+ *
  * The catch-all server is pinned at the end: without it, whichever site nginx
  * loads first answers every request for an unknown host or a bare IP.
  *
@@ -33,7 +36,7 @@ const directivesOf = (text: string) =>
 const directives = directivesOf(read("infra/nginx/api.skkuverse.com"));
 const realip = directivesOf(read("infra/nginx/cloudflare-realip.conf"));
 const catchall = directivesOf(read("infra/nginx/00-default-catchall"));
-const deploy = read(".github/workflows/deploy.yml");
+const deploy = read(".github/workflows/deploy-host.yml");
 
 const SNIPPET = "/etc/nginx/snippets/skkuverse-cloudflare-realip.conf";
 
@@ -99,6 +102,26 @@ describe("infra/nginx/api.skkuverse.com — upstream connections", () => {
   it("bounds how long a request may wait on a stuck replica", () => {
     expect(directives).toMatch(/^proxy_connect_timeout \d+s;$/m);
     expect(directives).toMatch(/^proxy_read_timeout \d+s;$/m);
+  });
+});
+
+describe("infra/nginx/api.skkuverse.com — origin identification", () => {
+  /** The directives of the `server { ... }` block that listens on 443. */
+  const httpsServer = (() => {
+    const blocks = directives.split(/^server \{$/m).slice(1);
+    const block = blocks.find((b) => /^listen 443 ssl;$/m.test(b));
+    expect(block).toBeDefined();
+    return block!;
+  })();
+
+  it("names the answering host on every response, errors included", () => {
+    expect(httpsServer).toMatch(/^add_header X-Served-By \$hostname always;$/m);
+  });
+
+  it("sets it at server level, where no location overrides it", () => {
+    // A location with an add_header of its own would drop every server-level
+    // one for its requests (nginx does not merge add_header across levels).
+    expect(directives.match(/^add_header /gm)).toHaveLength(1);
   });
 });
 

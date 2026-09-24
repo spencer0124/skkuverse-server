@@ -361,10 +361,17 @@ describe("assertValidConfig — identity and shape", () => {
     expect(() => assertValidConfig(config)).toThrow(/config.chips\[0\].layerIds must not be empty/);
   });
 
-  it("lets a single-layer chip omit its label, and requires one otherwise", () => {
+  it("refuses a label on a single-layer chip, and requires one otherwise", () => {
     const single = raw();
     delete single.chips[0].label;
     expect(() => assertValidConfig(single)).not.toThrow();
+
+    // The chip row and the filter sheet name one layer; a second copy of that
+    // name is how the 푸드트럭 chip came to sit over a 먹거리 layer.
+    single.chips[0].label = { ko: "먹거리" };
+    expect(() => assertValidConfig(single)).toThrow(
+      /config.chips\[0\].label must be omitted for a single-layer chip/,
+    );
 
     const multi = raw();
     multi.chips[0].layerIds = [multi.layers[0].id, multi.layers[1].id];

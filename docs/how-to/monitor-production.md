@@ -41,7 +41,8 @@ The expected services come from `docker compose config`, so adding a replica nee
 | A replica or the poller is unhealthy, stopped or missing | Healthchecks.io: failure body names it | Next heartbeat run, within about a minute plus the Docker healthcheck's own retries |
 | nginx or its upstreams fail on the host | Healthchecks.io: `nginx /health/ready: …` | Next heartbeat run |
 | Crawler, AI or OTA container restarting or unhealthy | Healthchecks.io: failure body names it | Next heartbeat run |
-| VM down, Docker hung, cron stopped, env file missing | Healthchecks.io: "down" (no ping) | Check period plus grace period |
+| A poller running on a `standby` host | Healthchecks.io: `poller: running on a standby host` | Next heartbeat run |
+| VM down, Docker hung, cron stopped, env file or host role file missing | Healthchecks.io: "down" (no ping) | Check period plus grace period |
 | Public URL down (DNS, Cloudflare, origin unreachable) | UptimeRobot | Up to one check interval |
 
 Period, grace and check intervals are set in each service's dashboard, not in this repo; see those for the current values.
@@ -74,7 +75,7 @@ This is one step of onboarding a new origin host; the full order (checkout, hear
    <deploy-checkout>/infra/monitoring/heartbeat.sh
    ```
 
-The cron file names one user and one checkout path. A host whose deploy user or checkout differs needs that line adjusted. The script also expects a container for **every** service in `docker-compose.yml`, the poller included, so a host that runs only api replicas reports the missing services as failures until the expected set is made per-host.
+The cron file names one user and one checkout path, the same on every host (the deploy installs it unchanged). The script expects a container for every service in `docker-compose.yml`, with one exception set by the host's role file `/etc/skkuverse/host.env`: on a `POLLER_ROLE=standby` host the poller is not expected, and a **running** poller there is reported as a failure ("poller: running on a standby host") — two pollers would poll every external API twice. A missing or invalid role file makes the script exit without pinging, like a missing `heartbeat.env`. Moving the poller between hosts: [fail-over-poller.md](fail-over-poller.md).
 
 ### Add a public URL to UptimeRobot
 
@@ -112,5 +113,6 @@ Neither test stops a container.
 
 - [infra/monitoring/heartbeat.sh](../../infra/monitoring/heartbeat.sh) — the checks, and why a broken setup never pings
 - [lock-origin-to-cloudflare.md](lock-origin-to-cloudflare.md) — the origin firewall, onboarding another origin host, and reaching a locked origin
-- [.github/workflows/deploy.yml](../../.github/workflows/deploy.yml) — installs the cron file
+- [.github/workflows/deploy-host.yml](../../.github/workflows/deploy-host.yml) — installs the cron file on every host
+- [fail-over-poller.md](fail-over-poller.md) — the host role file, and moving the poller
 - [docs/README.md](../README.md) — writing rules

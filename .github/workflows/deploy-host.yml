@@ -1,0 +1,207 @@
+name: Deploy one host
+
+# Deploys main to ONE origin host over SSH. Called by deploy.yml once per
+# host, one host at a time; it has no trigger of its own.
+#
+# Every host builds its own images from the checkout (no registry), so each
+# builds for its own architecture. The host's poller role comes from
+# /etc/skkuverse/host.env (infra/hosts/poller-role.sh):
+#
+#   active   everything below, poller included — exactly what a single-host
+#            deploy did before there was a second host;
+#   standby  the api replicas only. The poller is not built, started, checked
+#            or rolled back, and every `docker compose up` passes --no-deps so
+#            the replicas' `depends_on: poller` cannot start it.
+#
+# A missing or invalid role file aborts before the host changes.
+
+on:
+  workflow_call:
+    inputs:
+      host:
+        description: The host's name in deploy.yml (oracle, mnemosyne). Used in job names and messages only.
+        type: string
+        required: true
+    secrets:
+      VM_HOST:
+        required: true
+      VM_USER:
+        required: true
+      SSH_PRIVATE_KEY:
+        required: true
+
+env:
+  # The deploy checkout. Every host uses the same path and user, because
+  # infra/monitoring/skkuverse-heartbeat.cron and
+  # infra/firewall/skkuverse-firewall.service name it too (they are installed
+  # unchanged on every host). Not a secret: it is in those files anyway.
+  # deploy-workflow.test.ts requires all three to agree.
+  DEPLOY_PATH: /home/ubuntu/skkumap-server-express
+
+jobs:
+  deploy:
+    name: deploy ${{ inputs.host }}
+    runs-on: ubuntu-latest
+    steps:
+      # An unset repository secret reaches a called workflow as an empty
+      # string, not as an error. Stop here instead of letting ssh-action fail
+      # somewhere less obvious.
+      - name: Check the host's secrets are set
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOST_NAME: ${{ inputs.host }}
+        run: |
+          missing=""
+          [ -n "$VM_HOST" ] || missing="$missing VM_HOST"
+          [ -n "$VM_USER" ] || missing="$missing VM_USER"
+          [ -n "$SSH_PRIVATE_KEY" ] || missing="$missing SSH_PRIVATE_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::$HOST_NAME: empty secret(s):$missing — deploy.yml maps each to a repository secret; create it."
+            exit 1
+          fi
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd ${{ env.DEPLOY_PATH }}
+
+            PREV_COMMIT=$(git rev-parse HEAD)
+            git pull origin main
+
+            # --- Host role ---
+            # Read before anything on the host changes. poller-role.sh prints
+            # the reason when the file is missing or invalid.
+            if ! POLLER_ROLE=$(infra/hosts/poller-role.sh); then
+              echo "ERROR: no valid POLLER_ROLE in /etc/skkuverse/host.env — aborting deploy."
+              git checkout "$PREV_COMMIT"
+              exit 1
+            fi
+            echo "=== Deploying $(git rev-parse --short HEAD) to $(hostname), poller role: $POLLER_ROLE ==="
+
+            # Every api replica as service:port. Must match docker-compose.yml
+            # and the nginx upstream — replica-topology.test.ts checks all three.
+            REPLICAS="api-1:3001 api-2:3002 api-3:3003"
+            SERVICES=$(for r in $REPLICAS; do printf '%s ' "${r%%:*}"; done)
+
+            # What this host runs. A standby host runs the replicas only.
+            if [ "$POLLER_ROLE" = active ]; then
+              RUN_SERVICES="$SERVICES poller"
+            else
+              RUN_SERVICES="$SERVICES"
+              # A running poller here contradicts the role file: either the
+              # poller was moved without updating it, or the file is wrong.
+              # Either way a person decides — docs/how-to/fail-over-poller.md.
+              if ! RUNNING=$(docker compose ps --status running --services); then
+                echo "ERROR: docker compose ps failed — aborting deploy."
+                git checkout "$PREV_COMMIT"
+                exit 1
+              fi
+              if printf '%s\n' "$RUNNING" | grep -qx poller; then
+                echo "ERROR: the poller is running on this host, but host.env says POLLER_ROLE=standby — aborting deploy."
+                echo "       Fix whichever is wrong: docs/how-to/fail-over-poller.md."
+                git checkout "$PREV_COMMIT"
+                exit 1
+              fi
+            fi
+
+            # --- Nginx config ---
+            # Snapshot what is there now: if the new config fails `nginx -t`,
+            # it is put back, so a later reload (or a reboot) never meets a
+            # config nginx cannot load.
+            NGINX_BAK=$(mktemp -d)
+            sudo cp -a /etc/nginx/sites-available /etc/nginx/sites-enabled /etc/nginx/snippets "$NGINX_BAK/"
+
+            # The real-IP snippet goes in BEFORE the site that includes it.
+            sudo install -m 0644 infra/nginx/cloudflare-realip.conf /etc/nginx/snippets/skkuverse-cloudflare-realip.conf
+
+            # The catch-all server needs a certificate of its own (see
+            # infra/nginx/00-default-catchall). Generated once, self-signed for
+            # CN=invalid; nobody is meant to trust it, so it never needs renewal.
+            if ! sudo test -f /etc/ssl/skkuverse/catchall.pem; then
+              sudo install -d -m 0755 /etc/ssl/skkuverse
+              sudo openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj /CN=invalid \
+                -keyout /etc/ssl/skkuverse/catchall-key.pem -out /etc/ssl/skkuverse/catchall.pem
+              sudo chmod 0600 /etc/ssl/skkuverse/catchall-key.pem
+            fi
+
+            for site in api.skkuverse.com 00-default-catchall; do
+              sudo install -m 0644 "infra/nginx/$site" "/etc/nginx/sites-available/$site"
+              sudo ln -sf "/etc/nginx/sites-available/$site" /etc/nginx/sites-enabled/
+            done
+
+            if ! sudo nginx -t; then
+              echo "ERROR: nginx rejected the new config — restoring the previous one and aborting."
+              for d in sites-available sites-enabled snippets; do
+                sudo rm -rf "/etc/nginx/$d"
+                sudo cp -a "$NGINX_BAK/$d" /etc/nginx/
+              done
+              git checkout "$PREV_COMMIT"
+              exit 1
+            fi
+            sudo systemctl reload nginx
+            sudo rm -rf "$NGINX_BAK"
+
+            # Firewall unit (infra/firewall/). Installed only: enabling it,
+            # which locks 80/443 to Cloudflare, is a manual step —
+            # docs/how-to/lock-origin-to-cloudflare.md.
+            sudo install -m 0644 infra/firewall/skkuverse-firewall.service /etc/systemd/system/skkuverse-firewall.service
+            sudo systemctl daemon-reload
+
+            # Heartbeat cron (infra/monitoring/). It runs the script from this
+            # checkout. On a host without /etc/skkuverse/heartbeat.env it exits
+            # 1 without pinging, so installing it before onboarding is harmless.
+            sudo install -m 0644 infra/monitoring/skkuverse-heartbeat.cron /etc/cron.d/skkuverse-heartbeat
+
+            # Build new images, for the services this host runs.
+            docker compose build $RUN_SERVICES
+
+            # --- Pre-deploy config validation ---
+            # Dry-load src/infra/config.js inside the freshly-built image with the
+            # VM's .env (inherited via env_file in docker-compose.yml). If
+            # any required env var is missing, src/infra/config calls process.exit(1),
+            # this command returns non-zero, and we abort the deploy BEFORE
+            # touching running containers. Clean git revert — no crash loop,
+            # no rolling update, no rollback function needed.
+            echo "=== Pre-deploy config validation ==="
+            if ! docker compose run --rm --no-deps -T api-1 \
+                 node -e "require('./dist/src/infra/config'); console.log('config ok')"; then
+              echo "ERROR: production config validation failed — aborting deploy."
+              echo "       See the FATAL error above for the missing env var(s)."
+              git checkout "$PREV_COMMIT"
+              exit 1
+            fi
+
+            rollback() {
+              echo "Deployment failed — rolling back to $PREV_COMMIT"
+              git checkout "$PREV_COMMIT"
+              docker compose build $RUN_SERVICES
+              docker compose up -d --no-deps $RUN_SERVICES
+              sleep 15
+              curl -sf http://localhost:3001/health/ready || echo "WARNING: rollback also failed"
+            }
+
+            # Rolling update: one replica at a time, each healthy before the next
+            for r in $REPLICAS; do
+              svc="${r%%:*}"; port="${r##*:}"
+              docker compose up -d --no-deps "$svc"
+              HEALTHY=false
+              for i in $(seq 1 6); do sleep 5; curl -sf "http://localhost:$port/health/ready" && HEALTHY=true && break; done
+              if [ "$HEALTHY" = false ]; then rollback; exit 1; fi
+            done
+
+            # Update poller last (no downtime impact). Active host only.
+            if [ "$POLLER_ROLE" = active ]; then
+              docker compose up -d --no-deps poller
+              sleep 10
+              docker compose ps poller --format '{{.State}}' | grep -q running || { rollback; exit 1; }
+              docker compose logs poller --tail 5 | grep -q "MongoDB connected\|poller-only mode" || echo "WARNING: poller may not have initialized fully"
+            else
+              echo "Standby host: the poller is not deployed here."
+            fi

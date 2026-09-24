@@ -88,7 +88,7 @@ export type EventMarkerStyle = "placeDot" | "textLabel";
  *
  * Geometry (pin size, caption size) is NOT here: that is how a festival marker
  * is drawn, which is the map's business and the same for every festival. `color`
- * is content — a category colour (주점 red, 먹거리 amber) is a fact about the
+ * is content — a category colour (주점 red, 푸드트럭 amber) is a fact about the
  * event, not about the theme. `markerStyle` is the one drawing choice that is
  * content too, and it is narrow: pin or bare caption, nothing about size.
  */
@@ -128,9 +128,10 @@ export interface EventLayerDef {
  * `emoji` — is not authored; the server synthesises it from the layer list, so
  * it can never drift from it.
  *
- * `label` may be omitted for a single-layer chip, in which case the chip reads
- * as its layer does. A chip spanning several layers has no such default and
- * must say what it means.
+ * `label` is omitted for a single-layer chip, which reads as its layer does —
+ * the validator refuses one, so the chip row and the filter sheet cannot name
+ * the same layer two ways. A chip spanning several layers has no such default
+ * and must say what it means.
  */
 export interface EventChipDef {
   id: string;

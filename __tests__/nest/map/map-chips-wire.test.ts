@@ -134,9 +134,14 @@ describe("GET /map/config (real MapService)", () => {
       (c: { id: string }) => c.id === "eskara26_view_food",
     );
     // English, because the envelope is what varies on Accept-Language — and the
-    // chip's OWN label: the pill reads "Food trucks" where the layer toggle
-    // reads "Food", authored copy that a deploy must not quietly change.
+    // LAYER's label: a single-layer chip authors none, so the pill and the
+    // filter sheet read the same "Food trucks", authored copy that a deploy
+    // must not quietly change.
     expect(foodChip.label).toBe("Food trucks");
+    const foodLayer = res.body.data.layers.find(
+      (l: { id: string }) => l.id === "eskara26_food",
+    );
+    expect(foodLayer.label).toBe(foodChip.label);
     expect(foodChip.icon).toEqual({ kind: "emoji", emoji: "🚚" });
     expect(foodChip.action).toEqual({
       kind: "focus",
@@ -176,6 +181,13 @@ describe("GET /map/config (real MapService)", () => {
       kind: "scheduled",
       windows: [{ start: "18:00", end: "23:00" }],
     });
+    // The bar chip's label is the layer's plural, not the singular the chip
+    // used to author for itself.
+    const barChip = res.body.data.chips.find(
+      (c: { id: string }) => c.id === "eskara26_view_bar",
+    );
+    expect(barChip.label).toBe("Bars");
+    expect(barLayer.label).toBe("Bars");
 
     // No webview chip ships since 분실물 was removed, so there is no absolute
     // URL to assert end to end. The rule it used to prove — a relative string

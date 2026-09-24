@@ -1,13 +1,14 @@
-# /etc/cron.d/skkuverse-heartbeat — installed by .github/workflows/deploy.yml
-# from infra/monitoring/skkuverse-heartbeat.cron. Edit the repo copy; the
-# next deploy overwrites this one.
+# /etc/cron.d/skkuverse-heartbeat — installed on every host by
+# .github/workflows/deploy-host.yml from infra/monitoring/skkuverse-heartbeat.cron.
+# Edit the repo copy; the next deploy overwrites this one.
 #
 # Every minute, check this host's containers and nginx and ping
 # Healthchecks.io (infra/monitoring/heartbeat.sh; the ping URL lives in
 # /etc/skkuverse/heartbeat.env). Runs as ubuntu, which is in the docker
-# group, from the deploy checkout. The script path must match the deploy's
-# DEPLOY_PATH. `timeout` stops a hung Docker daemon from piling up runs — a
-# killed run sends no ping, which is itself the alert.
+# group, from the deploy checkout. The script path must match DEPLOY_PATH in
+# deploy-host.yml (deploy-workflow.test.ts checks it). `timeout` stops a hung
+# Docker daemon from piling up runs — a killed run sends no ping, which is
+# itself the alert.
 #
 # Output goes to syslog: journalctl -t skkuverse-heartbeat
 SHELL=/bin/bash

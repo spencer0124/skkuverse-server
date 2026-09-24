@@ -244,14 +244,20 @@ function asChip(value: unknown, where: string): EventChipDef {
     emoji: asString(raw.emoji, `${where}.emoji`),
     layerIds,
   };
-  if (raw.label !== undefined && raw.label !== null) {
-    chip.label = asI18n(raw.label, `${where}.label`);
-  } else if (layerIds.length !== 1) {
-    // A single-layer chip reads as its layer does; anything wider has no such
-    // default and must say what it means. Left absent rather than filled in
-    // from the layer, so the hash reflects what was authored.
+  // A single-layer chip reads as its layer does, and may not say otherwise: the
+  // same layer is named by the chip row and by the filter sheet, and two copies
+  // of one name drift (the 푸드트럭 chip over a 먹거리 layer, 2026-09-23). To
+  // rename it, rename the layer. Anything wider has no such default and must
+  // say what it means. Left absent rather than filled in from the layer, so the
+  // hash reflects what was authored.
+  const hasLabel = raw.label !== undefined && raw.label !== null;
+  if (layerIds.length === 1 && hasLabel) {
+    fail(`${where}.label must be omitted for a single-layer chip — it reads as its layer; rename the layer instead`);
+  }
+  if (layerIds.length !== 1 && !hasLabel) {
     fail(`${where}.label is required when layerIds names more than one layer`);
   }
+  if (hasLabel) chip.label = asI18n(raw.label, `${where}.label`);
   // Optional as a whole, complete when present. `asCamera` is the same validator
   // the config's own camera goes through, so a chip camera missing `durationMs`
   // is refused rather than borrowing the config's — the no-silent-default rule

@@ -4,7 +4,8 @@
  *
  *   - docker-compose.yml runs it;
  *   - infra/nginx/api.skkuverse.com sends it traffic (missing: it idles);
- *   - the deploy workflow rolls it (missing: it keeps running the old image);
+ *   - the deploy workflow (deploy-host.yml, run once per host) rolls it
+ *     (missing: it keeps running the old image);
  *   - docker-compose.local-verify.yml points it at _dev databases (missing:
  *     `npm run verify:serve` boots it against PRODUCTION data).
  *
@@ -21,7 +22,7 @@ const read = (rel: string) => fs.readFileSync(path.join(root, rel), "utf8");
 const compose = read("docker-compose.yml");
 const verify = read("docker-compose.local-verify.yml");
 const nginx = read("infra/nginx/api.skkuverse.com");
-const deploy = read(".github/workflows/deploy.yml");
+const deploy = read(".github/workflows/deploy-host.yml");
 
 /** Service blocks: two-space-indented keys under `services:`. */
 function serviceBlocks(yaml: string): Map<string, string> {

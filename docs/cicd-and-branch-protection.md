@@ -77,9 +77,9 @@ Replicas roll one by one, so there is no downtime. Any failure rolls everything 
 
 | 항목 | 값 |
 |---|---|
-| 서버 | OCI ARM VM |
+| 서버 | OCI ARM VM (`oracle`, poller active). The rented Naver x86 host (`mnemosyne`, poller standby, until 2026-10-07) is being added: `deploy.yml` → `deploy-host.yml` deploys it after `oracle` only when the repo variable `MNEMOSYNE_ENABLED` is `true` (see [GitHub Secrets](#github-secrets)), and it takes traffic once the Cloudflare load balancer is in place ([decisions/0009](decisions/0009-multi-origin-active-active.md)). Each host's poller role is `/etc/skkuverse/host.env` ([how-to/fail-over-poller.md](how-to/fail-over-poller.md)) |
 | 유저 | ubuntu |
-| 경로 | `/home/ubuntu/skkumap-server-express` *(legacy folder name retained; matches `DEPLOY_PATH` secret. 변경 시 secret + 모든 컨테이너 재빌드 필요해 의도적으로 유지.)* |
+| 경로 | `/home/ubuntu/skkumap-server-express` on every host *(legacy folder name retained. Since the multi-host deploy it is `DEPLOY_PATH` in `deploy-host.yml`, not a secret; the heartbeat cron and firewall unit name the same path, and `deploy-workflow.test.ts` keeps the three equal.)* |
 | 활성 도메인 | `api.skkuverse.com` (Cloudflare → Nginx → Docker) |
 | Legacy domain | `api.skkuuniverse.com` — **removed 2026-09-24.** Its Cloudflare DNS records (`api`, `ota` in the `skkuuniverse.com` zone) are deleted and the VM site was removed by hand; the zone and its `webview` record stay because shipped app binaries use them. Requests for any host name nginx does not serve now land on the catch-all server (`infra/nginx/00-default-catchall`) and get no response. Runbook: [how-to/lock-origin-to-cloudflare.md](how-to/lock-origin-to-cloudflare.md) |
 | Docker 네트워크 | `skkuverse` (external, AI 서비스 공유) |
@@ -103,8 +103,17 @@ Replicas roll one by one, so there is no downtime. Any failure rolls everything 
 |---|---|
 | `ORACLE_VM_HOST` | OCI 서버 IP |
 | `ORACLE_VM_USER` | SSH 유저 |
-| `SSH_PRIVATE_KEY` | SSH 개인키 |
-| `DEPLOY_PATH` | 배포 경로 |
+| `SSH_PRIVATE_KEY` | SSH 개인키 (OCI) |
+| `MNEMOSYNE_VM_HOST` | Naver host IP |
+| `MNEMOSYNE_VM_USER` | Naver host SSH user (`ubuntu`) |
+| `MNEMOSYNE_SSH_PRIVATE_KEY` | Naver host SSH private key |
+| ~~`DEPLOY_PATH`~~ | No longer read — the path is `DEPLOY_PATH` in `deploy-host.yml`. Safe to delete |
+
+### GitHub Variables
+
+| Variable | Purpose |
+|---|---|
+| `MNEMOSYNE_ENABLED` | On/off switch for the `deploy-mnemosyne` job (Settings → Secrets and variables → Actions → Variables). `true` deploys to the Naver host after `oracle`; unset or anything else pauses that host without a code change — the job shows as skipped and the run stays green. A job-level `if` can read variables but not secrets, which is why this is a variable. Set it only once the host is onboarded and its three `MNEMOSYNE_*` secrets exist |
 
 ---
 

@@ -39,6 +39,11 @@ server {
     ssl_certificate /etc/ssl/cloudflare/skkuverse-origin.pem;
     ssl_certificate_key /etc/ssl/cloudflare/skkuverse-origin-key.pem;
 
+    # Which origin answered. With more than one host behind the Cloudflare
+    # load balancer this is how a response is traced to a host (failover
+    # drills, a misbehaving origin). `always`: error responses too.
+    add_header X-Served-By $hostname always;
+
     # HTTP/1.1 with an empty Connection header is what lets the upstream
     # keepalive pool above actually hold connections.
     proxy_http_version 1.1;

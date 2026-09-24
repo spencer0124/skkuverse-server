@@ -3,7 +3,7 @@ title: Map Overlays API Reference
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-22
+last-updated: 2026-09-24
 audience: internal
 ---
 
@@ -79,7 +79,8 @@ on.
 | `facets` | `Record<string, string[]>` | The list-facet options this overlay is in, keyed by facet id — `{ "day": ["day1", "day2"], "org": ["council"] }`. Every facet of the live layer set has a key, `[]` where the overlay is in none. `{}` on every campus overlay. See §8.8 |
 | `orderByOption` | `Record<string, number>` | Sort position inside one facet option — a booth's running order per day. Read only by a list whose sort is scoped to that facet; `{}` when none was authored. See §8.8 |
 | `pinPriority` | `number` | **`kind: "marker"` only.** Second step of the collision ladder, from the layer set's category table. Higher wins. `0` for a building |
-| `tap` | `MarkerTap \| null` | What a tap resolves to, or `null` for a backdrop — see §2.5 |
+| `locationAccuracy` | `"exact" \| "area"` | **`kind: "marker"` only.** Whether the point is the place's spot or only names the area it is in, from the layer set's category table. `"exact"` for a building — see §2.7 |
+| `tap` | `MarkerTap \| null` | What a tap resolves to: a place to open, a chip to run (§2.6), or `null` for a backdrop (§2.5) |
 
 `pinPriority` is on the marker arm alone rather than present-and-ignored elsewhere. Two overlapping
 zones are a design choice, not a collision to resolve, so a union makes the field *unrepresentable* on
@@ -203,7 +204,7 @@ stage zones and an inert boundary without inventing a second layer. And not deri
 
 ### 2.6 `tap.kind: "chip"` runs a chip instead of opening a place
 
-Some shapes stand for a whole list rather than one place. The 2026 푸드트럭 구역 is the case: its
+Some shapes stand for a whole list rather than one place. The 2026 food-truck zone is the case: its
 17 trucks have no spots of their own. A tap on such an overlay carries
 `{ kind: "chip", chipId }`, and the client runs that chip exactly as the chip row would, with its
 layers, camera and list. No sheet opens and none is served: the details route skips the category.
@@ -217,7 +218,7 @@ app.
 ### 2.7 `locationAccuracy`: whether a pin is the place's spot
 
 A marker's `locationAccuracy` is `"exact"` unless its point names only the area the place is somewhere
-in. The 2026 food trucks are the case. They are placed along 신관A 앞길 on the day and stacked on the
+in. The 2026 food trucks are the case. They are placed along the road in front of dormitory Shin-gwan A on the day and stacked on the
 council's one point, so they carry `"area"`.
 
 It states a fact about the place, not a rendering instruction; the client decides what follows. Today
@@ -364,11 +365,11 @@ does not need to, because their windows are one night apart and step 1 has alrea
 > the fix was two coordinates, a quarter of the strip's own step (~1.3 m) apart.
 
 **The one deliberate exception is a stack under a head.** The 2026 food trucks have no plots: the
-council places them along 신관A 앞길 on the day and sent one point for the whole area. All 17 share
+council places them along the road in front of dormitory Shin-gwan A on the day and sent one point for the whole area. All 17 share
 that point with `food-zone-pin` (captioned "푸드트럭"), whose `pinPriority` (25) beats a truck's (20) and
 whose windows cover every truck's. Step 1 therefore never ranks a truck above it, and step 2 always
 does. The pin names the area, never one vendor on a spot that vendor may not hold. Tapping it,
-or the zone's ring, runs the 푸드트럭 chip (§2.6) rather than opening a sheet. The trucks lose
+or the zone's ring, runs the food-truck chip (§2.6) rather than opening a sheet. The trucks lose
 the pin **on purpose** and keep their list rows. A truck chosen from the list is drawn on the spot,
 because the client ranks the selected place above the whole ladder. The import test allows a shared
 coordinate with overlapping hours only under such a head: a strictly higher `pinPriority` and
@@ -1094,11 +1095,12 @@ chip always takes the config's. A chip camera is **whole or absent** — validat
 other five fields. It exists because the layers a chip shows are not all in one place: ESKARA 2026's
 통제구역 chip steps back from the shared zoom and recentres on 운용재, because the zones are long
 north-south bands whose southern tip otherwise sits under the bottom sheet. (The values themselves
-live in the config, not here, so this sentence cannot drift from them.) `label` may be omitted for a
-single-layer chip, in which
-case the chip reads as its layer does; a chip spanning several layers has no such default and must
-say what it means. ESKARA 2026 authors every label, because its pills read singular (`Bar`) where its
-layer toggles read plural (`Bars`) — copy that a deploy must not quietly change.
+live in the config, not here, so this sentence cannot drift from them.) A single-layer chip authors
+no `label` and reads as its layer does, and the validator refuses one that does. The chip row and
+the filter sheet name the same layer, and two copies of that name drift: until 2026-09-25 the
+푸드트럭 chip sat over a layer the filter sheet called 먹거리, and the `Bar` pill over `Bars`. To
+rename a chip, rename its layer. A chip spanning several layers has no such default and must say
+what it means.
 
 Festival chips are gated by the **same activation window** as the festival layers, so a festival
 starts and ends with no deploy and its chips stop existing rather than lingering as dead buttons.
