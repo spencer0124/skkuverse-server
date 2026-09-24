@@ -33,7 +33,7 @@ const directivesOf = (text: string) =>
 const directives = directivesOf(read("infra/nginx/api.skkuverse.com"));
 const realip = directivesOf(read("infra/nginx/cloudflare-realip.conf"));
 const catchall = directivesOf(read("infra/nginx/00-default-catchall"));
-const deploy = read(".github/workflows/deploy.yml");
+const deploy = read(".github/workflows/deploy-host.yml");
 
 const SNIPPET = "/etc/nginx/snippets/skkuverse-cloudflare-realip.conf";
 

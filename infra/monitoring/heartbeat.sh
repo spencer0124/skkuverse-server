@@ -10,10 +10,18 @@
 # own setup (no env file, no ping URL) exits non-zero WITHOUT pinging — a
 # silent fallback would hide exactly the failure this exists to catch.
 #
+# The host's poller role comes from /etc/skkuverse/host.env, read by
+# infra/hosts/poller-role.sh. A missing or invalid role file is a setup
+# problem like a missing env file: exit non-zero without pinging.
+#
 # Checks:
 #   1. every service in this repo's docker-compose.yml has exactly one
 #      container, running, and not `unhealthy` (`starting` passes: a rolling
-#      deploy restarts each replica, and the healthcheck is what finishes it);
+#      deploy restarts each replica, and the healthcheck is what finishes it).
+#      On a standby host the poller is the exception: it must NOT be running
+#      (a stopped container is fine). Two running pollers poll every external
+#      API twice, and a moved poller whose role file still says standby would
+#      be undone by the next deploy — fail-over-poller.md changes both;
 #   2. nginx serves /health/ready for api.skkuverse.com on this host, which
 #      exercises nginx, the upstream pool and a replica's DB ping in one go;
 #   3. no other container on the host (crawler, AI, OTA) is restarting or
@@ -26,7 +34,8 @@ set -euo pipefail
 
 ENV_FILE="${HEARTBEAT_ENV_FILE:-/etc/skkuverse/heartbeat.env}"
 RECHECK_DELAY="${HEARTBEAT_RECHECK_DELAY:-15}"
-COMPOSE_FILE="$(cd "$(dirname "$0")/../.." && pwd)/docker-compose.yml"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+COMPOSE_FILE="$(cd "$SCRIPT_DIR/../.." && pwd)/docker-compose.yml"
 HOST="$(hostname)"
 
 if [ ! -r "$ENV_FILE" ]; then
@@ -39,13 +48,18 @@ if [ -z "${HC_PING_URL:-}" ]; then
   echo "heartbeat: HC_PING_URL is not set in $ENV_FILE — not pinging" >&2
   exit 1
 fi
+# poller-role.sh prints its own reason on stderr.
+if ! POLLER_ROLE="$("$SCRIPT_DIR/../hosts/poller-role.sh")"; then
+  echo "heartbeat: no valid poller role — not pinging" >&2
+  exit 1
+fi
 
 failures=""
 fail() { failures="${failures}- $1"$'\n'; }
 
 check_compose() {
   local services ps_out own_project="" svc
-  local project service state health count seen_state seen_health
+  local project service state health count running seen_state seen_health
   if ! services="$(docker compose -f "$COMPOSE_FILE" config --services)"; then
     fail "docker compose config failed"
     return
@@ -61,17 +75,23 @@ check_compose() {
   fi
   for svc in $services; do
     count=0
+    running=0
     seen_state=""
     seen_health=""
     while IFS='|' read -r project service state health; do
       if [ "$service" = "$svc" ]; then
         count=$((count + 1))
+        [ "$state" = "running" ] && running=$((running + 1))
         seen_state="$state"
         seen_health="$health"
         own_project="$project"
       fi
     done <<< "$ps_out"
-    if [ "$count" -eq 0 ]; then
+    if [ "$svc" = "poller" ] && [ "$POLLER_ROLE" = "standby" ]; then
+      if [ "$running" -gt 0 ]; then
+        fail "poller: running on a standby host (POLLER_ROLE=standby)"
+      fi
+    elif [ "$count" -eq 0 ]; then
       fail "$svc: no container"
     elif [ "$count" -gt 1 ]; then
       fail "$svc: $count containers, expected 1"

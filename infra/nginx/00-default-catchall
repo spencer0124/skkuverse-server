@@ -14,7 +14,7 @@
 # TLS: nginx 1.18 (Ubuntu 22.04's package) predates `ssl_reject_handshake`
 # (1.19.4), which would refuse the handshake outright. So this block needs a
 # certificate of its own. It is a self-signed one for CN=invalid that the
-# deploy generates once (.github/workflows/deploy.yml). Not the Cloudflare
+# deploy generates once (.github/workflows/deploy-host.yml). Not the Cloudflare
 # origin certificate: that one names *.skkuverse.com, and serving it to anyone
 # who connects by IP tells a scanner which domain this origin is behind. When
 # the host runs nginx >= 1.19.4, replace the two ssl_certificate lines with

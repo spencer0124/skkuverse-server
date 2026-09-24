@@ -312,7 +312,7 @@ describe("cloudflare-only.sh — refuses before changing anything", () => {
 
 describe("skkuverse-firewall.service + deploy", () => {
   const unit = fs.readFileSync(unitFile, "utf8");
-  const deploy = fs.readFileSync(path.join(root, ".github/workflows/deploy.yml"), "utf8");
+  const deploy = fs.readFileSync(path.join(root, ".github/workflows/deploy-host.yml"), "utf8");
   const cron = fs.readFileSync(path.join(root, "infra/monitoring/skkuverse-heartbeat.cron"), "utf8");
 
   it("runs the checkout's script once at boot, after rules.v4 is loaded", () => {

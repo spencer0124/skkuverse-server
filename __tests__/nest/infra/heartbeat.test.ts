@@ -6,6 +6,11 @@
  * `curl` and `hostname` binaries first on PATH. The stubs replay canned output
  * and log their arguments; nothing touches Docker or the network.
  *
+ * The host's poller role file (/etc/skkuverse/host.env, read through
+ * infra/hosts/poller-role.sh) decides whether the poller is expected: a
+ * standby host must not run one. Every scenario writes one; the default is
+ * `active`, the single-host behaviour.
+ *
  * The cron file and the deploy step that installs it are pinned at the end:
  * the script is useless if the deploy stops installing it.
  */
@@ -83,6 +88,8 @@ interface Scenario {
   configExit?: number;
   /** Contents of the env file; null leaves it absent. */
   envFile?: string | null;
+  /** Contents of host.env; null leaves it absent. Default: active. */
+  hostEnv?: string | null;
 }
 
 interface Call {
@@ -108,6 +115,9 @@ function run(s: Scenario = {}) {
   const envPath = path.join(dir, "heartbeat.env");
   const envFile = s.envFile === undefined ? `HC_PING_URL=${PING_URL}\n` : s.envFile;
   if (envFile !== null) fs.writeFileSync(envPath, envFile);
+  const hostEnvPath = path.join(dir, "host.env");
+  const hostEnv = s.hostEnv === undefined ? "POLLER_ROLE=active\n" : s.hostEnv;
+  if (hostEnv !== null) fs.writeFileSync(hostEnvPath, hostEnv);
 
   const res = spawnSync("bash", [script], {
     encoding: "utf8",
@@ -117,6 +127,7 @@ function run(s: Scenario = {}) {
       STUB_PROBE_EXIT: String(s.probeExit ?? 0),
       STUB_CONFIG_EXIT: String(s.configExit ?? 0),
       HEARTBEAT_ENV_FILE: envPath,
+      HOST_ENV_FILE: hostEnvPath,
       HEARTBEAT_RECHECK_DELAY: "0",
     },
   });
@@ -253,12 +264,73 @@ describe("heartbeat.sh — failures post to /fail", () => {
   });
 });
 
+describe("heartbeat.sh — standby host (POLLER_ROLE=standby)", () => {
+  const STANDBY = "POLLER_ROLE=standby\n";
+  const noPoller = (rows: string[]) => rows.filter((r) => !r.includes("poller"));
+
+  it("does not expect a poller: replicas only is healthy", () => {
+    const r = run({ hostEnv: STANDBY, compose: noPoller(healthyCompose), dockerPs: noPoller(healthyDockerPs) });
+    expect(r.status).toBe(0);
+    expect(r.successPings).toHaveLength(1);
+    expect(r.failPings).toHaveLength(0);
+  });
+
+  it("accepts a stopped poller container (the old active host after a fail-over)", () => {
+    const r = run({
+      hostEnv: STANDBY,
+      compose: replace(healthyCompose, `${P}|poller|`, `${P}|poller|exited|`),
+    });
+    expect(r.status).toBe(0);
+    expect(r.successPings).toHaveLength(1);
+  });
+
+  it("fails when the poller is running on a standby host", () => {
+    const r = run({ hostEnv: STANDBY });
+    expect(r.status).not.toBe(0);
+    expect(r.successPings).toHaveLength(0);
+    expect(r.failPings).toHaveLength(1);
+    expect(r.failBody).toContain("poller: running on a standby host");
+  });
+
+  it("still checks every replica", () => {
+    const r = run({ hostEnv: STANDBY, compose: noPoller(healthyCompose).filter((row) => !row.includes("|api-2|")) });
+    expect(r.status).not.toBe(0);
+    expect(r.failBody).toContain("api-2: no container");
+  });
+
+  it("an active host still requires the poller", () => {
+    const r = run({ hostEnv: "POLLER_ROLE=active\n", compose: noPoller(healthyCompose) });
+    expect(r.status).not.toBe(0);
+    expect(r.failBody).toContain("poller: no container");
+  });
+});
+
 describe("heartbeat.sh — broken setup never pings", () => {
   it("exits non-zero without curl when the env file is missing", () => {
     const r = run({ envFile: null });
     expect(r.status).not.toBe(0);
     expect(r.stderr).toMatch(/cannot read/);
     expect(r.calls.filter((c) => c.cmd === "curl")).toHaveLength(0);
+  });
+
+  it("exits non-zero without curl or docker when host.env is missing", () => {
+    const r = run({ hostEnv: null });
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toMatch(/cannot read .*host\.env/);
+    expect(r.calls).toHaveLength(0);
+  });
+
+  it.each([
+    ["an unknown role", "POLLER_ROLE=primary\n"],
+    ["an empty role", "POLLER_ROLE=\n"],
+    ["a quoted role", 'POLLER_ROLE="active"\n'],
+    ["no POLLER_ROLE line", "# nothing here\n"],
+    ["two POLLER_ROLE lines", "POLLER_ROLE=active\nPOLLER_ROLE=standby\n"],
+  ])("exits non-zero without curl or docker on host.env with %s", (_label, body) => {
+    const r = run({ hostEnv: body });
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toMatch(/poller-role: /);
+    expect(r.calls).toHaveLength(0);
   });
 
   it("exits non-zero without curl when HC_PING_URL is empty", () => {
@@ -271,7 +343,7 @@ describe("heartbeat.sh — broken setup never pings", () => {
 
 describe("heartbeat cron + deploy", () => {
   const cron = fs.readFileSync(cronFile, "utf8");
-  const deploy = fs.readFileSync(path.join(root, ".github/workflows/deploy.yml"), "utf8");
+  const deploy = fs.readFileSync(path.join(root, ".github/workflows/deploy-host.yml"), "utf8");
 
   it("the deploy installs the cron file into /etc/cron.d", () => {
     expect(deploy).toMatch(
