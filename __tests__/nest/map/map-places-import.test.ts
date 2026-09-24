@@ -201,7 +201,7 @@ describe("parsePlacesFile — the committed sheet", () => {
     // map names the AREA and the list carries the trucks. That only holds while
     // the head stays on the same coordinate as every truck and above them in the
     // pin ladder, and while the area it names actually contains it.
-    const byId = new Map(docs.map((d) => [d._id, d]));
+    const byId = new Map<string, (typeof docs)[number]>(docs.map((d) => [d._id, d]));
     const pin = byId.get(`${LAYER_SET_ID}-food-zone-pin`)!;
     const zone = byId.get(`${LAYER_SET_ID}-food-zone`)!;
     const trucks = docs.filter((d) => d.category === "food");
