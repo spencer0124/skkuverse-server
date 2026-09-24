@@ -300,7 +300,6 @@ MongoDB (bus_campus_dev / bus_campus)
 | `features/bus/schedule.data.js` | `resolveWeek()` + `resolveSmartSchedule()` — resolution engine |
 | `features/bus/schedule.routes.js` | `/smart` (main) + `/week` (deprecated) — HTTP handlers |
 | `features/bus/schedule-db.js` | `ensureScheduleIndexes()` — creates DB indexes at startup |
-| `features/bus/campus-eta.routes.js` | `GET /bus/campus/eta` — driving ETA between campuses (separate) |
 | `lib/i18n.js` | Translation keys for group labels, service tabs, badges |
 
 ---
@@ -404,10 +403,9 @@ screen: {
       endpoint: "/bus/schedule/data/campus-jain/smart"
     }
   ],
-  heroCard: {                            // optional — real-time ETA card above schedule
-    etaEndpoint: "/bus/campus/eta",
-    showUntilMinutesBefore: 0
-  },
+  heroCard: null,                        // optional ETA card above the schedule; null hides it.
+                                         // Campus served { etaEndpoint: "/bus/campus/eta", ... }
+                                         // until that endpoint was retired (Naver Directions).
   routeBadges: [                         // color-coded route type labels
     { id: "regular", label: "일반", color: "003626" },
     { id: "hakbu", label: "학부대학", color: "1565C0" }
@@ -1262,7 +1260,6 @@ node scripts/seed-eskara.js
 | `/bus/schedule/data/:serviceId/smart` | GET | **Main** — Smart schedule with status + auto-selected date |
 | `/bus/schedule/data/:serviceId/week` | GET | **Deprecated** — Raw 7-day resolved schedule |
 | `/bus/schedule/data/:serviceId/week?from=YYYY-MM-DD` | GET | **Deprecated** — 7-day schedule for specific week |
-| `/bus/campus/eta` | GET | Driving ETA between campuses |
 
 ### Headers
 

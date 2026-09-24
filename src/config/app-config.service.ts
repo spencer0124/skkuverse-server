@@ -48,16 +48,8 @@ export class AppConfigService {
     };
   }
 
-  get naver(): {
-    apiKeyId: string | undefined;
-    apiKey: string | undefined;
-    styleId: string | undefined;
-  } {
-    return {
-      apiKeyId: config.naver.apiKeyId,
-      apiKey: config.naver.apiKey,
-      styleId: config.naver.styleId,
-    };
+  get naver(): { styleId: string | undefined } {
+    return { styleId: config.naver.styleId };
   }
 
   get firebase(): { serviceAccount: string | null } {

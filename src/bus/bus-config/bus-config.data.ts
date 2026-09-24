@@ -117,10 +117,11 @@ function getBusGroups(lang: SupportedLang = "ko") {
             endpoint: "/bus/schedule/data/campus-jain/smart",
           },
         ],
-        heroCard: {
-          etaEndpoint: "/bus/campus/eta",
-          showUntilMinutesBefore: 0,
-        },
+        // Retired with GET /bus/campus/eta: the card's driving ETA came from a
+        // Naver Directions subscription that stopped authorizing. `null` is the
+        // shape the app already handles (fasttrack below) — it hides the card
+        // and never requests the ETA.
+        heroCard: null,
         routeBadges: [
           { id: "regular", label: t("busconfig.badge.regular", lang), color: "003626" },
           { id: "hakbu", label: t("busconfig.badge.hakbu", lang), color: "1565C0" },

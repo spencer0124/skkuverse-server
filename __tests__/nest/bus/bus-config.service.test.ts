@@ -68,15 +68,13 @@ describe("getBusGroups", () => {
     }
   });
 
-  it("campus has heroCard with etaEndpoint and showUntilMinutesBefore", () => {
+  it("campus has no hero card: the ETA it showed is retired", () => {
+    // A non-null heroCard makes the app request GET /bus/campus/eta, which no
+    // longer exists. null is the shape the app renders as "no card".
     const campus: any = service
       .getBusGroups("ko")
       .find((g: any) => g.id === "campus");
-    expect(campus.screen.heroCard).toBeDefined();
-    expect(campus.screen.heroCard).toMatchObject({
-      etaEndpoint: "/bus/campus/eta",
-      showUntilMinutesBefore: 0,
-    });
+    expect(campus.screen.heroCard).toBeNull();
   });
 
   it("fasttrack has dateRange visibility with valid ISO dates", () => {
