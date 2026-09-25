@@ -12,7 +12,12 @@
  */
 import { isMediaUrl } from "../infra/media-url";
 import { isOnWebviewOrigin, toWebviewUrl } from "../infra/webview-url";
-import type { MiniAppDetail, MiniAppIndexRaw, MiniAppShell } from "./types";
+import {
+  MINIAPP_SHELL_BARS,
+  type MiniAppDetail,
+  type MiniAppIndexRaw,
+  type MiniAppShellBar,
+} from "./types";
 
 const HTTP_RE = /^https?:\/\//;
 const SLUG_RE = /^[a-z0-9-]+$/;
@@ -32,31 +37,27 @@ function isSingleEmoji(value: string): boolean {
   return first !== undefined && rest.length === 0 && PICTOGRAPHIC_RE.test(first.segment);
 }
 
-const SHELL_KEYS = new Set<string>(["bottomBar", "backForward"]);
+const SHELL_KEYS = new Set<string>(["bar"]);
 
 /**
- * Only the known switches, only booleans. An unknown key is almost always a
- * misspelling ("bottombar"), and one that would do nothing at all: the client
- * reads the two names it knows, so the switch would stay on with no error
- * anywhere. `backForward: true` under a hidden bar asks for buttons that have
- * nowhere to be drawn, which is the same kind of silent no-op.
+ * Only `bar`, and only one of its three values. An unknown key is almost
+ * always a misspelling or a leftover of the old `bottomBar`/`backForward`
+ * switches, and either would do nothing at all: the client reads `bar` and
+ * nothing else, so the shell would keep its default with no error anywhere.
  */
 function assertValidShell(id: string, shell: unknown): void {
   if (typeof shell !== "object" || shell === null || Array.isArray(shell)) {
     throw new Error(`miniapp registry: shell for "${id}" must be an object`);
   }
-  for (const [key, value] of Object.entries(shell)) {
+  for (const key of Object.keys(shell)) {
     if (!SHELL_KEYS.has(key)) {
       throw new Error(`miniapp registry: unknown shell key "${key}" in "${id}"`);
     }
-    if (typeof value !== "boolean") {
-      throw new Error(`miniapp registry: shell.${key} for "${id}" must be a boolean`);
-    }
   }
-  const { bottomBar, backForward } = shell as MiniAppShell;
-  if (bottomBar === false && backForward === true) {
+  const { bar } = shell as { bar?: unknown };
+  if (bar !== undefined && !MINIAPP_SHELL_BARS.includes(bar as MiniAppShellBar)) {
     throw new Error(
-      `miniapp registry: shell for "${id}" shows back/forward on a hidden bottom bar`,
+      `miniapp registry: shell.bar for "${id}" must be one of ${MINIAPP_SHELL_BARS.join(", ")}`,
     );
   }
 }

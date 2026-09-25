@@ -99,20 +99,26 @@ export interface MiniAppIndexRaw {
 }
 
 /**
- * Which parts of the mini-app shell's chrome to draw around this service's page.
+ * Where the mini-app shell puts its service-name pill (logo + name, on glass).
  *
- * The bottom bar is [<] · service-name pill · [>]. A single-page mini app has
- * no history for [<] [>] to walk, so the pair only sits there disabled; a page
- * with its own fixed bottom button can lose the whole bar to keep it clear.
+ *  - `bottom` — the bottom bar as it has always been drawn: [<] · pill · [>].
+ *    For a mini app with pages to walk back and forth through.
+ *  - `top` — the pill moves into the top header, between the header's own
+ *    close and more buttons. No bottom bar and no [<] [>]: for a single-page
+ *    mini app, where the pair would only sit there disabled.
+ *  - `hide` — no pill, no [<] [>], no bottom bar. For a page that draws its own
+ *    chrome, such as a fixed button along the bottom edge.
  *
- * Every field is optional and an absent one means shown, which is the shell as
- * it has always been drawn — so an entry with no `shell` at all is unchanged.
+ * Only the buttons come and go. The Android back button and the iOS edge
+ * swipe follow the web view's history in every mode.
  */
+export type MiniAppShellBar = "top" | "bottom" | "hide";
+
+export const MINIAPP_SHELL_BARS: readonly MiniAppShellBar[] = ["top", "bottom", "hide"];
+
+/** The shell's chrome around this service's page. Absent `bar` means `bottom`. */
 export interface MiniAppShell {
-  /** The whole bottom bar. Hiding it hides [<] [>] with it. */
-  bottomBar?: boolean;
-  /** The [<] [>] history buttons either side of the service-name pill. */
-  backForward?: boolean;
+  bar?: MiniAppShellBar;
 }
 
 /** Per-service detail — heavier content, needed only when opening the mini-app. */
