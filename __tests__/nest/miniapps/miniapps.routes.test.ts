@@ -9,7 +9,7 @@
  *     → HttpExceptionFilter.
  *
  * These endpoints are the SSOT the mobile client replaced its bundled registry
- * with, so the guards that matter are: the index is ordered, logo URIs are
+ * with, so the guards that matter are: the index is ordered, image logo URIs are
  * absolute under WEB_ORIGIN (never a bare path — the client renders them
  * directly into <Image source={{uri}}>), every index id resolves to a detail,
  * and an unknown slug 404s rather than 200-ing with null.
@@ -102,18 +102,29 @@ describe("GET /miniapps", () => {
     expect(orders).toEqual([...orders].sort((a, b) => a - b));
   });
 
-  it("resolves every logo to an absolute URL on WEB_ORIGIN or the media bucket", async () => {
+  it("resolves every image logo to an absolute URL on WEB_ORIGIN or the media bucket", async () => {
     const res = await request(httpServer).get("/miniapps");
     for (const entry of res.body.data.miniApps) {
-      // Both on-disk spellings leave as one wire shape.
+      // The raw on-disk `path`/`url` must not leak — the client reads `uri` or `emoji`.
+      expect(entry.logo).not.toHaveProperty("path");
+      expect(entry.logo).not.toHaveProperty("url");
+      if (entry.logo.kind === "emoji") {
+        expect(entry.logo.emoji.length).toBeGreaterThan(0);
+        expect(entry.logo).not.toHaveProperty("uri");
+        continue;
+      }
+      // Both on-disk image spellings leave as one wire shape.
       expect(entry.logo.kind).toBe("remote");
       expect(
         entry.logo.uri.startsWith(`${WEB_ORIGIN}/`) || entry.logo.uri.startsWith(`${MEDIA_ORIGIN}/`),
       ).toBe(true);
-      // The raw on-disk `path`/`url` must not leak — the client reads `uri` only.
-      expect(entry.logo).not.toHaveProperty("path");
-      expect(entry.logo).not.toHaveProperty("url");
     }
+  });
+
+  it("serves an emoji logo as the emoji, for the client to draw in Tossface", async () => {
+    const res = await request(httpServer).get("/miniapps");
+    const mukja = res.body.data.miniApps.find((m: { id: string }) => m.id === "mukja");
+    expect(mukja.logo).toEqual({ kind: "emoji", emoji: "🍢" });
   });
 
   it("gives every entry a slug id and a display name", async () => {
@@ -141,6 +152,14 @@ describe("GET /miniapps/:id", () => {
       expect(res.body.data.startUrl).toMatch(/^https?:\/\//);
       expect(typeof res.body.data.verified).toBe("boolean");
       expect(Array.isArray(res.body.data.relatedLinks)).toBe(true);
+      // Optional; when present, only the two switches the shell knows, as booleans.
+      const shell = res.body.data.shell;
+      if (shell !== undefined) {
+        for (const [key, value] of Object.entries(shell)) {
+          expect(["bottomBar", "backForward"]).toContain(key);
+          expect(typeof value).toBe("boolean");
+        }
+      }
     }
   });
 
