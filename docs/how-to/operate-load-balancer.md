@@ -120,6 +120,7 @@ For a host being returned or retired. In order:
 | One endpoint unhealthy, the host looks fine from inside | The host's firewall or provider security group rejects Cloudflare, or `/health/ready` returns 503 (DB ping failing) | On the host: `curl -sk --resolve api.skkuverse.com:443:127.0.0.1 https://api.skkuverse.com/health/ready`; check the firewall's Cloudflare list is current |
 | The split does not match the weights | Too few samples, or an endpoint is unhealthy or disabled | Sample more; check endpoint health in the pool |
 | 52x for everyone right after disabling the load balancer | The `api` A record points at a host that is down or gone | Re-enable the load balancer, then fix the record |
+| Some requests hang for seconds while every host is idle | Known issue: origin-path stalls via some Cloudflare colos, independent of the host | Nothing to change in the pool; see the follow-ups in [ADR 0009](../decisions/0009-multi-origin-active-active.md#rollout-notes) |
 
 ## Related
 

@@ -42,7 +42,7 @@ traffic all the time or only when the first fails.
 | --- | --- | --- |
 | **Cloudflare Load Balancing add-on** | Health-checked, automatic failover. Zero-downtime failover retries a request that could not connect on another endpoint in the same pool. Adding a host is adding an endpoint. Keeps the current firewall and certificates | $5/month for 2 endpoints, +$5 per extra endpoint |
 | Two A records + a DNS flip | Free | No health checks; the flip is automation we would write, and takes about 4 minutes. Cannot see a host that is up with a dead app |
-| Cloudflare Tunnel | Free, no inbound ports | Tunnel replicas give connector HA only; they do not look at the app's health |
+| Cloudflare Tunnel | Free, no inbound ports | Tunnel replicas alone give connector HA only. Health-aware failover still needs the Load Balancing add-on, with the tunnel as an endpoint; on an HTTP ingress route its monitor request reaches the origin service (to be confirmed by a drill) |
 | Workers-based failover | Any behaviour we want | The Free plan caps at 100k requests/day, so it needs Workers Paid, and puts our own code on every request's path |
 | OCI free load balancer | Free | 10 Mbps is too little, and it sits in OCI — the failure domain we are trying to leave |
 | Route 53, Fly.io, k3s | Powerful | Not compatible with the Cloudflare proxy as set up, or a migration; far more than two hosts need |
@@ -176,3 +176,9 @@ What the rollout changed against the decision above, in the order found.
   and UptimeRobot.
 - **The old A record stays** as the rollback, as planned: the load balancer
   takes precedence over it while enabled.
+- **Follow-up: origin-path stalls via some Cloudflare colos.** Some requests
+  stall for seconds on the path between certain Cloudflare locations and the
+  origins, on every origin alike; the hosts themselves are idle. The app's
+  request timeouts were shortened meanwhile. After the festival, Cloudflare
+  Tunnel endpoints are to be evaluated against the direct endpoints (tracked
+  internally).
