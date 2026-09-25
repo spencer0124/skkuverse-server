@@ -4,15 +4,21 @@
  *
  * These mirror packages/shared/src/miniapps/schema.ts in skkuverse-app, which
  * is now a CONSUMER of this shape rather than a co-owner of it. Keep the two in
- * step: the client parses tolerantly, so a mismatch degrades silently (a
- * mini-app vanishes from the grid) rather than erroring.
+ * step: the client parses tolerantly, so a mismatch degrades silently (a tile
+ * loses its logo, a shell setting falls back to its default) rather than erroring.
  *
  * `id` is a stable kebab-case slug and never the Korean display name: it is the
  * join key, the deep-link path (/m/<id>), the cache key, and the analytics id,
  * so it must survive renames and translations.
  */
 
-/** Bump only on BREAKING schema changes (removed/renamed/retyped field). */
+/**
+ * Bump only on BREAKING schema changes (removed/renamed/retyped field).
+ *
+ * Still 1 across the `logo` → `homeLogo`/`shellLogo` split and the `shell.bar`
+ * rewrite: no released client read the old shapes, and the client does not
+ * gate on this value yet. Bump from the first change made after a release.
+ */
 export const MINIAPP_REGISTRY_VERSION = 1;
 
 /**
@@ -79,7 +85,15 @@ export interface MiniAppIndexEntryRaw {
   /** Short label for the home grid tile; client falls back to `name`. */
   shortName?: string;
   order: number;
-  logo: MiniAppLogoRaw;
+  /**
+   * The home grid's tile. At least one of `homeLogo`/`shellLogo` is required,
+   * and whichever is absent takes the other's value — so a mini app with one
+   * picture sets one field, and one whose grid tile and shell header should
+   * differ (ESKARA: a 🌊 tile, its poster in the shell) sets both.
+   */
+  homeLogo?: MiniAppLogoRaw;
+  /** The shell's title pill and page-info sheet. Absent means `homeLogo`. */
+  shellLogo?: MiniAppLogoRaw;
   /**
    * Kept off the home grid. The entry stays in the index on purpose: a deep
    * link (/m/<id>), a map `miniapp` button and the shell's own header all look
@@ -89,8 +103,11 @@ export interface MiniAppIndexEntryRaw {
   hidden?: boolean;
 }
 
-export interface MiniAppIndexEntry extends Omit<MiniAppIndexEntryRaw, "logo"> {
-  logo: MiniAppLogo;
+/** Wire entry: both logos always present, the fallback already applied. */
+export interface MiniAppIndexEntry
+  extends Omit<MiniAppIndexEntryRaw, "homeLogo" | "shellLogo"> {
+  homeLogo: MiniAppLogo;
+  shellLogo: MiniAppLogo;
 }
 
 export interface MiniAppIndexRaw {

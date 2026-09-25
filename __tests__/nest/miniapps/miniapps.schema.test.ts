@@ -20,7 +20,7 @@ function index(
         id: "a",
         name: "A",
         order: 1,
-        logo: { kind: "remote", path: "/miniapps/a.png" },
+        homeLogo: { kind: "remote", path: "/miniapps/a.png" },
         ...overrides,
       },
     ],
@@ -64,7 +64,7 @@ describe("assertValidRegistry", () => {
   });
 
   it("rejects an absolute logo URL (must stay relative to WEB_ORIGIN)", () => {
-    const bad = index({ logo: { kind: "remote", path: "https://evil.com/a.png" } });
+    const bad = index({ homeLogo: { kind: "remote", path: "https://evil.com/a.png" } });
     expect(() => assertValidRegistry(bad, details())).toThrow(
       /site-root-relative/,
     );
@@ -72,7 +72,7 @@ describe("assertValidRegistry", () => {
 
   it("accepts a logo on the media bucket", () => {
     const ok = index({
-      logo: { kind: "media", url: "https://media.skkuverse.com/miniapps/a/logo-01234567.jpg" },
+      homeLogo: { kind: "media", url: "https://media.skkuverse.com/miniapps/a/logo-01234567.jpg" },
     });
     expect(() => assertValidRegistry(ok, details())).not.toThrow();
   });
@@ -82,14 +82,14 @@ describe("assertValidRegistry", () => {
     ["the web origin", "https://skkuverse.com/miniapps/a.png"],
     ["a relative path", "/miniapps/a.png"],
   ])("rejects a media logo on %s", (_label, url) => {
-    const bad = index({ logo: { kind: "media", url } });
+    const bad = index({ homeLogo: { kind: "media", url } });
     expect(() => assertValidRegistry(bad, details())).toThrow(/media bucket/);
   });
 
   it.each([["🍢"], ["🌶️"], ["👩‍🍳"]])("accepts an emoji logo, %s", (emoji) => {
     // 🌶️ carries a variation selector and 👩‍🍳 is a joined sequence: several
     // code points, one glyph on the tile.
-    const ok = index({ logo: { kind: "emoji", emoji } });
+    const ok = index({ homeLogo: { kind: "emoji", emoji } });
     expect(() => assertValidRegistry(ok, details())).not.toThrow();
   });
 
@@ -100,7 +100,7 @@ describe("assertValidRegistry", () => {
     ["an emoticon", ":)"],
     ["an emoji and a letter", "🍢a"],
   ])("rejects an emoji logo that is %s", (_label, emoji) => {
-    const bad = index({ logo: { kind: "emoji", emoji } });
+    const bad = index({ homeLogo: { kind: "emoji", emoji } });
     expect(() => assertValidRegistry(bad, details())).toThrow(/exactly one emoji/);
   });
 
@@ -112,6 +112,53 @@ describe("assertValidRegistry", () => {
   it.each([["true"], [1], [null]])("rejects a non-boolean hidden, %j", (hidden) => {
     const bad = index({ hidden: hidden as unknown as boolean });
     expect(() => assertValidRegistry(bad, details())).toThrow(/hidden for "a" must be a boolean/);
+  });
+
+  it("accepts an entry with only shellLogo", () => {
+    const ok: MiniAppIndexRaw = {
+      version: 1,
+      miniApps: [{ id: "a", name: "A", order: 1, shellLogo: { kind: "emoji", emoji: "😋" } }],
+    };
+    expect(() => assertValidRegistry(ok, details())).not.toThrow();
+  });
+
+  it("rejects an entry with neither homeLogo nor shellLogo", () => {
+    const none: MiniAppIndexRaw = { version: 1, miniApps: [{ id: "a", name: "A", order: 1 }] };
+    expect(() => assertValidRegistry(none, details())).toThrow(
+      /"a" needs at least one of homeLogo or shellLogo/,
+    );
+  });
+
+  it.each([
+    ["the old single logo", "logo"],
+    ["a misspelt homeLogo", "homelogo"],
+  ])("rejects an unknown index key: %s", (_label, key) => {
+    const bad = {
+      version: 1,
+      miniApps: [{ ...index().miniApps[0]!, [key]: { kind: "emoji", emoji: "😋" } }],
+    } as MiniAppIndexRaw;
+    expect(() => assertValidRegistry(bad, details())).toThrow(
+      new RegExp(`unknown index key "${key}" in "a"`),
+    );
+  });
+
+  it.each([[null], [[]], ["😋"]])("rejects a logo that is not an object, %j", (logo) => {
+    const bad = index({ homeLogo: logo as unknown as MiniAppIndexRaw["miniApps"][number]["homeLogo"] });
+    expect(() => assertValidRegistry(bad, details())).toThrow(/homeLogo for "a" must be an object/);
+  });
+
+  it("rejects a remote logo whose path is not a string", () => {
+    const bad = index({
+      homeLogo: { kind: "remote", path: ["/miniapps/a.png"] as unknown as string },
+    });
+    expect(() => assertValidRegistry(bad, details())).toThrow(/site-root-relative/);
+  });
+
+  it("checks shellLogo with the same rules as homeLogo", () => {
+    const bad = index({ shellLogo: { kind: "media", url: "https://evil.com/a.jpg" } });
+    expect(() => assertValidRegistry(bad, details())).toThrow(/shellLogo\.url .*media bucket/);
+    const twoEmoji = index({ shellLogo: { kind: "emoji", emoji: "🍢🍗" } });
+    expect(() => assertValidRegistry(twoEmoji, details())).toThrow(/shellLogo\.emoji .*exactly one emoji/);
   });
 
   it("rejects an index entry with no matching detail", () => {

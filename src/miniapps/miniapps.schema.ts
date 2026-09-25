@@ -16,6 +16,7 @@ import {
   MINIAPP_SHELL_BARS,
   type MiniAppDetail,
   type MiniAppIndexRaw,
+  type MiniAppLogoRaw,
   type MiniAppShellBar,
 } from "./types";
 
@@ -35,6 +36,53 @@ const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 function isSingleEmoji(value: string): boolean {
   const [first, ...rest] = graphemes.segment(value);
   return first !== undefined && rest.length === 0 && PICTOGRAPHIC_RE.test(first.segment);
+}
+
+/**
+ * The keys an index entry may carry. Anything else is refused: a leftover
+ * `logo` from before the split, or a misspelt `homelogo`, would otherwise pass
+ * boot and do nothing — the loader reads these names only.
+ */
+const INDEX_KEYS = new Set<string>([
+  "id",
+  "name",
+  "shortName",
+  "order",
+  "homeLogo",
+  "shellLogo",
+  "hidden",
+]);
+
+/** One logo slot: an image on WEB_ORIGIN, an image on the media bucket, or one emoji. */
+function assertValidLogo(
+  id: string,
+  field: "homeLogo" | "shellLogo",
+  logo: MiniAppLogoRaw,
+): void {
+  if (typeof logo !== "object" || logo === null || Array.isArray(logo)) {
+    throw new Error(`miniapp registry: ${field} for "${id}" must be an object`);
+  }
+  if (logo.kind === "media") {
+    if (!isMediaUrl(logo.url)) {
+      throw new Error(
+        `miniapp registry: ${field}.url for "${id}" must be an object on the media bucket`,
+      );
+    }
+  } else if (logo.kind === "emoji") {
+    if (!isSingleEmoji(logo.emoji)) {
+      throw new Error(
+        `miniapp registry: ${field}.emoji for "${id}" must be exactly one emoji`,
+      );
+    }
+  } else if (
+    logo.kind !== "remote" ||
+    typeof logo.path !== "string" ||
+    !ROOT_PATH_RE.test(logo.path)
+  ) {
+    throw new Error(
+      `miniapp registry: ${field} for "${id}" must be a site-root-relative path, a media-bucket url, or one emoji`,
+    );
+  }
 }
 
 const SHELL_KEYS = new Set<string>(["bar"]);
@@ -74,27 +122,21 @@ export function assertValidRegistry(
     if (!SLUG_RE.test(entry.id)) {
       throw new Error(`miniapp registry: invalid id slug "${entry.id}"`);
     }
+    for (const key of Object.keys(entry)) {
+      if (!INDEX_KEYS.has(key)) {
+        throw new Error(`miniapp registry: unknown index key "${key}" in "${entry.id}"`);
+      }
+    }
     if (entry.hidden !== undefined && typeof entry.hidden !== "boolean") {
       throw new Error(`miniapp registry: hidden for "${entry.id}" must be a boolean`);
     }
-    const logo = entry.logo;
-    if (logo.kind === "media") {
-      if (!isMediaUrl(logo.url)) {
-        throw new Error(
-          `miniapp registry: logo.url for "${entry.id}" must be an object on the media bucket`,
-        );
-      }
-    } else if (logo.kind === "emoji") {
-      if (!isSingleEmoji(logo.emoji)) {
-        throw new Error(
-          `miniapp registry: logo.emoji for "${entry.id}" must be exactly one emoji`,
-        );
-      }
-    } else if (logo.kind !== "remote" || !ROOT_PATH_RE.test(logo.path)) {
+    if (entry.homeLogo === undefined && entry.shellLogo === undefined) {
       throw new Error(
-        `miniapp registry: logo for "${entry.id}" must be a site-root-relative path, a media-bucket url, or one emoji`,
+        `miniapp registry: "${entry.id}" needs at least one of homeLogo or shellLogo`,
       );
     }
+    if (entry.homeLogo !== undefined) assertValidLogo(entry.id, "homeLogo", entry.homeLogo);
+    if (entry.shellLogo !== undefined) assertValidLogo(entry.id, "shellLogo", entry.shellLogo);
     const detail = details[entry.id];
     if (!detail) {
       throw new Error(`miniapp registry: index id "${entry.id}" has no detail`);

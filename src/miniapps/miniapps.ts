@@ -56,16 +56,30 @@ function resolveLogo(logo: MiniAppLogoRaw): MiniAppLogo {
   }
 }
 
-/** Ordered index with image logos resolved to absolute URLs. */
+/**
+ * Ordered index with both logos resolved. The fallback between them is applied
+ * here, so the client always receives a `homeLogo` and a `shellLogo` and never
+ * has to know which one was authored.
+ */
 export const list: ReadonlyArray<Readonly<MiniAppIndexEntry>> = Object.freeze(
   [...rawIndex.miniApps]
     .sort((a, b) => a.order - b.order)
-    .map((entry) =>
-      Object.freeze({
-        ...entry,
-        logo: Object.freeze(resolveLogo(entry.logo)),
-      }),
-    ),
+    .map((entry) => {
+      // assertValidRegistry above guarantees at least one of the two.
+      const home = (entry.homeLogo ?? entry.shellLogo) as MiniAppLogoRaw;
+      const shell = (entry.shellLogo ?? entry.homeLogo) as MiniAppLogoRaw;
+      // Named fields rather than `...entry`, so no raw on-disk value can reach
+      // the wire even if a key slipped past the schema's allow-list.
+      return Object.freeze({
+        id: entry.id,
+        name: entry.name,
+        ...(entry.shortName !== undefined ? { shortName: entry.shortName } : {}),
+        order: entry.order,
+        homeLogo: Object.freeze(resolveLogo(home)),
+        shellLogo: Object.freeze(resolveLogo(shell)),
+        ...(entry.hidden !== undefined ? { hidden: entry.hidden } : {}),
+      });
+    }),
 );
 
 /** Frozen id → detail map for O(1) lookups. */

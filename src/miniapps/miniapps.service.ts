@@ -17,7 +17,7 @@ export class MiniAppsService {
     return registry.version;
   }
 
-  /** Frozen index ordered by `order`, logos resolved to absolute URLs. */
+  /** Frozen index ordered by `order`, both logos resolved (images to absolute URLs). */
   get list(): ReadonlyArray<Readonly<MiniAppIndexEntry>> {
     return registry.list;
   }
