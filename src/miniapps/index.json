@@ -26,6 +26,19 @@
       "homeLogo": { "kind": "emoji", "emoji": "🎧" }
     },
     {
+      "id": "booth-box",
+      "name": "오늘 밤 주점",
+      "shortName": "주점 뽑기",
+      "order": 8,
+      "homeLogo": { "kind": "emoji", "emoji": "🎁" }
+    },
+    {
+      "id": "subway-typing",
+      "name": "타이핑게임",
+      "order": 9,
+      "homeLogo": { "kind": "emoji", "emoji": "🚇" }
+    },
+    {
       "id": "hssc",
       "name": "인사캠 총학생회",
       "shortName": "인사캠 총학",
