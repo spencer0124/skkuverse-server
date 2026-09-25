@@ -104,6 +104,16 @@ describe("assertValidRegistry", () => {
     expect(() => assertValidRegistry(bad, details())).toThrow(/exactly one emoji/);
   });
 
+  it("accepts a hidden entry", () => {
+    expect(() => assertValidRegistry(index({ hidden: true }), details())).not.toThrow();
+    expect(() => assertValidRegistry(index({ hidden: false }), details())).not.toThrow();
+  });
+
+  it.each([["true"], [1], [null]])("rejects a non-boolean hidden, %j", (hidden) => {
+    const bad = index({ hidden: hidden as unknown as boolean });
+    expect(() => assertValidRegistry(bad, details())).toThrow(/hidden for "a" must be a boolean/);
+  });
+
   it("rejects an index entry with no matching detail", () => {
     expect(() => assertValidRegistry(index(), {})).toThrow(/has no detail/);
   });

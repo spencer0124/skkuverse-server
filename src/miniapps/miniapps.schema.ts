@@ -73,6 +73,9 @@ export function assertValidRegistry(
     if (!SLUG_RE.test(entry.id)) {
       throw new Error(`miniapp registry: invalid id slug "${entry.id}"`);
     }
+    if (entry.hidden !== undefined && typeof entry.hidden !== "boolean") {
+      throw new Error(`miniapp registry: hidden for "${entry.id}" must be a boolean`);
+    }
     const logo = entry.logo;
     if (logo.kind === "media") {
       if (!isMediaUrl(logo.url)) {
