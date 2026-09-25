@@ -128,8 +128,10 @@ grep -c '[$]{{' /tmp/deploy-host.sh         # must print 0: no workflow expressi
 bash -n /tmp/deploy-host.sh                  # syntax check
 
 scp /tmp/deploy-host.sh mnemosyne:/tmp/deploy-host.sh
-ssh mnemosyne 'bash /tmp/deploy-host.sh </dev/null; echo "exit $?"'
+ssh mnemosyne 'chmod 644 /tmp/deploy-host.sh; sudo -u ubuntu -H bash /tmp/deploy-host.sh </dev/null; echo "exit $?"'
 ```
+
+Run it as `ubuntu`, the user the workflow deploys as. The `mnemosyne` SSH alias logs in as `root`, and the checkout belongs to `ubuntu`, so running the script as root stops at its first `git` call with `fatal: detected dubious ownership` (exit 128), before anything is deployed.
 
 The script ends with `exit 1` on every failure path; `exit 0` with the replicas' health checks printed is success. Afterwards check `git rev-parse --short HEAD` in the host's checkout matches `main` and that the heartbeat is green.
 

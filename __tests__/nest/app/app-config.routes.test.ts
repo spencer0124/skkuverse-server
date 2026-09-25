@@ -106,7 +106,7 @@ describe("GET /app/config", () => {
     // either side, just a page whose buttons stop doing anything.
     //
     // The webview host, the standalone ESKARA site whose pages open ticket
-    // links through `web:open-url`, the 뭐 먹지? roulette and the 오늘 밤 주점
+    // links through `web:open-url`, the 음식 룰렛 roulette and the 부스 뽑기
     // box whose results open the map through `web:action`, and 플리 예습, whose
     // song buttons open YouTube and Spotify, and 초록의 파도, whose runner buzzes
     // through `web:haptic`. Exact equality rather than `toContain`,

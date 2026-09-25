@@ -3,10 +3,9 @@
   "miniApps": [
     {
       "id": "eskara-2026",
-      "name": "ESKARA 2026",
-      "shortName": "ESKARA",
+      "name": "축제 가이드",
       "order": 5,
-      "homeLogo": { "kind": "emoji", "emoji": "🌊" },
+      "homeLogo": { "kind": "emoji", "emoji": "📖" },
       "shellLogo": {
         "kind": "media",
         "url": "https://media.skkuverse.com/miniapps/eskara-2026/logo-03a86934.jpg"
@@ -14,8 +13,7 @@
     },
     {
       "id": "mukja",
-      "name": "뭐 먹지?",
-      "shortName": "뭐 먹지",
+      "name": "음식 룰렛",
       "order": 6,
       "homeLogo": { "kind": "emoji", "emoji": "😋" }
     },
@@ -27,14 +25,13 @@
     },
     {
       "id": "booth-box",
-      "name": "오늘 밤 주점",
-      "shortName": "주점 뽑기",
+      "name": "부스 뽑기",
       "order": 8,
       "homeLogo": { "kind": "emoji", "emoji": "🎁" }
     },
     {
       "id": "subway-typing",
-      "name": "타이핑게임",
+      "name": "캠퍼스 타이핑",
       "order": 9,
       "homeLogo": { "kind": "emoji", "emoji": "🚇" }
     },

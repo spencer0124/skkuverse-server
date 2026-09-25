@@ -89,7 +89,7 @@ export interface MiniAppIndexEntryRaw {
    * The home grid's tile. At least one of `homeLogo`/`shellLogo` is required,
    * and whichever is absent takes the other's value — so a mini app with one
    * picture sets one field, and one whose grid tile and shell header should
-   * differ (ESKARA: a 🌊 tile, its poster in the shell) sets both.
+   * differ (ESKARA: a 📖 tile, its poster in the shell) sets both.
    */
   homeLogo?: MiniAppLogoRaw;
   /** The shell's title pill and page-info sheet. Absent means `homeLogo`. */

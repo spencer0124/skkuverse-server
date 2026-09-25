@@ -46,7 +46,7 @@ export const WEBVIEW_ORIGIN = "https://webview.skkuverse.com";
 export const ESKARA_MINIAPP_ORIGIN = "https://eskara.miniapp.skkuverse.com";
 
 /**
- * The 뭐 먹지? roulette (`miniapp-mukja`), the registered start URL of the
+ * The 음식 룰렛 roulette (`miniapp-mukja`), the registered start URL of the
  * `mukja` mini app: it picks one festival menu item from the places open now.
  * Its result card posts `web:action` with `map` for "view on map" and nothing
  * else — no `web:open-url`, no API calls, so it needs no CORS grant. It embeds
@@ -69,7 +69,7 @@ export const MUKJA_MINIAPP_ORIGIN = "https://mukja.mini.skkuverse.com";
 export const PLAYLIST_MINIAPP_ORIGIN = "https://playlist.mini.skkuverse.com";
 
 /**
- * 오늘 밤 주점 (`miniapp-booth-box`), the registered start URL of the
+ * 부스 뽑기 (`miniapp-booth-box`), the registered start URL of the
  * `booth-box` mini app: a gift box that opens on one of ESKARA 2026's 주점.
  * Its result sheet posts `web:action` with `map` for "view on map" and nothing
  * else — no `web:open-url`, no API calls, so it needs no CORS grant. It embeds

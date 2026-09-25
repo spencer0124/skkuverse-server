@@ -21,6 +21,7 @@
     {
       "type": "miniapp_grid",
       "id": "main",
+      "title": { "ko": "ESKARA" },
       "miniAppIds": ["eskara-2026", "mukja", "playlist", "booth-box"]
     },
     {
