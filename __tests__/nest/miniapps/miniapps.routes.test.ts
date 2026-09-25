@@ -124,7 +124,7 @@ describe("GET /miniapps", () => {
   it("serves an emoji logo as the emoji, for the client to draw in Tossface", async () => {
     const res = await request(httpServer).get("/miniapps");
     const mukja = res.body.data.miniApps.find((m: { id: string }) => m.id === "mukja");
-    expect(mukja.logo).toEqual({ kind: "emoji", emoji: "🍢" });
+    expect(mukja.logo).toEqual({ kind: "emoji", emoji: "😋" });
   });
 
   it("gives every entry a slug id and a display name", async () => {
