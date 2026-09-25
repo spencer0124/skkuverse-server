@@ -166,13 +166,11 @@ describe("GET /miniapps/:id", () => {
       expect(res.body.data.startUrl).toMatch(/^https?:\/\//);
       expect(typeof res.body.data.verified).toBe("boolean");
       expect(Array.isArray(res.body.data.relatedLinks)).toBe(true);
-      // Optional; when present, only the two switches the shell knows, as booleans.
+      // Optional; when present, only `bar`, as one of the three positions.
       const shell = res.body.data.shell;
       if (shell !== undefined) {
-        for (const [key, value] of Object.entries(shell)) {
-          expect(["bottomBar", "backForward"]).toContain(key);
-          expect(typeof value).toBe("boolean");
-        }
+        expect(Object.keys(shell).every((key) => key === "bar")).toBe(true);
+        if (shell.bar !== undefined) expect(["top", "bottom", "hide"]).toContain(shell.bar);
       }
     }
   });

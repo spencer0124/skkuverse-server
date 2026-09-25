@@ -199,33 +199,28 @@ describe("assertValidRegistry", () => {
         a: { ...details().a, shell: shell as MiniAppDetail["shell"] },
       });
 
-    it.each([
-      [{}],
-      [{ bottomBar: false }],
-      [{ backForward: false }],
-      [{ bottomBar: true, backForward: false }],
-      [{ bottomBar: false, backForward: false }],
-    ])("accepts %j", (shell) => {
-      expect(withShell(shell)).not.toThrow();
+    it.each([[{}], [{ bar: "top" }], [{ bar: "bottom" }], [{ bar: "hide" }]])(
+      "accepts %j",
+      (shell) => {
+        expect(withShell(shell)).not.toThrow();
+      },
+    );
+
+    it.each([["left"], ["TOP"], [true], [null]])("rejects bar %j", (bar) => {
+      expect(withShell({ bar })).toThrow(/shell.bar for "a" must be one of top, bottom, hide/);
     });
 
-    it("rejects a misspelt key, which would otherwise do nothing", () => {
-      expect(withShell({ bottombar: false })).toThrow(/unknown shell key "bottombar"/);
-    });
-
-    it.each([["false"], [0], [null]])("rejects a non-boolean switch, %j", (value) => {
-      expect(withShell({ backForward: value })).toThrow(/must be a boolean/);
-    });
+    it.each([["bottomBar"], ["backForward"], ["position"]])(
+      "rejects the unknown key %s, including the old switches",
+      (key) => {
+        expect(withShell({ [key]: false })).toThrow(new RegExp(`unknown shell key "${key}"`));
+      },
+    );
 
     it("rejects a shell that is not an object", () => {
       expect(withShell([])).toThrow(/must be an object/);
       expect(withShell(false)).toThrow(/must be an object/);
-    });
-
-    it("rejects back/forward asked for on a hidden bottom bar", () => {
-      expect(withShell({ bottomBar: false, backForward: true })).toThrow(
-        /hidden bottom bar/,
-      );
+      expect(withShell("top")).toThrow(/must be an object/);
     });
   });
 
