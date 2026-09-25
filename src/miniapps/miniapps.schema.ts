@@ -14,11 +14,18 @@ import { isMediaUrl } from "../infra/media-url";
 import { isOnWebviewOrigin, toWebviewUrl } from "../infra/webview-url";
 import {
   MINIAPP_SHELL_BARS,
+  MINIAPP_SHELL_HEADERS,
+  MINIAPP_SHELL_STATUS_BARS,
   type MiniAppDetail,
   type MiniAppIndexRaw,
   type MiniAppLogoRaw,
   type MiniAppShellBar,
+  type MiniAppShellHeader,
+  type MiniAppShellStatusBar,
 } from "./types";
+
+/** Registry-authored background must be `#RRGGBB` — same rule as the SDK's `ShellConfig`. */
+const SHELL_BACKGROUND_RE = /^#[0-9A-Fa-f]{6}$/;
 
 const HTTP_RE = /^https?:\/\//;
 const SLUG_RE = /^[a-z0-9-]+$/;
@@ -85,13 +92,16 @@ function assertValidLogo(
   }
 }
 
-const SHELL_KEYS = new Set<string>(["bar"]);
+const SHELL_KEYS = new Set<string>(["bar", "header", "statusBar", "background"]);
 
 /**
- * Only `bar`, and only one of its three values. An unknown key is almost
- * always a misspelling or a leftover of the old `bottomBar`/`backForward`
- * switches, and either would do nothing at all: the client reads `bar` and
- * nothing else, so the shell would keep its default with no error anywhere.
+ * Only `bar`/`header`/`statusBar`/`background`, and only their allowed values.
+ * An unknown key is almost always a misspelling or a leftover of an old switch
+ * (`bottomBar`/`backForward`), and any of these would do nothing at all: the
+ * client reads these exact names and nothing else, so the shell would keep its
+ * default with no error anywhere. All four are optional — a registry entry
+ * with none of them relies entirely on `DEFAULT_SHELL` and the mini app's own
+ * manifest (see `shell.ts`).
  */
 function assertValidShell(id: string, shell: unknown): void {
   if (typeof shell !== "object" || shell === null || Array.isArray(shell)) {
@@ -102,11 +112,35 @@ function assertValidShell(id: string, shell: unknown): void {
       throw new Error(`miniapp registry: unknown shell key "${key}" in "${id}"`);
     }
   }
-  const { bar } = shell as { bar?: unknown };
+  const { bar, header, statusBar, background } = shell as {
+    bar?: unknown;
+    header?: unknown;
+    statusBar?: unknown;
+    background?: unknown;
+  };
   if (bar !== undefined && !MINIAPP_SHELL_BARS.includes(bar as MiniAppShellBar)) {
     throw new Error(
       `miniapp registry: shell.bar for "${id}" must be one of ${MINIAPP_SHELL_BARS.join(", ")}`,
     );
+  }
+  if (header !== undefined && !MINIAPP_SHELL_HEADERS.includes(header as MiniAppShellHeader)) {
+    throw new Error(
+      `miniapp registry: shell.header for "${id}" must be one of ${MINIAPP_SHELL_HEADERS.join(", ")}`,
+    );
+  }
+  if (
+    statusBar !== undefined &&
+    !MINIAPP_SHELL_STATUS_BARS.includes(statusBar as MiniAppShellStatusBar)
+  ) {
+    throw new Error(
+      `miniapp registry: shell.statusBar for "${id}" must be one of ${MINIAPP_SHELL_STATUS_BARS.join(", ")}`,
+    );
+  }
+  if (
+    background !== undefined &&
+    (typeof background !== "string" || !SHELL_BACKGROUND_RE.test(background))
+  ) {
+    throw new Error(`miniapp registry: shell.background for "${id}" must be a #RRGGBB string`);
   }
 }
 

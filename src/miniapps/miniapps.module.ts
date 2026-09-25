@@ -3,6 +3,7 @@ import { MiddlewareConsumer, Module, type NestModule } from "@nestjs/common";
 import { MiniAppsController } from "./miniapps.controller";
 import { MiniAppsInternalController } from "./miniapps.internal.controller";
 import { MiniAppNotificationsService } from "./miniapps-notifications.service";
+import { MiniAppsManifestService } from "./miniapps.manifest";
 import { MiniAppsService } from "./miniapps.service";
 import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middleware";
 
@@ -18,7 +19,7 @@ import { BusRateLimitMiddleware } from "../common/rate-limit/rate-limit.middlewa
  */
 @Module({
   controllers: [MiniAppsController, MiniAppsInternalController],
-  providers: [MiniAppsService, MiniAppNotificationsService],
+  providers: [MiniAppsService, MiniAppNotificationsService, MiniAppsManifestService],
   exports: [MiniAppsService],
 })
 export class MiniAppsModule implements NestModule {

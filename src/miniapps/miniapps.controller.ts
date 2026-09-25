@@ -3,8 +3,10 @@ import type { Request, Response } from "express";
 import { AppError } from "../common/app-error";
 import { MiniAppsService } from "./miniapps.service";
 import { MiniAppNotificationsService } from "./miniapps-notifications.service";
+import { MiniAppsManifestService } from "./miniapps.manifest";
+import { DEFAULT_SHELL, mergeShell, parseShellFields } from "./shell";
 import type {
-  MiniAppDetail,
+  MiniAppDetailResponse,
   MiniAppIndexEntry,
   MiniAppNotificationEntry,
 } from "./types";
@@ -42,6 +44,7 @@ export class MiniAppsController {
   constructor(
     private readonly miniApps: MiniAppsService,
     private readonly notifications: MiniAppNotificationsService,
+    private readonly manifest: MiniAppsManifestService,
   ) {}
 
   // GET /miniapps
@@ -79,18 +82,29 @@ export class MiniAppsController {
     return this.notifications.feed(id, (req.lang ?? "ko") as SupportedLang);
   }
 
-  // GET /miniapps/:id
+  /**
+   * GET /miniapps/:id — the registry detail, with `shell` always the complete
+   * merged config: `DEFAULT_SHELL`, overridden by the registry's own
+   * (optional) fields, overridden again by the mini app's own manifest (for a
+   * first-party mini app that has shipped one; `{}` otherwise). See
+   * `miniapps.manifest.ts` for the fetch/cache and `shell.ts` for the merge.
+   */
   @Get(":id")
-  getDetail(
+  async getDetail(
     @Param("id") id: string,
     @Res({ passthrough: true }) res: Response,
-  ): Readonly<MiniAppDetail> {
+  ): Promise<Readonly<MiniAppDetailResponse>> {
     const detail = this.miniApps.getDetail(id);
     if (!detail) {
       throw new AppError("MINIAPP_NOT_FOUND", `Unknown mini-app id: ${id}`, 404);
     }
+    const manifestFields = await this.manifest.getShellFields(detail);
+    const shell = mergeShell(
+      mergeShell(DEFAULT_SHELL, parseShellFields(detail.shell)),
+      manifestFields,
+    );
     // Set only on success, so a 404 for a slug that ships later is not kept.
     res.set("Cache-Control", REGISTRY_CACHE_CONTROL);
-    return detail;
+    return { ...detail, shell };
   }
 }

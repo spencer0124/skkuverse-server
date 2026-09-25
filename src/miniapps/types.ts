@@ -11,6 +11,7 @@
  * join key, the deep-link path (/m/<id>), the cache key, and the analytics id,
  * so it must survive renames and translations.
  */
+import type { ShellConfig } from "./shell";
 
 /**
  * Bump only on BREAKING schema changes (removed/renamed/retyped field).
@@ -123,19 +124,46 @@ export interface MiniAppIndexRaw {
  *  - `top` — the pill moves into the top header, between the header's own
  *    close and more buttons. No bottom bar and no [<] [>]: for a single-page
  *    mini app, where the pair would only sit there disabled.
- *  - `hide` — no pill, no [<] [>], no bottom bar. For a page that draws its own
- *    chrome, such as a fixed button along the bottom edge.
+ *  - `none` — no pill, no [<] [>], no bottom bar. For a page that draws its own
+ *    chrome, such as a fixed button along the bottom edge. Named to match the
+ *    SDK's `ShellBar` (`packages/miniapp/src/protocol/manifest.ts` in
+ *    skkuverse-miniapp) rather than the older `hide`.
  *
  * Only the buttons come and go. The Android back button and the iOS edge
  * swipe follow the web view's history in every mode.
  */
-export type MiniAppShellBar = "top" | "bottom" | "hide";
+export type MiniAppShellBar = "top" | "bottom" | "none";
 
-export const MINIAPP_SHELL_BARS: readonly MiniAppShellBar[] = ["top", "bottom", "hide"];
+export const MINIAPP_SHELL_BARS: readonly MiniAppShellBar[] = ["top", "bottom", "none"];
 
-/** The shell's chrome around this service's page. Absent `bar` means `bottom`. */
+/** - `opaque`: solid header band. - `overlay`: page starts under a transparent header/status bar. */
+export type MiniAppShellHeader = "opaque" | "overlay";
+
+export const MINIAPP_SHELL_HEADERS: readonly MiniAppShellHeader[] = ["opaque", "overlay"];
+
+/** Status bar icon colour: `dark` icons for a light page, `light` for a dark one. */
+export type MiniAppShellStatusBar = "dark" | "light";
+
+export const MINIAPP_SHELL_STATUS_BARS: readonly MiniAppShellStatusBar[] = ["dark", "light"];
+
+/**
+ * The shell's chrome around this service's page, as authored in the registry.
+ *
+ * Every field is optional here: the registry only ever supplies a fallback,
+ * used until (and if) the mini app's own `public/skkuverse.json` manifest
+ * supplies the same field (see `shell.ts`'s `ShellConfig`/`DEFAULT_SHELL`,
+ * which this mirrors field-for-field so `parseShellFields` can read either
+ * shape). `GET /miniapps/:id` always merges this over `DEFAULT_SHELL` and
+ * under the manifest's fields, so the wire response's `shell` is always
+ * complete — this partial type is what the registry file is allowed to
+ * override, not what the client receives.
+ */
 export interface MiniAppShell {
   bar?: MiniAppShellBar;
+  header?: MiniAppShellHeader;
+  statusBar?: MiniAppShellStatusBar;
+  /** `#RRGGBB`. */
+  background?: string;
 }
 
 /** Per-service detail — heavier content, needed only when opening the mini-app. */
@@ -150,6 +178,16 @@ export interface MiniAppDetail {
   relatedLinks: MiniAppLink[];
   noticeBanner?: MiniAppNoticeBanner;
   shell?: MiniAppShell;
+}
+
+/**
+ * Wire shape of `GET /miniapps/:id`: identical to `MiniAppDetail` except
+ * `shell`, which is always the complete merged config —
+ * `mergeShell(mergeShell(DEFAULT_SHELL, registry shell fields), manifest shell fields)`
+ * — never the sparse, all-optional `MiniAppShell` the registry file authors.
+ */
+export interface MiniAppDetailResponse extends Omit<MiniAppDetail, "shell"> {
+  shell: ShellConfig;
 }
 
 /**

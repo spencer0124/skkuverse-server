@@ -52,6 +52,13 @@ let app: NestExpressApplication;
 let httpServer: import("http").Server;
 
 beforeAll(async () => {
+  // Several details have a first-party (`*.mini.skkuverse.com`) startUrl, so
+  // MiniAppsManifestService.onModuleInit fires a real fetch for each unless
+  // this is stubbed — this suite mocks external dependencies, and a manifest
+  // outage must never fail these routes, so a rejection is exactly the case
+  // that should also be exercised: every mini app falls back to its registry
+  // shell, same as before this feature existed.
+  global.fetch = jest.fn().mockRejectedValue(new Error("no network in tests")) as unknown as typeof fetch;
   const expressInstance = express();
   expressInstance.set("trust proxy", 1);
   expressInstance.use(pinoHttp({ logger, autoLogging: false }));
@@ -77,6 +84,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await app.close();
+  delete (global as { fetch?: typeof fetch }).fetch;
 });
 
 describe("GET /miniapps", () => {
@@ -186,13 +194,35 @@ describe("GET /miniapps/:id", () => {
       expect(res.body.data.startUrl).toMatch(/^https?:\/\//);
       expect(typeof res.body.data.verified).toBe("boolean");
       expect(Array.isArray(res.body.data.relatedLinks)).toBe(true);
-      // Optional; when present, only `bar`, as one of the three positions.
+      // Always the complete merged config now — never sparse, never absent.
       const shell = res.body.data.shell;
-      if (shell !== undefined) {
-        expect(Object.keys(shell).every((key) => key === "bar")).toBe(true);
-        if (shell.bar !== undefined) expect(["top", "bottom", "hide"]).toContain(shell.bar);
-      }
+      expect(Object.keys(shell).sort()).toEqual(["background", "bar", "header", "statusBar"]);
+      expect(["top", "bottom", "none"]).toContain(shell.bar);
+      expect(["opaque", "overlay"]).toContain(shell.header);
+      expect(["dark", "light"]).toContain(shell.statusBar);
+      expect(shell.background).toMatch(/^#[0-9A-F]{6}$/);
     }
+  });
+
+  it("falls back to the registry's own bar when the manifest fetch fails (mocked offline)", async () => {
+    const topBar = ["booth-box", "mukja", "playlist", "subway-typing", "wave-run"];
+    for (const id of topBar) {
+      const res = await request(httpServer).get(`/miniapps/${id}`);
+      expect(res.body.data.shell).toEqual({
+        bar: "top",
+        header: "opaque",
+        statusBar: "dark",
+        background: "#FFFFFF",
+      });
+    }
+    // No registry shell authored at all: pure DEFAULT_SHELL.
+    const eskara = await request(httpServer).get("/miniapps/eskara-2026");
+    expect(eskara.body.data.shell).toEqual({
+      bar: "bottom",
+      header: "opaque",
+      statusBar: "dark",
+      background: "#FFFFFF",
+    });
   });
 
   it("marks a found detail cacheable", async () => {
