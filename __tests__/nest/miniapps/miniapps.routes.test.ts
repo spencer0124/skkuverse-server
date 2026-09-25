@@ -125,10 +125,10 @@ describe("GET /miniapps", () => {
     }
   });
 
-  it("lets the grid tile and the shell logo differ (ESKARA: 🌊 tile, poster in the shell)", async () => {
+  it("lets the grid tile and the shell logo differ (ESKARA: 📖 tile, poster in the shell)", async () => {
     const res = await request(httpServer).get("/miniapps");
     const eskara = res.body.data.miniApps.find((m: { id: string }) => m.id === "eskara-2026");
-    expect(eskara.homeLogo).toEqual({ kind: "emoji", emoji: "🌊" });
+    expect(eskara.homeLogo).toEqual({ kind: "emoji", emoji: "📖" });
     expect(eskara.shellLogo.kind).toBe("remote");
     expect(eskara.shellLogo.uri.startsWith(`${MEDIA_ORIGIN}/`)).toBe(true);
   });
