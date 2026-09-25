@@ -20,6 +20,12 @@
       "homeLogo": { "kind": "emoji", "emoji": "😋" }
     },
     {
+      "id": "playlist",
+      "name": "플리 예습",
+      "order": 7,
+      "homeLogo": { "kind": "emoji", "emoji": "🎧" }
+    },
+    {
       "id": "hssc",
       "name": "인사캠 총학생회",
       "shortName": "인사캠 총학",

@@ -58,6 +58,16 @@ export const ESKARA_MINIAPP_ORIGIN = "https://eskara.miniapp.skkuverse.com";
  */
 export const MUKJA_MINIAPP_ORIGIN = "https://mukja.mini.skkuverse.com";
 
+/**
+ * 플리 예습 (`miniapp-playlist`), the registered start URL of the `playlist`
+ * mini app: the expected ESKARA 2026 setlist, each song with a YouTube and a
+ * Spotify button. It posts `web:open-url` (a https `url`, plus an `appUrl` —
+ * `youtube://`, `vnd.youtube:`, `spotify:` — for the app to try first) and
+ * `web:haptic` while its opening counter runs. No API calls, so no CORS grant.
+ * It embeds no iframes; on Android a child frame would inherit the top-level grant.
+ */
+export const PLAYLIST_MINIAPP_ORIGIN = "https://playlist.mini.skkuverse.com";
+
 /** Marketing/launcher site — mini-app share links, A2HS shortcuts, remote mini-app logos. */
 export const WEB_ORIGIN = "https://skkuverse.com";
 
@@ -103,6 +113,7 @@ export const BRIDGE_ORIGINS = [
   WEBVIEW_ORIGIN,
   ESKARA_MINIAPP_ORIGIN,
   MUKJA_MINIAPP_ORIGIN,
+  PLAYLIST_MINIAPP_ORIGIN,
 ] as const;
 
 /**

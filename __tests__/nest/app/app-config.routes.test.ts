@@ -115,6 +115,7 @@ describe("GET /app/config", () => {
       "https://webview.skkuverse.com",
       "https://eskara.miniapp.skkuverse.com",
       "https://mukja.mini.skkuverse.com",
+      "https://playlist.mini.skkuverse.com",
     ]);
   });
 
