@@ -3,7 +3,7 @@ title: Docs Index & Conventions
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-25
+last-updated: 2026-09-26
 audience: internal
 ---
 
@@ -44,6 +44,7 @@ audience: internal
 | --- | --- |
 | [verify-notices-changes.md](how-to/verify-notices-changes.md) | `/notices/*` 변경 후 머지·배포 전 검증 절차 |
 | [configure-home.md](how-to/configure-home.md) | What `GET /ui/home` serves — the banner carousel (images, rotation, the app default's place, time windows) and the titled mini-app sections; uploading a banner and why released apps still read `hidden` |
+| [register-a-miniapp.md](how-to/register-a-miniapp.md) | Adding a mini app to `GET /miniapps` — the index entry, the detail file, logos, the prod-only `copy-build-assets.js` pitfall, `BRIDGE_ORIGINS`, tests to update, and the `dev` → `main` deploy |
 | [configure-map-overlays.md](how-to/configure-map-overlays.md) | Everything the map can draw and how to add or change one — which tier you edit, whether it needs a deploy, and what to check when a shape does not appear |
 | [migrate-app-to-map-overlays.md](how-to/migrate-app-to-map-overlays.md) | The client half of the overlay change, for `skkuverse-app` — what changed on the wire, the ring winding the SDK needs reversed, and the fallback config that still points at a deleted route |
 | [monitor-production.md](how-to/monitor-production.md) | How production is watched (UptimeRobot outside-in, a per-host Healthchecks.io heartbeat inside-out), what each alert means, adding a host, and testing the alert path |
@@ -58,6 +59,7 @@ audience: internal
 | [notices-api.md](reference/notices-api.md) | `/notices/*` + `/internal/notices/*` 요청·응답 계약, 에러 코드, 파일 맵 |
 | [event-places.md](reference/event-places.md) | 축제 장소의 저장·작성·운영 — `places`/`activations` 컬렉션, 인덱스, 시트 임포터, 장소 `detail`(시트 본문)과 R2 사진 규칙, 창(window) 킬 스위치 런북 |
 | [map-overlays-api.md](reference/map-overlays-api.md) | The one overlay schema every map layer draws — pins, zones and route lines tagged by `kind` — the `defaultVisibleWhen`/`userConfigurable` layer flags, and `GET /map/config` + `/map/overlays/{campus,event}` + `/map/overlays/event/details` |
+| [miniapps-api.md](reference/miniapps-api.md) | `GET /miniapps` + `/miniapps/:id` — index and detail fields, the `shell` merge order (default < registry < the mini app's own manifest), first-party manifest fetch rules, boot validation, and the broadcast feed endpoints |
 
 ### explanation (메커니즘·배경)
 

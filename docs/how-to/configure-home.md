@@ -3,7 +3,7 @@ title: Configure the Home Screen
 type: how-to
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-25
+last-updated: 2026-09-26
 audience: internal
 ---
 
@@ -70,7 +70,7 @@ Text (`alt`, `title`) is written as `{ "ko": ..., "en"?: ..., "zh"?: ... }`, and
 
 ### Rearrange the mini-app sections
 
-Edit the `miniapp_grid` sections: reorder ids, move an id to another grid, add a grid, or add or remove a `title`. To add a new mini app, register it in `src/miniapps/` first, since the layout refuses unknown ids.
+Edit the `miniapp_grid` sections: reorder ids, move an id to another grid, add a grid, or add or remove a `title`. To add a new mini app, register it in `src/miniapps/` first (see [register-a-miniapp.md](register-a-miniapp.md)), since the layout refuses unknown ids.
 
 ## Troubleshooting
 
