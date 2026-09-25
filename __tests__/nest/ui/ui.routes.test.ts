@@ -99,3 +99,27 @@ describe("GET /ui/home/campus", () => {
     }
   });
 });
+
+describe("GET /ui/home", () => {
+  it("returns the layout in the standard envelope, cacheable", async () => {
+    const res = await request(httpServer).get("/ui/home");
+    expect(res.status).toBe(200);
+    expect(res.body.meta.lang).toBe("ko");
+    expect(res.body.data.version).toBe(1);
+    expect(Array.isArray(res.body.data.sections)).toBe(true);
+    expect(res.headers["cache-control"]).toBe("public, max-age=300");
+    expect(res.headers.vary).toMatch(/Accept-Language/);
+  });
+
+  it("ships mini-app grids as ids only, with localized titles", async () => {
+    const res = await request(httpServer).get("/ui/home").set("Accept-Language", "en");
+    const grids = res.body.data.sections.filter(
+      (s: { type: string }) => s.type === "miniapp_grid",
+    );
+    expect(grids.length).toBeGreaterThan(0);
+    for (const g of grids) {
+      expect(g.miniAppIds.every((id: unknown) => typeof id === "string")).toBe(true);
+      if (g.title !== undefined) expect(typeof g.title).toBe("string");
+    }
+  });
+});

@@ -43,6 +43,7 @@ audience: internal
 | 문서 | 요약 |
 | --- | --- |
 | [verify-notices-changes.md](how-to/verify-notices-changes.md) | `/notices/*` 변경 후 머지·배포 전 검증 절차 |
+| [configure-home.md](how-to/configure-home.md) | What `GET /ui/home` serves — the banner carousel (images, rotation, the app default's place, time windows) and the titled mini-app sections; uploading a banner and why released apps still read `hidden` |
 | [configure-map-overlays.md](how-to/configure-map-overlays.md) | Everything the map can draw and how to add or change one — which tier you edit, whether it needs a deploy, and what to check when a shape does not appear |
 | [migrate-app-to-map-overlays.md](how-to/migrate-app-to-map-overlays.md) | The client half of the overlay change, for `skkuverse-app` — what changed on the wire, the ring winding the SDK needs reversed, and the fallback config that still points at a deleted route |
 | [monitor-production.md](how-to/monitor-production.md) | How production is watched (UptimeRobot outside-in, a per-host Healthchecks.io heartbeat inside-out), what each alert means, adding a host, and testing the alert path |

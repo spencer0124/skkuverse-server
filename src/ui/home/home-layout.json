@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "sections": [
+    {
+      "type": "banner_carousel",
+      "id": "home_top",
+      "aspectRatio": 2.25,
+      "autoRotateSec": 5,
+      "items": [
+        {
+          "type": "image",
+          "id": "eskara-2026-panorama",
+          "imageUrl": "https://media.skkuverse.com/home/banners/eskara-2026-panorama-b9ed45de.jpg",
+          "alt": { "ko": "2026 ESKARA 초록의 파도", "en": "ESKARA 2026" },
+          "actionType": "miniapp",
+          "actionValue": "eskara-2026"
+        },
+        { "type": "default" }
+      ]
+    },
+    {
+      "type": "miniapp_grid",
+      "id": "main",
+      "miniAppIds": ["eskara-2026", "mukja", "playlist", "booth-box"]
+    },
+    {
+      "type": "miniapp_grid",
+      "id": "games",
+      "title": { "ko": "미니게임", "en": "Mini games", "zh": "小游戏" },
+      "miniAppIds": ["subway-typing", "wave-run"]
+    }
+  ]
+}
