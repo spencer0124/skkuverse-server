@@ -3,7 +3,7 @@ title: Docs Index & Conventions
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-24
+last-updated: 2026-09-25
 audience: internal
 ---
 
@@ -43,11 +43,13 @@ audience: internal
 | 문서 | 요약 |
 | --- | --- |
 | [verify-notices-changes.md](how-to/verify-notices-changes.md) | `/notices/*` 변경 후 머지·배포 전 검증 절차 |
+| [configure-home.md](how-to/configure-home.md) | What `GET /ui/home` serves — the banner carousel (images, rotation, the app default's place, time windows) and the titled mini-app sections; uploading a banner and why released apps still read `hidden` |
 | [configure-map-overlays.md](how-to/configure-map-overlays.md) | Everything the map can draw and how to add or change one — which tier you edit, whether it needs a deploy, and what to check when a shape does not appear |
 | [migrate-app-to-map-overlays.md](how-to/migrate-app-to-map-overlays.md) | The client half of the overlay change, for `skkuverse-app` — what changed on the wire, the ring winding the SDK needs reversed, and the fallback config that still points at a deleted route |
 | [monitor-production.md](how-to/monitor-production.md) | How production is watched (UptimeRobot outside-in, a per-host Healthchecks.io heartbeat inside-out), what each alert means, adding a host, and testing the alert path |
-| [lock-origin-to-cloudflare.md](how-to/lock-origin-to-cloudflare.md) | Closing an origin host to everything but Cloudflare — the nginx catch-all server, the host firewall and the shared Cloudflare IP lists; apply, verify, roll back, refresh when Cloudflare's ranges change, reach a locked origin, and onboard another origin host |
+| [lock-origin-to-cloudflare.md](how-to/lock-origin-to-cloudflare.md) | Closing an origin host to everything but Cloudflare — the nginx catch-all server, the host firewall and the shared Cloudflare IP lists; apply, verify, roll back, refresh when Cloudflare's ranges change, reach a locked origin, and onboard another origin host (including a hygiene check before any secret lands on it) |
 | [fail-over-poller.md](how-to/fail-over-poller.md) | Moving the poller between origin hosts by hand — the `/etc/skkuverse/host.env` role file, the start-before-stop order, checking that bus data is fresh, and moving it back |
+| [operate-load-balancer.md](how-to/operate-load-balancer.md) | The Cloudflare load balancer in front of the origins — its monitor and pool, telling which host answered, ramping a weight, draining or taking out a host, rolling back to plain DNS, failover drills, and adding or removing an origin |
 
 ### reference (계약·스펙)
 
@@ -76,7 +78,7 @@ audience: internal
 | [0006-building-search-relevance-ranking.md](decisions/0006-building-search-relevance-ranking.md) | accepted |
 | [0007-notice-ordering-key.md](decisions/0007-notice-ordering-key.md) | accepted |
 | [0008-dispatch-age-gate-on-publication-date.md](decisions/0008-dispatch-age-gate-on-publication-date.md) | accepted |
-| [0009-multi-origin-active-active.md](decisions/0009-multi-origin-active-active.md) | accepted |
+| [0009-multi-origin-active-active.md](decisions/0009-multi-origin-active-active.md) | accepted (rollout in progress) |
 
 ### internal (포스트모템)
 
@@ -92,7 +94,7 @@ audience: internal
 | --- | --- |
 | [notices-api-architecture.md](notices-api-architecture.md) | superseded — 위 5개 문서로 분할 완료. 포인터 스텁만 남음 |
 | [project-docs.md](project-docs.md) | 미이관 — Oracle 배포 + Bus 시스템 + 외부 API + 건물. Express drift |
-| [cicd-and-branch-protection.md](cicd-and-branch-protection.md) | 미이관 — CI/CD·브랜치 보호 |
+| [cicd-and-branch-protection.md](cicd-and-branch-protection.md) | 미이관 — CI/CD·브랜치 보호, per-host deploy switch and deploying a host by hand |
 | [skku-notice-sources.md](skku-notice-sources.md) | deprecated — 포인터 스텁만 남음. 소스 SSOT는 `src/notices/sources.json` + 크롤러 `sources.json`/coverage |
 | [skku-departments.md](skku-departments.md) | 미이관 — 학과 홈페이지 에디토리얼 참조 |
 

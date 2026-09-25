@@ -21,6 +21,21 @@ import { sendSuccess } from "../../common/send-success";
 export class UiController {
   constructor(private readonly ui: UiService) {}
 
+  /**
+   * GET /ui/home — the home screen's server-driven sections.
+   *
+   * Static config resolved per request, so it may be cached like the mini-app
+   * registry it references. Five minutes also bounds how late a banner's
+   * `endAt` takes effect. LangMiddleware already sets `Vary: Accept-Language`,
+   * which the localized titles need.
+   */
+  @Get("home")
+  getHome(@Req() req: Request, @Res() res: Response): void {
+    const lang = (req.lang ?? "ko") as SupportedLang;
+    res.set("Cache-Control", "public, max-age=300");
+    sendSuccess(req, res, this.ui.getHomeLayout(lang));
+  }
+
   @Get("home/transitlist")
   getTransitList(@Req() req: Request, @Res() res: Response): void {
     const lang = (req.lang ?? "ko") as SupportedLang;

@@ -3,6 +3,8 @@ import type { SupportedLang } from "../../infra/types";
 import { getBusList } from "./ui.buslist";
 import { getScrollComponent } from "./ui.scroll";
 import { getCampusSections } from "./ui.campus";
+import { resolveHomeLayout } from "../home/home-layout";
+import type { HomeLayout } from "../home/home-layout.types";
 
 /**
  * SDUI home payloads — DELEGATES to the validated ui/* pure functions
@@ -36,5 +38,10 @@ export class UiService {
     lang: SupportedLang = "ko",
   ): ReturnType<typeof getCampusSections> {
     return getCampusSections(lang);
+  }
+
+  /** The home screen's banner carousel and mini-app sections, as of `now`. */
+  getHomeLayout(lang: SupportedLang = "ko", now: Date = new Date()): HomeLayout {
+    return resolveHomeLayout(lang, now);
   }
 }

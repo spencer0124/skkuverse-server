@@ -3,7 +3,7 @@ title: Monitor Production
 type: how-to
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-24
+last-updated: 2026-09-25
 audience: internal
 ---
 
@@ -13,16 +13,17 @@ audience: internal
 
 ## Overview
 
-Two layers hide failures from users, so two layers watch for them. nginx retries a request on another replica when one dies, and (once there is more than one origin) Cloudflare Load Balancing will route around a dead host. Each is good for users and bad for detection: the service looks up from outside while capacity is gone.
+Two layers hide failures from users, so two layers watch for them. nginx retries a request on another replica when one dies, and Cloudflare Load Balancing routes around a dead origin host ([operate-load-balancer.md](operate-load-balancer.md)). Each is good for users and bad for detection: the service looks up from outside while capacity is gone.
 
 | Layer | Service | Watches | Alerts when |
 | --- | --- | --- | --- |
 | Outside-in | UptimeRobot (free, 5-minute checks) | The public host names, through Cloudflare, as a user reaches them | A public URL stops answering, or answers without the expected keyword |
+| Edge | Cloudflare Load Balancing monitor (60 s checks) | Each origin's `/health/ready`, from Cloudflare | An endpoint turns unhealthy or recovers |
 | Inside-out | Healthchecks.io (free), one check per host | Each host, from the host itself: every compose service, nginx, and the other containers on it | The host posts a failure, or stops pinging at all |
 
-Both deliver to `#server-alerts` on the SKKUVERSE Discord server (Healthchecks.io through its Discord integration, UptimeRobot through a channel webhook), plus email. The crawler's webhook posts elsewhere and is not part of this. Cloudflare's own notifications are not used: on the Free plan they are email-only, and Cloudflare Pro was evaluated for them and declined (2026-09-24).
+Both deliver to `#server-alerts` on the SKKUVERSE Discord server (Healthchecks.io through its Discord integration, UptimeRobot through a channel webhook), plus email. The crawler's webhook posts elsewhere and is not part of this. Cloudflare's notifications are email-only on the Free plan (Cloudflare Pro was evaluated for its Discord webhooks and declined, 2026-09-24), so only one is used: the load balancer's health alert, by email to the account owner.
 
-As of 2026-09-24 UptimeRobot watches `https://api.skkuverse.com/health/ready` (keyword) and `https://ota.skkuverse.com/hc` (HTTP), and Healthchecks.io has one check, for the OCI VM; the dashboards are the current list.
+UptimeRobot watches the public URLs (`https://api.skkuverse.com/health/ready` by keyword, `https://ota.skkuverse.com/hc` by HTTP), Healthchecks.io has one check per origin host, and the load balancer's monitor covers every endpoint in its pool; the dashboards are the current lists.
 
 ### The per-host heartbeat
 
@@ -44,13 +45,14 @@ The expected services come from `docker compose config`, so adding a replica nee
 | A poller running on a `standby` host | Healthchecks.io: `poller: running on a standby host` | Next heartbeat run |
 | VM down, Docker hung, cron stopped, env file or host role file missing | Healthchecks.io: "down" (no ping) | Check period plus grace period |
 | Public URL down (DNS, Cloudflare, origin unreachable) | UptimeRobot | Up to one check interval |
+| One origin fails `/health/ready` as Cloudflare sees it (host down, firewall rejecting Cloudflare, DB ping failing) | Cloudflare email: Load Balancing health alert, naming the endpoint; another when it recovers | The monitor's interval and retries ([operate-load-balancer.md](operate-load-balancer.md)) |
 
 Period, grace and check intervals are set in each service's dashboard, not in this repo; see those for the current values.
 
 ## Prerequisites
 
 - SSH access to the host as the user named in the cron file.
-- Access to the Healthchecks.io and UptimeRobot accounts.
+- Access to the Healthchecks.io and UptimeRobot accounts, and to the Cloudflare account for the load balancer's health alerts.
 
 ## Steps
 
@@ -58,7 +60,7 @@ Period, grace and check intervals are set in each service's dashboard, not in th
 
 This is one step of onboarding a new origin host; the full order (checkout, heartbeat, firewall, nginx, outside-in monitor) is in [lock-origin-to-cloudflare.md](lock-origin-to-cloudflare.md#onboard-another-origin-host).
 
-1. In Healthchecks.io, create a check for the host, with a 1-minute period and a grace period of a few minutes, and the Discord integration enabled. Name it by provider and region (for example `oracle-chuncheon`): the alert body carries the machine's `hostname`, which on cloud VMs is a generated `instance-…` name. Copy its ping URL.
+1. In Healthchecks.io, create a check for the host, with a 1-minute period and a grace period of a few minutes, and the Discord integration enabled. Name it by provider and region (for example `oracle-chuncheon`, `naver-seoul`): the alert body carries the machine's `hostname`, which on cloud VMs is a generated `instance-…` name. Copy its ping URL.
 2. On the host, create the env file. It holds the ping URL, which is a secret, so it is not in the repo:
 
    ```bash
@@ -115,4 +117,5 @@ Neither test stops a container.
 - [lock-origin-to-cloudflare.md](lock-origin-to-cloudflare.md) — the origin firewall, onboarding another origin host, and reaching a locked origin
 - [.github/workflows/deploy-host.yml](../../.github/workflows/deploy-host.yml) — installs the cron file on every host
 - [fail-over-poller.md](fail-over-poller.md) — the host role file, and moving the poller
+- [operate-load-balancer.md](operate-load-balancer.md) — the load balancer's monitor, and taking a failing origin out
 - [docs/README.md](../README.md) — writing rules
