@@ -121,6 +121,20 @@ describe("GET /miniapps", () => {
     }
   });
 
+  it("keeps hidden entries in the index, flagged, so deep links still resolve them", async () => {
+    const res = await request(httpServer).get("/miniapps");
+    const hidden = res.body.data.miniApps
+      .filter((m: { hidden?: boolean }) => m.hidden === true)
+      .map((m: { id: string }) => m.id);
+    expect(hidden).toEqual(["hssc", "nsc", "skkuw", "skkuzine"]);
+    for (const entry of res.body.data.miniApps) {
+      if ("hidden" in entry) expect(typeof entry.hidden).toBe("boolean");
+    }
+    // Hidden from the grid is not gone: the detail still answers.
+    const detail = await request(httpServer).get("/miniapps/hssc");
+    expect(detail.status).toBe(200);
+  });
+
   it("serves an emoji logo as the emoji, for the client to draw in Tossface", async () => {
     const res = await request(httpServer).get("/miniapps");
     const mukja = res.body.data.miniApps.find((m: { id: string }) => m.id === "mukja");

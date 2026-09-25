@@ -80,6 +80,13 @@ export interface MiniAppIndexEntryRaw {
   shortName?: string;
   order: number;
   logo: MiniAppLogoRaw;
+  /**
+   * Kept off the home grid. The entry stays in the index on purpose: a deep
+   * link (/m/<id>), a map `miniapp` button and the shell's own header all look
+   * the mini app up here, so dropping it would break every one of those.
+   * Absent means listed; delete the line to bring a tile back.
+   */
+  hidden?: boolean;
 }
 
 export interface MiniAppIndexEntry extends Omit<MiniAppIndexEntryRaw, "logo"> {
