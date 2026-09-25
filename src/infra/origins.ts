@@ -68,6 +68,15 @@ export const MUKJA_MINIAPP_ORIGIN = "https://mukja.mini.skkuverse.com";
  */
 export const PLAYLIST_MINIAPP_ORIGIN = "https://playlist.mini.skkuverse.com";
 
+/**
+ * 오늘 밤 주점 (`miniapp-booth-box`), the registered start URL of the
+ * `booth-box` mini app: a gift box that opens on one of ESKARA 2026's 주점.
+ * Its result sheet posts `web:action` with `map` for "view on map" and nothing
+ * else — no `web:open-url`, no API calls, so it needs no CORS grant. It embeds
+ * no iframes; on Android a child frame would inherit the top-level grant.
+ */
+export const BOOTH_BOX_MINIAPP_ORIGIN = "https://booth-box.mini.skkuverse.com";
+
 /** Marketing/launcher site — mini-app share links, A2HS shortcuts, remote mini-app logos. */
 export const WEB_ORIGIN = "https://skkuverse.com";
 
@@ -96,8 +105,8 @@ export const MEDIA_ORIGIN = "https://media.skkuverse.com";
  * message (a webview navigates, so an open-time grant outlives the origin it was
  * granted for) and grants nothing when the list is absent or unmatched.
  *
- * Three entries: the host we build webview URLs from, the standalone ESKARA
- * deployment, and the 뭐 먹지? roulette. Every entry is a trust decision rather than a config change — it
+ * The host we build webview URLs from, then one entry per first-party mini app
+ * whose pages post bridge messages. Every entry is a trust decision rather than a config change — it
  * hands `Linking.openURL` and the map-select channel to every page that host
  * serves — so an entry belongs here only for a deployment we own, and only while
  * clients actually address it.
@@ -114,6 +123,7 @@ export const BRIDGE_ORIGINS = [
   ESKARA_MINIAPP_ORIGIN,
   MUKJA_MINIAPP_ORIGIN,
   PLAYLIST_MINIAPP_ORIGIN,
+  BOOTH_BOX_MINIAPP_ORIGIN,
 ] as const;
 
 /**
