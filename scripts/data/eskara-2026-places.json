@@ -250,7 +250,15 @@
     "",
     "Line breaks inside the name cells are single spaces. The two 🕸 around",
     "스 PHA×의 더맨 are dropped because plain app text draws emoji as boxes;",
-    "♡, ビ and the hanja are kept."
+    "♡, ビ and the hanja are kept.",
+    "",
+    "Each pub's poster is an image block (`poster`) after its menu. The 총학생회",
+    "sent the 18 posters on 2026-09-25 (26eskara/야간주점/스꾸버스_주점 포스터/,",
+    "one folder per day, named <plot>_<pub>); they were matched to places by plot",
+    "and day, never by name. They were re-encoded as JPEG at a 1600 px long edge",
+    "(never upscaled) — larger than the trucks' 1280 because a poster is mostly",
+    "small text — with transparent PNGs flattened onto white. Keys follow the",
+    "trucks': eskara-2026/pubs/<id>/01-<sha256[:8]>.jpg, never overwritten."
   ],
   "places": [
     {
@@ -1374,6 +1382,11 @@
                 "description": null
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-72min-sogaeting/01-a71f5a06.jpg"
           }
         ]
       },
@@ -1428,6 +1441,11 @@
                 "description": null
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-jikuro-laksil/01-197071b8.jpg"
           }
         ]
       },
@@ -1482,6 +1500,11 @@
                 "description": "삼겹숙주볶음"
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-bullyang-seongdae/01-72881835.jpg"
           }
         ]
       },
@@ -1536,6 +1559,11 @@
                 "description": null
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-s-angel/01-d1da2083.jpg"
           }
         ]
       },
@@ -1590,6 +1618,11 @@
                 "description": "닭강정"
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-harry-potter/01-fede12c8.jpg"
           }
         ]
       },
@@ -1644,6 +1677,11 @@
                 "description": null
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-yes-some-noise/01-9fe00567.jpg"
           }
         ]
       },
@@ -1698,6 +1736,11 @@
                 "description": null
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-gonggyeong-rodang/01-ed45ad26.jpg"
           }
         ]
       },
@@ -1752,6 +1795,11 @@
                 "description": "국물 먹어야겠지..? 얼큰 해야겠지..?"
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-back-to-00-10/01-f4c42ae1.jpg"
           }
         ]
       },
@@ -1806,6 +1854,11 @@
                 "description": null
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-haus-cosmo/01-4e479d52.jpg"
           }
         ]
       },
@@ -1860,6 +1913,11 @@
                 "description": "가라아게"
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-chamgyoyuk/01-07bdbc9c.jpg"
           }
         ]
       },
@@ -1914,6 +1972,11 @@
                 "description": null
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-jujeongbaengi/01-df20b0cd.jpg"
           }
         ]
       },
@@ -1968,6 +2031,11 @@
                 "description": null
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-seonggyun-theater/01-56c9043a.jpg"
           }
         ]
       },
@@ -2026,6 +2094,11 @@
                 "description": null
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-homecoming-night/01-543be974.jpg"
           }
         ]
       },
@@ -2084,6 +2157,11 @@
                 "description": null
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-lemon-kung/01-89d38d18.jpg"
           }
         ]
       },
@@ -2142,6 +2220,11 @@
                 "description": null
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-golden-apple/01-6469e003.jpg"
           }
         ]
       },
@@ -2200,6 +2283,11 @@
                 "description": null
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-goal-in-love/01-f356c403.jpg"
           }
         ]
       },
@@ -2258,6 +2346,11 @@
                 "description": null
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-sync/01-4bd50cd8.jpg"
           }
         ]
       },
@@ -2316,6 +2409,11 @@
                 "description": null
               }
             ]
+          },
+          {
+            "type": "image",
+            "id": "poster",
+            "url": "https://media.skkuverse.com/eskara-2026/pubs/bar-spha-man/01-80043f3a.jpg"
           }
         ]
       },
