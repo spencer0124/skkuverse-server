@@ -3,7 +3,7 @@ title: Multiple Origins, Active-Active, Behind Cloudflare Load Balancing
 type: adr
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-24
+last-updated: 2026-09-25
 audience: internal
 ---
 
@@ -14,7 +14,11 @@ audience: internal
 Accepted — 2026-09-24. Phase A (two hosts) is to be in place before the ESKARA
 festival on 2026-10-01/02; Phase B (N identical hosts) follows it.
 
-Rollout in progress (2026-09-25).
+Rollout in progress. Since 2026-09-25 the load balancer is live with both
+hosts in the pool and the second host on the weight ramp; the failover drills
+and the last weight step remain. How the load balancer is operated:
+[operate-load-balancer.md](../how-to/operate-load-balancer.md). What changed
+against the plan below is under [Rollout notes](#rollout-notes).
 
 ## Context
 
@@ -77,8 +81,9 @@ active.** $5/month for two endpoints ($10 for three).
   Endpoint steering is Random (included in the base price), with weights; a
   new host enters at a low weight (0.1 → 0.5 → 1) while nginx 5xx, the
   heartbeat and Atlas ops are watched.
-- Monitor: HTTPS `GET /health/ready`, `Host: api.skkuverse.com`, 60 s
-  interval, 2 consecutive failures, one region.
+- Monitor: HTTPS `GET /health/ready`, `Host: api.skkuverse.com`, body must
+  contain `ready`, 60 s interval, 5 s timeout, 2 retries, one region. Its
+  health alerts go out by email.
 - The existing A records stay as the rollback: turning the load balancer off
   returns to them. `ota.` and `files.` keep their own records; they are not
   load-balanced.
@@ -119,9 +124,9 @@ active.** $5/month for two endpoints ($10 for three).
 
 - **A host that refuses connections costs users nothing**: zero-downtime
   failover retries those requests on the other endpoint.
-- **A host that answers with 5xx is removed only by the monitor**: two failed
-  checks at 60 s, so for about 2–3 minutes a share of requests fails. A
-  faster interval is a paid option if that proves too slow.
+- **A host that answers with 5xx is removed only by the monitor**: at a 60 s
+  interval, for a few minutes a share of requests fails. A faster interval is
+  a paid option if that proves too slow.
 - **If OCI fails, bus realtime data goes empty** within about two minutes
   (`bus_cache` TTL), while every other endpoint keeps serving from the other
   host, until someone moves the poller. The heartbeat alert is the trigger.
@@ -138,8 +143,36 @@ active.** $5/month for two endpoints ($10 for three).
 - **A mistake on a new host reaches users immediately**, mitigated by the
   weight ramp and by checking the host on its own before it joins
   ([onboarding](../how-to/lock-origin-to-cloudflare.md#onboard-another-origin-host)).
-- **Returning the rented host (2026-10-07)**: set its weight to 0, drain for a
-  few minutes, remove the endpoint (or the load balancer, if no other host is
-  planned), remove it from Atlas's access list, the deploy chain, its
-  secrets and its Healthchecks.io check, and shred its `.env` and origin key.
+- **Returning the rented host (2026-10-07)**: drain it, remove the endpoint
+  (or the load balancer, if no other host is planned), then take it out of
+  Atlas's access list, the deploy chain, GitHub's secrets and the monitoring,
+  and shred its `.env` and origin key — the checklist is
+  [Remove an origin](../how-to/operate-load-balancer.md#remove-an-origin).
   The credentials in that `.env` remain valid — the accepted risk above.
+
+## Rollout notes
+
+What the rollout changed against the decision above, in the order found.
+
+- **The second host is deployed by hand.** Its provider's firewall allows SSH
+  only from an allow-listed network, so GitHub-hosted runners cannot reach
+  it. `deploy-mnemosyne` stays in the chain, switched off with the
+  `MNEMOSYNE_ENABLED` repo variable, and the same remote script is run over
+  SSH from the allowed network instead
+  ([Deploy a host by hand](../cicd-and-branch-protection.md#deploy-a-host-by-hand)).
+  Still open: give Actions a path to the host (a private network overlay, so
+  no public SSH port is needed at all, or asking the provider to open SSH
+  wider), or keep deploying it by hand until it is returned.
+- **A host hygiene check before go-live found problems on the rented host.**
+  Secrets were withdrawn from it, the provider resolved the problems, the
+  checks were repeated, and the rollout resumed. The check is now an
+  onboarding step:
+  [Check the host is clean](../how-to/lock-origin-to-cloudflare.md#onboard-another-origin-host).
+- **The monitor was tightened** from the plan: an expected body (`ready`, so a
+  proxy error page with status 200 counts as down) and an explicit 5 s
+  timeout.
+- **Load-balancer health alerts are enabled**, by email. They are the only
+  Cloudflare notification used; the Discord path stays with Healthchecks.io
+  and UptimeRobot.
+- **The old A record stays** as the rollback, as planned: the load balancer
+  takes precedence over it while enabled.

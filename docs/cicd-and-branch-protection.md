@@ -3,7 +3,7 @@ title: CI/CD 및 브랜치 보호 전략 (미이관)
 type: reference
 status: deprecated
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-24
+last-updated: 2026-09-25
 audience: internal
 ---
 
@@ -17,7 +17,7 @@ audience: internal
 | 워크플로우 | 트리거 | 용도 |
 |---|---|---|
 | `ci.yml` | PR → main | test + lint 검증 |
-| `deploy.yml` | main push | test → OCI 자동 배포 + auto rollback |
+| `deploy.yml` | main push | test → per-host deploy (`deploy-host.yml`, one origin at a time) + auto rollback |
 | `claude-code-review.yml` | PR 생성/업데이트 | 자동 코드 리뷰 |
 | `claude.yml` | `@claude` 멘션 | 대화형 응답 |
 | `cloudflare-ips.yml` | Weekly schedule + manual | Compares `infra/cloudflare/ips-v{4,6}.txt` with Cloudflare's published ranges; a red run is the drift alert ([how-to/lock-origin-to-cloudflare.md](how-to/lock-origin-to-cloudflare.md)) |
@@ -77,7 +77,7 @@ Replicas roll one by one, so there is no downtime. Any failure rolls everything 
 
 | 항목 | 값 |
 |---|---|
-| 서버 | OCI ARM VM (`oracle`, poller active). The rented Naver x86 host (`mnemosyne`, poller standby, until 2026-10-07) is being added: `deploy.yml` → `deploy-host.yml` deploys it after `oracle` only when the repo variable `MNEMOSYNE_ENABLED` is `true` (see [GitHub Secrets](#github-secrets)), and it takes traffic once the Cloudflare load balancer is in place ([decisions/0009](decisions/0009-multi-origin-active-active.md)). Each host's poller role is `/etc/skkuverse/host.env` ([how-to/fail-over-poller.md](how-to/fail-over-poller.md)) |
+| 서버 | OCI ARM VM (`oracle`, poller active) and the rented Naver x86 host (`mnemosyne`, poller standby, until 2026-10-07), both behind the Cloudflare load balancer ([how-to/operate-load-balancer.md](how-to/operate-load-balancer.md), [decisions/0009](decisions/0009-multi-origin-active-active.md)). `deploy.yml` → `deploy-host.yml` deploys `mnemosyne` after `oracle` only when the repo variable `MNEMOSYNE_ENABLED` is `true` ([GitHub Variables](#github-variables)); it is off, and that host is deployed by hand ([Deploy a host by hand](#deploy-a-host-by-hand)). Each host's poller role is `/etc/skkuverse/host.env` ([how-to/fail-over-poller.md](how-to/fail-over-poller.md)) |
 | 유저 | ubuntu |
 | 경로 | `/home/ubuntu/skkumap-server-express` on every host *(legacy folder name retained. Since the multi-host deploy it is `DEPLOY_PATH` in `deploy-host.yml`, not a secret; the heartbeat cron and firewall unit name the same path, and `deploy-workflow.test.ts` keeps the three equal.)* |
 | 활성 도메인 | `api.skkuverse.com` (Cloudflare → Nginx → Docker) |
@@ -113,7 +113,28 @@ Replicas roll one by one, so there is no downtime. Any failure rolls everything 
 
 | Variable | Purpose |
 |---|---|
-| `MNEMOSYNE_ENABLED` | On/off switch for the `deploy-mnemosyne` job (Settings → Secrets and variables → Actions → Variables). `true` deploys to the Naver host after `oracle`; unset or anything else pauses that host without a code change — the job shows as skipped and the run stays green. A job-level `if` can read variables but not secrets, which is why this is a variable. Set it only once the host is onboarded and its three `MNEMOSYNE_*` secrets exist |
+| `MNEMOSYNE_ENABLED` | On/off switch for the `deploy-mnemosyne` job (Settings → Secrets and variables → Actions → Variables). `true` deploys to the Naver host after `oracle`; unset or anything else pauses that host without a code change — the job shows as skipped and the run stays green. A job-level `if` can read variables but not secrets, which is why this is a variable. Set it only once the host is onboarded, its three `MNEMOSYNE_*` secrets exist, and GitHub-hosted runners can reach its SSH port. **Currently off**: that host's provider firewall allows SSH only from an allow-listed network, so a runner's connection would time out and fail the run. Deploy it by hand instead (below) |
+
+### Deploy a host by hand
+
+For a host GitHub's runners cannot reach (its deploy variable is off). Run the same script the workflow runs, over SSH, from a network the host accepts SSH from. It deploys whatever `main` is, exactly like the job, including the pre-deploy config check and the rollback, so deploy the other hosts first (merge to `main`, let the workflow finish) and then this one.
+
+```bash
+# On a machine that can SSH to the host, from a checkout of main:
+awk '/^ *script: \|$/ { f = 1; next } f' .github/workflows/deploy-host.yml \
+  | sed -e 's/^            //' -e 's#${{ env.DEPLOY_PATH }}#/home/ubuntu/skkumap-server-express#' \
+  > /tmp/deploy-host.sh
+grep -c '[$]{{' /tmp/deploy-host.sh         # must print 0: no workflow expression left
+bash -n /tmp/deploy-host.sh                  # syntax check
+
+scp /tmp/deploy-host.sh mnemosyne:/tmp/deploy-host.sh
+ssh mnemosyne 'bash /tmp/deploy-host.sh </dev/null; echo "exit $?"'
+```
+
+The script ends with `exit 1` on every failure path; `exit 0` with the replicas' health checks printed is success. Afterwards check `git rev-parse --short HEAD` in the host's checkout matches `main` and that the heartbeat is green.
+
+> [!WARNING]
+> **Do not pipe the script in** (`ssh host 'bash -s' < deploy-host.sh`). Bash then reads the script from stdin, and the pre-deploy config check's `docker compose run` also reads stdin, swallowing the rest of the script. Everything after that line silently never runs — no rolling update — and the session still exits 0. Copy the file over and run it with stdin from `/dev/null`, as above.
 
 ---
 

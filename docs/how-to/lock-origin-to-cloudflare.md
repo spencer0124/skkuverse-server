@@ -3,7 +3,7 @@ title: Lock the Origin to Cloudflare
 type: how-to
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-24
+last-updated: 2026-09-25
 audience: internal
 ---
 
@@ -133,11 +133,35 @@ The weekly workflow goes red, or `npm run cloudflare-ips -- --live` reports a di
 
 ### Onboard another origin host
 
-For example the rented Naver server (`ssh mnemosyne`). Every origin runs the same compose file, nginx site and firewall, and, once the Cloudflare load balancer is in place, takes an equal share of traffic from it ([decisions/0009](../decisions/0009-multi-origin-active-active.md); the rollout is in progress, so until step 13 the host serves nothing). The one difference is the poller: exactly one host runs it (`POLLER_ROLE=active`), every other host is `standby` ([fail-over-poller.md](fail-over-poller.md)). In order, before the load balancer sends the host any traffic:
+For example the rented Naver server (`ssh mnemosyne`). Every origin runs the same compose file, nginx site and firewall, and, once the Cloudflare load balancer is in place, takes the share of traffic its endpoint weight gives it ([decisions/0009](../decisions/0009-multi-origin-active-active.md), [operate-load-balancer.md](operate-load-balancer.md); until step 14 the host serves nothing). The one difference is the poller: exactly one host runs it (`POLLER_ROLE=active`), every other host is `standby` ([fail-over-poller.md](fail-over-poller.md)). In order, before the load balancer sends the host any traffic:
 
 1. **Login and checkout.** The deploy, the heartbeat cron and the firewall unit all assume user `ubuntu` and the checkout `/home/ubuntu/skkumap-server-express` (`DEPLOY_PATH` in [deploy-host.yml](../../.github/workflows/deploy-host.yml); a test keeps the three in step). Create `ubuntu` with passwordless `sudo` and membership of the `docker` group, install the deploy key's public half in its `authorized_keys`, and clone the repo there as `ubuntu`, on `main`. Turn SSH password login off, and check the clock is synchronised (`timedatectl` shows `System clock synchronized: yes`): Atlas TLS and the bus timestamps both depend on it.
-2. **Docker network.** `docker network create skkuverse`. The compose file joins it as `external`, so compose will not create it.
-3. **Host role.** The deploy and the heartbeat both refuse to run without it:
+2. **Check the host is clean**, before any secret lands on it — above all on a host you did not build yourself (rented, lent, or from an image someone else prepared). Anything else with root on the host can read the `.env` and the origin key you are about to copy there.
+
+   ```bash
+   sudo cat /root/.ssh/authorized_keys /home/*/.ssh/authorized_keys   # every key must be one you can name
+   getent passwd | awk -F: '$3 >= 1000 || $3 == 0'                    # unexpected login users
+   docker ps -a                                                       # containers this daemon knows about
+   systemctl list-units --all 'docker-*.scope'                        # containers the kernel is still running
+   docker info --format '{{.DockerRootDir}}'
+   for c in $(docker ps -aq); do docker inspect -f '{{.Name}} {{range .Mounts}}{{.Source}} {{end}}' "$c"; done | grep -E 'docker.sock|/var/lib/docker'
+   sudo ss -tlnp                                                      # listeners
+   ps aux --sort=-%cpu | head -15                                     # unexplained CPU
+   sudo ls /etc/cron.d; sudo crontab -l                               # scheduled jobs
+   ```
+
+   What to look for:
+
+   | Finding | Why it matters |
+   | --- | --- |
+   | An `authorized_keys` line nobody can name | Someone else can log in, as root if it is root's file |
+   | A `docker-<id>.scope` unit whose ID is not in `docker ps -a` | An orphan container: still running, invisible to `docker ps`. Typically left behind when Docker's data-root was moved without stopping the containers first. Stop it with `sudo systemctl stop docker-<id>.scope` once you know what it is |
+   | A container or process mounting `/var/run/docker.sock` or reading `/var/lib/docker/containers` (a log shipper, for example) | It can read every container's logs, and the socket alone is root on the host |
+   | CPU used by nothing you run | Capacity you are not getting, and something you have not accounted for |
+
+   If anything is unexplained, stop here and ask the host's owner; re-run the checks after they fix it. If a secret was already copied, remove it and treat it as exposed.
+3. **Docker network.** `docker network create skkuverse`. The compose file joins it as `external`, so compose will not create it.
+4. **Host role.** The deploy and the heartbeat both refuse to run without it:
 
    ```bash
    sudo install -d -m 0755 /etc/skkuverse
@@ -146,7 +170,7 @@ For example the rented Naver server (`ssh mnemosyne`). Every origin runs the sam
    ```
 
    Exactly one line, no quotes, no spaces. Only the host that runs the poller says `active`.
-4. **Baseline firewall.** A fresh image may have an empty `INPUT` chain (policy ACCEPT), which `cloudflare-only.sh` refuses to lock, because removing its ACCEPTs would block nothing. Give it the shared shape, live, one `iptables -A` at a time — never `iptables-restore`, which would flush Docker's chains:
+5. **Baseline firewall.** A fresh image may have an empty `INPUT` chain (policy ACCEPT), which `cloudflare-only.sh` refuses to lock, because removing its ACCEPTs would block nothing. Give it the shared shape, live, one `iptables -A` at a time — never `iptables-restore`, which would flush Docker's chains:
 
    ```bash
    cd /home/ubuntu/skkumap-server-express
@@ -160,16 +184,16 @@ For example the rented Naver server (`ssh mnemosyne`). Every origin runs the sam
    ```
 
    The script refuses (and prints the chain) if `INPUT` holds anything other than the baseline or a prefix of it. `--persist` writes the repo's file, not the live ruleset, and keeps any previous `rules.v4` as a `.bak`.
-5. **nginx, after the firewall.** Install it (`sudo apt-get install -y nginx`) only once the baseline is in place, then remove the distro's default site, which would clash with the catch-all's `default_server`: `sudo rm /etc/nginx/sites-enabled/default`. The deploy installs the real-IP snippet, the `api.skkuverse.com` site and the catch-all (generating its certificate) and runs `nginx -t`.
-6. **Secrets on the host.** Copy the OCI host's `.env` into the checkout without leaving a copy on the Mac (`ssh oracle 'cat …/.env' | ssh mnemosyne 'umask 077; cat > …/.env'`, then `chmod 0600`), and the Cloudflare Origin CA certificate and key to `/etc/ssl/cloudflare/skkuverse-origin.pem` and `skkuverse-origin-key.pem` (key `0600`). The nginx site names both paths; without them the deploy's `nginx -t` fails and the deploy aborts.
-7. **Atlas access list.** Add the host's public IP in Atlas → Network Access, then check from the host that a TLS handshake to the cluster completes, for example with a throwaway `docker compose run --rm --no-deps -T api-1 node -e "require('./dist/src/infra/db').ping().then(() => { console.log('db ok'); process.exit(0); }, (e) => { console.error(e.message); process.exit(1); })"` after the first build.
-8. **Provider security group** (OCI security list, Naver ACG). A separate layer in front of the host: allow 443 from Cloudflare's ranges and 22 for SSH. Port 80 is not needed (Cloudflare connects to the origin over HTTPS).
-9. **Deploy job and secrets.** Add a job for the host at the end of the chain in [deploy.yml](../../.github/workflows/deploy.yml) (it `needs` the job before it) and create its GitHub secrets: `<HOST>_VM_HOST`, `<HOST>_VM_USER` (`ubuntu`) and `<HOST>_SSH_PRIVATE_KEY`. An empty secret fails that host's job before it connects. Gate the job on a repo variable (for `mnemosyne`, `if: ${{ vars.MNEMOSYNE_ENABLED == 'true' }}`; a job-level `if` can read variables but not secrets) and set the variable to `true` in Settings → Secrets and variables → Actions → Variables once the secrets exist. Unset or `false` pauses the host without a code change: the job is skipped and the run stays green. The first run with the variable on deploys the api replicas (a standby host never starts the poller).
-10. **Lock the firewall.** On the host, with the replicas up: [Apply the firewall](#apply-the-firewall-one-time-per-host) — back up, `--dry-run`, apply, `systemctl enable --now skkuverse-firewall`, verify.
-11. **Heartbeat.** Create the host's Healthchecks.io check (named by provider and region, 1-minute period, a few minutes' grace, Discord integration on) and write `/etc/skkuverse/heartbeat.env` — [monitor-production.md](monitor-production.md#add-a-host-to-the-heartbeat). The deploy has already installed the cron file; a standby host is checked for its replicas and for *not* running the poller.
-12. **Check it alone**, before it takes traffic: from a Mac, `curl -skm 5 https://<host-ip>/` does not connect (the security group drops it, or the firewall rejects it); on the host, `curl -sk --resolve api.skkuverse.com:443:127.0.0.1 https://api.skkuverse.com/health/ready` returns 200 with an `X-Served-By` header naming the host; `infra/monitoring/heartbeat.sh` prints `ok`.
-13. **Load balancer.** Add the host as an endpoint of the `api-origins` pool with a low weight and raise it in steps while watching nginx 5xx, the heartbeat and Atlas ops ([decisions/0009](../decisions/0009-multi-origin-active-active.md)). `X-Served-By` on responses through Cloudflare shows the split.
-14. **Refresh duty.** From now on, [Refresh after Cloudflare changes its ranges](#refresh-after-cloudflare-changes-its-ranges) includes this host: the deploy installs its snippet, and its firewall unit needs the restart.
+6. **nginx, after the firewall.** Install it (`sudo apt-get install -y nginx`) only once the baseline is in place, then remove the distro's default site, which would clash with the catch-all's `default_server`: `sudo rm /etc/nginx/sites-enabled/default`. The deploy installs the real-IP snippet, the `api.skkuverse.com` site and the catch-all (generating its certificate) and runs `nginx -t`.
+7. **Secrets on the host.** Copy the OCI host's `.env` into the checkout without leaving a copy on the Mac (`ssh oracle 'cat …/.env' | ssh mnemosyne 'umask 077; cat > …/.env'`, then `chmod 0600`), and the Cloudflare Origin CA certificate and key to `/etc/ssl/cloudflare/skkuverse-origin.pem` and `skkuverse-origin-key.pem` (key `0600`). The nginx site names both paths; without them the deploy's `nginx -t` fails and the deploy aborts.
+8. **Atlas access list.** Add the host's public IP in Atlas → Network Access, then check from the host that a TLS handshake to the cluster completes, for example with a throwaway `docker compose run --rm --no-deps -T api-1 node -e "require('./dist/src/infra/db').ping().then(() => { console.log('db ok'); process.exit(0); }, (e) => { console.error(e.message); process.exit(1); })"` after the first build.
+9. **Provider security group** (OCI security list, Naver ACG). A separate layer in front of the host: allow 443 from Cloudflare's ranges and 22 for SSH. Port 80 is not needed (Cloudflare connects to the origin over HTTPS). If the provider only lets SSH in from an allow-listed network, GitHub-hosted runners cannot reach the host: leave its deploy variable off (next step) and deploy it by hand from the allowed network ([cicd-and-branch-protection.md](../cicd-and-branch-protection.md#deploy-a-host-by-hand)).
+10. **Deploy job and secrets.** Add a job for the host at the end of the chain in [deploy.yml](../../.github/workflows/deploy.yml) (it `needs` the job before it) and create its GitHub secrets: `<HOST>_VM_HOST`, `<HOST>_VM_USER` (`ubuntu`) and `<HOST>_SSH_PRIVATE_KEY`. An empty secret fails that host's job before it connects. Gate the job on a repo variable (for `mnemosyne`, `if: ${{ vars.MNEMOSYNE_ENABLED == 'true' }}`; a job-level `if` can read variables but not secrets) and set the variable to `true` in Settings → Secrets and variables → Actions → Variables once the secrets exist and GitHub's runners can reach the host's SSH port. Unset or `false` pauses the host without a code change: the job is skipped and the run stays green. The first run with the variable on deploys the api replicas (a standby host never starts the poller).
+11. **Lock the firewall.** On the host, with the replicas up: [Apply the firewall](#apply-the-firewall-one-time-per-host) — back up, `--dry-run`, apply, `systemctl enable --now skkuverse-firewall`, verify.
+12. **Heartbeat.** Create the host's Healthchecks.io check (named by provider and region, 1-minute period, a few minutes' grace, Discord integration on) and write `/etc/skkuverse/heartbeat.env` — [monitor-production.md](monitor-production.md#add-a-host-to-the-heartbeat). The deploy has already installed the cron file; a standby host is checked for its replicas and for *not* running the poller.
+13. **Check it alone**, before it takes traffic: from a Mac, `curl -skm 5 https://<host-ip>/` does not connect (the security group drops it, or the firewall rejects it); on the host, `curl -sk --resolve api.skkuverse.com:443:127.0.0.1 https://api.skkuverse.com/health/ready` returns 200 with an `X-Served-By` header naming the host; `infra/monitoring/heartbeat.sh` prints `ok`.
+14. **Load balancer.** Add the host as an endpoint of the `api-origins` pool with a low weight and raise it in steps while watching nginx 5xx, the heartbeat and Atlas ops ([operate-load-balancer.md](operate-load-balancer.md#add-an-origin)). `X-Served-By` on responses through Cloudflare shows the split.
+15. **Refresh duty.** From now on, [Refresh after Cloudflare changes its ranges](#refresh-after-cloudflare-changes-its-ranges) includes this host: the deploy installs its snippet, and its firewall unit needs the restart.
 
 ## Troubleshooting
 
@@ -181,12 +205,13 @@ For example the rented Naver server (`ssh mnemosyne`). Every origin runs the sam
 | A real host name returns no response (curl: "Empty reply from server") | It fell to the catch-all: no site has that `server_name` | Add the name to its site; the catch-all's access log lines show status 444 |
 | Deploy aborts with "nginx rejected the new config" | `nginx -t` failed; the previous config was restored | Run `sudo nginx -t` on the host for the error. On a new host: the distro's `default` site is still enabled (duplicate `default_server`), or the origin certificate is missing |
 | `apply-baseline.sh` exits 1 and prints the chain | `INPUT` holds rules that are neither the baseline nor a prefix of it, or its policy is not ACCEPT | Nothing was changed. Decide by hand whether those rules can go; the script never merges |
-| Deploy aborts with "no valid POLLER_ROLE" | `/etc/skkuverse/host.env` is missing or malformed on that host | Write it ([step 3](#onboard-another-origin-host)); nothing on the host was changed |
+| Deploy aborts with "no valid POLLER_ROLE" | `/etc/skkuverse/host.env` is missing or malformed on that host | Write it ([step 4](#onboard-another-origin-host)); nothing on the host was changed |
 
 ## Related
 
 - [monitor-production.md](monitor-production.md) — the alerts to watch while applying, and adding a host to them
 - [fail-over-poller.md](fail-over-poller.md) — moving the poller between hosts
+- [operate-load-balancer.md](operate-load-balancer.md) — the load balancer in front of the origins: weights, drains, rollback, removing a host
 - [decisions/0009](../decisions/0009-multi-origin-active-active.md) — why several origins behind Cloudflare Load Balancing
 - [docs/README.md](../README.md) — writing rules
 - `infra/nginx/api.skkuverse.com` header — the client-IP contract the real-IP snippet is half of

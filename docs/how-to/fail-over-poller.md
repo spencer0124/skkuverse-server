@@ -3,7 +3,7 @@ title: Fail Over the Poller
 type: how-to
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-24
+last-updated: 2026-09-25
 audience: internal
 ---
 
@@ -34,13 +34,15 @@ What the poller does, and what stops when no host runs it:
 
 The poller's jobs and their intervals are registered in `src/` (`registerPoller(` calls) — that is the current list.
 
+The load balancer does not know about the poller: disabling or draining a host's endpoint ([operate-load-balancer.md](operate-load-balancer.md)) leaves its poller running, and moving the poller does not change where requests go.
+
 This is a stopgap. Phase B replaces the role file with leader election over a Mongo lease, so any host takes the poller over automatically and `POLLER_ROLE` goes away ([decisions/0009](../decisions/0009-multi-origin-active-active.md)).
 
 ## Prerequisites
 
 - SSH to both hosts (`ssh oracle`, `ssh mnemosyne`) with `sudo`.
 - The new host is onboarded and deployed ([lock-origin-to-cloudflare.md](lock-origin-to-cloudflare.md#onboard-another-origin-host)) and has the same `.env` as the current active host.
-- Both hosts are on the same commit (the GitHub Actions deploy of `main` finished on both).
+- Both hosts are on the same commit: `git rev-parse --short HEAD` in the deploy checkout matches on both. A host whose deploy job is switched off is not updated by GitHub Actions — deploy it by hand first ([Deploy a host by hand](../cicd-and-branch-protection.md#deploy-a-host-by-hand)).
 
 Below, **OLD** is the host running the poller now and **NEW** is the one taking it over. Every command runs in the deploy checkout:
 
@@ -127,4 +129,5 @@ The same procedure with the hosts swapped: on the host taking it back, step 1 an
 - [decisions/0009](../decisions/0009-multi-origin-active-active.md) — why several origins, and why the poller runs on one host until leader election
 - [lock-origin-to-cloudflare.md](lock-origin-to-cloudflare.md) — onboarding an origin host, including its role file
 - [monitor-production.md](monitor-production.md) — the heartbeat and what its alerts mean
+- [operate-load-balancer.md](operate-load-balancer.md) — draining or removing a host, which is separate from moving its poller
 - [docs/README.md](../README.md) — writing rules
