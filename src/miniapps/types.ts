@@ -4,15 +4,21 @@
  *
  * These mirror packages/shared/src/miniapps/schema.ts in skkuverse-app, which
  * is now a CONSUMER of this shape rather than a co-owner of it. Keep the two in
- * step: the client parses tolerantly, so a mismatch degrades silently (a
- * mini-app vanishes from the grid) rather than erroring.
+ * step: the client parses tolerantly, so a mismatch degrades silently (a tile
+ * loses its logo, a shell setting falls back to its default) rather than erroring.
  *
  * `id` is a stable kebab-case slug and never the Korean display name: it is the
  * join key, the deep-link path (/m/<id>), the cache key, and the analytics id,
  * so it must survive renames and translations.
  */
 
-/** Bump only on BREAKING schema changes (removed/renamed/retyped field). */
+/**
+ * Bump only on BREAKING schema changes (removed/renamed/retyped field).
+ *
+ * Still 1 across the `logo` → `homeLogo`/`shellLogo` split and the `shell.bar`
+ * rewrite: no released client read the old shapes, and the client does not
+ * gate on this value yet. Bump from the first change made after a release.
+ */
 export const MINIAPP_REGISTRY_VERSION = 1;
 
 /**

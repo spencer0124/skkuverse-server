@@ -10,7 +10,7 @@
  *
  * These endpoints are the SSOT the mobile client replaced its bundled registry
  * with, so the guards that matter are: the index is ordered, image logo URIs are
- * absolute under WEB_ORIGIN (never a bare path — the client renders them
+ * absolute under WEB_ORIGIN or MEDIA_ORIGIN (never a bare path — the client renders them
  * directly into <Image source={{uri}}>), every index id resolves to a detail,
  * and an unknown slug 404s rather than 200-ing with null.
  */

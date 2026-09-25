@@ -129,6 +129,31 @@ describe("assertValidRegistry", () => {
     );
   });
 
+  it.each([
+    ["the old single logo", "logo"],
+    ["a misspelt homeLogo", "homelogo"],
+  ])("rejects an unknown index key: %s", (_label, key) => {
+    const bad = {
+      version: 1,
+      miniApps: [{ ...index().miniApps[0]!, [key]: { kind: "emoji", emoji: "😋" } }],
+    } as MiniAppIndexRaw;
+    expect(() => assertValidRegistry(bad, details())).toThrow(
+      new RegExp(`unknown index key "${key}" in "a"`),
+    );
+  });
+
+  it.each([[null], [[]], ["😋"]])("rejects a logo that is not an object, %j", (logo) => {
+    const bad = index({ homeLogo: logo as unknown as MiniAppIndexRaw["miniApps"][number]["homeLogo"] });
+    expect(() => assertValidRegistry(bad, details())).toThrow(/homeLogo for "a" must be an object/);
+  });
+
+  it("rejects a remote logo whose path is not a string", () => {
+    const bad = index({
+      homeLogo: { kind: "remote", path: ["/miniapps/a.png"] as unknown as string },
+    });
+    expect(() => assertValidRegistry(bad, details())).toThrow(/site-root-relative/);
+  });
+
   it("checks shellLogo with the same rules as homeLogo", () => {
     const bad = index({ shellLogo: { kind: "media", url: "https://evil.com/a.jpg" } });
     expect(() => assertValidRegistry(bad, details())).toThrow(/shellLogo\.url .*media bucket/);

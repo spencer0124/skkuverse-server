@@ -38,12 +38,30 @@ function isSingleEmoji(value: string): boolean {
   return first !== undefined && rest.length === 0 && PICTOGRAPHIC_RE.test(first.segment);
 }
 
+/**
+ * The keys an index entry may carry. Anything else is refused: a leftover
+ * `logo` from before the split, or a misspelt `homelogo`, would otherwise pass
+ * boot and do nothing — the loader reads these names only.
+ */
+const INDEX_KEYS = new Set<string>([
+  "id",
+  "name",
+  "shortName",
+  "order",
+  "homeLogo",
+  "shellLogo",
+  "hidden",
+]);
+
 /** One logo slot: an image on WEB_ORIGIN, an image on the media bucket, or one emoji. */
 function assertValidLogo(
   id: string,
   field: "homeLogo" | "shellLogo",
   logo: MiniAppLogoRaw,
 ): void {
+  if (typeof logo !== "object" || logo === null || Array.isArray(logo)) {
+    throw new Error(`miniapp registry: ${field} for "${id}" must be an object`);
+  }
   if (logo.kind === "media") {
     if (!isMediaUrl(logo.url)) {
       throw new Error(
@@ -56,7 +74,11 @@ function assertValidLogo(
         `miniapp registry: ${field}.emoji for "${id}" must be exactly one emoji`,
       );
     }
-  } else if (logo.kind !== "remote" || !ROOT_PATH_RE.test(logo.path)) {
+  } else if (
+    logo.kind !== "remote" ||
+    typeof logo.path !== "string" ||
+    !ROOT_PATH_RE.test(logo.path)
+  ) {
     throw new Error(
       `miniapp registry: ${field} for "${id}" must be a site-root-relative path, a media-bucket url, or one emoji`,
     );
@@ -99,6 +121,11 @@ export function assertValidRegistry(
   for (const entry of index.miniApps) {
     if (!SLUG_RE.test(entry.id)) {
       throw new Error(`miniapp registry: invalid id slug "${entry.id}"`);
+    }
+    for (const key of Object.keys(entry)) {
+      if (!INDEX_KEYS.has(key)) {
+        throw new Error(`miniapp registry: unknown index key "${key}" in "${entry.id}"`);
+      }
     }
     if (entry.hidden !== undefined && typeof entry.hidden !== "boolean") {
       throw new Error(`miniapp registry: hidden for "${entry.id}" must be a boolean`);

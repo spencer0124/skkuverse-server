@@ -68,10 +68,16 @@ export const list: ReadonlyArray<Readonly<MiniAppIndexEntry>> = Object.freeze(
       // assertValidRegistry above guarantees at least one of the two.
       const home = (entry.homeLogo ?? entry.shellLogo) as MiniAppLogoRaw;
       const shell = (entry.shellLogo ?? entry.homeLogo) as MiniAppLogoRaw;
+      // Named fields rather than `...entry`, so no raw on-disk value can reach
+      // the wire even if a key slipped past the schema's allow-list.
       return Object.freeze({
-        ...entry,
+        id: entry.id,
+        name: entry.name,
+        ...(entry.shortName !== undefined ? { shortName: entry.shortName } : {}),
+        order: entry.order,
         homeLogo: Object.freeze(resolveLogo(home)),
         shellLogo: Object.freeze(resolveLogo(shell)),
+        ...(entry.hidden !== undefined ? { hidden: entry.hidden } : {}),
       });
     }),
 );
