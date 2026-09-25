@@ -86,6 +86,24 @@ describe("assertValidRegistry", () => {
     expect(() => assertValidRegistry(bad, details())).toThrow(/media bucket/);
   });
 
+  it.each([["🍢"], ["🌶️"], ["👩‍🍳"]])("accepts an emoji logo, %s", (emoji) => {
+    // 🌶️ carries a variation selector and 👩‍🍳 is a joined sequence: several
+    // code points, one glyph on the tile.
+    const ok = index({ logo: { kind: "emoji", emoji } });
+    expect(() => assertValidRegistry(ok, details())).not.toThrow();
+  });
+
+  it.each([
+    ["empty", ""],
+    ["a word", "ab"],
+    ["two emoji", "🍢🍗"],
+    ["an emoticon", ":)"],
+    ["an emoji and a letter", "🍢a"],
+  ])("rejects an emoji logo that is %s", (_label, emoji) => {
+    const bad = index({ logo: { kind: "emoji", emoji } });
+    expect(() => assertValidRegistry(bad, details())).toThrow(/exactly one emoji/);
+  });
+
   it("rejects an index entry with no matching detail", () => {
     expect(() => assertValidRegistry(index(), {})).toThrow(/has no detail/);
   });
@@ -162,6 +180,42 @@ describe("assertValidRegistry", () => {
 
     it("still requires http(s)", () => {
       expect(withStartUrl("javascript:alert(1)")).toThrow(/bad startUrl/);
+    });
+  });
+
+  describe("shell", () => {
+    const withShell = (shell: unknown) => () =>
+      assertValidRegistry(index(), {
+        a: { ...details().a, shell: shell as MiniAppDetail["shell"] },
+      });
+
+    it.each([
+      [{}],
+      [{ bottomBar: false }],
+      [{ backForward: false }],
+      [{ bottomBar: true, backForward: false }],
+      [{ bottomBar: false, backForward: false }],
+    ])("accepts %j", (shell) => {
+      expect(withShell(shell)).not.toThrow();
+    });
+
+    it("rejects a misspelt key, which would otherwise do nothing", () => {
+      expect(withShell({ bottombar: false })).toThrow(/unknown shell key "bottombar"/);
+    });
+
+    it.each([["false"], [0], [null]])("rejects a non-boolean switch, %j", (value) => {
+      expect(withShell({ backForward: value })).toThrow(/must be a boolean/);
+    });
+
+    it("rejects a shell that is not an object", () => {
+      expect(withShell([])).toThrow(/must be an object/);
+      expect(withShell(false)).toThrow(/must be an object/);
+    });
+
+    it("rejects back/forward asked for on a hidden bottom bar", () => {
+      expect(withShell({ bottomBar: false, backForward: true })).toThrow(
+        /hidden bottom bar/,
+      );
     });
   });
 

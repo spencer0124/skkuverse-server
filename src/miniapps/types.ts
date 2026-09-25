@@ -16,7 +16,9 @@
 export const MINIAPP_REGISTRY_VERSION = 1;
 
 /**
- * Logo as stored on disk. Two spellings, one wire shape:
+ * Logo as stored on disk. Three spellings, two wire shapes.
+ *
+ * An image, in either of two places:
  *
  *  - `remote` — a site-root-relative path on WEB_ORIGIN. The origin is
  *    deliberately absent so `WEB_ORIGIN` stays the single place that host is
@@ -25,7 +27,14 @@ export const MINIAPP_REGISTRY_VERSION = 1;
  *    where every uploaded image goes now. Checked with `isMediaUrl`, so no other
  *    host can slip in as a logo.
  *
- * The loader materializes either into the absolute `uri` the client expects.
+ * Or no image at all:
+ *
+ *  - `emoji` — one emoji, which the app draws in Tossface on a tile of its own
+ *    choosing. For a mini app that has no artwork yet, and would otherwise need
+ *    one drawn, uploaded and hashed before it could appear in the grid.
+ *
+ * The loader materializes both image spellings into the absolute `uri` the
+ * client expects, and passes an emoji through untouched.
  */
 export type MiniAppLogoRaw =
   | {
@@ -37,13 +46,20 @@ export type MiniAppLogoRaw =
       kind: "media";
       /** Absolute URL on MEDIA_ORIGIN, content-hashed and immutable. */
       url: string;
+    }
+  | {
+      kind: "emoji";
+      /** Exactly one emoji (one grapheme), e.g. "🍢". */
+      emoji: string;
     };
 
-/** Logo as served to clients — absolute URL, resolved from MiniAppLogoRaw. */
-export interface MiniAppLogo {
-  kind: "remote";
-  uri: string;
-}
+/**
+ * Logo as served to clients: an image at an absolute URL, resolved from either
+ * image spelling, or an emoji for the client to render in Tossface.
+ */
+export type MiniAppLogo =
+  | { kind: "remote"; uri: string }
+  | { kind: "emoji"; emoji: string };
 
 export interface MiniAppLink {
   label?: string;
@@ -75,6 +91,23 @@ export interface MiniAppIndexRaw {
   miniApps: MiniAppIndexEntryRaw[];
 }
 
+/**
+ * Which parts of the mini-app shell's chrome to draw around this service's page.
+ *
+ * The bottom bar is [<] · service-name pill · [>]. A single-page mini app has
+ * no history for [<] [>] to walk, so the pair only sits there disabled; a page
+ * with its own fixed bottom button can lose the whole bar to keep it clear.
+ *
+ * Every field is optional and an absent one means shown, which is the shell as
+ * it has always been drawn — so an entry with no `shell` at all is unchanged.
+ */
+export interface MiniAppShell {
+  /** The whole bottom bar. Hiding it hides [<] [>] with it. */
+  bottomBar?: boolean;
+  /** The [<] [>] history buttons either side of the service-name pill. */
+  backForward?: boolean;
+}
+
 /** Per-service detail — heavier content, needed only when opening the mini-app. */
 export interface MiniAppDetail {
   version: number;
@@ -86,6 +119,7 @@ export interface MiniAppDetail {
   description?: string;
   relatedLinks: MiniAppLink[];
   noticeBanner?: MiniAppNoticeBanner;
+  shell?: MiniAppShell;
 }
 
 /**

@@ -105,14 +105,16 @@ describe("GET /app/config", () => {
     // be caught after deploy, because a missing origin produces no error on
     // either side, just a page whose buttons stop doing anything.
     //
-    // The webview host, plus the standalone ESKARA site whose pages open ticket
-    // links through `web:open-url`. Exact equality rather than `toContain`,
+    // The webview host, the standalone ESKARA site whose pages open ticket
+    // links through `web:open-url`, and the 뭐 먹지? roulette whose result card
+    // opens the map through `web:action`. Exact equality rather than `toContain`,
     // because the other direction matters just as much — an origin added here
     // hands `Linking.openURL` and the map-select channel to every page that host
     // serves, so it has to be written down in this test too.
     expect(origins).toEqual([
       "https://webview.skkuverse.com",
       "https://eskara.miniapp.skkuverse.com",
+      "https://mukja.mini.skkuverse.com",
     ]);
   });
 

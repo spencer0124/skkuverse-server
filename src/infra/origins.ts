@@ -45,6 +45,19 @@ export const WEBVIEW_ORIGIN = "https://webview.skkuverse.com";
  */
 export const ESKARA_MINIAPP_ORIGIN = "https://eskara.miniapp.skkuverse.com";
 
+/**
+ * The 뭐 먹지? roulette (`miniapp-mukja`), the registered start URL of the
+ * `mukja` mini app: it picks one festival menu item from the places open now.
+ * Its result card posts `web:action` with `map` for "view on map" and nothing
+ * else — no `web:open-url`, no API calls, so it needs no CORS grant. It embeds
+ * no iframes; on Android a child frame would inherit the top-level grant.
+ *
+ * `mini.` rather than eskara's `miniapp.`: first-party mini apps are hosted one
+ * per Cloudflare Pages project at `<id>.mini.skkuverse.com` from here on.
+ * Eskara keeps its host because released builds and share links already name it.
+ */
+export const MUKJA_MINIAPP_ORIGIN = "https://mukja.mini.skkuverse.com";
+
 /** Marketing/launcher site — mini-app share links, A2HS shortcuts, remote mini-app logos. */
 export const WEB_ORIGIN = "https://skkuverse.com";
 
@@ -73,8 +86,8 @@ export const MEDIA_ORIGIN = "https://media.skkuverse.com";
  * message (a webview navigates, so an open-time grant outlives the origin it was
  * granted for) and grants nothing when the list is absent or unmatched.
  *
- * Two entries: the host we build webview URLs from, and the standalone ESKARA
- * deployment. Every entry is a trust decision rather than a config change — it
+ * Three entries: the host we build webview URLs from, the standalone ESKARA
+ * deployment, and the 뭐 먹지? roulette. Every entry is a trust decision rather than a config change — it
  * hands `Linking.openURL` and the map-select channel to every page that host
  * serves — so an entry belongs here only for a deployment we own, and only while
  * clients actually address it.
@@ -86,7 +99,11 @@ export const MEDIA_ORIGIN = "https://media.skkuverse.com";
  * runtimeVersion. An entry comes out once nothing names its host any more — not
  * on a schedule.
  */
-export const BRIDGE_ORIGINS = [WEBVIEW_ORIGIN, ESKARA_MINIAPP_ORIGIN] as const;
+export const BRIDGE_ORIGINS = [
+  WEBVIEW_ORIGIN,
+  ESKARA_MINIAPP_ORIGIN,
+  MUKJA_MINIAPP_ORIGIN,
+] as const;
 
 /**
  * Origins a BROWSER may read this API from.
