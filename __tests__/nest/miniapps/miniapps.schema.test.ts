@@ -246,15 +246,57 @@ describe("assertValidRegistry", () => {
         a: { ...details().a, shell: shell as MiniAppDetail["shell"] },
       });
 
-    it.each([[{}], [{ bar: "top" }], [{ bar: "bottom" }], [{ bar: "hide" }]])(
+    it.each([[{}], [{ bar: "top" }], [{ bar: "bottom" }], [{ bar: "none" }]])(
       "accepts %j",
       (shell) => {
         expect(withShell(shell)).not.toThrow();
       },
     );
 
-    it.each([["left"], ["TOP"], [true], [null]])("rejects bar %j", (bar) => {
-      expect(withShell({ bar })).toThrow(/shell.bar for "a" must be one of top, bottom, hide/);
+    it.each([["left"], ["TOP"], ["hide"], [true], [null]])("rejects bar %j", (bar) => {
+      expect(withShell({ bar })).toThrow(/shell.bar for "a" must be one of top, bottom, none/);
+    });
+
+    it.each([[{ header: "opaque" }], [{ header: "overlay" }]])("accepts %j", (shell) => {
+      expect(withShell(shell)).not.toThrow();
+    });
+
+    it.each([["sideways"], ["OPAQUE"], [1], [null]])("rejects header %j", (header) => {
+      expect(withShell({ header })).toThrow(
+        /shell.header for "a" must be one of opaque, overlay/,
+      );
+    });
+
+    it.each([[{ statusBar: "dark" }], [{ statusBar: "light" }]])("accepts %j", (shell) => {
+      expect(withShell(shell)).not.toThrow();
+    });
+
+    it.each([["gray"], ["DARK"], [1], [null]])("rejects statusBar %j", (statusBar) => {
+      expect(withShell({ statusBar })).toThrow(
+        /shell.statusBar for "a" must be one of dark, light/,
+      );
+    });
+
+    it.each([[{ background: "#FFFFFF" }], [{ background: "#0a0b0c" }]])(
+      "accepts %j",
+      (shell) => {
+        expect(withShell(shell)).not.toThrow();
+      },
+    );
+
+    it.each([["FFFFFF"], ["#FFF"], ["#GGGGGG"], [123456], [null]])(
+      "rejects background %j",
+      (background) => {
+        expect(withShell({ background })).toThrow(
+          /shell.background for "a" must be a #RRGGBB string/,
+        );
+      },
+    );
+
+    it("accepts every field together", () => {
+      expect(
+        withShell({ bar: "top", header: "overlay", statusBar: "light", background: "#112233" }),
+      ).not.toThrow();
     });
 
     it.each([["bottomBar"], ["backForward"], ["position"]])(
