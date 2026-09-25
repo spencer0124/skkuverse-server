@@ -3,7 +3,7 @@ title: Operate the Load Balancer
 type: how-to
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-25
+last-updated: 2026-09-26
 audience: internal
 ---
 
@@ -18,7 +18,7 @@ audience: internal
 | Part | Setting |
 | --- | --- |
 | Load balancer | Host name `api.skkuverse.com`, proxied. Default pool and fallback pool are the same pool |
-| Pool | One pool, `api-origins`. Endpoint steering Random, with weights |
+| Pool | One pool, `api-origins`. Endpoint steering Random, with weights. Once a host has finished its ramp its weight equals the others', so hosts that have finished take equal shares |
 | Endpoints | One per origin host, named by provider and region (for example `oci-chuncheon`), addressed by the host's public IP |
 | Monitor `api-health-ready` | HTTPS `GET /health/ready`, header `Host: api.skkuverse.com`, response body must contain `ready`, 60 s interval, 5 s timeout, 2 retries, one check region |
 | Notification | Load Balancing health alert, by email (the Free plan's Cloudflare notifications are email-only) |
@@ -28,9 +28,14 @@ What the monitor and the pool do with a failure:
 
 | Failure on one host | What users see |
 | --- | --- |
-| The host refuses or drops connections (host down, nginx stopped) | Nothing: Cloudflare's zero-downtime failover retries the request on another endpoint in the pool |
+| The host refuses or drops connections (host down, nginx stopped) | Nothing: Cloudflare's zero-downtime failover retries the request on another endpoint in the pool. Confirmed in a drill: with nginx stopped on one host, no request from outside failed, including the minute before the monitor marked the host unhealthy; requests took slightly longer while it was down |
 | The host answers, but `/health/ready` fails (503, 5xx, wrong body) | That host's share of requests fails until the monitor marks it unhealthy, then the pool stops sending it traffic |
 | Every host is unhealthy | The fallback pool is the same pool, so traffic still goes to the hosts — as with one host |
+
+### Pool edits and the monitor
+
+- **A pool edit needs a second click.** Saving an endpoint change (enable, disable, weight) opens a "Confirm edits?" dialog; nothing changes until it is confirmed. After the confirmation, a disabled endpoint stops receiving new requests within seconds.
+- **A re-enabled endpoint waits for the monitor.** Enabling an endpoint (or adding one) resets its health to unknown, and the pool sends it nothing until the next monitor check passes — with the 60 s interval, anywhere from a few seconds to over a minute. Confirm the return with `X-Served-By` (below) before the next step, rather than assuming it is immediate.
 
 The monitor's `Host` header matters: it makes the request match the `api.skkuverse.com` nginx site. Without it the request falls to the catch-all server, gets no response, and every endpoint reads as unhealthy. The origins accept 443 from Cloudflare's ranges only ([lock-origin-to-cloudflare.md](lock-origin-to-cloudflare.md)); the monitor's probes come from those ranges, so the lock does not affect them.
 
@@ -63,7 +68,7 @@ With Random steering each request is drawn independently, so a host's expected s
 
 A host enters at a low weight and is raised in steps: 0.1, then 0.5, then 1. At each step, for at least several minutes of real traffic:
 
-1. Change the endpoint's weight in the pool and save.
+1. Change the endpoint's weight in the pool, save, and confirm the edit.
 2. Sample `X-Served-By` (above) and check the split matches the weights.
 3. On the new host: nginx 5xx in the access log, `docker stats` for the replicas, the heartbeat green.
 4. In Atlas: ops/s and connections. Every host's replicas hold their own connection pools, so connections rise with the host count, not with traffic.
@@ -72,7 +77,7 @@ Hold the step back (lower the weight again) on any rise in 5xx or a heartbeat fa
 
 ### Drain a host
 
-For a restart, a risky change, or before removing it. Set its endpoint weight to 0 (or disable the endpoint) and wait a few minutes: in-flight requests finish, new ones go to the other endpoints. Sample `X-Served-By` until the host no longer appears. Undo by restoring the weight or enabling the endpoint.
+For a restart, a risky change, or before removing it. Set its endpoint weight to 0 (or disable the endpoint) and wait a few minutes: in-flight requests finish, new ones go to the other endpoints. Sample `X-Served-By` until the host no longer appears. Undo by restoring the weight or enabling the endpoint; an enabled endpoint gets traffic again only after its next passing monitor check ([Pool edits and the monitor](#pool-edits-and-the-monitor)).
 
 ### Take a host out in an emergency
 
@@ -84,13 +89,13 @@ Disable the load balancer. The kept `api` A record answers again, sending all tr
 
 ### Drill a failover
 
-Run these at a low-traffic hour before relying on the second host, and after any change to the pool or the monitor. Watch 5xx, the heartbeat and Atlas throughout.
+Run these at a low-traffic hour before relying on the second host, and after any change to the pool or the monitor. Watch 5xx, the heartbeat and Atlas throughout. Keep an outside probe running across all of them (a loop like the one in [Tell which host answered](#tell-which-host-answered), logging status, `X-Served-By` and time per request): it is what shows failed requests and when traffic actually moved. The drills were first run before the second host went to full weight, all passing with no failed requests ([rollout notes](../decisions/0009-multi-origin-active-active.md#rollout-notes)).
 
 | Drill | Do | Expect | Undo |
 | --- | --- | --- | --- |
-| One host takes everything | Disable one endpoint | `X-Served-By` shows only the other host; its CPU and Atlas connections hold | Enable the endpoint |
-| A host stops accepting connections | `sudo systemctl stop nginx` on one host | No failed requests from outside (zero-downtime failover); the monitor marks it unhealthy within a few minutes; the health-alert email arrives; the heartbeat reports nginx | `sudo systemctl start nginx`; the monitor marks it healthy again and a recovery email arrives |
-| Move the poller | [fail-over-poller.md](fail-over-poller.md), there and back | `bus_cache` stays fresh throughout | — |
+| One host takes everything | Disable one endpoint | `X-Served-By` shows only the other host within seconds of confirming the edit; its CPU and Atlas connections hold | Enable the endpoint; it serves again after its next monitor check (up to about a minute) |
+| A host stops accepting connections | `sudo systemctl stop nginx` on one host (not on a host that also serves `ota.` or `files.`) | No failed requests from outside (zero-downtime failover); the monitor marks it unhealthy within a minute or two; the health-alert email arrives; the heartbeat reports nginx | `sudo systemctl start nginx`; the host serves again after its next monitor check, the monitor marks it healthy and a recovery email arrives |
+| Move the poller | [fail-over-poller.md](fail-over-poller.md), there and back | `bus_cache` stays fresh throughout; a latency blip of a second or two on every host while each new poller runs its start-up building sync | — |
 
 ### Add an origin
 
@@ -119,6 +124,7 @@ For a host being returned or retired. In order:
 | Every endpoint unhealthy, but the site works with the load balancer off | The monitor does not reach the `api.skkuverse.com` site: `Host` header missing or wrong, or the expected body does not match | Check the monitor's header and body settings against the table above |
 | One endpoint unhealthy, the host looks fine from inside | The host's firewall or provider security group rejects Cloudflare, or `/health/ready` returns 503 (DB ping failing) | On the host: `curl -sk --resolve api.skkuverse.com:443:127.0.0.1 https://api.skkuverse.com/health/ready`; check the firewall's Cloudflare list is current |
 | The split does not match the weights | Too few samples, or an endpoint is unhealthy or disabled | Sample more; check endpoint health in the pool |
+| An endpoint was enabled but `X-Served-By` never shows it | The edit was not confirmed, or the monitor has not checked it yet (health "unknown") | Check the pool shows it enabled; wait for the next monitor check |
 | 52x for everyone right after disabling the load balancer | The `api` A record points at a host that is down or gone | Re-enable the load balancer, then fix the record |
 | Some requests hang for seconds while every host is idle | Known issue: origin-path stalls via some Cloudflare colos, independent of the host | Nothing to change in the pool; see the follow-ups in [ADR 0009](../decisions/0009-multi-origin-active-active.md#rollout-notes) |
 

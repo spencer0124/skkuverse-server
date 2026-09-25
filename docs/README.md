@@ -80,7 +80,7 @@ audience: internal
 | [0006-building-search-relevance-ranking.md](decisions/0006-building-search-relevance-ranking.md) | accepted |
 | [0007-notice-ordering-key.md](decisions/0007-notice-ordering-key.md) | accepted |
 | [0008-dispatch-age-gate-on-publication-date.md](decisions/0008-dispatch-age-gate-on-publication-date.md) | accepted |
-| [0009-multi-origin-active-active.md](decisions/0009-multi-origin-active-active.md) | accepted (rollout in progress) |
+| [0009-multi-origin-active-active.md](decisions/0009-multi-origin-active-active.md) | accepted (Phase A in place) |
 
 ### internal (포스트모템)
 

@@ -3,7 +3,7 @@ title: Multiple Origins, Active-Active, Behind Cloudflare Load Balancing
 type: adr
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-25
+last-updated: 2026-09-26
 audience: internal
 ---
 
@@ -14,9 +14,9 @@ audience: internal
 Accepted — 2026-09-24. Phase A (two hosts) is to be in place before the ESKARA
 festival on 2026-10-01/02; Phase B (N identical hosts) follows it.
 
-Rollout in progress. Since 2026-09-25 the load balancer is live with both
-hosts in the pool and the second host on the weight ramp; the failover drills
-and the last weight step remain. How the load balancer is operated:
+Phase A in place. Since 2026-09-25 the load balancer is live with both hosts
+in the pool; on 2026-09-26 the failover drills passed and both hosts went to
+equal weights. How the load balancer is operated:
 [operate-load-balancer.md](../how-to/operate-load-balancer.md). What changed
 against the plan below is under [Rollout notes](#rollout-notes).
 
@@ -182,3 +182,16 @@ What the rollout changed against the decision above, in the order found.
   request timeouts were shortened meanwhile. After the festival, Cloudflare
   Tunnel endpoints are to be evaluated against the direct endpoints (tracked
   internally).
+- **The failover drills passed (2026-09-26), and the ramp is finished.** At a
+  low-traffic hour, with an outside probe running throughout: disabling
+  either endpoint moved all traffic to the other within seconds; stopping
+  nginx on one host was absorbed by zero-downtime failover; the poller moved
+  to the second host and back with `bus_cache` fresh throughout. No probe
+  request failed in any of them. Both endpoints then went to equal weights.
+  What the drills taught is in the runbooks: a re-enabled endpoint serves
+  only after its next monitor check, a pool edit needs a second
+  confirmation
+  ([operate-load-balancer.md](../how-to/operate-load-balancer.md#pool-edits-and-the-monitor)),
+  and starting a poller runs a full building sync that briefly slows every
+  host, and the host left standby must have its poller container removed
+  ([fail-over-poller.md](../how-to/fail-over-poller.md#move-the-poller-both-hosts-up)).
