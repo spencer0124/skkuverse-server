@@ -108,7 +108,8 @@ describe("GET /app/config", () => {
     // The webview host, the standalone ESKARA site whose pages open ticket
     // links through `web:open-url`, the 뭐 먹지? roulette and the 오늘 밤 주점
     // box whose results open the map through `web:action`, and 플리 예습, whose
-    // song buttons open YouTube and Spotify. Exact equality rather than `toContain`,
+    // song buttons open YouTube and Spotify, and 초록의 파도, whose runner buzzes
+    // through `web:haptic`. Exact equality rather than `toContain`,
     // because the other direction matters just as much — an origin added here
     // hands `Linking.openURL` and the map-select channel to every page that host
     // serves, so it has to be written down in this test too.
@@ -118,6 +119,7 @@ describe("GET /app/config", () => {
       "https://mukja.mini.skkuverse.com",
       "https://playlist.mini.skkuverse.com",
       "https://booth-box.mini.skkuverse.com",
+      "https://wave-run.mini.skkuverse.com",
     ]);
   });
 

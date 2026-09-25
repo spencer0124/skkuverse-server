@@ -26,6 +26,7 @@ const assets = [
   ["src/miniapps/details/playlist.json", "dist/src/miniapps/details/playlist.json"],
   ["src/miniapps/details/booth-box.json", "dist/src/miniapps/details/booth-box.json"],
   ["src/miniapps/details/subway-typing.json", "dist/src/miniapps/details/subway-typing.json"],
+  ["src/miniapps/details/wave-run.json", "dist/src/miniapps/details/wave-run.json"],
   ["src/miniapps/details/nsc.json", "dist/src/miniapps/details/nsc.json"],
   ["src/miniapps/details/skkuw.json", "dist/src/miniapps/details/skkuw.json"],
   ["src/miniapps/details/skkuzine.json", "dist/src/miniapps/details/skkuzine.json"],
