@@ -2,7 +2,7 @@
  * Server-owned mini-app registry loader.
  *
  * Reads index.json + details/*.json, validates referential integrity (throws at
- * boot on malformed config), resolves logos to absolute URLs, freezes
+ * boot on malformed config), resolves image logos to absolute URLs, freezes
  * everything, and exposes an ordered list + a Map for O(1) lookups.
  *
  * Mirrors notices/sources.ts, including the __dirname path resolution: at
@@ -19,6 +19,8 @@ import type {
   MiniAppDetail,
   MiniAppIndexEntry,
   MiniAppIndexRaw,
+  MiniAppLogo,
+  MiniAppLogoRaw,
 } from "./types";
 
 function readJson<T>(...segments: string[]): T {
@@ -42,20 +44,26 @@ assertValidRegistry(rawIndex, rawDetails);
 /** Registry schema version — clients gate breaking changes on this. */
 export const version: number = rawIndex.version;
 
-/** Ordered index with logo paths resolved to absolute URLs under WEB_ORIGIN. */
+/** The wire logo: both image spellings become one absolute `uri`; an emoji passes through. */
+function resolveLogo(logo: MiniAppLogoRaw): MiniAppLogo {
+  switch (logo.kind) {
+    case "emoji":
+      return { kind: "emoji", emoji: logo.emoji };
+    case "media":
+      return { kind: "remote", uri: logo.url };
+    case "remote":
+      return { kind: "remote", uri: `${WEB_ORIGIN}${logo.path}` };
+  }
+}
+
+/** Ordered index with image logos resolved to absolute URLs. */
 export const list: ReadonlyArray<Readonly<MiniAppIndexEntry>> = Object.freeze(
   [...rawIndex.miniApps]
     .sort((a, b) => a.order - b.order)
     .map((entry) =>
       Object.freeze({
         ...entry,
-        logo: Object.freeze({
-          kind: "remote" as const,
-          uri:
-            entry.logo.kind === "media"
-              ? entry.logo.url
-              : `${WEB_ORIGIN}${entry.logo.path}`,
-        }),
+        logo: Object.freeze(resolveLogo(entry.logo)),
       }),
     ),
 );

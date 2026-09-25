@@ -12,12 +12,54 @@
  */
 import { isMediaUrl } from "../infra/media-url";
 import { isOnWebviewOrigin, toWebviewUrl } from "../infra/webview-url";
-import type { MiniAppDetail, MiniAppIndexRaw } from "./types";
+import type { MiniAppDetail, MiniAppIndexRaw, MiniAppShell } from "./types";
 
 const HTTP_RE = /^https?:\/\//;
 const SLUG_RE = /^[a-z0-9-]+$/;
 /** Logo paths are site-root-relative; an absolute URL here would bypass WEB_ORIGIN. */
 const ROOT_PATH_RE = /^\/[\w\-./]+$/;
+const PICTOGRAPHIC_RE = /\p{Extended_Pictographic}/u;
+const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+/**
+ * One emoji as the reader sees it. Counted in graphemes, not code points: "🌶️"
+ * is a pepper plus a variation selector and "👩‍🍳" is three code points joined,
+ * and each is one glyph on the tile. A second emoji or a word would be squeezed
+ * into a tile drawn for one.
+ */
+function isSingleEmoji(value: string): boolean {
+  const [first, ...rest] = graphemes.segment(value);
+  return first !== undefined && rest.length === 0 && PICTOGRAPHIC_RE.test(first.segment);
+}
+
+const SHELL_KEYS = new Set<string>(["bottomBar", "backForward"]);
+
+/**
+ * Only the known switches, only booleans. An unknown key is almost always a
+ * misspelling ("bottombar"), and one that would do nothing at all: the client
+ * reads the two names it knows, so the switch would stay on with no error
+ * anywhere. `backForward: true` under a hidden bar asks for buttons that have
+ * nowhere to be drawn, which is the same kind of silent no-op.
+ */
+function assertValidShell(id: string, shell: unknown): void {
+  if (typeof shell !== "object" || shell === null || Array.isArray(shell)) {
+    throw new Error(`miniapp registry: shell for "${id}" must be an object`);
+  }
+  for (const [key, value] of Object.entries(shell)) {
+    if (!SHELL_KEYS.has(key)) {
+      throw new Error(`miniapp registry: unknown shell key "${key}" in "${id}"`);
+    }
+    if (typeof value !== "boolean") {
+      throw new Error(`miniapp registry: shell.${key} for "${id}" must be a boolean`);
+    }
+  }
+  const { bottomBar, backForward } = shell as MiniAppShell;
+  if (bottomBar === false && backForward === true) {
+    throw new Error(
+      `miniapp registry: shell for "${id}" shows back/forward on a hidden bottom bar`,
+    );
+  }
+}
 
 export function assertValidRegistry(
   index: MiniAppIndexRaw,
@@ -38,9 +80,15 @@ export function assertValidRegistry(
           `miniapp registry: logo.url for "${entry.id}" must be an object on the media bucket`,
         );
       }
+    } else if (logo.kind === "emoji") {
+      if (!isSingleEmoji(logo.emoji)) {
+        throw new Error(
+          `miniapp registry: logo.emoji for "${entry.id}" must be exactly one emoji`,
+        );
+      }
     } else if (logo.kind !== "remote" || !ROOT_PATH_RE.test(logo.path)) {
       throw new Error(
-        `miniapp registry: logo.path for "${entry.id}" must be a site-root-relative path`,
+        `miniapp registry: logo for "${entry.id}" must be a site-root-relative path, a media-bucket url, or one emoji`,
       );
     }
     const detail = details[entry.id];
@@ -71,6 +119,7 @@ export function assertValidRegistry(
         `miniapp registry: startUrl for "${entry.id}" must address a page on the web view — no fragment, not the root`,
       );
     }
+    if (detail.shell !== undefined) assertValidShell(entry.id, detail.shell);
     for (const link of detail.relatedLinks) {
       if (!HTTP_RE.test(link.url)) {
         throw new Error(
