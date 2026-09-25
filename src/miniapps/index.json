@@ -39,6 +39,12 @@
       "homeLogo": { "kind": "emoji", "emoji": "🚇" }
     },
     {
+      "id": "wave-run",
+      "name": "초록의 파도",
+      "order": 11,
+      "homeLogo": { "kind": "emoji", "emoji": "🏄" }
+    },
+    {
       "id": "hssc",
       "name": "인사캠 총학생회",
       "shortName": "인사캠 총학",
