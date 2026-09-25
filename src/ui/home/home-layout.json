@@ -21,14 +21,7 @@
     {
       "type": "miniapp_grid",
       "id": "main",
-      "title": { "ko": "ESKARA" },
       "miniAppIds": ["eskara-2026", "mukja", "playlist", "booth-box"]
-    },
-    {
-      "type": "miniapp_grid",
-      "id": "games",
-      "title": { "ko": "미니게임", "en": "Mini games", "zh": "小游戏" },
-      "miniAppIds": ["subway-typing", "wave-run"]
     }
   ]
 }
