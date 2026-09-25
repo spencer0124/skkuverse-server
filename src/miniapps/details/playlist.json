@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "id": "playlist",
+  "startUrl": "https://playlist.mini.skkuverse.com/",
+  "verified": true,
+  "relatedLinks": [],
+  "shell": { "bar": "top" }
+}

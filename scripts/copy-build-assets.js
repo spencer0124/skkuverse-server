@@ -23,6 +23,7 @@ const assets = [
   ],
   ["src/miniapps/details/hssc.json", "dist/src/miniapps/details/hssc.json"],
   ["src/miniapps/details/mukja.json", "dist/src/miniapps/details/mukja.json"],
+  ["src/miniapps/details/playlist.json", "dist/src/miniapps/details/playlist.json"],
   ["src/miniapps/details/nsc.json", "dist/src/miniapps/details/nsc.json"],
   ["src/miniapps/details/skkuw.json", "dist/src/miniapps/details/skkuw.json"],
   ["src/miniapps/details/skkuzine.json", "dist/src/miniapps/details/skkuzine.json"],
