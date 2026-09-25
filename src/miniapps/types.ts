@@ -79,7 +79,15 @@ export interface MiniAppIndexEntryRaw {
   /** Short label for the home grid tile; client falls back to `name`. */
   shortName?: string;
   order: number;
-  logo: MiniAppLogoRaw;
+  /**
+   * The home grid's tile. At least one of `homeLogo`/`shellLogo` is required,
+   * and whichever is absent takes the other's value — so a mini app with one
+   * picture sets one field, and one whose grid tile and shell header should
+   * differ (ESKARA: a 🌊 tile, its poster in the shell) sets both.
+   */
+  homeLogo?: MiniAppLogoRaw;
+  /** The shell's title pill and page-info sheet. Absent means `homeLogo`. */
+  shellLogo?: MiniAppLogoRaw;
   /**
    * Kept off the home grid. The entry stays in the index on purpose: a deep
    * link (/m/<id>), a map `miniapp` button and the shell's own header all look
@@ -89,8 +97,11 @@ export interface MiniAppIndexEntryRaw {
   hidden?: boolean;
 }
 
-export interface MiniAppIndexEntry extends Omit<MiniAppIndexEntryRaw, "logo"> {
-  logo: MiniAppLogo;
+/** Wire entry: both logos always present, the fallback already applied. */
+export interface MiniAppIndexEntry
+  extends Omit<MiniAppIndexEntryRaw, "homeLogo" | "shellLogo"> {
+  homeLogo: MiniAppLogo;
+  shellLogo: MiniAppLogo;
 }
 
 export interface MiniAppIndexRaw {

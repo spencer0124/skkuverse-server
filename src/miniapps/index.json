@@ -6,7 +6,8 @@
       "name": "ESKARA 2026",
       "shortName": "ESKARA",
       "order": 5,
-      "logo": {
+      "homeLogo": { "kind": "emoji", "emoji": "🌊" },
+      "shellLogo": {
         "kind": "media",
         "url": "https://media.skkuverse.com/miniapps/eskara-2026/logo-03a86934.jpg"
       }
@@ -16,14 +17,14 @@
       "name": "뭐 먹지?",
       "shortName": "뭐 먹지",
       "order": 6,
-      "logo": { "kind": "emoji", "emoji": "😋" }
+      "homeLogo": { "kind": "emoji", "emoji": "😋" }
     },
     {
       "id": "hssc",
       "name": "인사캠 총학생회",
       "shortName": "인사캠 총학",
       "order": 10,
-      "logo": { "kind": "remote", "path": "/miniapps/hssc.png" },
+      "homeLogo": { "kind": "remote", "path": "/miniapps/hssc.png" },
       "hidden": true
     },
     {
@@ -31,21 +32,21 @@
       "name": "자과캠 총학생회",
       "shortName": "자과캠 총학",
       "order": 20,
-      "logo": { "kind": "remote", "path": "/miniapps/nsc.png" },
+      "homeLogo": { "kind": "remote", "path": "/miniapps/nsc.png" },
       "hidden": true
     },
     {
       "id": "skkuw",
       "name": "성대신문",
       "order": 30,
-      "logo": { "kind": "remote", "path": "/miniapps/skkuw.png" },
+      "homeLogo": { "kind": "remote", "path": "/miniapps/skkuw.png" },
       "hidden": true
     },
     {
       "id": "skkuzine",
       "name": "성균웹진",
       "order": 40,
-      "logo": { "kind": "remote", "path": "/miniapps/skkuzine.png" },
+      "homeLogo": { "kind": "remote", "path": "/miniapps/skkuzine.png" },
       "hidden": true
     }
   ]

@@ -102,23 +102,41 @@ describe("GET /miniapps", () => {
     expect(orders).toEqual([...orders].sort((a, b) => a - b));
   });
 
-  it("resolves every image logo to an absolute URL on WEB_ORIGIN or the media bucket", async () => {
+  it("resolves both logos of every entry, image logos to an absolute URL", async () => {
     const res = await request(httpServer).get("/miniapps");
     for (const entry of res.body.data.miniApps) {
-      // The raw on-disk `path`/`url` must not leak — the client reads `uri` or `emoji`.
-      expect(entry.logo).not.toHaveProperty("path");
-      expect(entry.logo).not.toHaveProperty("url");
-      if (entry.logo.kind === "emoji") {
-        expect(entry.logo.emoji.length).toBeGreaterThan(0);
-        expect(entry.logo).not.toHaveProperty("uri");
-        continue;
+      // The single `logo` is gone; both slots are always present on the wire.
+      expect(entry).not.toHaveProperty("logo");
+      for (const logo of [entry.homeLogo, entry.shellLogo]) {
+        // The raw on-disk `path`/`url` must not leak — the client reads `uri` or `emoji`.
+        expect(logo).not.toHaveProperty("path");
+        expect(logo).not.toHaveProperty("url");
+        if (logo.kind === "emoji") {
+          expect(logo.emoji.length).toBeGreaterThan(0);
+          expect(logo).not.toHaveProperty("uri");
+          continue;
+        }
+        // Both on-disk image spellings leave as one wire shape.
+        expect(logo.kind).toBe("remote");
+        expect(
+          logo.uri.startsWith(`${WEB_ORIGIN}/`) || logo.uri.startsWith(`${MEDIA_ORIGIN}/`),
+        ).toBe(true);
       }
-      // Both on-disk image spellings leave as one wire shape.
-      expect(entry.logo.kind).toBe("remote");
-      expect(
-        entry.logo.uri.startsWith(`${WEB_ORIGIN}/`) || entry.logo.uri.startsWith(`${MEDIA_ORIGIN}/`),
-      ).toBe(true);
     }
+  });
+
+  it("lets the grid tile and the shell logo differ (ESKARA: 🌊 tile, poster in the shell)", async () => {
+    const res = await request(httpServer).get("/miniapps");
+    const eskara = res.body.data.miniApps.find((m: { id: string }) => m.id === "eskara-2026");
+    expect(eskara.homeLogo).toEqual({ kind: "emoji", emoji: "🌊" });
+    expect(eskara.shellLogo.kind).toBe("remote");
+    expect(eskara.shellLogo.uri.startsWith(`${MEDIA_ORIGIN}/`)).toBe(true);
+  });
+
+  it("fills an unset logo from the other one", async () => {
+    const res = await request(httpServer).get("/miniapps");
+    const hssc = res.body.data.miniApps.find((m: { id: string }) => m.id === "hssc");
+    expect(hssc.shellLogo).toEqual(hssc.homeLogo);
   });
 
   it("keeps hidden entries in the index, flagged, so deep links still resolve them", async () => {
@@ -138,7 +156,9 @@ describe("GET /miniapps", () => {
   it("serves an emoji logo as the emoji, for the client to draw in Tossface", async () => {
     const res = await request(httpServer).get("/miniapps");
     const mukja = res.body.data.miniApps.find((m: { id: string }) => m.id === "mukja");
-    expect(mukja.logo).toEqual({ kind: "emoji", emoji: "😋" });
+    // Only homeLogo is authored for mukja; the shell takes the same emoji.
+    expect(mukja.homeLogo).toEqual({ kind: "emoji", emoji: "😋" });
+    expect(mukja.shellLogo).toEqual({ kind: "emoji", emoji: "😋" });
   });
 
   it("gives every entry a slug id and a display name", async () => {
