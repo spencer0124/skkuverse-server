@@ -326,8 +326,12 @@ describe("MapService", () => {
     // defaultTilt could only ever hold its own fallback.
     for (const campus of ko.campuses) {
       expect(campus.defaultTilt).toBe(0);
-      expect(campus.defaultBearing).toBe(0);
     }
+    // NSC is turned to square its grid to the screen; HSSC stays north-up.
+    expect(Object.fromEntries(ko.campuses.map((c) => [c.id, c.defaultBearing]))).toEqual({
+      hssc: 0,
+      nsc: 6,
+    });
   });
 
   it("serves the marker geometry the app used to hardcode", async () => {

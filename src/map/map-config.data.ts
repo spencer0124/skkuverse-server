@@ -143,7 +143,9 @@ async function getMapConfig(lang: SupportedLang = "ko"): Promise<MapConfigRespon
         centerLng: 126.974942,
         defaultZoom: 15.8,
         defaultTilt: 0,
-        defaultBearing: 0,
+        // The campus grid runs ~6° east of north (the stadium's long axis in
+        // OSM, and what squares it on a simulator), so the camera turns by it.
+        defaultBearing: 6,
         radiusM: 1000,
       },
     ],
