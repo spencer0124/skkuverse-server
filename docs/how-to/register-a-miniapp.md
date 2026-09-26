@@ -19,9 +19,12 @@ audience: internal
 
 ## Overview
 
-A mini app becomes visible to the app in two files under `src/miniapps/`: an entry in
-[`index.json`](../../src/miniapps/index.json) (the home grid + deep-link resolution) and a
-`details/<id>.json` file (the shell, the start URL, the page-info sheet). Both are validated at boot
+A mini app becomes known to the app in two files under `src/miniapps/`: an entry in
+[`index.json`](../../src/miniapps/index.json) (name, logo, deep-link resolution) and a
+`details/<id>.json` file (the shell, the start URL, the page-info sheet). Its **tile on the home
+screen** is a third file: current app releases draw the grid from the `miniapp_grid` ids in
+[`src/ui/home/home-layout.json`](../../src/ui/home/home-layout.json), in that list's order, and
+only releases that predate `GET /ui/home` fall back to `index.json`'s `order` (step 1). Both are validated at boot
 by `assertValidRegistry` (`src/miniapps/miniapps.schema.ts`) — a malformed entry crashes the server
 rather than shipping quietly broken, so get this right in dev before it ever reaches `main`.
 
@@ -66,6 +69,19 @@ In [`src/miniapps/index.json`](../../src/miniapps/index.json), add an object to 
 These seven keys (`id`, `name`, `shortName`, `order`, `homeLogo`, `shellLogo`, `hidden`) are the
 entire allow-list. Any other key — an old `logo` field, a misspelt `homelogo` — is a boot error, not a
 silently ignored one.
+
+**Put it on the home screen.** `index.json` alone does not draw a tile in current app releases. Add
+the id to a `miniapp_grid` section's `miniAppIds` in
+[`src/ui/home/home-layout.json`](../../src/ui/home/home-layout.json), at the position the tile
+should take, and keep `order` above in the same sequence for older releases:
+
+```json
+{ "type": "miniapp_grid", "id": "main", "miniAppIds": ["eskara-2026", "inja", "<id>", "mukja"] }
+```
+
+The layout refuses an unregistered id, and a mini app may sit in only one grid. Leave the id out to
+keep the mini app reachable by deep link only. See
+[configure-home.md](configure-home.md#rearrange-the-mini-app-sections).
 
 ### 2. Add the detail file
 
@@ -219,6 +235,7 @@ depending on which host answered.
 
 ```bash
 curl -s https://api.skkuverse.com/miniapps                # the new entry, with a resolved logo
+curl -s https://api.skkuverse.com/ui/home | jq '.data.sections[] | select(.type=="miniapp_grid") | .miniAppIds'  # the tile
 curl -s https://api.skkuverse.com/miniapps/<id>            # 200, startUrl, complete shell object
 curl -s https://api.skkuverse.com/app/config | jq '.data.webview.bridgeOrigins'  # if step 4 applied
 
@@ -246,6 +263,9 @@ waiting the full window during a live check.
 - **A bridge button does nothing, on every device, with no error anywhere**: step 4 was skipped, or
   the origin string has a typo (wrong subdomain, a trailing slash, `http` instead of `https`). Diff
   the entry against `new URL(startUrl).origin` for the mini app in question.
+- **Registered and `200` from `/miniapps/<id>`, but no tile on the home screen**: the id is missing
+  from `home-layout.json`'s `miniAppIds` (step 1). The same cause explains a tile in the wrong
+  position after changing only `order`.
 - **The tile shows the wrong logo, or the wrong app entirely, when tapped**: check that `id` in
   `index.json` and `details/<id>.json` match exactly — a copy-paste from an existing entry is the
   usual cause.

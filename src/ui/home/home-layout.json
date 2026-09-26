@@ -21,7 +21,7 @@
     {
       "type": "miniapp_grid",
       "id": "main",
-      "miniAppIds": ["eskara-2026", "inja", "mukja", "playlist", "booth-box"]
+      "miniAppIds": ["eskara-2026", "inja", "timetable", "playlist", "mukja", "booth-box"]
     }
   ]
 }
