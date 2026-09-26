@@ -4,13 +4,13 @@
     {
       "id": "inja",
       "name": "축제 인자셔틀",
-      "order": 4,
+      "order": 5,
       "homeLogo": { "kind": "emoji", "emoji": "🚌" }
     },
     {
       "id": "eskara-2026",
       "name": "축제 가이드",
-      "order": 5,
+      "order": 4,
       "homeLogo": { "kind": "emoji", "emoji": "📖" },
       "shellLogo": {
         "kind": "media",
@@ -18,9 +18,15 @@
       }
     },
     {
+      "id": "timetable",
+      "name": "무대 타임테이블",
+      "order": 6,
+      "homeLogo": { "kind": "emoji", "emoji": "📅" }
+    },
+    {
       "id": "mukja",
       "name": "음식 룰렛",
-      "order": 6,
+      "order": 8,
       "homeLogo": { "kind": "emoji", "emoji": "😋" }
     },
     {
@@ -32,7 +38,7 @@
     {
       "id": "booth-box",
       "name": "부스 뽑기",
-      "order": 8,
+      "order": 9,
       "homeLogo": { "kind": "emoji", "emoji": "🎁" }
     },
     {

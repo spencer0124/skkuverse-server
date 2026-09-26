@@ -89,6 +89,16 @@ export const BOOTH_BOX_MINIAPP_ORIGIN = "https://booth-box.mini.skkuverse.com";
  */
 export const INJA_MINIAPP_ORIGIN = "https://inja.mini.skkuverse.com";
 
+/**
+ * 무대 타임테이블 (`miniapp-timetable`), the registered start URL of the
+ * `timetable` mini app: the ESKARA 2026 stage schedule, moved out of the
+ * ESKARA guide's `/eskara/timetable`. A static page: it sends no SDK method
+ * beyond what `MiniappRoot` does on its own, makes no API calls, so no CORS
+ * grant, and embeds no iframes; on Android a child frame would inherit the
+ * top-level grant.
+ */
+export const TIMETABLE_MINIAPP_ORIGIN = "https://timetable.mini.skkuverse.com";
+
 /** Marketing/launcher site — mini-app share links, A2HS shortcuts, remote mini-app logos. */
 export const WEB_ORIGIN = "https://skkuverse.com";
 
@@ -128,6 +138,7 @@ export const FIRST_PARTY_MINIAPP_ORIGINS = [
   PLAYLIST_MINIAPP_ORIGIN,
   BOOTH_BOX_MINIAPP_ORIGIN,
   INJA_MINIAPP_ORIGIN,
+  TIMETABLE_MINIAPP_ORIGIN,
 ] as const;
 
 /**
