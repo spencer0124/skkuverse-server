@@ -1,0 +1,63 @@
+name: Deploy mnemosyne
+
+# TEMPORARY — delete this file (and unregister the runner) when the rented
+# host mnemosyne is returned (lease ends 2026-10-07). Nothing else refers to
+# it.
+#
+# Deploys main to mnemosyne after CI/CD deployed oracle healthy. GitHub-hosted
+# runners cannot reach this host (its provider firewall only lets SSH in from
+# an allow-listed network), so the job runs on a self-hosted runner installed
+# on the host itself, as `ubuntu`, and needs no SSH and no secrets. The runner
+# only makes outbound HTTPS connections to GitHub.
+#
+# The deploy logic is not copied here: the job cuts the remote script out of
+# deploy-host.yml and runs it locally — the same steps as "Deploy a host by
+# hand" in docs/cicd-and-branch-protection.md, which stays the fallback.
+
+on:
+  workflow_run:
+    workflows: [CI/CD]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# Its own group, not CI/CD's `deploy`: a job waiting for an offline runner
+# stays queued, and sharing the group would hold up the next oracle release.
+concurrency:
+  group: deploy-mnemosyne
+  cancel-in-progress: false
+
+permissions: {}
+
+env:
+  # Same checkout as DEPLOY_PATH in deploy-host.yml.
+  DEPLOY_PATH: /home/ubuntu/skkumap-server-express
+
+jobs:
+  deploy:
+    name: deploy mnemosyne
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: [self-hosted, mnemosyne]
+    timeout-minutes: 30
+    steps:
+      - name: Cut the deploy script out of deploy-host.yml on main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C "$DEPLOY_PATH" fetch --quiet origin main
+          git -C "$DEPLOY_PATH" show origin/main:.github/workflows/deploy-host.yml \
+            | awk '/^ *script: \|$/ { f = 1; next } f' \
+            | sed -e 's/^            //' -e "s#[$]{{ env.DEPLOY_PATH }}#$DEPLOY_PATH#" \
+            > "$RUNNER_TEMP/deploy-host.sh"
+          # No workflow expression may survive into the script.
+          if grep -n '[$]{{' "$RUNNER_TEMP/deploy-host.sh"; then
+            echo "::error::unresolved workflow expression in the extracted script"
+            exit 1
+          fi
+          bash -n "$RUNNER_TEMP/deploy-host.sh"
+
+      # stdin from /dev/null: the script's pre-deploy `docker compose run`
+      # reads stdin, and anything else there would be swallowed.
+      - name: Deploy
+        shell: bash
+        run: bash "$RUNNER_TEMP/deploy-host.sh" </dev/null

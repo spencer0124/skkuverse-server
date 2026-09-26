@@ -19,7 +19,7 @@ on:
   workflow_call:
     inputs:
       host:
-        description: The host's name in deploy.yml (oracle, mnemosyne). Used in job names and messages only.
+        description: The host's name in deploy.yml (e.g. oracle). Used in job names and messages only.
         type: string
         required: true
     secrets:

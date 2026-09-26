@@ -37,10 +37,14 @@ jobs:
   # is deployed only after the previous one finished healthy, and a failed
   # host stops the rollout there. The steps live in deploy-host.yml.
   #
-  # Two jobs rather than a matrix with max-parallel: 1 — GitHub documents the
+  # Jobs rather than a matrix with max-parallel: 1 — GitHub documents the
   # order a matrix's jobs are *created* in, not the order they *run* in, and
   # "oracle first" is the part that matters: it is the host that runs the
   # poller, and the one a bad release should stop on.
+  #
+  # The rented host mnemosyne is not in this chain: GitHub-hosted runners
+  # cannot reach its SSH port, so it deploys itself from a runner on the host
+  # once this workflow succeeds (deploy-mnemosyne.yml).
   #
   # Adding a host: a job here that needs the previous one, its secrets, and a
   # /etc/skkuverse/host.env on it (docs/how-to/lock-origin-to-cloudflare.md,
@@ -54,20 +58,3 @@ jobs:
       VM_HOST: ${{ secrets.ORACLE_VM_HOST }}
       VM_USER: ${{ secrets.ORACLE_VM_USER }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-
-  # Switchable: runs only when the repo variable MNEMOSYNE_ENABLED is `true`
-  # (Settings → Secrets and variables → Actions → Variables). Unset or `false`
-  # pauses deploys to this host without a code change; the job then shows as
-  # skipped and the run stays green. A job-level `if` can read `vars` but not
-  # `secrets`, hence a variable. The implicit success() still applies, so a
-  # failed deploy-oracle stops the rollout here as before.
-  deploy-mnemosyne:
-    needs: [test, deploy-oracle]
-    if: ${{ vars.MNEMOSYNE_ENABLED == 'true' }}
-    uses: ./.github/workflows/deploy-host.yml
-    with:
-      host: mnemosyne
-    secrets:
-      VM_HOST: ${{ secrets.MNEMOSYNE_VM_HOST }}
-      VM_USER: ${{ secrets.MNEMOSYNE_VM_USER }}
-      SSH_PRIVATE_KEY: ${{ secrets.MNEMOSYNE_SSH_PRIVATE_KEY }}
