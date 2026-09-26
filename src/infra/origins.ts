@@ -70,11 +70,13 @@ export const MUKJA_MINIAPP_ORIGIN = "https://mukja.mini.skkuverse.com";
 export const PLAYLIST_MINIAPP_ORIGIN = "https://playlist.mini.skkuverse.com";
 
 /**
- * 부스 뽑기 (`miniapp-booth-box`), the registered start URL of the
- * `booth-box` mini app: a gift box that opens on one of ESKARA 2026's 주점.
- * Through the miniapp SDK its result sheet sends `map.openPlace` for "view on
- * map" and nothing else. No API calls, so it needs no CORS grant. It embeds
- * no iframes; on Android a child frame would inherit the top-level grant.
+ * 랜덤 컨텐츠 (`miniapp-booth-box`), the registered start URL of the
+ * `booth-box` mini app: a gift box that opens on one of ESKARA 2026's 부스 or
+ * 주점. Through the miniapp SDK its result sheet sends `map.openPlace` for
+ * "view on map" and `share.open` for its share link. It also opens in a plain
+ * browser, where neither is granted. No API calls, so it needs no CORS grant.
+ * It embeds no iframes; on Android a child frame would inherit the top-level
+ * grant.
  */
 export const BOOTH_BOX_MINIAPP_ORIGIN = "https://booth-box.mini.skkuverse.com";
 
