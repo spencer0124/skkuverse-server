@@ -109,7 +109,8 @@ describe("GET /app/config", () => {
     // links through `link.open`, the 음식 룰렛 roulette and the 부스 뽑기 box
     // whose results open the map through `map.openPlace`, 플리 예습, whose
     // song buttons open YouTube and Spotify, and 인자셔틀, whose night boarding
-    // spot opens the map. Exact equality rather than `toContain`,
+    // spot opens the map, and 무대 타임테이블, which sends
+    // nothing of its own yet. Exact equality rather than `toContain`,
     // because the other direction matters just as much — an origin added here
     // hands `Linking.openURL` and the map-select channel to every page that host
     // serves, so it has to be written down in this test too.
@@ -120,6 +121,7 @@ describe("GET /app/config", () => {
       "https://playlist.mini.skkuverse.com",
       "https://booth-box.mini.skkuverse.com",
       "https://inja.mini.skkuverse.com",
+      "https://timetable.mini.skkuverse.com",
     ]);
   });
 
@@ -135,6 +137,7 @@ describe("GET /app/config", () => {
       "https://playlist.mini.skkuverse.com": "playlist",
       "https://booth-box.mini.skkuverse.com": "booth-box",
       "https://inja.mini.skkuverse.com": "inja",
+      "https://timetable.mini.skkuverse.com": "timetable",
     });
   });
 
