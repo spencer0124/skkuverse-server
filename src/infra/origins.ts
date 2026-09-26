@@ -77,6 +77,17 @@ export const PLAYLIST_MINIAPP_ORIGIN = "https://playlist.mini.skkuverse.com";
  */
 export const BOOTH_BOX_MINIAPP_ORIGIN = "https://booth-box.mini.skkuverse.com";
 
+/**
+ * 인자셔틀 (`miniapp-inja`), the registered start URL of the `inja` mini app:
+ * the ESKARA 2026 shuttle timetable with live departures. Through the SDK it
+ * sends `map.openPlace` for the night boarding spot
+ * (`event:shuttle-queue-welfare`), `haptic.impact` on its refresh button, and
+ * `app.ready`. Its own `/api/*` is Pages Functions on the same origin, not
+ * this API, so no CORS grant. It embeds no iframes; on Android a child frame
+ * would inherit the top-level grant.
+ */
+export const INJA_MINIAPP_ORIGIN = "https://inja.mini.skkuverse.com";
+
 /** Marketing/launcher site — mini-app share links, A2HS shortcuts, remote mini-app logos. */
 export const WEB_ORIGIN = "https://skkuverse.com";
 
@@ -124,6 +135,7 @@ export const BRIDGE_ORIGINS = [
   MUKJA_MINIAPP_ORIGIN,
   PLAYLIST_MINIAPP_ORIGIN,
   BOOTH_BOX_MINIAPP_ORIGIN,
+  INJA_MINIAPP_ORIGIN,
 ] as const;
 
 /**
