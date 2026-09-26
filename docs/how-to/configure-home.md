@@ -75,7 +75,7 @@ Text (`alt`, `title`) is written as `{ "ko": ..., "en"?: ..., "zh"?: ... }`, and
 - **Images only.** `{ "type": "default" }` is refused, because the campus sheet has no built-in banner for it to stand for.
 - **No empty slot.** When every image is outside its window, the section is left out of the response, so the tiles move up.
 
-Add a banner the way the steps above describe, with keys under `campus/banners/`. The slot is 6:1 (the ESKARA 2026 student banners are 1200 × 200 WebP, about 50 KB each). Errors at boot start with `campus banners:`. The response also sends a 5-minute `Cache-Control`.
+Add a banner the way the steps above describe, with keys under `campus/banners/`. The slot is 6:1. The ESKARA 2026 student banners are 2400 × 400 WebP, about 110 KB each: the app also opens a banner full screen, turned sideways, where its long edge spans the phone's height (about 2400 px on a 3x phone). Errors at boot start with `campus banners:`. The response also sends a 5-minute `Cache-Control`.
 
 The app only draws this section while its festival gate is open (`isFestivalUnlocked()` in skkuverse-app). A store build shows the campus sheet empty until the festival-day flip.
 
