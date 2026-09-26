@@ -3,7 +3,7 @@ title: Fail Over the Poller
 type: how-to
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-09-25
+last-updated: 2026-09-26
 audience: internal
 ---
 
@@ -54,7 +54,10 @@ cd /home/ubuntu/skkumap-server-express
 
 ### Move the poller (both hosts up)
 
-Start the new one before stopping the old one. The overlap is a few seconds of two pollers, which is harmless: `bus_cache` writes are upserts of the same keys, and the push sweep claims each notice under a lease.
+Start the new one before stopping the old one. The overlap is a few seconds of two pollers, which is harmless: `bus_cache` writes are upserts of the same keys, and the push sweep claims each notice under a lease. Keep it short anyway — run step 3 as soon as step 2 passes, well under a minute.
+
+> [!NOTE]
+> Starting a poller runs a full building sync at once: it re-fetches every building and space from the external API and upserts them all to Atlas, which takes about ten seconds. While it runs, requests on **every** host can take a second or two longer. In a drill this cost no failed requests, but move the poller at a quiet hour, not at peak.
 
 1. On NEW, change the role and start the poller:
 
@@ -67,13 +70,13 @@ Start the new one before stopping the old one. The overlap is a few seconds of t
 
    A standby host's deploy does not build the poller image, so `up` builds it first. It shares every layer with the api image, so this takes seconds.
 2. On NEW, confirm it is writing (see [Check that bus data is fresh](#check-that-bus-data-is-fresh)): `hssc` a few seconds old.
-3. On OLD, change the role and stop the poller, in one line so the heartbeat never sees the two disagree for long:
+3. On OLD, change the role, then stop and remove the poller, in one line so the heartbeat never sees the two disagree for long:
 
    ```bash
-   echo 'POLLER_ROLE=standby' | sudo tee /etc/skkuverse/host.env && docker compose stop poller
+   echo 'POLLER_ROLE=standby' | sudo tee /etc/skkuverse/host.env && docker compose stop poller && docker compose rm -f poller
    ```
 
-   `stop`, not `rm`: the stopped container stays, and `restart: unless-stopped` keeps it stopped across reboots. A stopped poller on a standby host is fine for the heartbeat; a running one is an alert.
+   Remove it, not only stop it. The heartbeat tolerates a stopped poller on a standby host (only a running one is an alert), but a stopped container can come back by accident: every api replica has `depends_on: poller`, so any `docker compose up` on this host without `--no-deps` starts it again — two pollers, and nothing alerts until the next heartbeat. With the container gone, a standby host looks exactly like a freshly onboarded one. The image stays, so moving the poller back needs no rebuild.
 4. Check again that bus data is fresh, then that both hosts' heartbeats are green on Healthchecks.io at the next run (about a minute).
 
 ### Take the poller over when OLD is down
@@ -118,7 +121,7 @@ The same procedure with the hosts swapped: on the host taking it back, step 1 an
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| Heartbeat: `poller: running on a standby host` | The poller was started without changing that host's role file, or the host came back after a takeover | Decide which host should run it; run step 3 on the other |
+| Heartbeat: `poller: running on a standby host` | The poller was started without changing that host's role file, the host came back after a takeover, or a `docker compose up` without `--no-deps` revived a stopped poller | Decide which host should run it; run step 3 on the other |
 | Heartbeat: `poller: no container` or `poller: exited` on the active host | The role file says `active` but the poller is not running there | Step 1 on that host, or step 3 if it should be standby |
 | Deploy aborts: "the poller is running on this host, but host.env says POLLER_ROLE=standby" | Same contradiction, found by the deploy before it changed anything | Fix it as above, then re-run the workflow |
 | Deploy or heartbeat: "no valid POLLER_ROLE" / `poller-role:` errors | `/etc/skkuverse/host.env` missing, empty, quoted or with a second `POLLER_ROLE` line | Rewrite it with exactly one line; the error says what it found |

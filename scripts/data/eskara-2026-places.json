@@ -89,29 +89,25 @@
     "글로벌광장 50 m. The three sit 28-38 m apart, so they are three places rather",
     "than one, and the nearest other place is 99 m away.",
     "",
-    "THE 22:00 END IS DERIVED, NOT GIVEN. The council sent opening times only —",
-    "12:00, 14:00, 17:00, each written as an open-ended `12:00-`. A window needs",
-    "both bounds, and `hours: []` would print 상시 운영 at 3 a.m., so the end is",
-    "taken from where the day it gates actually ends: the 2일차 timetable's last",
-    "block is 17:30-22:00.",
-    "",
-    "2026-09-24: THE COUNCIL ANSWERED, AND THE END HAS NO FIXED TIME. Distribution",
-    "closes when the artist stage does, and the council announces it on its",
-    "Instagram story. 22:00 stays as the window's ceiling because a window cannot",
-    "be open-ended, not because anyone confirmed it. So each booth's sheet says",
-    "so right under 운영시간: a `detail` whose only block is a 운영 안내 `notice`",
-    "(the end varies; the council posts it on its Instagram story). The facts card",
-    "is always first and the body follows it, which is what puts the notice under",
-    "the hours row. `kind: etc` rather than `facility`, so a kind filter on 편의시설",
-    "never picks the booths up. The webview's 입장 팔찌 배부 page says the same.",
+    "THE END IS UNANNOUNCED, AND NOTHING IS STORED FOR IT. The council sent",
+    "opening times only (12:00~, 14:00~, 17:00~): distribution closes when the",
+    "artist stage does, and the council announces it on its Instagram story. Each",
+    "window has a startAt and no endAt, which the sheet prints as `14:00~`",
+    "(2026-09-26, council's request). Until then a 22:00 ceiling was stored",
+    "because a window could not be open-ended; it read as a confirmed time and the",
+    "council asked for it gone. The layer set's activation is what takes the",
+    "booths off the map after the festival. Each sheet still carries a 운영 안내",
+    "`notice` saying the close is posted on Instagram — the sentence that the end",
+    "varies was dropped at the council's request. `kind: etc` rather than",
+    "`facility`, so a kind filter on 편의시설 never picks the booths up.",
     "",
     "Distribution is 2일차 (10. 2.) ONLY — these booths do not run on 1일차 at",
     "all, and they only hand out wristbands. 짐 검사 is a separate booth at the",
-    "대운동장 entrance gate, on both days (council, 2026-09-24). That is why each",
-    "booth carries one window rather than two. The 성균인 booth's 단체 (12:00-14:00)",
-    "and 개별 (14:00-) split is deliberately NOT two windows: they are contiguous,",
-    "so the client would render 12:00-14:00 / 14:00-22:00 with nothing to say which",
-    "is which — a window carries no label. The webview explains the split.",
+    "대운동장 entrance gate, on both days (council, 2026-09-24). The 성균인 booth",
+    "has two LABELLED windows, 단체 입장 12:00-14:00 then 개별 입장 14:00~, because",
+    "a bare 12:00~ read as if 개별 입장 started at 12:00 too (council,",
+    "2026-09-26). They are contiguous, and the client's status line runs them",
+    "together, so at 13:00 it says 운영 중 rather than ending at 14:00.",
     "Its 팔찌 배부 안내 button is a `miniapp` action (`eskara-2026/eskara/wristband`),",
     "so the page opens inside the ESKARA mini app rather than the generic web view.",
     "",
@@ -2679,7 +2675,12 @@
       "hours": [
         {
           "startAt": "2026-10-02T12:00:00+09:00",
-          "endAt": "2026-10-02T22:00:00+09:00"
+          "endAt": "2026-10-02T14:00:00+09:00",
+          "label": { "ko": "단체 입장", "en": "Group entry" }
+        },
+        {
+          "startAt": "2026-10-02T14:00:00+09:00",
+          "label": { "ko": "개별 입장", "en": "Individual entry" }
         }
       ],
       "detail": {
@@ -2690,7 +2691,6 @@
             "id": "closing",
             "title": "운영 안내",
             "items": [
-              "종료 시각은 아티스트 무대가 끝나는 시간에 따라 달라져요.",
               "입장 팔찌 배부가 끝나면 총학생회 인스타그램 스토리로 알려 드려요."
             ]
           }
@@ -2718,8 +2718,7 @@
       ],
       "hours": [
         {
-          "startAt": "2026-10-02T14:00:00+09:00",
-          "endAt": "2026-10-02T22:00:00+09:00"
+          "startAt": "2026-10-02T14:00:00+09:00"
         }
       ],
       "detail": {
@@ -2730,7 +2729,6 @@
             "id": "closing",
             "title": "운영 안내",
             "items": [
-              "종료 시각은 아티스트 무대가 끝나는 시간에 따라 달라져요.",
               "입장 팔찌 배부가 끝나면 총학생회 인스타그램 스토리로 알려 드려요."
             ]
           }
@@ -2758,8 +2756,7 @@
       ],
       "hours": [
         {
-          "startAt": "2026-10-02T17:00:00+09:00",
-          "endAt": "2026-10-02T22:00:00+09:00"
+          "startAt": "2026-10-02T17:00:00+09:00"
         }
       ],
       "detail": {
@@ -2770,7 +2767,6 @@
             "id": "closing",
             "title": "운영 안내",
             "items": [
-              "종료 시각은 아티스트 무대가 끝나는 시간에 따라 달라져요.",
               "입장 팔찌 배부가 끝나면 총학생회 인스타그램 스토리로 알려 드려요."
             ]
           }

@@ -50,7 +50,7 @@ interface MapPlaceDoc {
   location: OverlayGeometry;   // RFC 7946 Point | LineString | Polygon, [lng, lat]
   title: I18n;
   subtitle?: I18n | null;
-  hours: { startAt: Date; endAt: Date }[];   // [] = always open
+  hours: { startAt: Date; endAt: Date | null; label?: I18n | null }[];   // [] = always open
   fields: { label: I18n; value: I18n }[];    // ordered card rows
   actions: PlaceAction[];
   order: number;
@@ -65,8 +65,12 @@ Three rules the code states once and only once:
   both an always-on 화장실 and a rain-cancelled bar, which is exactly why a `status` field had to
   exist to tell them apart. There is no `lifecycle` here — a cancelled booth is **deleted** — so
   there is no second meaning left to encode.
-- **Both bounds inside a window are required.** Half-bounded is not expressible: you write two
-  windows, or none. Allowing one open end would hand `hours` a second way to say "no limit".
+- **Every window has a start; its end may be unannounced.** Omit `endAt` (or write `null`) when
+  the organiser gave an opening time only — the 팔찌 배부 booths close when the artist stage does.
+  The start still gates such a window, so it is not a second way to say "no limit"; a window
+  without a start is refused, because that one would be. Nothing invents an end: the layer set's
+  activation takes the festival off the map. An optional `label` names a window when one place
+  runs differently across its windows (`단체 입장`, then `개별 입장`).
 - **`category` is an OPEN string.** An unmapped value lands on the config's fallback layer rather
   than vanishing, because a booth nobody can see is not a failure anyone can report.
 

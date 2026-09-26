@@ -76,15 +76,18 @@ export interface I18nWire {
 }
 
 /**
- * One opening interval. BOTH bounds are real instants.
+ * One opening interval. `startAt` is always a real instant; `endAt` is one too,
+ * or `null` when the end has not been announced (see `OpeningWindow` in
+ * `map-places.types.ts`). The start still gates an open-ended window, so
+ * `hours: []` — see below — stays the single spelling of "always".
  *
- * Half-bounded is not expressible on purpose: with an array you write two
- * windows, or none. That is what leaves `hours: []` — see below — as the single
- * spelling of "always".
+ * `label` names the window ("단체 입장") when a place runs differently across
+ * its windows; `null` otherwise. Both keys are always present.
  */
 export interface TimeWindow {
   startAt: string;
-  endAt: string;
+  endAt: string | null;
+  label: I18nWire | null;
 }
 
 /** A sheet button. The server picks the type; the app renders and never interprets. */
