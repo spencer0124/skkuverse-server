@@ -205,31 +205,22 @@ The PR will show as `BEHIND` — `dev` never receives `main`'s merge commits, so
 expected rather than a sign something is wrong. Every release so far has merged with `--admin` once
 the `test` check passed; do not merge before it does.
 
-The merge deploys **one of the two hosts**. The load balancer splits traffic evenly between `oracle`
-and `mnemosyne` ([decisions/0009](../decisions/0009-multi-origin-active-active.md)), but the
-workflow deploys `mnemosyne` only when the repo variable `MNEMOSYNE_ENABLED` is `true`, and it is off:
-that host accepts SSH only from an allow-listed network, which GitHub's runners are not. The run
-still goes green, with `deploy-mnemosyne` shown as skipped. Once `deploy-oracle` has finished, deploy
-`mnemosyne` by hand from a machine that can SSH to it
-([Deploy a host by hand](../cicd-and-branch-protection.md#deploy-a-host-by-hand)):
+The merge deploys **both hosts, one after the other**. The load balancer splits traffic evenly
+between `oracle` and `mnemosyne` ([decisions/0009](../decisions/0009-multi-origin-active-active.md)).
+The **CI/CD** run deploys `oracle`; when it goes green, the **Deploy mnemosyne** workflow starts on
+its own on a runner on that host ([Deploy mnemosyne](../cicd-and-branch-protection.md#deploy-mnemosyne-self-hosted-runner)).
+Wait for both:
 
 ```bash
-git fetch origin
-git show origin/main:.github/workflows/deploy-host.yml \
-  | awk '/^ *script: \|$/ { f = 1; next } f' \
-  | sed -e 's/^            //' -e 's#${{ env.DEPLOY_PATH }}#/home/ubuntu/skkumap-server-express#' \
-  > /tmp/deploy-host.sh
-grep -c '[$]{{' /tmp/deploy-host.sh   # must print 0
-bash -n /tmp/deploy-host.sh           # syntax check
-
-scp /tmp/deploy-host.sh mnemosyne:/tmp/deploy-host.sh
-ssh mnemosyne 'chmod 644 /tmp/deploy-host.sh; sudo -u ubuntu -H bash /tmp/deploy-host.sh </dev/null; echo "exit $?"'
+gh run list --limit 3                                   # CI/CD, then "Deploy mnemosyne" (event workflow_run)
+gh run watch <Deploy mnemosyne run id> --exit-status
 ssh mnemosyne 'sudo -u ubuntu git -C /home/ubuntu/skkumap-server-express rev-parse --short HEAD'  # = origin/main
 ```
 
-`exit 0` with three `{"status":"ready",…}` lines is success. Skip this and half of all requests keep
-the old build: the new mini app is `404` on every other request, and step 8 passes or fails
-depending on which host answered.
+Skip the wait and half of all requests keep the old build: the new mini app is `404` on every other
+request, and step 8 passes or fails depending on which host answered. If **Deploy mnemosyne** stays
+queued (the runner is offline) or fails, deploy that host by hand
+([Deploy a host by hand](../cicd-and-branch-protection.md#deploy-a-host-by-hand)).
 
 ### 8. Verify in production
 
@@ -257,8 +248,8 @@ waiting the full window during a live check.
 - **Production crashes on boot with `ENOENT … details/<id>.json`**: step 3 was skipped. The dev
   server never shows this, because it reads from `src/` rather than `dist/`.
 - **The new mini app is `404` on some requests and `200` on others, after a green deploy**: the
-  `404`s carry `X-Served-By: mnemosyne-api`, so that host still runs the old build. Deploy it by hand
-  (end of step 7). A `?b=$RANDOM` query skips Cloudflare's five-minute cache, so the mix you see is
+  `404`s carry `X-Served-By: mnemosyne-api`, so that host still runs the old build. Check the **Deploy mnemosyne** run
+  (end of step 7), and deploy it by hand if that run is queued or failed. A `?b=$RANDOM` query skips Cloudflare's five-minute cache, so the mix you see is
   the origins', not the edge's.
 - **A bridge button does nothing, on every device, with no error anywhere**: step 4 was skipped, or
   the origin string has a typo (wrong subdomain, a trailing slash, `http` instead of `https`). Diff

@@ -145,7 +145,8 @@ active.** $5/month for two endpoints ($10 for three).
   ([onboarding](../how-to/lock-origin-to-cloudflare.md#onboard-another-origin-host)).
 - **Returning the rented host (2026-10-07)**: drain it, remove the endpoint
   (or the load balancer, if no other host is planned), then take it out of
-  Atlas's access list, the deploy chain, GitHub's secrets and the monitoring,
+  Atlas's access list, its deploy workflow (`deploy-mnemosyne.yml`) and
+  self-hosted runner, and the monitoring,
   and shred its `.env` and origin key — the checklist is
   [Remove an origin](../how-to/operate-load-balancer.md#remove-an-origin).
   The credentials in that `.env` remain valid — the accepted risk above.
@@ -154,15 +155,20 @@ active.** $5/month for two endpoints ($10 for three).
 
 What the rollout changed against the decision above, in the order found.
 
-- **The second host is deployed by hand.** Its provider's firewall allows SSH
-  only from an allow-listed network, so GitHub-hosted runners cannot reach
-  it. `deploy-mnemosyne` stays in the chain, switched off with the
-  `MNEMOSYNE_ENABLED` repo variable, and the same remote script is run over
-  SSH from the allowed network instead
-  ([Deploy a host by hand](../cicd-and-branch-protection.md#deploy-a-host-by-hand)).
-  Still open: give Actions a path to the host (a private network overlay, so
-  no public SSH port is needed at all, or asking the provider to open SSH
-  wider), or keep deploying it by hand until it is returned.
+- **The second host deploys itself from a self-hosted runner.** Its
+  provider's firewall allows SSH only from an allow-listed network, so
+  GitHub-hosted runners cannot reach it, and at first it was deployed by hand.
+  Since 2026-09-26 a GitHub Actions runner on the host runs
+  `deploy-mnemosyne.yml` after each successful CI/CD run. The workflow cuts
+  the same remote script out of `deploy-host.yml` and runs it locally
+  ([Deploy mnemosyne](../cicd-and-branch-protection.md#deploy-mnemosyne-self-hosted-runner)).
+  It is a separate workflow, so returning the host means deleting one file
+  and unregistering the runner. A private network overlay (Tailscale) was
+  the alternative. It was not chosen, because the runner needs no new account
+  and the setup is temporary. The known cost: the repository is public, and a
+  self-hosted runner there could run a fork PR's workflow. That is accepted
+  for a solo-maintained repo with no outside collaborators, for the length
+  of the lease.
 - **A host hygiene check before go-live found problems on the rented host.**
   Secrets were withdrawn from it, the provider resolved the problems, the
   checks were repeated, and the rollout resumed. The check is now an

@@ -96,7 +96,7 @@ audience: internal
 | --- | --- |
 | [notices-api-architecture.md](notices-api-architecture.md) | superseded — 위 5개 문서로 분할 완료. 포인터 스텁만 남음 |
 | [project-docs.md](project-docs.md) | 미이관 — Oracle 배포 + Bus 시스템 + 외부 API + 건물. Express drift |
-| [cicd-and-branch-protection.md](cicd-and-branch-protection.md) | 미이관 — CI/CD·브랜치 보호, per-host deploy switch and deploying a host by hand |
+| [cicd-and-branch-protection.md](cicd-and-branch-protection.md) | 미이관 — CI/CD·브랜치 보호, per-host deploy chain, mnemosyne's self-hosted-runner deploy, and deploying a host by hand |
 | [skku-notice-sources.md](skku-notice-sources.md) | deprecated — 포인터 스텁만 남음. 소스 SSOT는 `src/notices/sources.json` + 크롤러 `sources.json`/coverage |
 | [skku-departments.md](skku-departments.md) | 미이관 — 학과 홈페이지 에디토리얼 참조 |
 

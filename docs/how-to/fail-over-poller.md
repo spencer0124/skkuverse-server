@@ -42,7 +42,7 @@ This is a stopgap. Phase B replaces the role file with leader election over a Mo
 
 - SSH to both hosts (`ssh oracle`, `ssh mnemosyne`) with `sudo`.
 - The new host is onboarded and deployed ([lock-origin-to-cloudflare.md](lock-origin-to-cloudflare.md#onboard-another-origin-host)) and has the same `.env` as the current active host.
-- Both hosts are on the same commit: `git rev-parse --short HEAD` in the deploy checkout matches on both. A host whose deploy job is switched off is not updated by GitHub Actions — deploy it by hand first ([Deploy a host by hand](../cicd-and-branch-protection.md#deploy-a-host-by-hand)).
+- Both hosts are on the same commit: `git rev-parse --short HEAD` in the deploy checkout matches on both. mnemosyne is updated by its own workflow after oracle's deploy ([Deploy mnemosyne](../cicd-and-branch-protection.md#deploy-mnemosyne-self-hosted-runner)); if that run did not go green, deploy it by hand first ([Deploy a host by hand](../cicd-and-branch-protection.md#deploy-a-host-by-hand)).
 
 Below, **OLD** is the host running the poller now and **NEW** is the one taking it over. Every command runs in the deploy checkout:
 
