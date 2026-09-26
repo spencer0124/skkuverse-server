@@ -34,8 +34,22 @@ function carousel(overrides: Record<string, unknown> = {}): Record<string, unkno
 }
 
 function grid(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  return { type: "miniapp_grid", id: "main", miniAppIds: ["mukja"], ...overrides };
+  return { type: "tile_grid", id: "main", tiles: [{ kind: "miniapp", id: "mukja" }], ...overrides };
 }
+
+function link(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    kind: "link",
+    id: "campus-map",
+    title: { ko: "캠퍼스 지도", en: "Campus map" },
+    icon: { kind: "emoji", emoji: "🗺️" },
+    actionType: "route",
+    actionValue: "/(tabs)/campus",
+    ...overrides,
+  };
+}
+
+const tiles = (...list: Record<string, unknown>[]) => grid({ tiles: list });
 
 function layout(...sections: Record<string, unknown>[]): Record<string, unknown> {
   return { version: 1, sections };
@@ -52,6 +66,16 @@ describe("committed home-layout.json", () => {
 describe("assertValidHomeLayout (via loadHomeLayout)", () => {
   it("accepts a well-formed layout", () => {
     expect(() => loadHomeLayout(layout(carousel(), grid()))).not.toThrow();
+  });
+
+  it("accepts every tile kind in one grid", () => {
+    const mixed = tiles(
+      { kind: "game", id: "wave-run" },
+      { kind: "miniapp", id: "mukja" },
+      link(),
+      link({ id: "notice", icon: { kind: "media", url: IMAGE_URL }, actionType: "miniapp", actionValue: "inja" }),
+    );
+    expect(() => loadHomeLayout(layout(mixed))).not.toThrow();
   });
 
   it.each<[string, Record<string, unknown>]>([
@@ -78,9 +102,20 @@ describe("assertValidHomeLayout (via loadHomeLayout)", () => {
       "a window that ends before it starts",
       layout(carousel({ items: [image({ startAt: "2026-10-03T00:00:00+09:00", endAt: "2026-10-01T00:00:00+09:00" })] })),
     ],
-    ["an unregistered mini app in a grid", layout(grid({ miniAppIds: ["nope"] }))],
-    ["an empty grid", layout(grid({ miniAppIds: [] }))],
+    ["an unregistered mini app in a grid", layout(tiles({ kind: "miniapp", id: "nope" }))],
+    ["an empty grid", layout(grid({ tiles: [] }))],
+    ["the old miniAppIds key", layout(grid({ tiles: undefined, miniAppIds: ["mukja"] }))],
     ["one mini app in two grids", layout(grid(), grid({ id: "games" }))],
+    ["one tile id under two kinds", layout(tiles({ kind: "miniapp", id: "mukja" }, link({ id: "mukja" })))],
+    ["an unknown tile kind", layout(tiles({ kind: "screen", id: "campus" }))],
+    ["a game id that is not a slug", layout(tiles({ kind: "game", id: "Wave Run" }))],
+    ["an extra key on an id tile", layout(tiles({ kind: "game", id: "wave-run", title: { ko: "파도" } }))],
+    ["a link with no title", layout(tiles(link({ title: undefined })))],
+    ["a link with no action", layout(tiles(link({ actionType: undefined, actionValue: undefined })))],
+    ["a link with a relative route", layout(tiles(link({ actionValue: "campus" })))],
+    ["a link icon of two emoji", layout(tiles(link({ icon: { kind: "emoji", emoji: "🗺️🗺️" } })))],
+    ["a link icon off the media bucket", layout(tiles(link({ icon: { kind: "media", url: "https://evil.com/a.png" } })))],
+    ["a link icon in the registry's legacy path spelling", layout(tiles(link({ icon: { kind: "remote", path: "/a.png" } })))],
     ["a blank title", layout(grid({ title: { ko: " " } }))],
   ])("rejects %s", (_label, raw) => {
     expect(() => loadHomeLayout(raw)).toThrow(/^home layout: /);
@@ -143,6 +178,34 @@ describe("resolveHomeLayout", () => {
         },
       ],
     });
-    expect(wire.sections[1]).toEqual({ type: "miniapp_grid", id: "main", miniAppIds: ["mukja"] });
+    expect(wire.sections[1]).toEqual({
+      type: "tile_grid",
+      id: "main",
+      tiles: [{ kind: "miniapp", id: "mukja" }],
+    });
+  });
+
+  it("resolves a link tile's title to the request language and its media icon to a uri", () => {
+    const raw = layout(
+      tiles(
+        { kind: "game", id: "wave-run" },
+        link({ icon: { kind: "media", url: IMAGE_URL } }),
+      ),
+    );
+    expect(resolveAt("2026-09-25T00:00:00Z", raw, "en").sections[0]).toEqual({
+      type: "tile_grid",
+      id: "main",
+      tiles: [
+        { kind: "game", id: "wave-run" },
+        {
+          kind: "link",
+          id: "campus-map",
+          title: "Campus map",
+          icon: { kind: "remote", uri: IMAGE_URL },
+          actionType: "route",
+          actionValue: "/(tabs)/campus",
+        },
+      ],
+    });
   });
 });

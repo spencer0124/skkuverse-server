@@ -45,7 +45,7 @@ assertValidRegistry(rawIndex, rawDetails);
 export const version: number = rawIndex.version;
 
 /** The wire logo: both image spellings become one absolute `uri`; an emoji passes through. */
-function resolveLogo(logo: MiniAppLogoRaw): MiniAppLogo {
+export function resolveLogo(logo: MiniAppLogoRaw): MiniAppLogo {
   switch (logo.kind) {
     case "emoji":
       return { kind: "emoji", emoji: logo.emoji };

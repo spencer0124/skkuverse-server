@@ -12,6 +12,7 @@ import { isMediaUrl } from "../../infra/media-url";
 import type { I18n } from "../../infra/types";
 import { ROOT_RELATIVE_PATH_RE, toWebviewUrl } from "../../infra/webview-url";
 import { isKnownMiniAppTarget } from "../../miniapps/miniapp-target";
+import { isSingleEmoji } from "../../miniapps/miniapps.schema";
 import {
   HOME_ACTION_TYPES,
   HOME_LAYOUT_VERSION,
@@ -37,7 +38,11 @@ export const AUTO_ROTATE_SEC_MAX = 30;
  */
 const LAYOUT_KEYS = new Set(["version", "sections"]);
 const CAROUSEL_KEYS = new Set(["type", "id", "aspectRatio", "autoRotateSec", "items"]);
-const GRID_KEYS = new Set(["type", "id", "title", "miniAppIds"]);
+const GRID_KEYS = new Set(["type", "id", "title", "tiles"]);
+const ID_TILE_KEYS = new Set(["kind", "id"]);
+const LINK_TILE_KEYS = new Set(["kind", "id", "title", "icon", "actionType", "actionValue"]);
+const EMOJI_ICON_KEYS = new Set(["kind", "emoji"]);
+const MEDIA_ICON_KEYS = new Set(["kind", "url"]);
 const IMAGE_KEYS = new Set([
   "type",
   "id",
@@ -112,26 +117,29 @@ function isValidActionValue(type: HomeActionType, value: string): boolean {
   }
 }
 
+/** `actionType` + `actionValue`, both present. Shared by banners and link tiles. */
+function assertAction(where: string, item: Record<string, unknown>): void {
+  const { actionType, actionValue } = item;
+  if (!HOME_ACTION_TYPES.includes(actionType as HomeActionType)) {
+    fail(`${where}.actionType must be one of ${HOME_ACTION_TYPES.join(", ")}`);
+  }
+  if (
+    typeof actionValue !== "string" ||
+    !isValidActionValue(actionType as HomeActionType, actionValue)
+  ) {
+    fail(`${where}.actionValue "${String(actionValue)}" is not valid for "${String(actionType)}"`);
+  }
+}
+
 function assertBannerImage(where: string, item: Record<string, unknown>): void {
   assertKnownKeys(where, item, IMAGE_KEYS);
   if (!isMediaUrl(item.imageUrl)) fail(`${where}.imageUrl must be an object on the media bucket`);
   assertI18n(`${where}.alt`, item.alt);
 
-  const { actionType, actionValue } = item;
-  if ((actionType === undefined) !== (actionValue === undefined)) {
+  if ((item.actionType === undefined) !== (item.actionValue === undefined)) {
     fail(`${where} needs both actionType and actionValue, or neither`);
   }
-  if (actionType !== undefined) {
-    if (!HOME_ACTION_TYPES.includes(actionType as HomeActionType)) {
-      fail(`${where}.actionType must be one of ${HOME_ACTION_TYPES.join(", ")}`);
-    }
-    if (
-      typeof actionValue !== "string" ||
-      !isValidActionValue(actionType as HomeActionType, actionValue)
-    ) {
-      fail(`${where}.actionValue "${String(actionValue)}" is not valid for "${String(actionType)}"`);
-    }
-  }
+  if (item.actionType !== undefined) assertAction(where, item);
 
   const start = item.startAt === undefined ? null : parseInstant(`${where}.startAt`, item.startAt);
   const end = item.endAt === undefined ? null : parseInstant(`${where}.endAt`, item.endAt);
@@ -183,26 +191,70 @@ function assertCarousel(
   if (defaults > 1) fail(`${where} may place the default banner once`);
 }
 
+/** A link tile's icon: the registry's `emoji` or `media` logo spelling. */
+function assertIcon(where: string, icon: unknown): void {
+  if (!isObject(icon)) fail(`${where} must be an object`);
+  if (icon.kind === "emoji") {
+    assertKnownKeys(where, icon, EMOJI_ICON_KEYS);
+    if (typeof icon.emoji !== "string" || !isSingleEmoji(icon.emoji)) {
+      fail(`${where}.emoji must be exactly one emoji`);
+    }
+  } else if (icon.kind === "media") {
+    assertKnownKeys(where, icon, MEDIA_ICON_KEYS);
+    if (!isMediaUrl(icon.url)) fail(`${where}.url must be an object on the media bucket`);
+  } else {
+    fail(`${where}.kind must be "emoji" or "media"`);
+  }
+}
+
+function assertTile(
+  where: string,
+  tile: unknown,
+  registeredMiniApps: ReadonlySet<string>,
+): asserts tile is Record<string, unknown> & { id: string } {
+  if (!isObject(tile)) fail(`${where} must be an object`);
+  if (typeof tile.id !== "string" || !SLUG_RE.test(tile.id)) fail(`${where}.id must be a slug`);
+  switch (tile.kind) {
+    case "miniapp":
+      assertKnownKeys(where, tile, ID_TILE_KEYS);
+      if (!registeredMiniApps.has(tile.id)) {
+        fail(`${where}.id "${tile.id}" is not a registered mini app`);
+      }
+      return;
+    case "game":
+      // Which games a build ships is the app's to know; a build without this
+      // one drops the tile.
+      assertKnownKeys(where, tile, ID_TILE_KEYS);
+      return;
+    case "link":
+      assertKnownKeys(where, tile, LINK_TILE_KEYS);
+      assertI18n(`${where}.title`, tile.title);
+      assertIcon(`${where}.icon`, tile.icon);
+      assertAction(where, tile);
+      return;
+    default:
+      fail(`${where}.kind must be "miniapp", "game" or "link"`);
+  }
+}
+
 function assertGrid(
   where: string,
   section: Record<string, unknown>,
   registeredMiniApps: ReadonlySet<string>,
-  placedMiniApps: Set<string>,
+  placedTiles: Set<string>,
 ): void {
   assertKnownKeys(where, section, GRID_KEYS);
   if (section.title !== undefined) assertI18n(`${where}.title`, section.title);
-  const { miniAppIds } = section;
-  if (!Array.isArray(miniAppIds) || miniAppIds.length === 0) {
-    fail(`${where}.miniAppIds must be a non-empty array`);
-  }
-  for (const id of miniAppIds) {
-    if (typeof id !== "string" || !registeredMiniApps.has(id)) {
-      fail(`${where}.miniAppIds names "${String(id)}", which is not a registered mini app`);
-    }
-    // Twice on one screen is a tile the user sees duplicated.
-    if (placedMiniApps.has(id)) fail(`mini app "${id}" is placed in more than one grid`);
-    placedMiniApps.add(id);
-  }
+  const { tiles } = section;
+  if (!Array.isArray(tiles) || tiles.length === 0) fail(`${where}.tiles must be a non-empty array`);
+  tiles.forEach((tile: unknown, i) => {
+    const at = `${where}.tiles[${i}]`;
+    assertTile(at, tile, registeredMiniApps);
+    // Twice on one screen is a tile the user sees duplicated. One namespace for
+    // every kind: the tile id is also the analytics item id for a tap.
+    if (placedTiles.has(tile.id)) fail(`tile "${tile.id}" is placed more than once`);
+    placedTiles.add(tile.id);
+  });
 }
 
 function assertUniqueId(where: string, id: unknown, ids: Set<string>): void {
@@ -226,17 +278,17 @@ function assertHomeLayout(raw: unknown, registeredMiniApps: ReadonlySet<string>)
   if (!Array.isArray(raw.sections)) fail("sections must be an array");
 
   const ids = new Set<string>();
-  const placedMiniApps = new Set<string>();
+  const placedTiles = new Set<string>();
   raw.sections.forEach((section: unknown, i) => {
     const where = `sections[${i}]`;
     if (!isObject(section)) fail(`${where} must be an object`);
     assertUniqueId(where, section.id, ids);
     if (section.type === "banner_carousel") {
       assertCarousel(where, section, ids, true);
-    } else if (section.type === "miniapp_grid") {
-      assertGrid(where, section, registeredMiniApps, placedMiniApps);
+    } else if (section.type === "tile_grid") {
+      assertGrid(where, section, registeredMiniApps, placedTiles);
     } else {
-      fail(`${where}.type must be "banner_carousel" or "miniapp_grid"`);
+      fail(`${where}.type must be "banner_carousel" or "tile_grid"`);
     }
   });
 }

@@ -40,7 +40,7 @@ const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
  * and each is one glyph on the tile. A second emoji or a word would be squeezed
  * into a tile drawn for one.
  */
-function isSingleEmoji(value: string): boolean {
+export function isSingleEmoji(value: string): boolean {
   const [first, ...rest] = graphemes.segment(value);
   return first !== undefined && rest.length === 0 && PICTOGRAPHIC_RE.test(first.segment);
 }

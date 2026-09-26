@@ -6,15 +6,20 @@
  * so a mismatch degrades silently (a section or a banner page disappears)
  * rather than erroring.
  *
- * The layout references mini apps by id only. Names and logos stay in the
- * mini-app registry (GET /miniapps), which the client already holds and joins
- * against — so a rename or a new logo is one edit in one place, and the home
- * layout decides nothing but arrangement.
+ * A grid is a list of tiles, each tagged with a `kind` that says where its name
+ * and icon come from. A `miniapp` tile names a registered mini app by id only:
+ * its name and logo stay in the registry (GET /miniapps), which the client
+ * already holds and joins against, so a rename is one edit in one place. A
+ * `game` tile names a game bundled into the app, which only the app can
+ * resolve. A `link` tile carries its own text, icon and action, for anything
+ * that is neither (an app screen, a page). The client drops a tile whose kind it
+ * does not know, so a new kind never breaks a released build.
  *
  * Released clients never call this endpoint. They still draw one flat grid from
  * the registry's `order` + `hidden`, which is why `hidden` stays in index.json.
  */
 import type { I18n } from "../../infra/types";
+import type { MiniAppLogo, MiniAppLogoRaw } from "../../miniapps/types";
 
 /**
  * Bump only on BREAKING changes (removed/renamed/retyped field). A new section
@@ -75,16 +80,53 @@ export interface CampusBannerCarouselRaw extends HomeBannerCarouselRaw {
   items: HomeBannerImageRaw[];
 }
 
-export interface HomeMiniAppGridRaw {
-  type: "miniapp_grid";
+/** A registered mini app. Name and logo come from the registry. */
+export interface HomeMiniAppTile {
+  kind: "miniapp";
+  id: string;
+}
+
+/**
+ * A game bundled into the app (skkuverse-app `features/games`). Name and icon
+ * come from the app, and a build that does not ship the game drops the tile.
+ * The server cannot know which games a build carries, so it checks the shape
+ * of the id only.
+ */
+export interface HomeGameTile {
+  kind: "game";
+  id: string;
+}
+
+/** Link icons: one emoji or an image on the media bucket. */
+export type HomeTileIconRaw = Extract<MiniAppLogoRaw, { kind: "emoji" | "media" }>;
+
+/**
+ * Anything that is neither: an app screen, a page. Carries its own text, icon
+ * and action. A `route` to a screen that older builds lack lands them on
+ * not-found, so add such a link only once the build carrying the screen is out.
+ */
+export interface HomeLinkTileRaw {
+  kind: "link";
+  /** Stable slug; the analytics item id for a tap. */
+  id: string;
+  title: I18n;
+  icon: HomeTileIconRaw;
+  actionType: HomeActionType;
+  actionValue: string;
+}
+
+export type HomeTileRaw = HomeMiniAppTile | HomeGameTile | HomeLinkTileRaw;
+
+export interface HomeTileGridRaw {
+  type: "tile_grid";
   id: string;
   /** Section heading. Absent means the grid is drawn with no heading. */
   title?: I18n;
-  /** Registered mini-app ids, in display order. */
-  miniAppIds: string[];
+  /** In display order. */
+  tiles: HomeTileRaw[];
 }
 
-export type HomeSectionRaw = HomeBannerCarouselRaw | HomeMiniAppGridRaw;
+export type HomeSectionRaw = HomeBannerCarouselRaw | HomeTileGridRaw;
 
 export interface HomeLayoutRaw {
   version: number;
@@ -112,14 +154,25 @@ export interface HomeBannerCarousel {
   items: HomeBannerItem[];
 }
 
-export interface HomeMiniAppGrid {
-  type: "miniapp_grid";
+export interface HomeLinkTile {
+  kind: "link";
   id: string;
-  title?: string;
-  miniAppIds: string[];
+  title: string;
+  icon: MiniAppLogo;
+  actionType: HomeActionType;
+  actionValue: string;
 }
 
-export type HomeSection = HomeBannerCarousel | HomeMiniAppGrid;
+export type HomeTile = HomeMiniAppTile | HomeGameTile | HomeLinkTile;
+
+export interface HomeTileGrid {
+  type: "tile_grid";
+  id: string;
+  title?: string;
+  tiles: HomeTile[];
+}
+
+export type HomeSection = HomeBannerCarousel | HomeTileGrid;
 
 export interface HomeLayout {
   version: number;

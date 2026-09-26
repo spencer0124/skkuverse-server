@@ -23,9 +23,18 @@ The file has two kinds of section, drawn in the order they are listed:
   - `items` is the list of pages:
     - `{ "type": "image", ... }` is an uploaded picture. It can have an action and an optional `startAt`/`endAt` window.
     - `{ "type": "default" }` is where the app's own built-in banner goes. Leave it out to hide that banner, and move it to change its position. It may appear at most once.
-- **`miniapp_grid`**: an optional `title` plus a list of mini-app ids.
-  - Only the ids go in the layout. Names and logos come from the mini-app registry (`src/miniapps/index.json`), which the app already holds.
-  - Every id must be registered, and a mini app may appear in only one grid.
+- **`tile_grid`**: an optional `title` plus `tiles`, drawn four to a row. Each tile has a `kind` that says where its name and icon come from:
+
+  | `kind` | Fields | Name and icon from | Tap |
+  | --- | --- | --- | --- |
+  | `miniapp` | `id` | The mini-app registry (`src/miniapps/index.json`) | Opens the mini app |
+  | `game` | `id` | The app's bundled games (skkuverse-app `features/games`) | Opens the native game |
+  | `link` | `id`, `title`, `icon`, `actionType`, `actionValue` | The tile itself | Runs the action |
+
+  - A `miniapp` id must be registered. A `game` id is checked for shape only, because only the app knows which games a build ships; a build without the game drops the tile.
+  - A `link` tile is for anything that is neither, such as an app screen. `icon` is `{ "kind": "emoji", "emoji": "…" }` or `{ "kind": "media", "url": "…" }`, and the action follows the banner rules below.
+  - A tile id may appear only once on the screen, whatever its kind.
+  - The app drops a tile whose `kind` it does not know, so a new kind never breaks a released build.
 
 Text (`alt`, `title`) is written as `{ "ko": ..., "en"?: ..., "zh"?: ... }`, and `ko` is required. The server picks one language per request, and `Vary: Accept-Language` is already set.
 
@@ -79,9 +88,26 @@ Add a banner the way the steps above describe, with keys under `campus/banners/`
 
 The app only draws this section while its festival gate is open (`isFestivalUnlocked()` in skkuverse-app). A store build shows the campus sheet empty until the festival-day flip.
 
-### Rearrange the mini-app sections
+### Rearrange the grids
 
-Edit the `miniapp_grid` sections: reorder ids, move an id to another grid, add a grid, or add or remove a `title`. To add a new mini app, register it in `src/miniapps/` first (see [register-a-miniapp.md](register-a-miniapp.md)), since the layout refuses unknown ids.
+Edit the `tile_grid` sections: reorder tiles, move a tile to another grid, add a grid, or add or remove a `title`. To add a new mini app, register it in `src/miniapps/` first (see [register-a-miniapp.md](register-a-miniapp.md)), since the layout refuses unknown ids.
+
+### Add a link to an app screen
+
+Add a `link` tile:
+
+```json
+{
+  "kind": "link",
+  "id": "campus-map",
+  "title": { "ko": "…", "en": "Campus map" },
+  "icon": { "kind": "emoji", "emoji": "🗺️" },
+  "actionType": "route",
+  "actionValue": "/(tabs)/campus"
+}
+```
+
+A `route` to a screen that an installed build does not have lands that build on its not-found screen. Link to a new screen only once the release carrying it is out.
 
 ## Troubleshooting
 
@@ -92,4 +118,4 @@ Edit the `miniapp_grid` sections: reorder ids, move an id to another grid, add a
 ## Related
 
 - [`src/miniapps/index.json`](../../src/miniapps/index.json): the registry the grids reference.
-- skkuverse-app `packages/shared/src/home/`: the client parser, which skips section and item types it does not know.
+- skkuverse-app `packages/shared/src/home/`: the client parser, which skips section, item and tile types it does not know.
