@@ -3,7 +3,7 @@
   "miniApps": [
     {
       "id": "inja",
-      "name": "인자셔틀",
+      "name": "축제 인자셔틀",
       "order": 4,
       "homeLogo": { "kind": "emoji", "emoji": "🚌" }
     },
