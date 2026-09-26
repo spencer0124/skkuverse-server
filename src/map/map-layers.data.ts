@@ -34,11 +34,10 @@ import type { I18n } from "../infra/types";
  * The drawing knobs a layer may set. Every member is optional, so a server that
  * sends none of them renders exactly as one that never had the field.
  *
- * The MARKER geometry is honoured as of app `ced0352`: `width`, `height`,
- * `size` and `zIndex` all reach a component, so editing one here changes what
- * is on screen. What is still unread is the POLYGON set — `outlineWidth`,
- * `fillOpacity`, `minZoom`, `maxZoom` — whose consumer is the client's overlay
- * renderer; see `docs/reference/map-overlays-api.md` §9.7.
+ * Every member reaches a component in the app, so editing one here changes
+ * what is on screen. `minZoom` / `maxZoom` apply to every overlay kind,
+ * markers included — the building layers use them to thin out as the camera
+ * pulls back.
  *
  * ⚠️ THERE IS DELIBERATELY NO `shape` MEMBER. A place marker draws as a dot
  * and is promoted to a pin only when selected, and the CLIENT owns that
@@ -243,7 +242,10 @@ export const BASE_LAYERS = [
     userConfigurable: true,
     endpoint: CAMPUS_OVERLAYS_ENDPOINT,
     chipGroupId: null,
-    style: { size: 16 },
+    // `minZoom` above `building_labels`' floor, so zooming out drops the
+    // numbers first and the names after them. Both sit below the campuses'
+    // `defaultZoom`, so the first view shows both.
+    style: { size: 16, minZoom: 15.3 },
   },
   {
     id: "building_labels",
@@ -255,7 +257,7 @@ export const BASE_LAYERS = [
     chipGroupId: null,
     // The label layer draws above every other overlay so a building name is
     // never hidden behind a booth pin.
-    style: { captionTextSize: 7, zIndex: 100000 },
+    style: { captionTextSize: 7, zIndex: 100000, minZoom: 14.8 },
   },
   {
     id: "campus_geometry",

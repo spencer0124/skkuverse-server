@@ -342,6 +342,15 @@ describe("MapService", () => {
     expect(byId.get("building_numbers")!.style).toMatchObject({ size: 16 });
     expect(byId.get("building_labels")!.style).toMatchObject({ zIndex: 100000 });
 
+    // Zooming out drops the numbers before the names, and neither is gone at
+    // the view a campus opens on.
+    const numbersMin = byId.get("building_numbers")!.style!.minZoom!;
+    const labelsMin = byId.get("building_labels")!.style!.minZoom!;
+    expect(numbersMin).toBeGreaterThan(labelsMin);
+    for (const campus of ko.campuses) {
+      expect(numbersMin).toBeLessThan(campus.defaultZoom);
+    }
+
     // PIN_WIDTH x PIN_HEIGHT — the tintable base icon's natural proportions, so
     // a client honouring them does not distort the tint.
     const stage = byId.get("eskara26_stage")!;
