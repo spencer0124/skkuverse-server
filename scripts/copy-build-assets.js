@@ -32,6 +32,8 @@ const assets = [
   ["src/miniapps/details/skkuzine.json", "dist/src/miniapps/details/skkuzine.json"],
   // ui/home/home-layout.ts reads this with fs.readFileSync(__dirname/<name>)
   ["src/ui/home/home-layout.json", "dist/src/ui/home/home-layout.json"],
+  // ui/ui/ui.campus.ts reads this with fs.readFileSync(__dirname/<name>)
+  ["src/ui/ui/campus-banners.json", "dist/src/ui/ui/campus-banners.json"],
   // eventmap/eventmap.config.ts reads these with fs.readFileSync(__dirname/config/<name>).
   // Every entry in that module's CONFIG_FILES must appear here — it lists files
   // explicitly rather than readdir'ing precisely so a miss shows up as a named

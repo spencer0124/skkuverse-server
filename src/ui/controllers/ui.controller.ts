@@ -50,9 +50,15 @@ export class UiController {
     sendSuccess(req, res, items, { itemCount: items.length });
   }
 
+  /**
+   * GET /ui/home/campus — the campus sheet's sections. Cached like /ui/home, for
+   * the same reason: static config resolved per request, whose banner windows
+   * take effect at most five minutes late.
+   */
   @Get("home/campus")
   getCampus(@Req() req: Request, @Res() res: Response): void {
     const lang = (req.lang ?? "ko") as SupportedLang;
+    res.set("Cache-Control", "public, max-age=300");
     const data = this.ui.getCampusSections(lang);
     sendSuccess(req, res, data);
   }
