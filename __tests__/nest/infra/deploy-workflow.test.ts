@@ -55,9 +55,10 @@ describe("deploy.yml — one host at a time, oracle first", () => {
   const jobs = jobBlocks(deploy);
   const hostJobs = [...jobs].filter(([, body]) => body.includes("uses: ./.github/workflows/deploy-host.yml"));
 
-  it("deploys exactly oracle then mnemosyne through deploy-host.yml", () => {
-    expect(hostJobs.map(([name]) => name)).toEqual(["deploy-oracle", "deploy-mnemosyne"]);
-    expect(hostJobs.map(([, body]) => body.match(/^ {6}host: (\S+)$/m)?.[1])).toEqual(["oracle", "mnemosyne"]);
+  // mnemosyne deploys itself from its own runner (deploy-mnemosyne.yml).
+  it("deploys exactly oracle through deploy-host.yml", () => {
+    expect(hostJobs.map(([name]) => name)).toEqual(["deploy-oracle"]);
+    expect(hostJobs.map(([, body]) => body.match(/^ {6}host: (\S+)$/m)?.[1])).toEqual(["oracle"]);
   });
 
   it("each host job waits for the tests and for the host before it", () => {
@@ -72,13 +73,10 @@ describe("deploy.yml — one host at a time, oracle first", () => {
     });
   });
 
-  // A condition like `if: always()` would deploy after a failed host, so the
-  // only condition allowed is the on/off switch for the second host — which
-  // keeps the implicit success() and so still stops after a failed oracle.
-  it("oracle is never gated; mnemosyne runs only when MNEMOSYNE_ENABLED is 'true'", () => {
+  // A condition like `if: always()` would deploy after a failed host.
+  it("no host job is gated", () => {
     const ifs = (body: string) => [...body.matchAll(/^ {4}if: (.*)$/gm)].map((m) => m[1]);
-    expect(ifs(jobs.get("deploy-oracle")!)).toEqual([]);
-    expect(ifs(jobs.get("deploy-mnemosyne")!)).toEqual(["${{ vars.MNEMOSYNE_ENABLED == 'true' }}"]);
+    hostJobs.forEach(([, body]) => expect(ifs(body)).toEqual([]));
   });
 
   it("passes each host its own secrets", () => {
@@ -90,11 +88,6 @@ describe("deploy.yml — one host at a time, oracle first", () => {
       VM_HOST: "ORACLE_VM_HOST",
       VM_USER: "ORACLE_VM_USER",
       SSH_PRIVATE_KEY: "SSH_PRIVATE_KEY",
-    });
-    expect(secrets(jobs.get("deploy-mnemosyne")!)).toEqual({
-      VM_HOST: "MNEMOSYNE_VM_HOST",
-      VM_USER: "MNEMOSYNE_VM_USER",
-      SSH_PRIVATE_KEY: "MNEMOSYNE_SSH_PRIVATE_KEY",
     });
   });
 
