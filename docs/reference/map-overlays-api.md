@@ -535,7 +535,7 @@ Response, abridged to two event layers of the six, `lang=ko`, with a window open
         "centerLng": 126.974942,
         "defaultZoom": 15.8,
         "defaultTilt": 0,
-        "defaultBearing": 0,
+        "defaultBearing": 6,
         "radiusM": 1000
       }
     ],

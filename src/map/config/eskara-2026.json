@@ -12,7 +12,7 @@
     "lng": 126.971234,
     "zoom": 17.5,
     "tilt": 0,
-    "bearing": 0,
+    "bearing": 6,
     "durationMs": 500
   },
   "timezone": "Asia/Seoul",
@@ -214,7 +214,7 @@
         "lng": 126.970977,
         "zoom": 17.0,
         "tilt": 0,
-        "bearing": 0,
+        "bearing": 6,
         "durationMs": 500
       },
       "list": {
@@ -238,7 +238,7 @@
         "lng": 126.970977,
         "zoom": 17.0,
         "tilt": 0,
-        "bearing": 0,
+        "bearing": 6,
         "durationMs": 500
       },
       "list": {
@@ -263,7 +263,7 @@
         "lng": 126.9716456,
         "zoom": 17.2,
         "tilt": 0,
-        "bearing": 0,
+        "bearing": 6,
         "durationMs": 500
       },
       "list": {
@@ -287,7 +287,7 @@
         "lng": 126.974831,
         "zoom": 17.0,
         "tilt": 0,
-        "bearing": 0,
+        "bearing": 6,
         "durationMs": 500
       }
     },
@@ -302,7 +302,7 @@
         "lng": 126.972575,
         "zoom": 16.0,
         "tilt": 0,
-        "bearing": 0,
+        "bearing": 6,
         "durationMs": 500
       }
     },
@@ -323,7 +323,7 @@
         "lng": 126.971921,
         "zoom": 16.2,
         "tilt": 0,
-        "bearing": 0,
+        "bearing": 6,
         "durationMs": 500
       }
     }

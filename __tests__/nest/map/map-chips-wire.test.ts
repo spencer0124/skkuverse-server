@@ -150,7 +150,7 @@ describe("GET /map/config (real MapService)", () => {
         lng: 126.9716456,
         zoom: 17.2,
         tilt: 0,
-        bearing: 0,
+        bearing: 6,
         durationMs: 500,
       },
       layerIds: ["eskara26_food"],
