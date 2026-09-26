@@ -40,7 +40,7 @@ describe("assertValidCampusCarousel (via loadCampusBanners)", () => {
 
   it.each<[string, unknown]>([
     ["a non-object root", []],
-    ["a section type other than banner_carousel", carousel({ type: "miniapp_grid" })],
+    ["a section type other than banner_carousel", carousel({ type: "tile_grid" })],
     ["a missing id", carousel({ id: undefined })],
     ["the home default item", carousel({ items: [image(), { type: "default" }] })],
     ["a banner id equal to the carousel id", carousel({ items: [image({ id: "campus_banners" })] })],

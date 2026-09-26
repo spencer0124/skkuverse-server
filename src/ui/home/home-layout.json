@@ -19,9 +19,25 @@
       ]
     },
     {
-      "type": "miniapp_grid",
+      "type": "tile_grid",
       "id": "main",
-      "miniAppIds": ["eskara-2026", "inja", "timetable", "playlist", "mukja", "booth-box"]
+      "tiles": [
+        { "kind": "miniapp", "id": "eskara-2026" },
+        { "kind": "miniapp", "id": "inja" },
+        { "kind": "miniapp", "id": "timetable" },
+        { "kind": "miniapp", "id": "playlist" }
+      ]
+    },
+    {
+      "type": "tile_grid",
+      "id": "games",
+      "title": { "ko": "미니게임", "en": "Mini games", "zh": "小游戏" },
+      "tiles": [
+        { "kind": "game", "id": "subway-typing" },
+        { "kind": "game", "id": "wave-run" },
+        { "kind": "miniapp", "id": "mukja" },
+        { "kind": "miniapp", "id": "booth-box" }
+      ]
     }
   ]
 }

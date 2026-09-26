@@ -13,7 +13,7 @@ import fs from "fs";
 import path from "path";
 import { pick } from "../../infra/i18n";
 import type { I18n, SupportedLang } from "../../infra/types";
-import { map as miniAppRegistry } from "../../miniapps/miniapps";
+import { map as miniAppRegistry, resolveLogo } from "../../miniapps/miniapps";
 import { assertValidHomeLayout } from "./home-layout.schema";
 import type {
   HomeBannerCarousel,
@@ -24,6 +24,8 @@ import type {
   HomeLayoutRaw,
   HomeSection,
   HomeSectionRaw,
+  HomeTile,
+  HomeTileRaw,
 } from "./home-layout.types";
 
 /**
@@ -86,13 +88,27 @@ export function toWireCarousel(
   };
 }
 
-function toWireSection(section: HomeSectionRaw, lang: SupportedLang, now: number): HomeSection {
-  if (section.type === "miniapp_grid") {
+function toWireTile(tile: HomeTileRaw, lang: SupportedLang): HomeTile {
+  if (tile.kind === "link") {
     return {
-      type: "miniapp_grid",
+      kind: "link",
+      id: tile.id,
+      title: text(tile.title, lang),
+      icon: resolveLogo(tile.icon),
+      actionType: tile.actionType,
+      actionValue: tile.actionValue,
+    };
+  }
+  return { kind: tile.kind, id: tile.id };
+}
+
+function toWireSection(section: HomeSectionRaw, lang: SupportedLang, now: number): HomeSection {
+  if (section.type === "tile_grid") {
+    return {
+      type: "tile_grid",
       id: section.id,
       ...(section.title !== undefined ? { title: text(section.title, lang) } : {}),
-      miniAppIds: [...section.miniAppIds],
+      tiles: section.tiles.map((tile) => toWireTile(tile, lang)),
     };
   }
   // Kept even when every image has expired and no default was placed: the app

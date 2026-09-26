@@ -119,14 +119,17 @@ describe("GET /ui/home", () => {
     expect(res.headers.vary).toMatch(/Accept-Language/);
   });
 
-  it("ships mini-app grids as ids only, with localized titles", async () => {
+  it("ships tile grids with a kind on every tile, and localized titles", async () => {
     const res = await request(httpServer).get("/ui/home").set("Accept-Language", "en");
     const grids = res.body.data.sections.filter(
-      (s: { type: string }) => s.type === "miniapp_grid",
+      (s: { type: string }) => s.type === "tile_grid",
     );
     expect(grids.length).toBeGreaterThan(0);
     for (const g of grids) {
-      expect(g.miniAppIds.every((id: unknown) => typeof id === "string")).toBe(true);
+      for (const tile of g.tiles) {
+        expect(["miniapp", "game", "link"]).toContain(tile.kind);
+        expect(typeof tile.id).toBe("string");
+      }
       if (g.title !== undefined) expect(typeof g.title).toBe("string");
     }
   });
