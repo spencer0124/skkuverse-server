@@ -166,6 +166,21 @@ describe("resolveWeek", () => {
     expect(tuesday.label).toBe("삼일절");
   });
 
+  it("override type noService with notices → notices pass through tagged override, no service notices", async () => {
+    mockOverrides = [
+      { serviceId: "campus-inja", date: "2026-03-10", type: "noService", label: "축제 기간", notices: [{ style: "info", text: "축제 인자셔틀을 확인해 주세요" }], entries: [] },
+    ];
+
+    const result = await resolveWeek("campus-inja", "2026-03-09");
+    const tuesday = result!.days[1];
+    expect(tuesday.display).toBe("noService");
+    expect(tuesday.schedule).toEqual([]);
+    expect(tuesday.notices).toEqual([
+      { style: "info", text: "축제 인자셔틀을 확인해 주세요", source: "override" },
+    ]);
+    expect(tuesday.label).toBe("축제 기간");
+  });
+
   it("override on a Monday overrides the weekday pattern", async () => {
     mockSchedules = [
       { serviceId: "campus-inja", patternId: "weekday", days: [1, 2, 3, 4], entries: [{ index: 1, time: "08:00", routeType: "regular", busCount: 1, notes: null }] },
@@ -371,6 +386,42 @@ describe("resolveSmartSchedule", () => {
     expect(holidayDay).toBeDefined();
     expect(holidayDay!.display).toBe("noService");
     expect(holidayDay!.label).toBe("공휴일");
+    jest.useRealTimers();
+  });
+
+  it("announced closure (noService override with notices) on today → selectedDate is today", async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-03-12T03:00:00.000Z")); // Thu
+    mockSchedules = [
+      { serviceId: "campus-inja", patternId: "weekday", days: [1, 2, 3, 4, 5], entries: [{ index: 1, time: "08:00", routeType: "regular", busCount: 1, notes: null }] },
+    ];
+    mockOverrides = [
+      { serviceId: "campus-inja", date: "2026-03-12", type: "noService", label: "축제 기간", notices: [{ style: "info", text: "축제 인자셔틀을 확인해 주세요" }], entries: [] },
+      { serviceId: "campus-inja", date: "2026-03-13", type: "noService", label: "축제 기간", notices: [{ style: "info", text: "축제 인자셔틀을 확인해 주세요" }], entries: [] },
+    ];
+
+    const result = await resolveSmartSchedule("campus-inja");
+    expect(result!.status).toBe("active");
+    expect(result!.selectedDate).toBe("2026-03-12");
+    expect(result!.from).toBe("2026-03-09");
+    const today = result!.days.find((d) => d.date === "2026-03-12");
+    expect(today!.display).toBe("noService");
+    expect(today!.notices).toHaveLength(1);
+    jest.useRealTimers();
+  });
+
+  it("announced closure later in the week does not beat an earlier schedule day", async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-03-11T03:00:00.000Z")); // Wed
+    mockSchedules = [
+      { serviceId: "campus-inja", patternId: "weekday", days: [1, 2, 3, 4, 5], entries: [{ index: 1, time: "08:00", routeType: "regular", busCount: 1, notes: null }] },
+    ];
+    mockOverrides = [
+      { serviceId: "campus-inja", date: "2026-03-12", type: "noService", label: "축제 기간", notices: [{ style: "info", text: "축제 인자셔틀을 확인해 주세요" }], entries: [] },
+    ];
+
+    const result = await resolveSmartSchedule("campus-inja");
+    expect(result!.selectedDate).toBe("2026-03-11");
     jest.useRealTimers();
   });
 

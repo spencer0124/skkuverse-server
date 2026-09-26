@@ -267,12 +267,22 @@
     "two places on one point (`booth-leaflet-stamp`, `booth-leaflet-pass`), the",
     "way pub plots 1, 2, 3~4 and 5 are. The four goods booths A-D are the same",
     "booths both days, so each is one place with two windows — 10/1 11:00-16:00",
-    "and 10/2 14:00-19:00 — and `detail.kind: goods`. The sheet gives them no",
-    "content, so their sheets show only hours and location — FOR NOW: the",
-    "council will send the goods shop's images, prices and running hours",
-    "separately (2026-09-25). Expect a price `table` and `image` blocks like the",
-    "trucks' (photos on media.skkuverse.com first), and treat A-D's hours above",
-    "as provisional until then. The 부스 layer still",
+    "and 10/2 14:00-19:00 — and `detail.kind: goods`. The sheet gave them no",
+    "content.",
+    "",
+    "THE GOODS SHOP'S PRICES AND PHOTOS arrived on 2026-09-26: nine items with a",
+    "price and a spec line, and one image each. They sit on C only",
+    "(`goods-uniform-store`, ESKARA: 초록의 파도 유니폼 & 굿즈 스토어) by decision,",
+    "because that is the booth named for them. A, B and D keep no body. C is",
+    "built like a truck: a `table` (`menu`, label = item, value = price as sent),",
+    "then one `image` per item in the same order, captioned with the item and",
+    "its spec (`55*55(cm)` written 55×55cm). The files were matched to items by",
+    "what each shows, not by number — 003 is 원피스, 004 크롭, 005 농구. Each was",
+    "cropped to its mint card, flattened onto white and re-encoded as JPEG at a",
+    "1280 px long edge; keys are",
+    "eskara-2026/goods/goods-uniform-store/<nn>-<sha256[:8]>.jpg, never",
+    "overwritten. The council has NOT sent running hours yet, so A-D's hours",
+    "above are still provisional. The 부스 layer still",
     "shows itself 11:00-18:00 and hands over to 주점 at 18:00: goods on 10/2",
     "18:00-19:00 stay one 부스 chip away, which is what the layer window is for",
     "(docs/reference/map-overlays-api.md, \"How to author the schedules\").",
@@ -3350,7 +3360,104 @@
         "isUnion": false,
         "locationLabel": "C번 부스",
         "actions": [],
-        "blocks": []
+        "blocks": [
+          {
+            "type": "table",
+            "id": "menu",
+            "rows": [
+              {
+                "label": "야구 유니폼",
+                "value": "45,000원"
+              },
+              {
+                "label": "하키 유니폼",
+                "value": "43,000원"
+              },
+              {
+                "label": "농구 유니폼",
+                "value": "36,000원"
+              },
+              {
+                "label": "크롭 유니폼",
+                "value": "39,000원"
+              },
+              {
+                "label": "원피스 유니폼",
+                "value": "45,000원"
+              },
+              {
+                "label": "저고리 유니폼",
+                "value": "40,000원"
+              },
+              {
+                "label": "반다나",
+                "value": "6,000원"
+              },
+              {
+                "label": "타투스티커",
+                "value": "4,000원"
+              },
+              {
+                "label": "반창고 굿즈",
+                "value": "3,000원"
+              }
+            ]
+          },
+          {
+            "type": "image",
+            "id": "photo-1",
+            "url": "https://media.skkuverse.com/eskara-2026/goods/goods-uniform-store/01-31f10adc.jpg",
+            "caption": "야구 유니폼 · 디자인 1종 · S / M / L / XL / 2XL / 3XL"
+          },
+          {
+            "type": "image",
+            "id": "photo-2",
+            "url": "https://media.skkuverse.com/eskara-2026/goods/goods-uniform-store/02-fafd9e16.jpg",
+            "caption": "하키 유니폼 · 디자인 2종 · XS / S / M / L / XL / 2XL / 3XL / 4XL"
+          },
+          {
+            "type": "image",
+            "id": "photo-3",
+            "url": "https://media.skkuverse.com/eskara-2026/goods/goods-uniform-store/03-845864a8.jpg",
+            "caption": "농구 유니폼 · 디자인 1종 · XS / S / M / L / XL / 2XL / 3XL / 4XL"
+          },
+          {
+            "type": "image",
+            "id": "photo-4",
+            "url": "https://media.skkuverse.com/eskara-2026/goods/goods-uniform-store/04-af587ae0.jpg",
+            "caption": "크롭 유니폼 · 디자인 2종 · XS / S / M / L"
+          },
+          {
+            "type": "image",
+            "id": "photo-5",
+            "url": "https://media.skkuverse.com/eskara-2026/goods/goods-uniform-store/05-66ce0990.jpg",
+            "caption": "원피스 유니폼 · 디자인 1종 · FREE"
+          },
+          {
+            "type": "image",
+            "id": "photo-6",
+            "url": "https://media.skkuverse.com/eskara-2026/goods/goods-uniform-store/06-c2987b07.jpg",
+            "caption": "저고리 유니폼 · 디자인 1종 · FREE"
+          },
+          {
+            "type": "image",
+            "id": "photo-7",
+            "url": "https://media.skkuverse.com/eskara-2026/goods/goods-uniform-store/07-edda012d.jpg",
+            "caption": "반다나 · 55×55cm"
+          },
+          {
+            "type": "image",
+            "id": "photo-8",
+            "url": "https://media.skkuverse.com/eskara-2026/goods/goods-uniform-store/08-e9cd42d6.jpg",
+            "caption": "타투스티커"
+          },
+          {
+            "type": "image",
+            "id": "photo-9",
+            "url": "https://media.skkuverse.com/eskara-2026/goods/goods-uniform-store/09-2d56cdbc.jpg",
+            "caption": "반창고 굿즈"
+          }
+        ]
       },
       "order": 59
     },
