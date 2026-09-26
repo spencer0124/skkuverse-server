@@ -205,7 +205,7 @@ describe("GET /miniapps/:id", () => {
   });
 
   it("falls back to the registry's own bar when the manifest fetch fails (mocked offline)", async () => {
-    const topBar = ["booth-box", "mukja", "playlist", "subway-typing", "wave-run"];
+    const topBar = ["booth-box", "mukja", "playlist"];
     for (const id of topBar) {
       const res = await request(httpServer).get(`/miniapps/${id}`);
       expect(res.body.data.shell).toEqual({

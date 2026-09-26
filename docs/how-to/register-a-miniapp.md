@@ -112,7 +112,7 @@ Add the new detail file to the `assets` list in
 ### 4. Grant the bridge origin, if the page uses it
 
 Skip this step if the mini-app page makes no bridge calls (`web:action`, `web:open-url`, and so on) —
-most result-screen-only mini apps (booth-box's, wave-run's) don't need it beyond a "view on map"
+most result-screen-only mini apps (booth-box's) don't need it beyond a "view on map"
 button, and that already goes through the shared grant if the page is already listed.
 
 If the page does call the bridge, add its origin in [`src/infra/origins.ts`](../../src/infra/origins.ts):
@@ -127,7 +127,6 @@ export const BRIDGE_ORIGINS = [
   MUKJA_MINIAPP_ORIGIN,
   PLAYLIST_MINIAPP_ORIGIN,
   BOOTH_BOX_MINIAPP_ORIGIN,
-  WAVE_RUN_MINIAPP_ORIGIN,
   MY_APP_MINIAPP_ORIGIN,
 ] as const;
 ```

@@ -2,6 +2,12 @@
   "version": 1,
   "miniApps": [
     {
+      "id": "inja",
+      "name": "인자셔틀",
+      "order": 4,
+      "homeLogo": { "kind": "emoji", "emoji": "🚌" }
+    },
+    {
       "id": "eskara-2026",
       "name": "축제 가이드",
       "order": 5,
@@ -28,18 +34,6 @@
       "name": "부스 뽑기",
       "order": 8,
       "homeLogo": { "kind": "emoji", "emoji": "🎁" }
-    },
-    {
-      "id": "subway-typing",
-      "name": "캠퍼스 타이핑",
-      "order": 9,
-      "homeLogo": { "kind": "emoji", "emoji": "🚇" }
-    },
-    {
-      "id": "wave-run",
-      "name": "초록의 파도",
-      "order": 11,
-      "homeLogo": { "kind": "emoji", "emoji": "🏄" }
     },
     {
       "id": "hssc",

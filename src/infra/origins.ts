@@ -78,13 +78,15 @@ export const PLAYLIST_MINIAPP_ORIGIN = "https://playlist.mini.skkuverse.com";
 export const BOOTH_BOX_MINIAPP_ORIGIN = "https://booth-box.mini.skkuverse.com";
 
 /**
- * 초록의 파도 (`miniapp-wave-run`), the registered start URL of the `wave-run`
- * mini app: an ESKARA 2026 endless-runner game. It posts `web:haptic` on score
- * milestones and on the crash, and nothing else — no `web:open-url`, no API calls,
- * so it needs no CORS grant. It embeds no iframes; on Android a child frame
+ * 인자셔틀 (`miniapp-inja`), the registered start URL of the `inja` mini app:
+ * the ESKARA 2026 shuttle timetable with live departures. Through the SDK it
+ * sends `map.openPlace` for the night boarding spot
+ * (`event:shuttle-queue-welfare`), `haptic.impact` on its refresh button, and
+ * `app.ready`. Its own `/api/*` is Pages Functions on the same origin, not
+ * this API, so no CORS grant. It embeds no iframes; on Android a child frame
  * would inherit the top-level grant.
  */
-export const WAVE_RUN_MINIAPP_ORIGIN = "https://wave-run.mini.skkuverse.com";
+export const INJA_MINIAPP_ORIGIN = "https://inja.mini.skkuverse.com";
 
 /** Marketing/launcher site — mini-app share links, A2HS shortcuts, remote mini-app logos. */
 export const WEB_ORIGIN = "https://skkuverse.com";
@@ -133,7 +135,7 @@ export const BRIDGE_ORIGINS = [
   MUKJA_MINIAPP_ORIGIN,
   PLAYLIST_MINIAPP_ORIGIN,
   BOOTH_BOX_MINIAPP_ORIGIN,
-  WAVE_RUN_MINIAPP_ORIGIN,
+  INJA_MINIAPP_ORIGIN,
 ] as const;
 
 /**
