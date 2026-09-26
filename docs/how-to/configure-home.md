@@ -9,7 +9,7 @@ audience: internal
 
 # Configure the Home Screen
 
-> How to change what `GET /ui/home` serves: the banner carousel at the top of the app's home screen and the mini-app sections under it. Every change is an edit to one JSON file plus a deploy.
+> How to change what `GET /ui/home` serves: the banner carousel at the top of the app's home screen and the mini-app sections under it. The same carousel also runs on the campus tab's sheet ([Campus sheet banners](#campus-sheet-banners)). Every change is an edit to one JSON file plus a deploy.
 
 ## Overview
 
@@ -68,6 +68,17 @@ Text (`alt`, `title`) is written as `{ "ko": ..., "en"?: ..., "zh"?: ... }`, and
 
 4. `npm test`, then deploy.
 
+### Campus sheet banners
+
+`GET /ui/home/campus` puts a second carousel above the four service tiles on the campus tab's sheet. It lives in [`src/ui/ui/campus-banners.json`](../../src/ui/ui/campus-banners.json) and is a single `banner_carousel` object, not a layout. The rules are the home carousel's, with two differences:
+
+- **Images only.** `{ "type": "default" }` is refused, because the campus sheet has no built-in banner for it to stand for.
+- **No empty slot.** When every image is outside its window, the section is left out of the response, so the tiles move up.
+
+Add a banner the way the steps above describe, with keys under `campus/banners/`. The slot is 6:1 (the ESKARA 2026 student banners are 1200 × 200 WebP, about 50 KB each). Errors at boot start with `campus banners:`. The response also sends a 5-minute `Cache-Control`.
+
+The app only draws this section while its festival gate is open (`isFestivalUnlocked()` in skkuverse-app). A store build shows the campus sheet empty until the festival-day flip.
+
 ### Rearrange the mini-app sections
 
 Edit the `miniapp_grid` sections: reorder ids, move an id to another grid, add a grid, or add or remove a `title`. To add a new mini app, register it in `src/miniapps/` first (see [register-a-miniapp.md](register-a-miniapp.md)), since the layout refuses unknown ids.
@@ -76,7 +87,7 @@ Edit the `miniapp_grid` sections: reorder ids, move an id to another grid, add a
 
 - **The server will not start and the log starts with `home layout:`**: the message names the field that failed. Common causes are a misspelt key (unknown keys are refused), a mini-app id missing from the registry, or an id placed in two grids.
 - **A banner shows in dev but not in production**: its `startAt`/`endAt` window is evaluated on the server's clock. Remember the offset in the window.
-- **Production crashes on boot with `ENOENT … home-layout.json`**: the file is missing from `scripts/copy-build-assets.js`.
+- **Production crashes on boot with `ENOENT … home-layout.json`** (or `campus-banners.json`): the file is missing from `scripts/copy-build-assets.js`.
 
 ## Related
 

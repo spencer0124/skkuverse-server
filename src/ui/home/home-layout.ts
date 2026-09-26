@@ -16,6 +16,8 @@ import type { I18n, SupportedLang } from "../../infra/types";
 import { map as miniAppRegistry } from "../../miniapps/miniapps";
 import { assertValidHomeLayout } from "./home-layout.schema";
 import type {
+  HomeBannerCarousel,
+  HomeBannerCarouselRaw,
   HomeBannerImageRaw,
   HomeBannerItem,
   HomeLayout,
@@ -51,16 +53,14 @@ function isShowing(item: HomeBannerImageRaw, now: number): boolean {
 /**
  * Built from named fields rather than `...raw`, so the on-disk window and the
  * untranslated text can never reach the wire.
+ *
+ * Exported for the campus sheet's carousel, which resolves the same way.
  */
-function toWireSection(section: HomeSectionRaw, lang: SupportedLang, now: number): HomeSection {
-  if (section.type === "miniapp_grid") {
-    return {
-      type: "miniapp_grid",
-      id: section.id,
-      ...(section.title !== undefined ? { title: text(section.title, lang) } : {}),
-      miniAppIds: [...section.miniAppIds],
-    };
-  }
+export function toWireCarousel(
+  section: HomeBannerCarouselRaw,
+  lang: SupportedLang,
+  now: number,
+): HomeBannerCarousel {
   const items: HomeBannerItem[] = [];
   for (const item of section.items) {
     if (item.type === "default") {
@@ -77,8 +77,6 @@ function toWireSection(section: HomeSectionRaw, lang: SupportedLang, now: number
       });
     }
   }
-  // Kept even when every image has expired and no default was placed: the app
-  // draws its default banner for an empty carousel, never an empty slot.
   return {
     type: "banner_carousel",
     id: section.id,
@@ -86,6 +84,20 @@ function toWireSection(section: HomeSectionRaw, lang: SupportedLang, now: number
     autoRotateSec: section.autoRotateSec,
     items,
   };
+}
+
+function toWireSection(section: HomeSectionRaw, lang: SupportedLang, now: number): HomeSection {
+  if (section.type === "miniapp_grid") {
+    return {
+      type: "miniapp_grid",
+      id: section.id,
+      ...(section.title !== undefined ? { title: text(section.title, lang) } : {}),
+      miniAppIds: [...section.miniAppIds],
+    };
+  }
+  // Kept even when every image has expired and no default was placed: the app
+  // draws its default banner for an empty carousel, never an empty slot.
+  return toWireCarousel(section, lang, now);
 }
 
 export function resolveHomeLayout(

@@ -1,0 +1,232 @@
+{
+  "type": "banner_carousel",
+  "id": "campus_banners",
+  "aspectRatio": 6,
+  "autoRotateSec": 4,
+  "items": [
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-01",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-01-bd4a4674.webp",
+      "alt": {
+        "ko": "청랑 현수막: 조선에~서~ 누가 돌아왔게~"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-02",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-02-a058c224.webp",
+      "alt": {
+        "ko": "성균관대 자연과학캠퍼스 배드민턴 중앙동아리 SBA 현수막: 스바(SBA)이더맥 브랜드 뉴 학기 현재 상영중"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-03",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-03-79eb48a9.webp",
+      "alt": {
+        "ko": "프레시맨가이드 현수막: 안녕하세요 LC원 여러분. 오늘 제대로 놀거니까 저 봐도 아는 체하지 말아주세요. 감사합니다."
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-04",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-04-cdc8c7cd.webp",
+      "alt": {
+        "ko": "제44대 동아리연합회 SYNC 현수막: 싱크대 막히면 연락주세요: @skku_clubs_sync"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-05",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-05-f67f7718.webp",
+      "alt": {
+        "ko": "제28대 의과대학 학생회 Smile 현수막: 저 내일 축제 가겠습니다. 아 죄송합니다 생각해보니 공부하겠습니다. 아닙니다 내일 축제 가겠습니다."
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-06",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-06-0fa3c55c.webp",
+      "alt": {
+        "ko": "중앙스트릿댄스동아리 B.E.S.T. 현수막: 안녕 나는 피터 파커야 넌 이제 날 기억 못 하겠지만 꼭 하고 싶은 말이 있어 “베스트 들어와”"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-07",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-07-87c4fb7b.webp",
+      "alt": {
+        "ko": "성균관대 요리 동아리 스쿡 홍보부장 07서예찬 현수막: 어 그래그래~ 형 07년생 스쿡 홍보부장형이야~ 요리 못해? 형도 못해~ 근데 형은 운영진이야~"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-08",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-08-a2d6bfbf.webp",
+      "alt": {
+        "ko": "성균관대학교 학생단체 HI-CLUB 현수막: ♫ o r -무-도... ㄴ ㅐ ...맘을...모-르-죠... I can’t stop HI-Club love love♡"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-09",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-09-957ebfbc.webp",
+      "alt": {
+        "ko": "수선관 그 밴드 현수막: 에스카라 시작했는데 답이없네 잘살아"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-10",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-10-b6c0f06e.webp",
+      "alt": {
+        "ko": "생명과학과 배드민턴동아리 트릭샷 현수막: 트릭샷사랑해 트릭샷나랑영원히함께해 트릭샷동결건조시키고싶어"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-11",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-11-39aafc0d.webp",
+      "alt": {
+        "ko": "성균관대학교 학생사회공헌단 다소미 현수막: 엄마가 모르셔서 그렇지 요즘은 에스카라에서도 다 봉사해요"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-12",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-12-999cc228.webp",
+      "alt": {
+        "ko": "헤게모니 현수막: 같이 에스카라 보러 와주시는... ♡"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-13",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-13-e52f65f4.webp",
+      "alt": {
+        "ko": "성균관대학교 공식 홍보대사 알리미 현수막: 안녕하세요알리미입니다잘부탁드립니다"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-14",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-14-a06d4029.webp",
+      "alt": {
+        "ko": "00년생 임도준 현수막: 도주니 애큥"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-15",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-15-cefef7df.webp",
+      "alt": {
+        "ko": "성균관대학교 댄스팀 솔카프 현수막: 솔카프 무대 보러 오이데~"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-16",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-16-c1865217.webp",
+      "alt": {
+        "ko": "일병 고선욱, 채정욱 현수막: 휴가복귀안할게"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-17",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-17-2f383679.webp",
+      "alt": {
+        "ko": "두드려 현수막: 죄송합니다 안두드리겠습니다. 생각해보니 두드리겠습니다. 저 두드려 포기하겠습니다. 죄송합니다 저 두드릴까? 말까? 고민중입니다."
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-18",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-18-e5fe85fa.webp",
+      "alt": {
+        "ko": "성균관대학교 댄스팀 (unknown) 현수막: 언노운 무대 오이쉬에!!!!!!!!!"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-19",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-19-67e6e527.webp",
+      "alt": {
+        "ko": "모여락 현수막: 에스카락도 락이다"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-20",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-20-1aae443b.webp",
+      "alt": {
+        "ko": "중앙밴드동아리 소리사랑 현수막: 소리소리소리소리 내가내가내가먼저 네게네게네게빠져 빠져빠져버려baby"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-21",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-21-e3d2ac2f.webp",
+      "alt": {
+        "ko": "제40대 생명공학대학 학생회 Blink 현수막: 영~헌~~ 왜 이렇게 많이 먹나요~~"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-22",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-22-404ca755.webp",
+      "alt": {
+        "ko": "제15대 정보통신대학 학생회 So:ONE 현수막: 정통대압도정진건더올라잇무조건한다원모어결의결심볼란테초토화"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-23",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-23-c0d28b7c.webp",
+      "alt": {
+        "ko": "경영 2반 현수막: 에스카라울라~~~"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-24",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-24-e7ad4dc5.webp",
+      "alt": {
+        "ko": "대외협력처 홍보팀 소속 공식 웹매거진 SCAA 현수막: #웹진아놀자"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-25",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-25-eac86017.webp",
+      "alt": {
+        "ko": "성균서도회 현수막: 미나미 에스카라 오는 김에 서예하러 서도회 동방도 와줘라"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-26",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-26-cbbfbd32.webp",
+      "alt": {
+        "ko": "막무간애 현수막: 막무간애.. 이런 밴드 아니면 하고 싶지가 않다.."
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-27",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-27-ad02291b.webp",
+      "alt": {
+        "ko": "브랜딩팀 Drsk(디이스크) 현수막: 학과 동기가 37분째 디이스크 부스 안 오는데 연락없네 잘 살아 라고 보내도 돼?"
+      }
+    },
+    {
+      "type": "image",
+      "id": "eskara-2026-banner-28",
+      "imageUrl": "https://media.skkuverse.com/campus/banners/eskara-2026-28-b60bb5e7.webp",
+      "alt": {
+        "ko": "방송연구학회 현수막: 감옥에~서 누가돌아왔~게? 그래! 에스카라의 악마 방구가 돌아왔~다!"
+      }
+    }
+  ]
+}

@@ -17,8 +17,9 @@ import type { HomeLayout } from "../home/home-layout.types";
  * identical bus-group bytes — the date-range visibility filter (moment
  * Asia/Seoul) and screenRoute mapping live entirely inside ui.buslist.
  *
- * getScrollComponent / getCampusSections are pure i18n-templated literals via
- * lib/i18n. All three default lang to "ko", matching the Express routes which
+ * getScrollComponent is a pure i18n-templated literal via lib/i18n.
+ * getCampusSections adds the banner carousel from campus-banners.json, resolved
+ * per request like the home layout. All three default lang to "ko", matching the Express routes which
  * forward req.lang (req.lang is always set by LangMiddleware at runtime; the
  * default mirrors the original .js fallback).
  */
