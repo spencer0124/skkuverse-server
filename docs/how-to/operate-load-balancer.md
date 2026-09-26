@@ -110,7 +110,7 @@ For a host being returned or retired. In order:
 
 1. If it runs the poller, move the poller to a host that stays ([fail-over-poller.md](fail-over-poller.md)).
 2. [Drain it](#drain-a-host), confirm it no longer appears in `X-Served-By`, then delete its endpoint from the pool. If only one endpoint would remain, disable the load balancer instead, after pointing the `api` A record at the remaining host (a one-endpoint load balancer only adds cost).
-3. Deploy chain: set the host's repo variable to `false`, then remove its job from [deploy.yml](../../.github/workflows/deploy.yml) and the test that pins the chain (`deploy-workflow.test.ts`), and delete its GitHub secrets and variable.
+3. Deploy: for `mnemosyne`, delete `.github/workflows/deploy-mnemosyne.yml` and unregister its self-hosted runner ([Deploy mnemosyne](../cicd-and-branch-protection.md#deploy-mnemosyne-self-hosted-runner)). For a host with a job in [deploy.yml](../../.github/workflows/deploy.yml), remove that job and update the test that pins the chain (`deploy-workflow.test.ts`), then delete its GitHub secrets.
 4. Remove its public IP from the Atlas access list.
 5. Delete its Healthchecks.io check and any UptimeRobot monitor for it.
 6. On the host, before handing it back: shred the `.env`, the Cloudflare origin key and `/etc/skkuverse/heartbeat.env` (`shred -u`), and remove the deploy key from `authorized_keys`.
@@ -134,5 +134,5 @@ For a host being returned or retired. In order:
 - [lock-origin-to-cloudflare.md](lock-origin-to-cloudflare.md) — onboarding an origin host, and the firewall the monitor passes through
 - [fail-over-poller.md](fail-over-poller.md) — the one thing the load balancer does not move
 - [monitor-production.md](monitor-production.md) — the alerts to watch while changing the pool
-- [cicd-and-branch-protection.md](../cicd-and-branch-protection.md) — the per-host deploy chain, and deploying a host GitHub cannot reach
+- [cicd-and-branch-protection.md](../cicd-and-branch-protection.md) — the per-host deploy chain, mnemosyne's self-hosted-runner deploy, and deploying a host by hand
 - [docs/README.md](../README.md) — writing rules

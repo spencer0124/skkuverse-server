@@ -77,7 +77,7 @@ Replicas roll one by one, so there is no downtime. Any failure rolls everything 
 
 | 항목 | 값 |
 |---|---|
-| 서버 | OCI ARM VM (`oracle`, poller active) and the rented Naver x86 host (`mnemosyne`, poller standby, until 2026-10-07), both behind the Cloudflare load balancer ([how-to/operate-load-balancer.md](how-to/operate-load-balancer.md), [decisions/0009](decisions/0009-multi-origin-active-active.md)). `deploy.yml` → `deploy-host.yml` deploys `mnemosyne` after `oracle` only when the repo variable `MNEMOSYNE_ENABLED` is `true` ([GitHub Variables](#github-variables)); it is off, and that host is deployed by hand ([Deploy a host by hand](#deploy-a-host-by-hand)). Each host's poller role is `/etc/skkuverse/host.env` ([how-to/fail-over-poller.md](how-to/fail-over-poller.md)) |
+| 서버 | OCI ARM VM (`oracle`, poller active) and the rented Naver x86 host (`mnemosyne`, poller standby, until 2026-10-07), both behind the Cloudflare load balancer ([how-to/operate-load-balancer.md](how-to/operate-load-balancer.md), [decisions/0009](decisions/0009-multi-origin-active-active.md)). `deploy.yml` → `deploy-host.yml` deploys `oracle`; once that run succeeds, `deploy-mnemosyne.yml` deploys `mnemosyne` from a self-hosted runner on the host ([Deploy mnemosyne](#deploy-mnemosyne-self-hosted-runner)). Each host's poller role is `/etc/skkuverse/host.env` ([how-to/fail-over-poller.md](how-to/fail-over-poller.md)) |
 | 유저 | ubuntu |
 | 경로 | `/home/ubuntu/skkumap-server-express` on every host *(legacy folder name retained. Since the multi-host deploy it is `DEPLOY_PATH` in `deploy-host.yml`, not a secret; the heartbeat cron and firewall unit name the same path, and `deploy-workflow.test.ts` keeps the three equal.)* |
 | 활성 도메인 | `api.skkuverse.com` (Cloudflare → Nginx → Docker) |
@@ -104,20 +104,28 @@ Replicas roll one by one, so there is no downtime. Any failure rolls everything 
 | `ORACLE_VM_HOST` | OCI 서버 IP |
 | `ORACLE_VM_USER` | SSH 유저 |
 | `SSH_PRIVATE_KEY` | SSH 개인키 (OCI) |
-| `MNEMOSYNE_VM_HOST` | Naver host IP |
-| `MNEMOSYNE_VM_USER` | Naver host SSH user (`ubuntu`) |
-| `MNEMOSYNE_SSH_PRIVATE_KEY` | Naver host SSH private key |
 | ~~`DEPLOY_PATH`~~ | No longer read — the path is `DEPLOY_PATH` in `deploy-host.yml`. Safe to delete |
 
-### GitHub Variables
+### Deploy mnemosyne (self-hosted runner)
 
-| Variable | Purpose |
-|---|---|
-| `MNEMOSYNE_ENABLED` | On/off switch for the `deploy-mnemosyne` job (Settings → Secrets and variables → Actions → Variables). `true` deploys to the Naver host after `oracle`; unset or anything else pauses that host without a code change — the job shows as skipped and the run stays green. A job-level `if` can read variables but not secrets, which is why this is a variable. Set it only once the host is onboarded, its three `MNEMOSYNE_*` secrets exist, and GitHub-hosted runners can reach its SSH port. **Currently off**: that host's provider firewall allows SSH only from an allow-listed network, so a runner's connection would time out and fail the run. Deploy it by hand instead (below) |
+**Temporary, until the rented host is returned (lease ends 2026-10-07).** GitHub-hosted runners cannot reach mnemosyne: its provider firewall only lets SSH in from an allow-listed network. So a GitHub Actions runner is installed on the host itself, and `.github/workflows/deploy-mnemosyne.yml` runs there.
+
+```
+main push → CI/CD (test → deploy-oracle) succeeds
+  └→ workflow_run → "Deploy mnemosyne" on runner `mnemosyne` (runs-on: [self-hosted, mnemosyne])
+       ├→ cut the `script: |` block out of deploy-host.yml on origin/main (guards: no `${{` left, `bash -n`)
+       └→ run it locally as `ubuntu`, stdin from /dev/null   ← same script, rollback included
+```
+
+- **No secrets, no SSH.** The runner only makes outbound HTTPS connections to GitHub, and the job runs the script in place as `ubuntu`.
+- **Oracle first.** It starts only after CI/CD succeeds, so a failed test or oracle deploy never reaches mnemosyne. Re-run it by hand from the Actions tab (`workflow_dispatch`).
+- **Its own concurrency group** (`deploy-mnemosyne`). If the runner is offline the job waits in the queue (GitHub drops it after 24 h), and a separate group means that wait never holds up an oracle release.
+- **The runner:** it lives in `/home/ubuntu/actions-runner` as the systemd unit `actions.runner.spencer0124-skkuverse-server.mnemosyne`, with the label `mnemosyne`. Check it with `gh api repos/spencer0124/skkuverse-server/actions/runners`; it should show `online`. Restart it with `ssh mnemosyne 'cd /home/ubuntu/actions-runner && sudo ./svc.sh stop && sudo ./svc.sh start'`.
+- **On return:** delete `deploy-mnemosyne.yml`. Then unregister the runner: `sudo ./svc.sh uninstall`, and `./config.sh remove --token <token>` with a token from `gh api -X POST repos/spencer0124/skkuverse-server/actions/runners/remove-token`. Nothing else refers to either.
 
 ### Deploy a host by hand
 
-For a host GitHub's runners cannot reach (its deploy variable is off). Run the same script the workflow runs, over SSH, from a network the host accepts SSH from. It deploys whatever `main` is, exactly like the job, including the pre-deploy config check and the rollback, so deploy the other hosts first (merge to `main`, let the workflow finish) and then this one.
+The fallback when a host's automatic deploy can't run, for example mnemosyne's runner is offline. `deploy-mnemosyne.yml` runs the same steps automatically. Run the same script the workflow runs, over SSH, from a network the host accepts SSH from. It deploys whatever `main` is, exactly like the job, including the pre-deploy config check and the rollback, so deploy the other hosts first (merge to `main`, let the workflow finish) and then this one.
 
 ```bash
 # On a machine that can SSH to the host, from a checkout of main:
