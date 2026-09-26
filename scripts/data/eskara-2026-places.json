@@ -3,7 +3,7 @@
   "campus": "nsc",
   "_readme": [
     "THE FESTIVAL RUNS 2026-10-01 AND 10-02, and everything in this file is real",
-    "2026 data. 부스 and 공연 have no place at all until the council sends them.",
+    "2026 data. 공연 has no place at all until the council sends one.",
     "",
     "WHICH DAY A PLACE IS ON IS NOT WRITTEN HERE. The list's 1일차 / 2일차 tabs are",
     "defined once, as absolute instants, in the layer set config",
@@ -254,7 +254,64 @@
     "and day, never by name. They were re-encoded as JPEG at a 1600 px long edge",
     "(never upscaled) — larger than the trucks' 1280 because a poster is mostly",
     "small text — with transparent PNGs flattened onto white. Keys follow the",
-    "trucks': eskara-2026/pubs/<id>/01-<sha256[:8]>.jpg, never overwritten."
+    "trucks': eskara-2026/pubs/<id>/01-<sha256[:8]>.jpg, never overwritten.",
+    "",
+    "THE 21 DAYTIME BOOTHS ARE REAL 2026 DATA, handed over by the 총학생회 on",
+    "2026-09-25 as a sheet (운영 일시, 위치, 부스명, 단체명, 단체 설명, 대표",
+    "콘텐츠), a plot drawing per day, and one coordinate per plot per day",
+    "(26eskara/부스/). They follow the pubs: one sheet row is one place, ids are",
+    "TENANT slugs, and a plot that changes hands between days holds two places.",
+    "",
+    "Nine run 10/1 and eight 10/2, 12:00-16:00, one window each. 리플렛(도장판)",
+    "배부 is plot 1 on both days but runs a different event each day, so it is",
+    "two places on one point (`booth-leaflet-stamp`, `booth-leaflet-pass`), the",
+    "way pub plots 1, 2, 3~4 and 5 are. The four goods booths A-D are the same",
+    "booths both days, so each is one place with two windows — 10/1 11:00-16:00",
+    "and 10/2 14:00-19:00 — and `detail.kind: goods`. The sheet gives them no",
+    "content, so their sheets show only hours and location — FOR NOW: the",
+    "council will send the goods shop's images, prices and running hours",
+    "separately (2026-09-25). Expect a price `table` and `image` blocks like the",
+    "trucks' (photos on media.skkuverse.com first), and treat A-D's hours above",
+    "as provisional until then. The 부스 layer still",
+    "shows itself 11:00-18:00 and hands over to 주점 at 18:00: goods on 10/2",
+    "18:00-19:00 stay one 부스 chip away, which is what the layer window is for",
+    "(docs/reference/map-overlays-api.md, \"How to author the schedules\").",
+    "",
+    "Coordinates are the council's, stored at FULL precision as sent. Six 10/1",
+    "plots are 10/2 plots too, and two are pub plots: 10/1 plot 1 is pub plot 6",
+    "(`bar-harry-potter`) and 10/1 plot 8 / 10/2 plot 6 is pub plot 8",
+    "(`bar-seonggyun-theater`). Every window sharing a point is disjoint — booths",
+    "close at 16:00, pubs open at 18:00 — so the clash test passes. No goods",
+    "point is a pub point, which matters because goods run to 19:00 on 10/2.",
+    "Two more booth points sit about 0.2 m from a pub — 10/1 plot 3 / 10/2 plot 2",
+    "from `bar-jujeongbaengi`, 10/1 plot 7 / 10/2 plot 4 from `bar-yes-some-noise`",
+    "— without sharing a six-decimal key, so the app draws two pins there. They",
+    "are kept as sent: those two pub points are OUR midpoints of two plots, the",
+    "booth points the council's own, and the 부스 and 주점 layers are never",
+    "shown together by default.",
+    "",
+    "`facets.org` is `council` for 총학생회 S'PEAK and `club` for 킹고응원단, 알리미,",
+    "FG, 에스엔젤 and 청랑. `orderByOption` is the sheet's plot number on each",
+    "day the booth runs; A-D follow the numbered plots (10/1 10-13, 10/2 9-12).",
+    "",
+    "Each booth's `detail` is shaped like a pub's: the 단체명 as `org` and",
+    "`subtitle`, an `N번 부스` location label, and the 대표 콘텐츠 as a `list`",
+    "block — one item per activity, so one for most booths and three for FG,",
+    "에스엔젤 and 청랑. An item's title is the activity's own name where the sheet",
+    "gives one (알을 깨고 나와라!) and a short summary otherwise (이색 신발",
+    "레이스); its description is the sheet's text for it, whitespace aside. The",
+    "council gave no emoji; each item's was picked for the activity and checked",
+    "for a glyph in TossFaceFontMac.ttf, as the pub menus were. A 단체 설명 other",
+    "than `-` or blank becomes a `text` block (`intro`, 단체 소개) ahead of the list, and",
+    "FG's one-line story a `story` block. No booth has an Instagram link, and",
+    "no numbered booth has a poster: the council confirmed on 2026-09-25 that",
+    "none exists for either day and that this line-up is final.",
+    "",
+    "The emoji inside names (😽 🦀 🐼 🐉) and in 청랑's descriptions (🐬 🎣 🐟)",
+    "are dropped, as the pubs' 🕸 were: titles and descriptions are plain app",
+    "text, not the Tossface tiles. ʕ•ᴥ•ʔ and ♥ are kept. Without its 🐉,",
+    "킹고응원단's 용🐉 감하게 would read as a broken word, so it is written",
+    "용감하게 — the one name changed beyond dropping an emoji."
   ],
   "places": [
     {
@@ -2414,6 +2471,922 @@
         ]
       },
       "order": 87
+    },
+    {
+      "id": "booth-leaflet-stamp",
+      "category": "booth",
+      "lat": 37.294992679096445,
+      "lng": 126.97130543815885,
+      "title": "리플렛(도장판) 배부",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-01T12:00:00+09:00",
+          "endAt": "2026-10-01T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day1": 1
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "1번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "🎁",
+                "title": "도장판 이벤트 응모",
+                "description": "도장판을 모두 채우고 이벤트에 응모해 보세요! 추첨을 통해 10만 원권 / 7만 원권 / 3만 원권 상품을 드립니다."
+              }
+            ]
+          }
+        ]
+      },
+      "order": 40
+    },
+    {
+      "id": "booth-destiny-matching",
+      "category": "booth",
+      "lat": 37.294968,
+      "lng": 126.971302,
+      "title": "너는 내 운미야옹",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-01T12:00:00+09:00",
+          "endAt": "2026-10-01T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day1": 2
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "2번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "💘",
+                "title": "운명 매칭",
+                "description": "포스트잇 속 설명에 맞는 사람을 찾아 인연을 연결해보는 운명 매칭 부스 새로운 인연의 조건을 적어 박스에 넣고, 함께 운명을 완성해보세요!"
+              }
+            ]
+          }
+        ]
+      },
+      "order": 41
+    },
+    {
+      "id": "booth-shoe-race",
+      "category": "booth",
+      "lat": 37.294946,
+      "lng": 126.971296,
+      "title": "게 섰거라!",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-01T12:00:00+09:00",
+          "endAt": "2026-10-01T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day1": 3
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "3번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "👟",
+                "title": "이색 신발 레이스",
+                "description": "룰렛을 돌려 5종의 이색 신발 중 하나를 랜덤으로 뽑고, 선택된 신발을 신고 달리는 이색 레이스!"
+              }
+            ]
+          }
+        ]
+      },
+      "order": 42
+    },
+    {
+      "id": "booth-panda-timer",
+      "category": "booth",
+      "lat": 37.294922,
+      "lng": 126.971296,
+      "title": "몇 초인지 판다 내봐",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-01T12:00:00+09:00",
+          "endAt": "2026-10-01T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day1": 4
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "4번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "⏱️",
+                "title": "13.98초 맞히기",
+                "description": "눈을 감고 13.98초를 맞춰라! 오차범위 0.5초 내 시간 측정 슬랩버튼 게임에 도전해보세요."
+              }
+            ]
+          }
+        ]
+      },
+      "order": 43
+    },
+    {
+      "id": "booth-kingo-cheer",
+      "category": "booth",
+      "lat": 37.294898066757476,
+      "lng": 126.97129137636254,
+      "title": "용감하게 고하리라",
+      "subtitle": "킹고응원단",
+      "hours": [
+        {
+          "startAt": "2026-10-01T12:00:00+09:00",
+          "endAt": "2026-10-01T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["club"]
+      },
+      "orderByOption": {
+        "day1": 5
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "킹고응원단",
+        "isUnion": false,
+        "locationLabel": "5번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "text",
+            "id": "intro",
+            "title": "단체 소개",
+            "body": "성균의 이름으로 하나 되어, 뜨거운 응원으로 성균인들의 청춘을 빛내는 성균관대학교 킹고응원단입니다."
+          },
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "📣",
+                "title": "응원법 챌린지",
+                "description": "참여자는 도전할 응원가 난이도를 선택하고 시범 영상을 시청한 후, 응원가에 맞춰 응원 구호를 정확한 타이밍에 외치면 성공!"
+              }
+            ]
+          }
+        ]
+      },
+      "order": 44
+    },
+    {
+      "id": "booth-alimi-worry",
+      "category": "booth",
+      "lat": 37.294866,
+      "lng": 126.971287,
+      "title": "알리미의 곰인(형)상담소ʕ•ᴥ•ʔ ♥",
+      "subtitle": "알리미",
+      "hours": [
+        {
+          "startAt": "2026-10-01T12:00:00+09:00",
+          "endAt": "2026-10-01T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["club"]
+      },
+      "orderByOption": {
+        "day1": 6
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "알리미",
+        "isUnion": false,
+        "locationLabel": "6번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "text",
+            "id": "intro",
+            "title": "단체 소개",
+            "body": "최고의 대학에서 만나는 최고의 인연! 성균관대학교 입학처 산하 공식 홍보대사 학생단체 알리미입니다."
+          },
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "🧸",
+                "title": "워리스톤 만들기",
+                "description": "알곰이의 곰인형과 ‘고민’형 언어유희를 활용한 부스\n학우들의 소소한 고민(전공, 연애, 진로, 학교생활 등)을 해소할 워리스톤의 제작 체험을 할 수 있는 체험형 부스."
+              }
+            ]
+          }
+        ]
+      },
+      "order": 45
+    },
+    {
+      "id": "booth-fg-chick",
+      "category": "booth",
+      "lat": 37.294835,
+      "lng": 126.971281,
+      "title": "우당탕탕 병아리의 모험일지!",
+      "subtitle": "FG",
+      "hours": [
+        {
+          "startAt": "2026-10-01T12:00:00+09:00",
+          "endAt": "2026-10-01T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["club"]
+      },
+      "orderByOption": {
+        "day1": 7
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "FG",
+        "isUnion": false,
+        "locationLabel": "7번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "text",
+            "id": "intro",
+            "title": "단체 소개",
+            "body": "FG는 대계열제 신입생들의 원활한 학교 생활을 지원하는 단체입니다."
+          },
+          {
+            "type": "text",
+            "id": "story",
+            "title": "부스 스토리",
+            "body": "병아리 같은 새내기가 알을 깨고 나와 성장하는 스토리."
+          },
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "🥚",
+                "title": "알을 깨고 나와라!",
+                "description": "두 손가락만을 이용해 13.98초 내에 111번 터치하면 성공!"
+              },
+              {
+                "emoji": "🐤",
+                "title": "병아리는 삐약삐약",
+                "description": "특정 동물의 울음소리를 듣고 어떤 동물인지 정답을 맞힙니다. 총 3문제 중 2문제 이상을 맞히면 성공!"
+              },
+              {
+                "emoji": "✈️",
+                "title": "날아올라! 병아리!",
+                "description": "종이비행기를 날려 일정 거리 이상 성공하면 성공!"
+              }
+            ]
+          }
+        ]
+      },
+      "order": 46
+    },
+    {
+      "id": "booth-angel-rabbit",
+      "category": "booth",
+      "lat": 37.29477642192593,
+      "lng": 126.97127168579507,
+      "title": "하늘에서 내려온 토끼가 하는 말!",
+      "subtitle": "에스엔젤",
+      "hours": [
+        {
+          "startAt": "2026-10-01T12:00:00+09:00",
+          "endAt": "2026-10-01T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["club"]
+      },
+      "orderByOption": {
+        "day1": 8
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "에스엔젤",
+        "isUnion": false,
+        "locationLabel": "8번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "text",
+            "id": "intro",
+            "title": "단체 소개",
+            "body": "성균관대학교 공식 학교발전 홍보대사로, 재학생과 동문 선배님을 잇는 가교 역할을 하고 있습니다."
+          },
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "🏓",
+                "title": "성균관에 마음을 쏙!",
+                "description": "1분동안 탁구공을 테이블에 한 번 튀겨 컵에 넣는 게임입니다. 공은 ‘학교를 사랑하는 마음’, 컵은 ‘성균관’을 상징하며, 학교에 마음을 전한다는 의미를 담았습니다."
+              },
+              {
+                "emoji": "🎰",
+                "title": "엔젤들의 이심전심",
+                "description": "참여자의 구호에 맞춰 세 명의 엔젤이 각자 고른 인형을 동시에 공개하고, 모두 같은 인형이면 성공하는 인간 슬롯머신 게임입니다."
+              },
+              {
+                "emoji": "📸",
+                "title": "학교를 찾아라!",
+                "description": "성균관대학교 캠퍼스 사진의 일부를 보고 해당 장소를 맞히는 퀴즈입니다. 익숙한 캠퍼스를 새롭게 바라보고, 잘 몰랐던 공간을 알아가며 학교에 대한 관심을 높이는 활동입니다."
+              }
+            ]
+          }
+        ]
+      },
+      "order": 47
+    },
+    {
+      "id": "booth-cheongrang-dolphin",
+      "category": "booth",
+      "lat": 37.294725,
+      "lng": 126.971266,
+      "title": "명륜당 앞바다에 돌고래가 산다!",
+      "subtitle": "청랑",
+      "hours": [
+        {
+          "startAt": "2026-10-01T12:00:00+09:00",
+          "endAt": "2026-10-01T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["club"]
+      },
+      "orderByOption": {
+        "day1": 9
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "청랑",
+        "isUnion": false,
+        "locationLabel": "9번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "text",
+            "id": "intro",
+            "title": "단체 소개",
+            "body": "성균관의 역사와 전통을 재현하는 유생문화기획단 청랑"
+          },
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "👂",
+                "title": "삑삐빅삐-익",
+                "description": "소리를 잘 듣고 돌랑이가 명륜당에 오게 된 이유를 알아내라!"
+              },
+              {
+                "emoji": "🎣",
+                "title": "돌랑이 구출 대작전!",
+                "description": "돌랑이가 바다로 돌아갈 수 있도록 힘을 합쳐 구출해보자! 다른 해양 동물들에게 낚이지 말고 낚싯대를 이용해 돌랑이를 정확히 찾아라!"
+              },
+              {
+                "emoji": "🐟",
+                "title": "마님은 왜 돌고래에게 물고기를 줬을까?",
+                "description": "돌고래를 구출했으니 이제 바다로 돌려보내야 하는데… 잠깐, 배가 고프다고? 집 가기도 식후경! 의지의 한국인답게 돌고래에게 맛있는 물고기를 먹여주자"
+              }
+            ]
+          }
+        ]
+      },
+      "order": 48
+    },
+    {
+      "id": "booth-leaflet-pass",
+      "category": "booth",
+      "lat": 37.294992679096445,
+      "lng": 126.97130543815885,
+      "title": "리플렛(도장판) 배부",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-02T12:00:00+09:00",
+          "endAt": "2026-10-02T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day2": 1
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "1번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "🎁",
+                "title": "PASS 모아 응모",
+                "description": "부스를 돌며 5개 이상의 과목에서 PASS를 획득하면 응모 부스에서 상품 추첨에 응모할 수 있습니다."
+              }
+            ]
+          }
+        ]
+      },
+      "order": 49
+    },
+    {
+      "id": "booth-world-shooting",
+      "category": "booth",
+      "lat": 37.294946,
+      "lng": 126.971296,
+      "title": "걸어서 세계속으로",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-02T12:00:00+09:00",
+          "endAt": "2026-10-02T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day2": 2
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "2번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "🎯",
+                "title": "에어건 사격",
+                "description": "탕! 탕! 탕! 에어건으로 세계 지도 속 목표 시장을 저격해 보세요."
+              }
+            ]
+          }
+        ]
+      },
+      "order": 50
+    },
+    {
+      "id": "booth-freeze",
+      "category": "booth",
+      "lat": 37.294898066757476,
+      "lng": 126.97129137636254,
+      "title": "그대로 멈춰라!",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-02T12:00:00+09:00",
+          "endAt": "2026-10-02T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day2": 3
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "3번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "🐘",
+                "title": "코끼리 코 돌고 중심 잡기",
+                "description": "이 정도 포즈는 쉽게 따라할 수 있겠죠?! 코끼리 코를 돈 뒤 중심을 잡아보세요."
+              }
+            ]
+          }
+        ]
+      },
+      "order": 51
+    },
+    {
+      "id": "booth-apple-ten",
+      "category": "booth",
+      "lat": 37.294835,
+      "lng": 126.971281,
+      "title": "사과의 정석",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-02T12:00:00+09:00",
+          "endAt": "2026-10-02T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day2": 4
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "4번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "🍎",
+                "title": "합이 10인 사과 찾기",
+                "description": "누구보다 빠르게 합이 10이 되는 사과를 찾아보세요."
+              }
+            ]
+          }
+        ]
+      },
+      "order": 52
+    },
+    {
+      "id": "booth-tekken",
+      "category": "booth",
+      "lat": 37.29481,
+      "lng": 126.971276,
+      "title": "주먹이 운다",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-02T12:00:00+09:00",
+          "endAt": "2026-10-02T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day2": 5
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "5번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "🥊",
+                "title": "철권 대결",
+                "description": "나비처럼 날아서 벌처럼 쏜다! 철권 게임에서 승리를 쟁취해 보세요."
+              }
+            ]
+          }
+        ]
+      },
+      "order": 53
+    },
+    {
+      "id": "booth-lucky-day",
+      "category": "booth",
+      "lat": 37.29477642192593,
+      "lng": 126.97127168579507,
+      "title": "운수 좋은 날",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-02T12:00:00+09:00",
+          "endAt": "2026-10-02T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day2": 6
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "6번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "🍀",
+                "title": "심리전 잭팟",
+                "description": "운이 아니라 실력이야~ 상대방의 심리를 읽고 잭팟을 터뜨려 보세요!"
+              }
+            ]
+          }
+        ]
+      },
+      "order": 54
+    },
+    {
+      "id": "booth-hammer",
+      "category": "booth",
+      "lat": 37.294746,
+      "lng": 126.971269,
+      "title": "집 나와라 뚝딱!",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-02T12:00:00+09:00",
+          "endAt": "2026-10-02T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day2": 7
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "7번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "🔨",
+                "title": "망치질 실력 뽐내기",
+                "description": "뚝 딱 뚝 딱~! 숨겨진 망치질 실력을 뽐내 보세요."
+              }
+            ]
+          }
+        ]
+      },
+      "order": 55
+    },
+    {
+      "id": "booth-kkokkal-corn",
+      "category": "booth",
+      "lat": 37.294725,
+      "lng": 126.971266,
+      "title": "KKOKKAL - CORN",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-02T12:00:00+09:00",
+          "endAt": "2026-10-02T16:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day2": 8
+      },
+      "detail": {
+        "kind": "booth",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "8번 부스",
+        "actions": [],
+        "blocks": [
+          {
+            "type": "list",
+            "id": "content",
+            "title": "대표 콘텐츠",
+            "items": [
+              {
+                "emoji": "🔤",
+                "title": "영어 단어 찾기",
+                "description": "꼬깔을 쓰고 좁아진 시야 속에서 올바른 영어 단어를 찾아보세요!"
+              }
+            ]
+          }
+        ]
+      },
+      "order": 56
+    },
+    {
+      "id": "goods-preorder-pickup",
+      "category": "booth",
+      "lat": 37.295058,
+      "lng": 126.971404,
+      "title": "프리오더 현장 수령",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T16:00:00+09:00"
+        },
+        {
+          "startAt": "2026-10-02T14:00:00+09:00",
+          "endAt": "2026-10-02T19:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day1": 10,
+        "day2": 9
+      },
+      "detail": {
+        "kind": "goods",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "A번 부스",
+        "actions": [],
+        "blocks": []
+      },
+      "order": 57
+    },
+    {
+      "id": "goods-kungya-collab",
+      "category": "booth",
+      "lat": 37.295036,
+      "lng": 126.971404,
+      "title": "쿵야 레스토랑즈 콜라보 굿즈",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T16:00:00+09:00"
+        },
+        {
+          "startAt": "2026-10-02T14:00:00+09:00",
+          "endAt": "2026-10-02T19:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day1": 11,
+        "day2": 10
+      },
+      "detail": {
+        "kind": "goods",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "B번 부스",
+        "actions": [],
+        "blocks": []
+      },
+      "order": 58
+    },
+    {
+      "id": "goods-uniform-store",
+      "category": "booth",
+      "lat": 37.295008,
+      "lng": 126.9714,
+      "title": "ESKARA: 초록의 파도 유니폼 & 굿즈 스토어",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T16:00:00+09:00"
+        },
+        {
+          "startAt": "2026-10-02T14:00:00+09:00",
+          "endAt": "2026-10-02T19:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day1": 12,
+        "day2": 11
+      },
+      "detail": {
+        "kind": "goods",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "C번 부스",
+        "actions": [],
+        "blocks": []
+      },
+      "order": 59
+    },
+    {
+      "id": "goods-musinsa",
+      "category": "booth",
+      "lat": 37.294951,
+      "lng": 126.971393,
+      "title": "유니폼 & 굿즈 현장 판매 부스 (with MUSINSA)",
+      "subtitle": "총학생회 S'PEAK",
+      "hours": [
+        {
+          "startAt": "2026-10-01T11:00:00+09:00",
+          "endAt": "2026-10-01T16:00:00+09:00"
+        },
+        {
+          "startAt": "2026-10-02T14:00:00+09:00",
+          "endAt": "2026-10-02T19:00:00+09:00"
+        }
+      ],
+      "facets": {
+        "org": ["council"]
+      },
+      "orderByOption": {
+        "day1": 13,
+        "day2": 12
+      },
+      "detail": {
+        "kind": "goods",
+        "org": "총학생회 S'PEAK",
+        "isUnion": false,
+        "locationLabel": "D번 부스",
+        "actions": [],
+        "blocks": []
+      },
+      "order": 60
     },
     {
       "id": "toilet-newgate",
