@@ -46,6 +46,19 @@ interface CacheEntry {
 }
 
 /**
+ * A day the smart view may open on: one with a timetable, or a no-service day
+ * that carries notices (an announced closure, e.g. festival days served by
+ * another shuttle). Plain holidays have no notices, so they are skipped and
+ * the view opens on the next day that runs.
+ */
+function isSelectable(day: DayResolution): boolean {
+  return (
+    day.display === "schedule" ||
+    (day.display === "noService" && day.notices.length > 0)
+  );
+}
+
+/**
  * Schedule resolution engine — exact port of features/bus/schedule.data.ts.
  *
  * 1-hour in-mem cache held on the instance. Reads bus_overrides /
@@ -151,10 +164,13 @@ export class ScheduleService implements OnModuleInit {
             ...override.notices.map((n) => ({ ...n, source: "override" })),
           ];
         } else {
-          // noService
+          // noService. Override notices pass through (no service-level ones —
+          // "no weekend service" is noise on a day that has no service at
+          // all); a noService day that carries notices is also what
+          // resolveSmartSchedule lands on, so the reason is seen that day.
           display = "noService";
           schedule = [];
-          notices = [];
+          notices = override.notices.map((n) => ({ ...n, source: "override" }));
           label = override.label;
         }
       } else {
@@ -248,13 +264,13 @@ export class ScheduleService implements OnModuleInit {
       .format("YYYY-MM-DD");
     const thisWeek = (await this.resolveWeek(serviceId, thisMonday))!;
 
-    // Scan from today's index forward for first "schedule" day
+    // Scan from today's index forward for the first selectable day
     const todayIndex = todayDow - 1; // 0-based
     let selectedDate: string | null = null;
     let resultWeek: WeekResolution = thisWeek;
 
     for (let i = todayIndex; i < 7; i++) {
-      if (thisWeek.days[i]!.display === "schedule") {
+      if (isSelectable(thisWeek.days[i]!)) {
         selectedDate = thisWeek.days[i]!.date;
         break;
       }
@@ -271,7 +287,7 @@ export class ScheduleService implements OnModuleInit {
       const nextWeek = (await this.resolveWeek(serviceId, nextMonday))!;
 
       for (let i = 0; i < 7; i++) {
-        if (nextWeek.days[i]!.display === "schedule") {
+        if (isSelectable(nextWeek.days[i]!)) {
           selectedDate = nextWeek.days[i]!.date;
           break;
         }
