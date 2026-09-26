@@ -4,6 +4,9 @@
  * Same split as miniapps.schema.ts: this is OUR OWN config, so a typo is a bug
  * and throws at module load, before the deploy can serve anything. The client
  * receives the result as an untrusted payload and parses it tolerantly.
+ *
+ * The carousel rules also guard the campus sheet's carousel
+ * (assertValidCampusCarousel), so both screens accept exactly the same banners.
  */
 import { isMediaUrl } from "../../infra/media-url";
 import type { I18n } from "../../infra/types";
@@ -12,6 +15,7 @@ import { isKnownMiniAppTarget } from "../../miniapps/miniapp-target";
 import {
   HOME_ACTION_TYPES,
   HOME_LAYOUT_VERSION,
+  type CampusBannerCarouselRaw,
   type HomeActionType,
   type HomeLayoutRaw,
 } from "./home-layout.types";
@@ -47,8 +51,20 @@ const IMAGE_KEYS = new Set([
 const DEFAULT_KEYS = new Set(["type"]);
 const I18N_KEYS = new Set(["ko", "en", "zh"]);
 
+/** Thrown by the checks below; each entry point prefixes it with the file it guards. */
+class SchemaError extends Error {}
+
 function fail(message: string): never {
-  throw new Error(`home layout: ${message}`);
+  throw new SchemaError(message);
+}
+
+function labelled(label: string, check: () => void): void {
+  try {
+    check();
+  } catch (err) {
+    if (err instanceof SchemaError) throw new Error(`${label}: ${err.message}`, { cause: err });
+    throw err;
+  }
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -122,7 +138,12 @@ function assertBannerImage(where: string, item: Record<string, unknown>): void {
   if (start !== null && end !== null && start >= end) fail(`${where}.startAt must be before endAt`);
 }
 
-function assertCarousel(where: string, section: Record<string, unknown>, ids: Set<string>): void {
+function assertCarousel(
+  where: string,
+  section: Record<string, unknown>,
+  ids: Set<string>,
+  allowDefault: boolean,
+): void {
   assertKnownKeys(where, section, CAROUSEL_KEYS);
   const { aspectRatio, autoRotateSec, items } = section;
   if (
@@ -147,12 +168,14 @@ function assertCarousel(where: string, section: Record<string, unknown>, ids: Se
   items.forEach((item: unknown, i) => {
     const at = `${where}.items[${i}]`;
     if (!isObject(item)) fail(`${at} must be an object`);
-    if (item.type === "default") {
+    if (item.type === "default" && allowDefault) {
       assertKnownKeys(at, item, DEFAULT_KEYS);
       defaults += 1;
       return;
     }
-    if (item.type !== "image") fail(`${at}.type must be "image" or "default"`);
+    if (item.type !== "image") {
+      fail(`${at}.type must be ${allowDefault ? '"image" or "default"' : '"image"'}`);
+    }
     assertUniqueId(at, item.id, ids);
     assertBannerImage(at, item);
   });
@@ -193,6 +216,10 @@ export function assertValidHomeLayout(
   raw: unknown,
   registeredMiniApps: ReadonlySet<string>,
 ): asserts raw is HomeLayoutRaw {
+  labelled("home layout", () => assertHomeLayout(raw, registeredMiniApps));
+}
+
+function assertHomeLayout(raw: unknown, registeredMiniApps: ReadonlySet<string>): void {
   if (!isObject(raw)) fail("root must be an object");
   assertKnownKeys("root", raw, LAYOUT_KEYS);
   if (raw.version !== HOME_LAYOUT_VERSION) fail(`version must be ${HOME_LAYOUT_VERSION}`);
@@ -205,11 +232,26 @@ export function assertValidHomeLayout(
     if (!isObject(section)) fail(`${where} must be an object`);
     assertUniqueId(where, section.id, ids);
     if (section.type === "banner_carousel") {
-      assertCarousel(where, section, ids);
+      assertCarousel(where, section, ids, true);
     } else if (section.type === "miniapp_grid") {
       assertGrid(where, section, registeredMiniApps, placedMiniApps);
     } else {
       fail(`${where}.type must be "banner_carousel" or "miniapp_grid"`);
     }
+  });
+}
+
+/**
+ * The campus sheet's carousel (campus-banners.json): one carousel section on
+ * its own, under the home rules minus the `default` item. That item is the home
+ * screen's built-in HeroBanner, which the campus sheet does not have.
+ */
+export function assertValidCampusCarousel(raw: unknown): asserts raw is CampusBannerCarouselRaw {
+  labelled("campus banners", () => {
+    if (!isObject(raw)) fail("root must be an object");
+    if (raw.type !== "banner_carousel") fail('type must be "banner_carousel"');
+    const ids = new Set<string>();
+    assertUniqueId("root", raw.id, ids);
+    assertCarousel("root", raw, ids, false);
   });
 }

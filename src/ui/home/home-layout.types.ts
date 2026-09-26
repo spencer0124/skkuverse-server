@@ -66,6 +66,15 @@ export interface HomeBannerCarouselRaw {
   items: HomeBannerItemRaw[];
 }
 
+/**
+ * The campus sheet's carousel (src/ui/ui/campus-banners.json, served inside
+ * GET /ui/home/campus). Same shape and rules as the home one, but images only:
+ * the campus sheet has no built-in banner for a `default` item to stand for.
+ */
+export interface CampusBannerCarouselRaw extends HomeBannerCarouselRaw {
+  items: HomeBannerImageRaw[];
+}
+
 export interface HomeMiniAppGridRaw {
   type: "miniapp_grid";
   id: string;
