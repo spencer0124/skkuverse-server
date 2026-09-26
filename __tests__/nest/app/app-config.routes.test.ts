@@ -106,7 +106,7 @@ describe("GET /app/config", () => {
     // either side, just a page whose buttons stop doing anything.
     //
     // The webview host, the standalone ESKARA site whose pages open ticket
-    // links through `link.open`, the 음식 룰렛 roulette and the 부스 뽑기 box
+    // links through `link.open`, the 음식 룰렛 roulette and the 랜덤 컨텐츠 box
     // whose results open the map through `map.openPlace`, 플리 예습, whose
     // song buttons open YouTube and Spotify, and 인자셔틀, whose night boarding
     // spot opens the map, and 무대 타임테이블, which sends

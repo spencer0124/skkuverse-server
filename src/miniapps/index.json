@@ -37,7 +37,7 @@
     },
     {
       "id": "booth-box",
-      "name": "부스 뽑기",
+      "name": "랜덤 컨텐츠",
       "order": 9,
       "homeLogo": { "kind": "emoji", "emoji": "🎁" }
     },
