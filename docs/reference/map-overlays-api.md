@@ -91,7 +91,7 @@ fields must be meaningful.
 interface I18nWire { ko: string; en: string; zh?: string }
 
 /** Both bounds real. Half-bounded is not expressible — see §3. */
-interface TimeWindow { startAt: string; endAt: string }
+interface TimeWindow { startAt: string; endAt: string | null; label: I18nWire | null }
 
 interface MarkerAction {
   id: string;
@@ -277,7 +277,7 @@ Two fields left the wire when the schema was unified:
 Openness is a pure function of the device clock and the windows:
 
 ```text
-hours.length === 0 || hours.some(w => now >= w.startAt && now < w.endAt)
+hours.length === 0 || hours.some(w => now >= w.startAt && (w.endAt === null || now < w.endAt))
 ```
 
 An **empty list means always open**, and it means only that.
@@ -289,9 +289,14 @@ festival days had to be **two documents** — and the app's list, which renders 
 showed every place twice with nothing on the card to tell the rows apart. In prod that was 28 `bar`
 documents over 18 real bars.
 
-Both bounds inside a window are required. Half-bounded is not expressible on purpose: you write two
-windows, or none. Allowing one open end would give the field a second way to say "no limit", which is
-exactly the ambiguity §3.2 describes.
+Every window has a start. Its end is `null` when it has not been announced — the 팔찌 배부 booths
+close when the artist stage does — and the client prints such a window as `14:00~`. That is not a
+second way to say "no limit": the start still gates it, so the place reads closed until then. A
+window without a start is refused, because it would be exactly the ambiguity §3.2 describes. The
+server never invents an end; the layer set's activation takes the whole festival off the map.
+
+`label` names a window when one place runs differently across its windows — the 성균인 booth's
+`단체 입장` then `개별 입장`. `null` otherwise.
 
 ### 3.2 No `status`
 
@@ -333,7 +338,7 @@ That axis is **wall-clock** where this one is instants, and §4.2 says why.
 The server drops, merges and clock-filters nothing; it ships every place of the live set with
 everything the client needs to disambiguate. The client keeps one pin per coordinate, choosing by:
 
-1. **open right now** — `hours.length === 0 || hours.some(w => now >= w.startAt && now < w.endAt)`
+1. **open right now** — `hours.length === 0 || hours.some(w => now >= w.startAt && (w.endAt === null || now < w.endAt))`
 2. tie → highest `pinPriority`
 3. tie → next opening soonest
 4. tie → lowest `order`, then `id`

@@ -48,18 +48,30 @@ export interface PlaceAction {
 }
 
 /**
- * One interval this place is open. BOTH bounds are real instants.
+ * One interval this place is open. The START is always a real instant; the END
+ * is one too, or `null` when it has not been announced.
  *
  * ABSOLUTE, not "18:00" strings: a bar running 18:00–02:00 crosses midnight, and
- * with instants "is it open" is `startAt <= now < endAt` and nothing else.
+ * with instants "is it open" is `startAt <= now && (endAt === null || now < endAt)`
+ * and nothing else.
  *
- * Half-bounded is deliberately not expressible. With an array you write two
- * windows, or none — which is what leaves an empty `hours` as the one spelling
- * of "always open".
+ * A `null` end is "open from here, end unannounced" — the 팔찌 배부 booths close
+ * when the artist stage does, and the council posts that on the night. It is
+ * NOT a second spelling of "always open": the start still gates it, so the place
+ * reads closed until then. Nothing on this side invents an end for it either —
+ * the layer set's activation (`activeUntil`) is what takes the whole festival,
+ * open-ended windows included, off the map. A start-less window stays
+ * inexpressible, which is what leaves an empty `hours` as the one spelling of
+ * "always open".
+ *
+ * `label` names a window when one place runs differently across its windows —
+ * the 성균인 booth's 단체 입장 then 개별 입장. Optional on the document because
+ * places imported before it existed have no key; the reader writes `null`.
  */
 export interface OpeningWindow {
   startAt: Date;
-  endAt: Date;
+  endAt: Date | null;
+  label?: I18n | null;
 }
 
 /**

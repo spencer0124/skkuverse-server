@@ -104,12 +104,13 @@ function asInstant(value, where, errors) {
 
 function asHours(value, where, errors) {
   // Absent means always open. That is the ONE meaning of an empty list, and the
-  // reason a half-bounded window is refused below: allowing one open end would
-  // give `hours` a second way to say "no limit", which is exactly the ambiguity
-  // that used to force a `status` field to exist.
+  // reason a window without a START is refused below: it would give `hours` a
+  // second way to say "no limit", which is exactly the ambiguity that used to
+  // force a `status` field to exist. A window without an END is different — the
+  // start still gates it — and means the end has not been announced.
   if (value === undefined || value === null) return [];
   if (!Array.isArray(value)) {
-    errors.push(`${where} must be an array of {startAt, endAt}`);
+    errors.push(`${where} must be an array of {startAt, endAt?, label?}`);
     return [];
   }
   const out = [];
@@ -119,20 +120,20 @@ function asHours(value, where, errors) {
       errors.push(`${at} must be an object`);
       return;
     }
-    if (raw.startAt === undefined || raw.endAt === undefined) {
-      errors.push(
-        `${at} needs both startAt and endAt — a half-bounded window is not expressible; write two windows, or none`,
-      );
+    if (raw.startAt === undefined) {
+      errors.push(`${at} needs a startAt — a window without a start is not expressible; write none for always open`);
       return;
     }
     const startAt = asInstant(raw.startAt, `${at}.startAt`, errors);
-    const endAt = asInstant(raw.endAt, `${at}.endAt`, errors);
-    if (!startAt || !endAt) return;
-    if (endAt <= startAt) {
+    const openEnded = raw.endAt === undefined || raw.endAt === null;
+    const endAt = openEnded ? null : asInstant(raw.endAt, `${at}.endAt`, errors);
+    const label = asOptionalI18n(raw.label, `${at}.label`, errors);
+    if (!startAt || (!openEnded && !endAt)) return;
+    if (endAt && endAt <= startAt) {
       errors.push(`${at}.endAt is at or before its startAt`);
       return;
     }
-    out.push({ startAt, endAt });
+    out.push({ startAt, endAt, label });
   });
   return out;
 }

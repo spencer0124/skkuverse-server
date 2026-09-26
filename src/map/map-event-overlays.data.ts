@@ -246,7 +246,7 @@ function isRenderable(doc: MapPlaceDoc): boolean {
     Array.isArray(doc.fields) &&
     Array.isArray(doc.actions) &&
     doc.hours.every(
-      (w) => w?.startAt instanceof Date && w.endAt instanceof Date,
+      (w) => w?.startAt instanceof Date && (w.endAt === null || w.endAt instanceof Date),
     )
   );
 }
@@ -371,7 +371,8 @@ async function loadEventOverlays(): Promise<{ overlays: MapOverlay[] }> {
       subtitle: doc.subtitle ? toWire(doc.subtitle) : null,
       hours: doc.hours.map((w) => ({
         startAt: w.startAt.toISOString(),
-        endAt: w.endAt.toISOString(),
+        endAt: w.endAt ? w.endAt.toISOString() : null,
+        label: w.label ? toWire(w.label) : null,
       })),
       fields: doc.fields.map((f) => ({
         label: toWire(f.label),

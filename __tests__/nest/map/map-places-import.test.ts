@@ -132,14 +132,16 @@ describe("parsePlacesFile — the committed sheet", () => {
     // openness is what picks between them. Two stalls open at the same moment
     // on the same point leave the tiebreak to `order`, which means one of them
     // is simply never on the map.
+    // A `null` end is unannounced, so it runs on as far as this check can tell.
+    const endOf = (w: { endAt: Date | null }) => w.endAt ?? new Date(8.64e15);
     const overlaps = (
-      a: { startAt: Date; endAt: Date }[],
-      b: { startAt: Date; endAt: Date }[],
+      a: { startAt: Date; endAt: Date | null }[],
+      b: { startAt: Date; endAt: Date | null }[],
     ) =>
       // An empty list is "always open", so it overlaps anything that exists.
       a.length === 0 || b.length === 0
         ? true
-        : a.some((x) => b.some((y) => x.startAt < y.endAt && y.startAt < x.endAt));
+        : a.some((x) => b.some((y) => x.startAt < endOf(y) && y.startAt < endOf(x)));
 
     // Points only. `pinPriority` lives on the marker arm alone because two
     // overlapping ZONES are a design choice rather than a collision to resolve
@@ -164,12 +166,12 @@ describe("parsePlacesFile — the committed sheet", () => {
     // and the members, which lose the pin, stay reachable through their list rows.
     const priorityOf = (category: string) => presentationFor(CONFIG, category).pinPriority;
     const covers = (
-      head: { startAt: Date; endAt: Date }[],
-      member: { startAt: Date; endAt: Date }[],
+      head: { startAt: Date; endAt: Date | null }[],
+      member: { startAt: Date; endAt: Date | null }[],
     ) =>
       head.length === 0 ||
       (member.length > 0 &&
-        member.every((w) => head.some((h) => h.startAt <= w.startAt && w.endAt <= h.endAt)));
+        member.every((w) => head.some((h) => h.startAt <= w.startAt && endOf(w) <= endOf(h))));
     const hasHead = (group: typeof docs) =>
       group.some((head) =>
         group.every(
@@ -344,6 +346,7 @@ describe("parsePlacesFile — opening hours", () => {
       {
         startAt: new Date("2026-08-27T18:00:00+09:00"),
         endAt: new Date("2026-08-28T00:00:00+09:00"),
+        label: null,
       },
     ]);
   });
@@ -355,12 +358,50 @@ describe("parsePlacesFile — opening hours", () => {
     expect(docs[0].hours).toEqual([]);
   });
 
-  it("rejects a half-bounded window", () => {
-    // Not expressible on purpose: with an array you write two windows, or none.
-    // Allowing one open end would give `hours` a second meaning again.
+  it("reads an absent or null end as unannounced, not as always open", () => {
+    // The start still gates it, so this is not a second spelling of `[]`.
+    const { docs, errors } = parse({}, {
+      hours: [
+        { startAt: "2026-10-02T12:00:00+09:00" },
+        { startAt: "2026-10-02T14:00:00+09:00", endAt: null },
+      ],
+    });
+
+    expect(errors).toEqual([]);
+    expect(docs[0].hours).toEqual([
+      { startAt: new Date("2026-10-02T12:00:00+09:00"), endAt: null, label: null },
+      { startAt: new Date("2026-10-02T14:00:00+09:00"), endAt: null, label: null },
+    ]);
+  });
+
+  it("rejects a window without a start", () => {
+    // That one WOULD be a second meaning for "no limit".
     expect(
-      soleError(parse({}, { hours: [{ startAt: "2026-08-27T18:00:00+09:00" }] })),
-    ).toMatch(/endAt/);
+      soleError(parse({}, { hours: [{ endAt: "2026-08-27T18:00:00+09:00" }] })),
+    ).toMatch(/startAt/);
+  });
+
+  it("reads a window label as I18n", () => {
+    const { docs, errors } = parse({}, {
+      hours: [
+        {
+          startAt: "2026-10-02T12:00:00+09:00",
+          endAt: "2026-10-02T14:00:00+09:00",
+          label: { ko: "단체 입장", en: "Group entry" },
+        },
+      ],
+    });
+
+    expect(errors).toEqual([]);
+    expect(docs[0].hours[0].label).toEqual({ ko: "단체 입장", en: "Group entry" });
+  });
+
+  it("rejects a blank window label", () => {
+    expect(
+      soleError(
+        parse({}, { hours: [{ startAt: "2026-10-02T12:00:00+09:00", label: " " }] }),
+      ),
+    ).toMatch(/label/);
   });
 
   it("rejects a window that ends before it starts", () => {

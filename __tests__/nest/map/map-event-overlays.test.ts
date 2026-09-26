@@ -163,8 +163,8 @@ describe("getEventOverlays", () => {
       text: { ko: "우끼끼친", en: "Ukkikki" },
       subtitle: { ko: "생명공학대학 학생회", en: "생명공학대학 학생회" },
       hours: [
-        { startAt: "2026-10-01T09:00:00.000Z", endAt: "2026-10-01T15:00:00.000Z" },
-        { startAt: "2026-10-02T09:00:00.000Z", endAt: "2026-10-02T15:00:00.000Z" },
+        { startAt: "2026-10-01T09:00:00.000Z", endAt: "2026-10-01T15:00:00.000Z", label: null },
+        { startAt: "2026-10-02T09:00:00.000Z", endAt: "2026-10-02T15:00:00.000Z", label: null },
       ],
       fields: [],
       actions: [],
@@ -201,8 +201,38 @@ describe("getEventOverlays", () => {
     const { overlays: markers } = await getEventOverlays();
 
     expect(markers[0]!.hours).toEqual([
-      { startAt: "2026-10-01T09:00:00.000Z", endAt: "2026-10-01T15:00:00.000Z" },
-      { startAt: "2026-10-02T09:00:00.000Z", endAt: "2026-10-02T15:00:00.000Z" },
+      { startAt: "2026-10-01T09:00:00.000Z", endAt: "2026-10-01T15:00:00.000Z", label: null },
+      { startAt: "2026-10-02T09:00:00.000Z", endAt: "2026-10-02T15:00:00.000Z", label: null },
+    ]);
+  });
+
+  it("serves an open-ended, labelled window rather than dropping the place", async () => {
+    // A 팔찌 배부 booth: 단체 입장 until 14:00, then 개별 입장 with no announced
+    // end. The serve guard used to demand a Date on both sides, so a `null` end
+    // would have skipped the whole booth with only a log line.
+    arrange([
+      place({
+        hours: [
+          {
+            startAt: new Date("2026-10-02T03:00:00.000Z"),
+            endAt: new Date("2026-10-02T05:00:00.000Z"),
+            label: { ko: "단체 입장", en: "Group entry" },
+          },
+          { startAt: new Date("2026-10-02T05:00:00.000Z"), endAt: null, label: { ko: "개별 입장" } },
+        ],
+      }),
+    ]);
+
+    const { overlays: markers } = await getEventOverlays();
+
+    expect(markers[0]!.hours).toEqual([
+      {
+        startAt: "2026-10-02T03:00:00.000Z",
+        endAt: "2026-10-02T05:00:00.000Z",
+        label: { ko: "단체 입장", en: "Group entry" },
+      },
+      // `en` falls back to the Korean, as every other wire string does.
+      { startAt: "2026-10-02T05:00:00.000Z", endAt: null, label: { ko: "개별 입장", en: "개별 입장" } },
     ]);
   });
 
@@ -506,6 +536,14 @@ describe("getEventOverlays", () => {
       expect(markers.map((m) => m.id)).toEqual(["eskara-2026-booth-01"]);
       expect(mockLogger.warn).toHaveBeenCalledTimes(1);
       expect(String(mockLogger.warn.mock.calls[0])).toMatch(/1/);
+    });
+
+    it("skips a document whose window has no start", async () => {
+      arrange([place({ _id: "no-start", hours: [{ startAt: null, endAt: null }] }), place()]);
+
+      const { overlays: markers } = await getEventOverlays();
+
+      expect(markers.map((m) => m.id)).toEqual(["eskara-2026-booth-01"]);
     });
 
     it("skips a document whose hours or fields are not arrays", async () => {
