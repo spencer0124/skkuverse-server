@@ -204,25 +204,19 @@ describe("GET /miniapps/:id", () => {
     }
   });
 
-  it("falls back to the registry's own bar when the manifest fetch fails (mocked offline)", async () => {
-    const topBar = ["booth-box", "mukja", "playlist"];
-    for (const id of topBar) {
+  it("serves DEFAULT_SHELL for a first-party app whose manifest has never loaded (mocked offline)", async () => {
+    // A first-party detail carries no shell of its own (register-a-miniapp.md
+    // §2): its manifest is the one source. With the origin unreachable the page
+    // is too, so what the shell looks like around it no longer matters.
+    for (const id of ["eskara-2026", "mukja", "playlist", "booth-box", "inja"]) {
       const res = await request(httpServer).get(`/miniapps/${id}`);
       expect(res.body.data.shell).toEqual({
-        bar: "top",
+        bar: "bottom",
         header: "opaque",
         statusBar: "dark",
         background: "#FFFFFF",
       });
     }
-    // No registry shell authored at all: pure DEFAULT_SHELL.
-    const eskara = await request(httpServer).get("/miniapps/eskara-2026");
-    expect(eskara.body.data.shell).toEqual({
-      bar: "bottom",
-      header: "opaque",
-      statusBar: "dark",
-      background: "#FFFFFF",
-    });
   });
 
   it("marks a found detail cacheable", async () => {

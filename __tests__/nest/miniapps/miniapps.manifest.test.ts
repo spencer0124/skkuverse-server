@@ -71,7 +71,7 @@ afterEach(() => {
 });
 
 describe("firstPartyOrigin", () => {
-  it("accepts a *.mini.skkuverse.com https startUrl", () => {
+  it("accepts a startUrl on a first-party mini-app origin", () => {
     expect(firstPartyOrigin("https://mukja.mini.skkuverse.com/")).toBe(
       "https://mukja.mini.skkuverse.com",
     );
@@ -88,8 +88,18 @@ describe("firstPartyOrigin", () => {
     expect(firstPartyOrigin("https://student.skku.edu/student/notice2.do")).toBeNull();
   });
 
-  it("rejects ESKARA's differently-shaped first-party host (.miniapp., not .mini.)", () => {
-    expect(firstPartyOrigin("https://eskara.miniapp.skkuverse.com/eskara")).toBeNull();
+  it("accepts ESKARA's first-party host, whose shape differs (.miniapp., not .mini.)", () => {
+    expect(firstPartyOrigin("https://eskara.miniapp.skkuverse.com/eskara")).toBe(
+      "https://eskara.miniapp.skkuverse.com",
+    );
+  });
+
+  it("rejects a *.mini.skkuverse.com host that is not on the list", () => {
+    expect(firstPartyOrigin("https://unlisted.mini.skkuverse.com/")).toBeNull();
+  });
+
+  it("rejects the webview SPA, which is not a mini app", () => {
+    expect(firstPartyOrigin("https://webview.skkuverse.com/eskara")).toBeNull();
   });
 
   it("rejects a host that merely ends with the right suffix", () => {

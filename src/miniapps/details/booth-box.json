@@ -3,6 +3,5 @@
   "id": "booth-box",
   "startUrl": "https://booth-box.mini.skkuverse.com/",
   "verified": true,
-  "relatedLinks": [],
-  "shell": { "bar": "top" }
+  "relatedLinks": []
 }

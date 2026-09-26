@@ -25,8 +25,9 @@ A mini app becomes visible to the app in two files under `src/miniapps/`: an ent
 by `assertValidRegistry` (`src/miniapps/miniapps.schema.ts`) — a malformed entry crashes the server
 rather than shipping quietly broken, so get this right in dev before it ever reaches `main`.
 
-If the mini-app page uses the native bridge (`web:action`, `web:open-url`, and so on), it also needs
-an entry in `BRIDGE_ORIGINS` (`src/infra/origins.ts`). Skip that step for a page with no bridge calls.
+A first-party mini app (one we host) also needs its origin on `FIRST_PARTY_MINIAPP_ORIGINS`
+(`src/infra/origins.ts`): that one entry grants its bridge, has the server fetch its shell manifest,
+and makes the app open links to it in its own shell. A third-party site skips that step.
 
 ## Prerequisites
 
@@ -84,14 +85,14 @@ Create `src/miniapps/details/<id>.json`:
 `noticeBanner`, `shell` — is optional.
 
 > [!NOTE]
-> **Do not set `shell` here for a first-party app, except as a fallback.** A first-party mini app
-> (one on `https://<id>.mini.skkuverse.com`) now declares its own shell at `public/skkuverse.json` in
-> its own repo, fetched and merged on every `GET /miniapps/:id` response
+> **Leave `shell` out for a first-party app.** It declares its own shell at `public/skkuverse.json`
+> in its own repo, fetched and merged on every `GET /miniapps/:id` response
 > ([reference/miniapps-api.md §3.1–§3.2](../reference/miniapps-api.md#31-shell-is-always-a-complete-object-merged-in-one-fixed-order)).
-> A `shell` object here only matters until that manifest exists, or if the manifest fetch is ever
-> failing — it is the last-resort layer, not the one to maintain going forward. A third-party mini
-> app (one we do not operate, like `skkuw`) has no manifest to fetch and keeps relying on this field
-> for good.
+> A copy here would be a second source that drifts, and it would never show on a working page: the
+> manifest is served from the page's own origin, so when it cannot be fetched the page cannot load
+> either, and a fetch that fails after one success keeps serving the last good manifest. A third-party
+> mini app (one we do not operate, like `skkuw`) has no manifest to fetch and sets `shell` here for
+> good.
 
 ### 3. Register the file for production builds
 
@@ -109,48 +110,49 @@ Add the new detail file to the `assets` list in
 > never copied. `src/miniapps/miniapps.ts`'s loader is eager at module load, so this is a startup
 > crash, not a per-request 404.
 
-### 4. Grant the bridge origin, if the page uses it
+### 4. List the origin as first-party
 
-Skip this step if the mini-app page makes no bridge calls (`web:action`, `web:open-url`, and so on) —
-most result-screen-only mini apps (booth-box's) don't need it beyond a "view on map"
-button, and that already goes through the shared grant if the page is already listed.
-
-If the page does call the bridge, add its origin in [`src/infra/origins.ts`](../../src/infra/origins.ts):
+For a mini app we host, add its origin in [`src/infra/origins.ts`](../../src/infra/origins.ts):
 
 ```ts
-/** <what the page is, and which bridge messages it posts — no iframes> */
+/** <what the page is, and which SDK methods it sends — no iframes> */
 export const MY_APP_MINIAPP_ORIGIN = "https://<id>.mini.skkuverse.com";
 
-export const BRIDGE_ORIGINS = [
-  WEBVIEW_ORIGIN,
+export const FIRST_PARTY_MINIAPP_ORIGINS = [
   ESKARA_MINIAPP_ORIGIN,
-  MUKJA_MINIAPP_ORIGIN,
-  PLAYLIST_MINIAPP_ORIGIN,
-  BOOTH_BOX_MINIAPP_ORIGIN,
+  // …
   MY_APP_MINIAPP_ORIGIN,
 ] as const;
 ```
+
+That one entry does three things: `BRIDGE_ORIGINS` includes it (the page may reach the native
+bridge), the server fetches its `skkuverse.json`, and `GET /app/config` publishes it in
+`miniapps.origins`, so the app opens any link to that origin in this mini app's shell rather than
+the generic webview (where the SDK's `MiniappRoot` would show its "open in the app" page). The boot
+check in `src/miniapps/miniapps.ts` requires each listed origin to be the `startUrl` origin of
+exactly one registered mini app.
 
 - The origin string has no trailing slash — the client compares it against `new URL(pageUrl).origin`
   exactly.
 - Add to `CORS_ORIGINS` too, but only if the page fetches this API directly from the browser rather
   than through the bridge. None of the current mini apps need this.
-- This is a trust decision, not a config toggle: an entry here hands `Linking.openURL` and the
-  map-select channel to every page that host serves. Add it only for a deployment we own.
+- This is a trust decision, not a config toggle: an entry here hands the page every miniapp
+  protocol method (`link.open`, `map.openPlace`, …) on every page that host serves. Add it only for a
+  deployment we own.
 
 > [!WARNING]
-> There is no validation that catches a missing or misspelt bridge origin. The button that posts the
-> message simply does nothing, silently, on every device — no server error, no client error, no log.
-> Double-check the host spelling (`https://`, the exact subdomain, no trailing slash) against what the
-> mini app actually serves from.
+> A misspelt origin fails the boot check, because it matches no `startUrl`. A **forgotten** one does
+> not: the page loads, but every SDK call it makes does nothing, silently, on every device — no server
+> error, no client error, no log — and a link to it opens in the generic webview's "open in the app"
+> page. Add the entry in the same change as the registry files.
 
 ### 5. Update the tests
 
 - `__tests__/nest/app/app-config.routes.test.ts` — the `"grants the bridge to exactly these hosts,
   spelled out"` test asserts the *full literal list* of `BRIDGE_ORIGINS`, deliberately, rather than
   deriving it from the constant: the whole point of that test is to catch a host silently dropped
-  from the list, which a derived assertion could never catch. Add the new origin to the literal array
-  if you touched step 4.
+  from the list, which a derived assertion could never catch. Add the new origin to the literal array,
+  and to the literal map in `"maps each first-party mini-app origin to its mini app, spelled out"`.
 - `__tests__/nest/miniapps/miniapps.routes.test.ts` — the `"keeps hidden entries in the index"` test
   asserts the exact set of hidden ids (currently `hssc`, `nsc`, `skkuw`, `skkuzine`), and separate
   tests assert `mukja` and `eskara-2026`'s logo values directly. Update these only if you set

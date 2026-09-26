@@ -154,12 +154,10 @@ but the registry's own copy of the same fields is validated strictly at boot —
 `src/miniapps/miniapps.manifest.ts` fetches `<origin>/skkuverse.json` for a mini app whose `startUrl`
 matches a first-party origin, and merges the result's `shell` fields over the registry's.
 
-- **Origin allowlist:** only `https://<label>.mini.skkuverse.com` is treated as first-party
-  (`FIRST_PARTY_ORIGIN_RE` in `miniapps.manifest.ts`). `https` only, no exceptions.
-- **`eskara.miniapp.skkuverse.com` is not matched today.** Its subdomain shape predates the
-  `.mini.skkuverse.com` convention and it keeps its registry-authored shell — see
-  `src/infra/origins.ts`'s comment on `ESKARA_MINIAPP_ORIGIN` for why the host was kept rather than
-  moved.
+- **Origin allowlist:** only an origin on `FIRST_PARTY_MINIAPP_ORIGINS` (`src/infra/origins.ts`) is
+  treated as first-party — an explicit list, not a host pattern, so `eskara.miniapp.skkuverse.com`
+  (whose shape predates the `.mini.skkuverse.com` convention) is fetched like the rest, and an
+  unlisted `*.mini.skkuverse.com` host is not. `https` only, no exceptions.
 - **Timeout:** `FETCH_TIMEOUT_MS` = 3 000 ms, aborted via `AbortController`.
 - **Size cap:** `MAX_MANIFEST_BYTES` = 16 KiB, enforced both on `Content-Length` (when present) and on
   the actual bytes read — a lying or absent header cannot bypass the cap.
@@ -298,7 +296,7 @@ deep link never passes through this server at all.
 | `src/miniapps/miniapp-target.ts` | The `<miniAppId>[/path]` grammar (§6) |
 | `src/miniapps/miniapps.module.ts` | Wires the providers/controllers together, binds the rate limiter |
 | `src/miniapps/index.json`, `src/miniapps/details/*.json` | The registry data itself |
-| `src/infra/origins.ts` | `WEB_ORIGIN`, `MEDIA_ORIGIN`, `BRIDGE_ORIGINS`, `CORS_ORIGINS` — see [how-to/register-a-miniapp.md](../how-to/register-a-miniapp.md) |
+| `src/infra/origins.ts` | `WEB_ORIGIN`, `MEDIA_ORIGIN`, `FIRST_PARTY_MINIAPP_ORIGINS`, `BRIDGE_ORIGINS`, `CORS_ORIGINS` — see [how-to/register-a-miniapp.md](../how-to/register-a-miniapp.md) |
 | `scripts/copy-build-assets.js` | Stages the registry JSON into `dist/` for the production build |
 | `__tests__/nest/miniapps/` | Integration and unit tests for every file above |
 

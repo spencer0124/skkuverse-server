@@ -36,21 +36,21 @@ export const WEBVIEW_ORIGIN = "https://webview.skkuverse.com";
  * The standalone ESKARA festival site (`miniapp/eskara`), a copy of the webview's
  * ESKARA pages that also carries pages the webview does not, such as the
  * wristband notice. It is the registered start URL of the `eskara-2026` mini
- * app, and the festival map's `miniapp` buttons open its pages. Its pages post
- * `web:open-url` for ticket-platform links and `web:action` for "view on map"
- * buttons (the app allows a page only `map` and `miniapp` actions), which is why
- * it is a bridge origin. It embeds no iframes; on Android a child frame would
- * inherit the top-level grant. Remove it from BRIDGE_ORIGINS once nothing links
- * to it.
+ * app, and the festival map's `miniapp` buttons open its pages. Through the
+ * miniapp SDK its pages send `link.open` for ticket-platform links and
+ * `map.openPlace` for "view on map" buttons. It embeds no iframes; on Android a
+ * child frame would inherit the top-level grant. Remove it from
+ * FIRST_PARTY_MINIAPP_ORIGINS once nothing links to it.
  */
 export const ESKARA_MINIAPP_ORIGIN = "https://eskara.miniapp.skkuverse.com";
 
 /**
  * The 음식 룰렛 roulette (`miniapp-mukja`), the registered start URL of the
  * `mukja` mini app: it picks one festival menu item from the places open now.
- * Its result card posts `web:action` with `map` for "view on map" and nothing
- * else — no `web:open-url`, no API calls, so it needs no CORS grant. It embeds
- * no iframes; on Android a child frame would inherit the top-level grant.
+ * Through the miniapp SDK its result card sends `map.openPlace` for "view on
+ * map", and the spin sends `haptic.impact`. No API calls, so it needs no CORS
+ * grant. It embeds no iframes; on Android a child frame would inherit the
+ * top-level grant.
  *
  * `mini.` rather than eskara's `miniapp.`: first-party mini apps are hosted one
  * per Cloudflare Pages project at `<id>.mini.skkuverse.com` from here on.
@@ -61,18 +61,19 @@ export const MUKJA_MINIAPP_ORIGIN = "https://mukja.mini.skkuverse.com";
 /**
  * 플리 예습 (`miniapp-playlist`), the registered start URL of the `playlist`
  * mini app: the expected ESKARA 2026 setlist, each song with a YouTube and a
- * Spotify button. It posts `web:open-url` (a https `url`, plus an `appUrl` —
- * `youtube://`, `vnd.youtube:`, `spotify:` — for the app to try first) and
- * `web:haptic` while its opening counter runs. No API calls, so no CORS grant.
- * It embeds no iframes; on Android a child frame would inherit the top-level grant.
+ * Spotify button. Through the miniapp SDK it sends `link.open` (a https `url`,
+ * plus an `appUrl` — `youtube://`, `vnd.youtube:`, `spotify:` — for the app to
+ * try first) and `haptic.impact` while its opening counter runs. No API calls,
+ * so no CORS grant. It embeds no iframes; on Android a child frame would
+ * inherit the top-level grant.
  */
 export const PLAYLIST_MINIAPP_ORIGIN = "https://playlist.mini.skkuverse.com";
 
 /**
  * 부스 뽑기 (`miniapp-booth-box`), the registered start URL of the
  * `booth-box` mini app: a gift box that opens on one of ESKARA 2026's 주점.
- * Its result sheet posts `web:action` with `map` for "view on map" and nothing
- * else — no `web:open-url`, no API calls, so it needs no CORS grant. It embeds
+ * Through the miniapp SDK its result sheet sends `map.openPlace` for "view on
+ * map" and nothing else. No API calls, so it needs no CORS grant. It embeds
  * no iframes; on Android a child frame would inherit the top-level grant.
  */
 export const BOOTH_BOX_MINIAPP_ORIGIN = "https://booth-box.mini.skkuverse.com";
@@ -81,8 +82,8 @@ export const BOOTH_BOX_MINIAPP_ORIGIN = "https://booth-box.mini.skkuverse.com";
  * 인자셔틀 (`miniapp-inja`), the registered start URL of the `inja` mini app:
  * the ESKARA 2026 shuttle timetable with live departures. Through the SDK it
  * sends `map.openPlace` for the night boarding spot
- * (`event:shuttle-queue-welfare`), `haptic.impact` on its refresh button, and
- * `app.ready`. Its own `/api/*` is Pages Functions on the same origin, not
+ * (`event:eskara-2026-shuttle-queue-welfare`), `haptic.impact` on its refresh
+ * button, and `app.ready`. Its own `/api/*` is Pages Functions on the same origin, not
  * this API, so no CORS grant. It embeds no iframes; on Android a child frame
  * would inherit the top-level grant.
  */
@@ -107,9 +108,33 @@ export const WEB_ORIGIN = "https://skkuverse.com";
 export const MEDIA_ORIGIN = "https://media.skkuverse.com";
 
 /**
- * Origins whose pages may reach the native bridge from the app's web shells — the
- * generic /webview and the /mini-app shell both run the same per-message gate, so
- * a first-party mini app (eskara) is granted exactly what its /webview twin is.
+ * The origins of the mini apps we host, each wholly owned by one registered
+ * mini app (`src/miniapps/details/*.json` startUrl). Three things key off this
+ * one list, so it is the only place a first-party mini-app host is named:
+ *
+ *   - BRIDGE_ORIGINS, below: these pages may reach the native bridge.
+ *   - `miniapps.manifest.ts`: the server fetches each one's `/skkuverse.json`.
+ *   - GET /app/config `miniapps.origins`: the app opens any URL on one of these
+ *     origins in that mini app's shell, not the generic /webview, where the
+ *     SDK's MiniappRoot would show its "open in the app" gate.
+ *
+ * Only an origin one mini app owns outright belongs here. A third-party site
+ * (student.skku.edu) hosts several registered entries and much else, and the
+ * webview SPA is not a mini app at all.
+ */
+export const FIRST_PARTY_MINIAPP_ORIGINS = [
+  ESKARA_MINIAPP_ORIGIN,
+  MUKJA_MINIAPP_ORIGIN,
+  PLAYLIST_MINIAPP_ORIGIN,
+  BOOTH_BOX_MINIAPP_ORIGIN,
+  INJA_MINIAPP_ORIGIN,
+] as const;
+
+/**
+ * Origins whose pages may reach the native bridge from the app's web shells.
+ * Both run a per-message origin gate: /webview grants the v1 `web:*` set to the
+ * webview SPA, and /mini-app grants the miniapp protocol's methods to the
+ * first-party mini apps.
  *
  * Published verbatim as `webview.bridgeOrigins` on GET /app/config. The client
  * re-checks the loaded document's origin against this list on EVERY bridge
@@ -129,14 +154,7 @@ export const MEDIA_ORIGIN = "https://media.skkuverse.com";
  * runtimeVersion. An entry comes out once nothing names its host any more — not
  * on a schedule.
  */
-export const BRIDGE_ORIGINS = [
-  WEBVIEW_ORIGIN,
-  ESKARA_MINIAPP_ORIGIN,
-  MUKJA_MINIAPP_ORIGIN,
-  PLAYLIST_MINIAPP_ORIGIN,
-  BOOTH_BOX_MINIAPP_ORIGIN,
-  INJA_MINIAPP_ORIGIN,
-] as const;
+export const BRIDGE_ORIGINS = [WEBVIEW_ORIGIN, ...FIRST_PARTY_MINIAPP_ORIGINS] as const;
 
 /**
  * Origins a BROWSER may read this API from.

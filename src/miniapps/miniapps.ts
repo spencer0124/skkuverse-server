@@ -13,7 +13,7 @@
  */
 import fs from "fs";
 import path from "path";
-import { WEB_ORIGIN } from "../infra/origins";
+import { FIRST_PARTY_MINIAPP_ORIGINS, WEB_ORIGIN } from "../infra/origins";
 import { assertValidRegistry } from "./miniapps.schema";
 import type {
   MiniAppDetail,
@@ -88,4 +88,28 @@ export const map: ReadonlyMap<string, Readonly<MiniAppDetail>> = new Map(
     id,
     Object.freeze({ ...detail }),
   ]),
+);
+
+/**
+ * First-party origin → the mini app that owns it, published on GET /app/config
+ * as `miniapps.origins` so the app can open any URL on one of these origins in
+ * that mini app's shell rather than the generic /webview.
+ *
+ * Built from the registry's startUrls, so the host is never typed twice. Each
+ * FIRST_PARTY_MINIAPP_ORIGINS entry must be claimed by exactly one registered
+ * mini app — none means the list names a host nothing opens, two means a URL
+ * there has no single owner — and either throws at boot.
+ */
+export const firstPartyOrigins: Readonly<Record<string, string>> = Object.freeze(
+  Object.fromEntries(
+    FIRST_PARTY_MINIAPP_ORIGINS.map((origin) => {
+      const owners = [...map.values()].filter((d) => new URL(d.startUrl).origin === origin);
+      if (owners.length !== 1) {
+        throw new Error(
+          `miniapp registry: first-party origin ${origin} must be the startUrl origin of exactly one mini app, found ${owners.length}`,
+        );
+      }
+      return [origin, owners[0]!.id];
+    }),
+  ),
 );

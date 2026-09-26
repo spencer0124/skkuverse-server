@@ -7,10 +7,9 @@
  * from the mini app's own origin, is the presentation source of truth: it can
  * change what the app draws around the page without a server deploy.
  *
- * "First-party" is deliberately narrow: only a startUrl whose origin is
- * `https://<label>.mini.skkuverse.com` is fetched at all. Every other
- * registered mini app (ESKARA's `eskara.miniapp.skkuverse.com`, and the four
- * third-party sites) keeps exactly its registry shell — this module never
+ * "First-party" is deliberately narrow: only a startUrl whose origin is on
+ * FIRST_PARTY_MINIAPP_ORIGINS (`../infra/origins.ts`) is fetched at all. The
+ * third-party sites keep exactly their registry shell — this module never
  * reaches out to a host we do not operate.
  *
  * One `CachedLoader` per first-party id (`../common/cache/cached-loader.ts`):
@@ -23,6 +22,7 @@
  */
 import { Injectable, type OnModuleInit } from "@nestjs/common";
 import logger from "../infra/logger";
+import { FIRST_PARTY_MINIAPP_ORIGINS } from "../infra/origins";
 import { createCachedLoader, type CachedLoader } from "../common/cache/cached-loader";
 import { MANIFEST_PATH, parseShellFields, type ShellConfig } from "./shell";
 import { MiniAppsService } from "./miniapps.service";
@@ -42,9 +42,6 @@ export const CACHE_TTL_MS = 5 * 60 * 1000;
  */
 const STALE_FOREVER_MS = Number.MAX_SAFE_INTEGER;
 
-/** Only a startUrl on this exact host shape is fetched. https only, no exceptions. */
-const FIRST_PARTY_ORIGIN_RE = /^https:\/\/[a-z0-9-]+\.mini\.skkuverse\.com$/;
-
 function errMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
@@ -57,7 +54,7 @@ export function firstPartyOrigin(startUrl: string): string | null {
   } catch {
     return null;
   }
-  return FIRST_PARTY_ORIGIN_RE.test(url.origin) ? url.origin : null;
+  return (FIRST_PARTY_MINIAPP_ORIGINS as readonly string[]).includes(url.origin) ? url.origin : null;
 }
 
 /**
