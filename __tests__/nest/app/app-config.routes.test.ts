@@ -106,8 +106,8 @@ describe("GET /app/config", () => {
     // either side, just a page whose buttons stop doing anything.
     //
     // The webview host, the standalone ESKARA site whose pages open ticket
-    // links through `web:open-url`, the 음식 룰렛 roulette and the 부스 뽑기
-    // box whose results open the map through `web:action`, 플리 예습, whose
+    // links through `link.open`, the 음식 룰렛 roulette and the 부스 뽑기 box
+    // whose results open the map through `map.openPlace`, 플리 예습, whose
     // song buttons open YouTube and Spotify, and 인자셔틀, whose night boarding
     // spot opens the map. Exact equality rather than `toContain`,
     // because the other direction matters just as much — an origin added here
@@ -121,6 +121,21 @@ describe("GET /app/config", () => {
       "https://booth-box.mini.skkuverse.com",
       "https://inja.mini.skkuverse.com",
     ]);
+  });
+
+  it("maps each first-party mini-app origin to its mini app, spelled out", async () => {
+    const res = await request(httpServer).get("/app/config");
+    // Literal for the same reason as the bridge list: the app opens any URL on
+    // these origins in the named mini app's shell, so a wrong or missing entry
+    // sends that page to the generic /webview and its "open in the app" gate.
+    // The webview SPA is absent on purpose — it is not a mini app.
+    expect(res.body.data.miniapps.origins).toEqual({
+      "https://eskara.miniapp.skkuverse.com": "eskara-2026",
+      "https://mukja.mini.skkuverse.com": "mukja",
+      "https://playlist.mini.skkuverse.com": "playlist",
+      "https://booth-box.mini.skkuverse.com": "booth-box",
+      "https://inja.mini.skkuverse.com": "inja",
+    });
   });
 
   it("lists only absolute https origins in bridgeOrigins", async () => {

@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { AppConfigService } from "../config/app-config.service";
 import { BRIDGE_ORIGINS, WEB_ORIGIN } from "../infra/origins";
+import { firstPartyOrigins } from "../miniapps/miniapps";
 
 interface PlatformGate {
   minVersion: string;
@@ -29,6 +30,15 @@ export interface AppClientConfig {
      */
     origin: string;
   };
+  miniapps: {
+    /**
+     * First-party mini-app origin → its mini-app id. The client opens any URL
+     * on one of these origins in that mini app's shell instead of the generic
+     * /webview, where the page would show its "open in the app" gate. See
+     * FIRST_PARTY_MINIAPP_ORIGINS in infra/origins.ts.
+     */
+    origins: Record<string, string>;
+  };
 }
 
 /**
@@ -49,7 +59,7 @@ export interface AppClientConfig {
 export class AppFeatureService {
   constructor(private readonly appConfig: AppConfigService) {}
 
-  /** Returns the client app config: version gate + webview bridge allowlist. */
+  /** Returns the client app config: version gate, bridge allowlist, web origin, mini-app origins. */
   getConfig(): AppClientConfig {
     const { ios, android } = this.appConfig.app;
     return {
@@ -57,6 +67,7 @@ export class AppFeatureService {
       android,
       webview: { bridgeOrigins: [...BRIDGE_ORIGINS] },
       web: { origin: WEB_ORIGIN },
+      miniapps: { origins: { ...firstPartyOrigins } },
     };
   }
 }
