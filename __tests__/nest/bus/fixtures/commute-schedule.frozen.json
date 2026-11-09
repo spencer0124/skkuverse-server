@@ -1,0 +1,78 @@
+{
+  "_about": "Synthetic, never captured: a frozen copy of scripts/data/commute-schedule.json as committed at 5c0ee5a9, 607051df and 90146c04, byte-identical at each, which the characterization route tests (schedule-content, bus-stops, stop-calls) read in place of the live file so that a timetable edit leaves the bytes they pin alone. Not trimmed.",
+  "semester": "2026-2 pilot",
+  "effectiveFrom": "2026-10-19",
+  "effectiveUntil": "2026-12-18",
+  "routeTypes": ["up", "down"],
+  "patterns": [
+    {
+      "patternId": "pilot",
+      "days": [1, 2, 3, 4, 5],
+      "serviceIds": ["commute-jeongja"],
+      "entries": [
+        { "time": "07:45", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["07:45", "08:25"] },
+        { "time": "09:20", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["09:20", "10:05"] },
+        { "time": "11:00", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["11:00", "11:45"] },
+        { "time": "16:30", "routeType": "down", "busCount": 1, "notes": null, "stopTimes": ["16:30", "17:15"] },
+        { "time": "18:30", "routeType": "down", "busCount": 1, "notes": null, "stopTimes": ["18:30", "19:15"] },
+        { "time": "20:30", "routeType": "down", "busCount": 1, "notes": null, "stopTimes": ["20:30", "21:15"] }
+      ]
+    },
+    {
+      "patternId": "pilot",
+      "days": [1, 2, 3, 4, 5],
+      "serviceIds": ["commute-jamsil"],
+      "entries": [
+        { "time": "07:30", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["07:30", "08:40"] },
+        { "time": "10:20", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["10:20", "11:40"] },
+        { "time": "18:00", "routeType": "down", "busCount": 1, "notes": null, "stopTimes": ["18:00", "19:20"] },
+        { "time": "21:00", "routeType": "down", "busCount": 1, "notes": null, "stopTimes": ["21:00", "22:20"] }
+      ]
+    },
+    {
+      "patternId": "pilot",
+      "days": [1, 2, 3, 4, 5],
+      "serviceIds": ["commute-dogok"],
+      "entries": [
+        { "time": "07:40", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["07:40", "08:45"] },
+        { "time": "09:40", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["09:40", "10:15"] },
+        { "time": "16:30", "routeType": "down", "busCount": 1, "notes": null, "stopTimes": ["16:30", "17:45"] },
+        { "time": "18:45", "routeType": "down", "busCount": 1, "notes": null, "stopTimes": ["18:45", "20:30"] }
+      ]
+    },
+    {
+      "patternId": "pilot",
+      "days": [1, 2, 3, 4, 5],
+      "serviceIds": ["commute-gangnam-yangjae"],
+      "entries": [
+        { "time": "07:40", "routeType": "up", "busCount": 1, "notes": "양재역 07:45", "stopTimes": ["07:40", "07:45", "08:45"] },
+        { "time": "08:55", "routeType": "up", "busCount": 1, "notes": "양재역 09:00", "stopTimes": ["08:55", "09:00", "10:15"] },
+        { "time": "10:25", "routeType": "up", "busCount": 1, "notes": "양재역 10:30", "stopTimes": ["10:25", "10:30", "11:45"] },
+        { "time": "11:55", "routeType": "up", "busCount": 1, "notes": "양재역 12:00", "stopTimes": ["11:55", "12:00", "13:15"] },
+        { "time": "17:00", "routeType": "down", "busCount": 1, "notes": "양재역 먼저 하차", "stopTimes": ["17:00", "18:15", "18:20"] },
+        { "time": "18:00", "routeType": "down", "busCount": 1, "notes": "양재역 먼저 하차", "stopTimes": ["18:00", "19:15", "19:20"] },
+        { "time": "19:15", "routeType": "down", "busCount": 1, "notes": "양재역 먼저 하차", "stopTimes": ["19:15", "21:00", "21:05"] },
+        { "time": "20:15", "routeType": "down", "busCount": 1, "notes": "양재역 먼저 하차", "stopTimes": ["20:15", "22:00", "22:05"] }
+      ]
+    },
+    {
+      "patternId": "pilot",
+      "days": [1, 2, 3, 4, 5],
+      "serviceIds": ["commute-gwanggyo"],
+      "entries": [
+        { "time": "08:00", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["08:00", "08:35"] },
+        { "time": "08:30", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["08:30", "09:05"] },
+        { "time": "09:00", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["09:00", "09:35"] },
+        { "time": "09:30", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["09:30", "10:05"] },
+        { "time": "10:00", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["10:00", "10:35"] },
+        { "time": "10:30", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["10:30", "11:05"] },
+        { "time": "16:30", "routeType": "down", "busCount": 1, "notes": null, "stopTimes": ["16:30", "17:05"] },
+        { "time": "17:00", "routeType": "down", "busCount": 1, "notes": null, "stopTimes": ["17:00", "17:35"] },
+        { "time": "17:30", "routeType": "down", "busCount": 1, "notes": null, "stopTimes": ["17:30", "18:05"] },
+        { "time": "18:00", "routeType": "down", "busCount": 1, "notes": null, "stopTimes": ["18:00", "18:35"] },
+        { "time": "18:30", "routeType": "down", "busCount": 1, "notes": null, "stopTimes": ["18:30", "19:05"] },
+        { "time": "19:00", "routeType": "down", "busCount": 1, "notes": null, "stopTimes": ["19:00", "19:35"] }
+      ]
+    }
+  ]
+}

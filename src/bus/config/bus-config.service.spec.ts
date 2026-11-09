@@ -22,6 +22,10 @@
  * none while the lines cannot be read or for a route with no line, the HSSC
  * line's from code, reading no line; a synced direction changes the realtime
  * ETags and no schedule group's.
+ *
+ * `service` reads the frozen copy of the stops fixture
+ * (frozenBusStopsFixture), so the commute group stays the captured bytes when
+ * the commute's stops change.
  */
 const mockLogger = { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() };
 jest.mock("../../infra/logger", () => mockLogger);
@@ -37,7 +41,7 @@ import type { FakeBusRegistryRepository } from "../../../__tests__/helpers/fakes
 import { asReal } from "../../../__tests__/helpers/fakes/public-of";
 import type { BusRegistryRepository } from "../registry/bus-registry.repository";
 import { BusRegistryService } from "../registry/bus-registry.service";
-import { busStopsFixture, storedBusStopsRepository, storedBusStopsService } from "../../../__tests__/helpers/bus/bus-stops";
+import { busStopsFixture, frozenBusStopsFixture, storedBusStopsRepository, storedBusStopsService } from "../../../__tests__/helpers/bus/bus-stops";
 import { HSSC_STOP_IDS, md5EtagOf, withStationStopIds, withoutStationStopIds } from "../../../__tests__/helpers/bus/station-stop-ids";
 import { withLiveScreen, withoutLiveScreen } from "../../../__tests__/helpers/bus/live-screen";
 import { FakeBusStopsRepository } from "../../../__tests__/helpers/fakes/bus/bus-stops.repository.fake";
@@ -61,7 +65,8 @@ const clock = { now: () => new Date("2026-10-17T12:00:00Z") };
 
 async function freshService(): Promise<BusConfigService> {
   const registry = new BusRegistryService(asReal<BusRegistryRepository>(registryRepository), clock);
-  return new BusConfigService(storedBusStopsService(), registry, storedRouteAttributesService(attributesRepository, clock), storedBusRoutePathService(routePathRepository));
+  const stops = storedBusStopsService(storedBusStopsRepository(frozenBusStopsFixture()));
+  return new BusConfigService(stops, registry, storedRouteAttributesService(attributesRepository, clock), storedBusRoutePathService(routePathRepository));
 }
 
 beforeEach(async () => {

@@ -1,0 +1,88 @@
+{
+  "_about": "Synthetic, never captured: a frozen copy of scripts/data/campus-schedule.json as committed at 5c0ee5a9, 607051df and 90146c04, byte-identical at each, which the characterization route tests (schedule-content, bus-stops, stop-calls) read in place of the live file so that a timetable edit leaves the bytes they pin alone. Not trimmed.",
+  "semester": "2026-2",
+  "effectiveFrom": "2026-08-31",
+  "routeTypes": ["regular", "hakbu"],
+  "patterns": [
+    {
+      "patternId": "weekday",
+      "days": [1, 2, 3, 4],
+      "serviceIds": ["campus-inja"],
+      "entries": [
+        { "time": "07:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["07:00", null] },
+        { "time": "10:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["10:00", null] },
+        { "time": "12:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["12:00", null] },
+        { "time": "13:30", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["13:30", null] },
+        { "time": "15:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["15:00", null] },
+        { "time": "16:30", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["16:30", null] },
+        { "time": "18:15", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["18:15", null] }
+      ]
+    },
+    {
+      "patternId": "friday",
+      "days": [5],
+      "serviceIds": ["campus-inja"],
+      "entries": [
+        { "time": "08:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["08:00", null] },
+        { "time": "08:00", "routeType": "hakbu", "busCount": 2, "notes": null, "stopTimes": ["08:00", null] },
+        { "time": "08:20", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["08:20", null] },
+        { "time": "10:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["10:00", null] },
+        { "time": "10:00", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["10:00", null] },
+        { "time": "10:10", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["10:10", null] },
+        { "time": "10:30", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["10:30", null] },
+        { "time": "12:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["12:00", null] },
+        { "time": "12:00", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["12:00", null] },
+        { "time": "12:10", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["12:10", null] },
+        { "time": "12:30", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["12:30", null] },
+        { "time": "13:30", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["13:30", null] },
+        { "time": "14:00", "routeType": "hakbu", "busCount": 2, "notes": null, "stopTimes": ["14:00", null] },
+        { "time": "14:20", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["14:20", null] },
+        { "time": "15:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["15:00", null] },
+        { "time": "16:20", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["16:20", null] },
+        { "time": "16:30", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["16:30", null] },
+        { "time": "18:10", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["18:10", null] },
+        { "time": "18:15", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["18:15", null] }
+      ]
+    },
+    {
+      "patternId": "weekday",
+      "days": [1, 2, 3, 4],
+      "serviceIds": ["campus-jain"],
+      "entries": [
+        { "time": "07:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["07:00", null] },
+        { "time": "10:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["10:00", null] },
+        { "time": "12:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["12:00", null] },
+        { "time": "13:30", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["13:30", null] },
+        { "time": "15:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["15:00", null] },
+        { "time": "16:30", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["16:30", null] },
+        { "time": "18:15", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["18:15", null] }
+      ]
+    },
+    {
+      "patternId": "friday",
+      "days": [5],
+      "serviceIds": ["campus-jain"],
+      "entries": [
+        { "time": "08:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["08:00", null] },
+        { "time": "08:00", "routeType": "hakbu", "busCount": 2, "notes": null, "stopTimes": ["08:00", null] },
+        { "time": "08:20", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["08:20", null] },
+        { "time": "10:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["10:00", null] },
+        { "time": "10:00", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["10:00", null] },
+        { "time": "10:10", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["10:10", null] },
+        { "time": "10:30", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["10:30", null] },
+        { "time": "12:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["12:00", null] },
+        { "time": "12:00", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["12:00", null] },
+        { "time": "12:10", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["12:10", null] },
+        { "time": "12:30", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["12:30", null] },
+        { "time": "13:30", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["13:30", null] },
+        { "time": "14:00", "routeType": "hakbu", "busCount": 2, "notes": null, "stopTimes": ["14:00", null] },
+        { "time": "14:20", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["14:20", null] },
+        { "time": "15:00", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["15:00", null] },
+        { "time": "16:20", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["16:20", null] },
+        { "time": "16:30", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["16:30", null] },
+        { "time": "18:10", "routeType": "hakbu", "busCount": 1, "notes": null, "stopTimes": ["18:10", null] },
+        { "time": "18:15", "routeType": "regular", "busCount": 1, "notes": null, "stopTimes": ["18:15", null] }
+      ]
+    }
+  ]
+}

@@ -437,16 +437,16 @@ describe("GET …/smart with arrival estimates", () => {
   it("Commute 등교 run: fills the campus drop-off and is cached like every estimated service", async () => {
     // Arrange
     etaTimetable.patterns = [
-      pattern("commute-jeongja", [1], [{ index: 1, time: "10:00", routeType: "up", busCount: 1, notes: null, stopTimes: ["10:00", null] }]),
+      pattern("commute-jeongja", [1], [{ index: 1, time: "10:00", routeType: "up", busCount: 1, notes: null, stopTimes: ["10:00", "10:03", null] }]),
     ];
-    store({ ...estimate("live", [0, 3060], "commute-jeongja"), _id: "commute-jeongja|up|2026-10-12|10:00|live", routeType: "up" });
+    store({ ...estimate("live", [0, 180, 3060], "commute-jeongja"), _id: "commute-jeongja|up|2026-10-12|10:00|live", routeType: "up" });
 
     // Act
     const res = await request(server).get("/bus/schedule/data/commute-jeongja/smart");
 
     // Assert
     const [run] = res.body.data.days[0].schedule;
-    expect(run.stopTimes).toEqual(["10:00", "10:51"]);
+    expect(run.stopTimes).toEqual(["10:00", "10:03", "10:51"]);
     expect(run.eta).toEqual({ source: "live", updatedAt: "2026-10-12T00:20:00.000Z" });
     expect(res.headers["cache-control"]).toBe("private, max-age=60");
   });

@@ -1,5 +1,5 @@
 {
-  "_about": "Synthetic, never captured: revision 1 of the bus-stops dataset, built from src/bus/stops/schedule-stops.json at commit 50f3405c and HSSC_STATIONS (src/bus/config/bus-config.constants.ts) at commit 98a4992b, both unchanged at 099bbbb9: the catalog's stops and sequences as they are, then the nine HSSC stops named from their positions with the trailing bracketed note removed, and the HSSC line with those stops' ids. No arsIds and no topis. Not trimmed. Since 2026-10-23 each of the nine HSSC stops carries the coords production's revision 6 stores (skku_content datasets, bus-stops), which a push requires of a served stop; no other field changed.",
+  "_about": "Synthetic, never captured: revision 1 of the bus-stops dataset, built from src/bus/stops/schedule-stops.json at commit 50f3405c and HSSC_STATIONS (src/bus/config/bus-config.constants.ts) at commit 98a4992b, both unchanged at 099bbbb9: the catalog's stops and sequences as they are, then the nine HSSC stops named from their positions with the trailing bracketed note removed, and the HSSC line with those stops' ids. No arsIds and no topis. Not trimmed. Since 2026-10-23 each of the nine HSSC stops carries the coords production's revision 6 stores (skku_content datasets, bus-stops), which a push requires of a served stop; no other field changed. On 2026-11-09 it gained the four stops the commute calls at between its ends (migeum-exit8, bokjeong, garak-market, songpa), with their coords, and the sequences of commute-jeongja up and commute-jamsil down that call at them; no other field changed.",
   "stops": [
     {
       "id": "jeongja-exit3",
@@ -815,6 +815,54 @@
         "lat": 37.5874214,
         "lng": 126.9938431
       }
+    },
+    {
+      "id": "migeum-exit8",
+      "name": {
+        "ko": "미금역 8번 출구",
+        "en": "Migeum Stn. Exit 8",
+        "zh": "美金站 8号出口"
+      },
+      "coords": {
+        "lat": 37.3508035,
+        "lng": 127.1086927
+      }
+    },
+    {
+      "id": "bokjeong",
+      "name": {
+        "ko": "복정역",
+        "en": "Bokjeong Stn.",
+        "zh": "福井站"
+      },
+      "coords": {
+        "lat": 37.4710139,
+        "lng": 127.1267507
+      }
+    },
+    {
+      "id": "garak-market",
+      "name": {
+        "ko": "가락시장역",
+        "en": "Garak Market Stn.",
+        "zh": "可乐市场站"
+      },
+      "coords": {
+        "lat": 37.492962,
+        "lng": 127.1183099
+      }
+    },
+    {
+      "id": "songpa",
+      "name": {
+        "ko": "송파역",
+        "en": "Songpa Stn.",
+        "zh": "松坡站"
+      },
+      "coords": {
+        "lat": 37.499678,
+        "lng": 127.112275
+      }
     }
   ],
   "sequences": {
@@ -826,6 +874,16 @@
             "ko": "정자역 탑승",
             "en": "Board · Jeongja Stn.",
             "zh": "亭子站上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "migeum-exit8",
+          "note": {
+            "ko": "미금역 탑승",
+            "en": "Board · Migeum Stn.",
+            "zh": "美金站上车"
           },
           "action": "board",
           "timing": "scheduled"
@@ -907,6 +965,36 @@
           },
           "action": "board",
           "timing": "scheduled"
+        },
+        {
+          "stopId": "bokjeong",
+          "note": {
+            "ko": "복정역 하차",
+            "en": "Get off · Bokjeong Stn.",
+            "zh": "福井站下车"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        },
+        {
+          "stopId": "garak-market",
+          "note": {
+            "ko": "가락시장역 하차",
+            "en": "Get off · Garak Market Stn.",
+            "zh": "可乐市场站下车"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        },
+        {
+          "stopId": "songpa",
+          "note": {
+            "ko": "송파역 하차",
+            "en": "Get off · Songpa Stn.",
+            "zh": "松坡站下车"
+          },
+          "action": "alight",
+          "timing": "estimated"
         },
         {
           "stopId": "jamsil-exit5",

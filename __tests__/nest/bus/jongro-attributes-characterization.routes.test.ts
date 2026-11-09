@@ -20,7 +20,8 @@
  * routes as production stored them (fixtures/jongro-registry-routes.json, the
  * stations versions the captures carry), whose `bus_cache` holds the arrival
  * rows and positions below, and whose content database holds revision 1 of
- * `transit-layout`, `miniapps` and `jongro-route-attributes`, stored through
+ * `transit-layout`, `miniapps` and `jongro-route-attributes`, and of `bus-stops`
+ * as its frozen copy (fixtures/bus-stops.frozen.dataset.json), stored through
  * the tool's own scripts/lib/datasets/store.js. The attributes are the
  * dataset's; every expected value was pinned while they were
  * still the committed route file, of which revision 1 is a copy.
@@ -197,8 +198,8 @@ beforeAll(async () => {
   await store.create(content, "miniapps", fixtureRegistry(), { by: "characterization@example.com", now: NOW });
   const { routeAttributesFixture } = require("../../helpers/bus/route-attributes") as RouteAttributesHelpers;
   await store.create(content, "jongro-route-attributes", routeAttributesFixture(), { by: "characterization@example.com", now: NOW });
-  const { busStopsFixture } = require("../../helpers/bus/bus-stops") as BusStopsHelpers;
-  await store.create(content, "bus-stops", busStopsFixture(), { by: "characterization@example.com", now: NOW });
+  const { frozenBusStopsFixture } = require("../../helpers/bus/bus-stops") as BusStopsHelpers;
+  await store.create(content, "bus-stops", frozenBusStopsFixture(), { by: "characterization@example.com", now: NOW });
 }, MONGOD_START_TIMEOUT_MS);
 
 beforeAll(async () => {
