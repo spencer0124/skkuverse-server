@@ -7,7 +7,8 @@
  * the school's notice with its 2026-10-07 corrections, confirmed by the
  * 2026-10-08 draft, so a change to them is a timetable change. The 정자 등교
  * stop at 미금역 and the 잠실 하교 stops at 복정역, 가락시장역 and 송파역 were
- * added on 2026-11-09.
+ * added on 2026-11-09. The 정자 하교 stop at 미금역 and the observed times of
+ * the 18:30 정자 and 18:00 잠실 하교 runs are the school's 2026-11-10 answer.
  */
 import fs from "fs";
 import path from "path";
@@ -96,13 +97,13 @@ describe("commute timetable (spec scenarios: departure → arrival per run)", ()
     // Act & Assert
     expect(runs("commute-jeongja")).toEqual([
       "up 07:45→07:48→08:25", "up 09:20→09:23→10:05", "up 11:00→11:03→11:45",
-      "down 16:30→17:15", "down 18:30→19:15", "down 20:30→21:15",
+      "down 16:30→?→17:15", "down 18:30→19:06→19:10", "down 20:30→?→21:15",
     ]);
   });
 
-  it("잠실: 하교 drops at 복정, 가락시장 and 송파 (times unknown) before 잠실", () => {
+  it("잠실: 하교 drops at 복정, 가락시장 and 송파 before 잠실 (times observed for the 18:00 run, unknown for the 21:00 run)", () => {
     // Act & Assert
-    expect(runs("commute-jamsil")).toEqual(["up 07:30→08:40", "up 10:20→11:40", "down 18:00→?→?→?→19:20", "down 21:00→?→?→?→22:20"]);
+    expect(runs("commute-jamsil")).toEqual(["up 07:30→08:40", "up 10:20→11:40", "down 18:00→18:38→18:48→18:51→19:20", "down 21:00→?→?→?→22:20"]);
   });
 
   it("도곡", () => {
@@ -224,7 +225,8 @@ describe("commute card visibility", () => {
 
 describe("commute stop sequences (spec scenarios, from the committed catalog)", () => {
   const CAMPUS_SEQUENCE = "N센터 인근 → CNS센터 → 산학협력센터 인근 → 학생회관 인근";
-  const VIA_STOP_IDS = ["migeum-exit8", "bokjeong", "garak-market", "songpa"];
+  const VIA_STOP_IDS = ["migeum-exit8", "migeum", "bokjeong", "garak-market", "songpa"];
+  const VIA_STOP_DETAIL = "정차 위치는 기사님과 교통 상황에 따라 조금 달라요";
   type SeqStop = { label: string; action: string; timing: string; stopId?: string; detail?: string };
   const services = (lang: "ko" | "en" | "zh" = "ko") =>
     commute(lang).screen.services as Array<{ serviceId: string; stopSequences: Record<string, SeqStop[]> }>;
@@ -243,14 +245,14 @@ describe("commute stop sequences (spec scenarios, from the committed catalog)", 
     catalogStops.servedSequences(snapshot, COMMUTE_SERVICE_IDS, { lang, hasStopMaps: true }).stops.find((s) => s.id === id)!.map as Record<string, any>;
   const brief = (seq: SeqStop[]) => seq.map((st) => `${st.action}:${st.label}:${st.timing}`);
 
-  it("정자 boarding: the run boards at 정자역 3번 출구, then 미금역 8번 출구, and arrives at N센터 앞, the first campus drop point (estimated)", async () => {
+  it("정자 boarding: the run boards at 정자역 3번 출구, then 미금역 8번 출구, and arrives at N센터 앞, the first campus drop point (estimated); 하교 drops at 미금역, then 정자역 2번 출구 앞", async () => {
     // Act
     const seq = sequences("commute-jeongja");
 
     // Assert
     expect(brief(seq.up!)).toEqual(["board:정자역 3번 출구:scheduled", "board:미금역 8번 출구:scheduled", "alight:N센터 앞:estimated"]);
     expect(stopById(seq.up![0]!.stopId!)).toMatchObject({ name: "정자역 3번 출구", detail: "파리바게뜨 앞" });
-    expect(brief(seq.down!)).toEqual(["board:N센터 맞은편:scheduled", "alight:정자역 2번 출구 앞:estimated"]);
+    expect(brief(seq.down!)).toEqual(["board:N센터 맞은편:scheduled", "alight:미금역:estimated", "alight:정자역 2번 출구 앞:estimated"]);
   });
 
   it("강남·양재: 등교 boards at 강남, then 양재; 하교 drops at 양재, then 강남", async () => {
@@ -279,7 +281,7 @@ describe("commute stop sequences (spec scenarios, from the committed catalog)", 
     expect(stopById("nsc-n-center").coords).toEqual({ lat: 37.292298, lng: 126.975057 });
   });
 
-  it("하교 drop-off spots match the school's 2026-10-08 answer, with the stops 잠실 added on 2026-11-09", async () => {
+  it("하교 drop-off spots match the school's 2026-10-08 answer, with the stops 잠실 added on 2026-11-09 and 정자 on 2026-11-10", async () => {
     // Act
     const drops = Object.fromEntries(
       services().map((s) => [s.serviceId, s.stopSequences.down!.filter((st) => st.action === "alight").map((st) => st.label)]),
@@ -287,7 +289,7 @@ describe("commute stop sequences (spec scenarios, from the committed catalog)", 
 
     // Assert
     expect(drops).toEqual({
-      "commute-jeongja": ["정자역 2번 출구 앞"],
+      "commute-jeongja": ["미금역", "정자역 2번 출구 앞"],
       "commute-jamsil": ["복정역", "가락시장역", "송파역", "잠실역 5번 출구 앞"],
       "commute-dogok": ["도곡역 4번 출구 앞"],
       "commute-gangnam-yangjae": ["양재역 3번 출구 앞", "강남역 사거리 전 중앙버스차로 정류장"],
@@ -325,9 +327,10 @@ describe("commute stop sequences (spec scenarios, from the committed catalog)", 
       for (const st of s.stopSequences.down!.filter((x) => x.action === "alight")) {
         const stop = stopById(st.stopId!);
         expect(stop).not.toHaveProperty("photoUrl");
-        // A via stop is named after its station and stores no guide, so it serves no map.
+        // A via stop is named after its station and stores no guide, so it serves no map. Its spot varies, and its detail says so.
         if (VIA_STOP_IDS.includes(stop.id)) {
           expect(guideMapOf(stop.id)).toBeUndefined();
+          expect(stop.detail).toBe(VIA_STOP_DETAIL);
           continue;
         }
         expect(guideMapOf(stop.id).paths).toEqual([]);
@@ -402,7 +405,7 @@ describe("commute stop sequences (spec scenarios, from the committed catalog)", 
     expect(notes("commute-gangnam-yangjae", "up", "en")).toEqual(["Board · Gangnam Stn.", "Board · Yangjae Stn.", "Get off · NSC"]);
     expect(notes("commute-gangnam-yangjae", "down", "zh")).toEqual(["自然校区上车", "良才站下车", "江南站下车"]);
     expect(notes("commute-jeongja", "up")).toEqual(["정자역 탑승", "미금역 탑승", "자과캠 하차"]);
-    expect(notes("commute-jeongja", "down")).toEqual(["자과캠 탑승", "정자역 하차"]);
+    expect(notes("commute-jeongja", "down")).toEqual(["자과캠 탑승", "미금역 하차", "정자역 하차"]);
     expect(notes("commute-jamsil", "up")).toEqual(["잠실역 탑승", "자과캠 하차"]);
     expect(notes("commute-jamsil", "down")).toEqual(["자과캠 탑승", "복정역 하차", "가락시장역 하차", "송파역 하차", "잠실역 하차"]);
     for (const [serviceId, station] of [
@@ -544,7 +547,7 @@ describe("commute stops and their subway stations (GET /bus/config/commute)", ()
     // Assert
     // WHY: stops are served in order of first reference, so the pairs compare sorted.
     expect(stops.filter((s) => s.subwayStation).map((s) => [s.id, s.subwayStation!.id]).sort()).toEqual([...STATION_STOPS].sort());
-    expect(stops.filter((s) => !s.subwayStation).map((s) => s.id).sort()).toEqual(["bokjeong", "garak-market", "migeum-exit8", "nsc-n-center", "nsc-opposite", "songpa"]);
+    expect(stops.filter((s) => !s.subwayStation).map((s) => s.id).sort()).toEqual(["bokjeong", "garak-market", "migeum", "migeum-exit8", "nsc-n-center", "nsc-opposite", "songpa"]);
   });
 
   it("Stop away from the subway: no stop of any group but the commute station stops carries the key", async () => {

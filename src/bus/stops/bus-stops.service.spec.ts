@@ -334,6 +334,7 @@ describe("BusStopsService.servedSequences", () => {
       ["migeum-exit8", null, false],
       ["nsc-n-center", null, false],
       ["nsc-opposite", null, false],
+      ["migeum", null, false],
       ["jeongja-exit2", "Jeongja Station", false],
     ]);
   });

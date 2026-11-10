@@ -838,6 +838,11 @@
       "coords": {
         "lat": 37.4710139,
         "lng": 127.1267507
+      },
+      "detail": {
+        "ko": "정차 위치는 기사님과 교통 상황에 따라 조금 달라요",
+        "en": "The exact stop varies with the driver and traffic",
+        "zh": "具体停靠位置因司机和交通状况略有不同"
       }
     },
     {
@@ -850,6 +855,11 @@
       "coords": {
         "lat": 37.492962,
         "lng": 127.1183099
+      },
+      "detail": {
+        "ko": "정차 위치는 기사님과 교통 상황에 따라 조금 달라요",
+        "en": "The exact stop varies with the driver and traffic",
+        "zh": "具体停靠位置因司机和交通状况略有不同"
       }
     },
     {
@@ -862,6 +872,28 @@
       "coords": {
         "lat": 37.499678,
         "lng": 127.112275
+      },
+      "detail": {
+        "ko": "정차 위치는 기사님과 교통 상황에 따라 조금 달라요",
+        "en": "The exact stop varies with the driver and traffic",
+        "zh": "具体停靠位置因司机和交通状况略有不同"
+      }
+    },
+    {
+      "id": "migeum",
+      "name": {
+        "ko": "미금역",
+        "en": "Migeum Stn.",
+        "zh": "美金站"
+      },
+      "detail": {
+        "ko": "정차 위치는 기사님과 교통 상황에 따라 조금 달라요",
+        "en": "The exact stop varies with the driver and traffic",
+        "zh": "具体停靠位置因司机和交通状况略有不同"
+      },
+      "coords": {
+        "lat": 37.3502955,
+        "lng": 127.109206
       }
     }
   ],
@@ -914,6 +946,16 @@
           },
           "action": "board",
           "timing": "scheduled"
+        },
+        {
+          "stopId": "migeum",
+          "note": {
+            "ko": "미금역 하차",
+            "en": "Get off · Migeum Stn.",
+            "zh": "美金站下车"
+          },
+          "action": "alight",
+          "timing": "estimated"
         },
         {
           "stopId": "jeongja-exit2",

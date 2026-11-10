@@ -76,7 +76,7 @@ describe("toEtaSequences", () => {
       "campus-jain.regular:2",
       "campus-jain.hakbu:2",
       "commute-jeongja.up:3",
-      "commute-jeongja.down:2",
+      "commute-jeongja.down:3",
       "commute-jamsil.up:2",
       "commute-jamsil.down:5",
       "commute-dogok.up:2",
