@@ -80,8 +80,8 @@ describe("toTopologyIssues", () => {
     ],
     [
       "a train-map name on a line with no train map",
-      (data: Record<string, any>) => (data.neighbors["KR-K1-K231"].trainMapName = "미금역"),
-      'neighbors.KR-K1-K231.trainMapName: line "K1" has no train map',
+      (data: Record<string, any>) => (data.neighbors["KR-K1-K232"].trainMapName = "오리역"),
+      'neighbors.KR-K1-K232.trainMapName: line "K1" has no train map',
     ],
     [
       "Platform added in code: no entry for a served platform",

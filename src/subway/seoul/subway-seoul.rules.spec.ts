@@ -98,7 +98,8 @@ const LINE_4_NAMES = {
 // WHY: every name checked against the 2026-10-17 21:05–21:21 position rows and the train map pages, and the
 // ones tracked for coverage (ADR 0017, D6) against the 2026-10-18 11:16–11:35 position rows and train map pages (line 4 writes Seoul
 // Station as `서울`), and those Sadang, Geumjeong and Jongno 5-ga add against the 2026-10-25 12:23–12:27 ones (both write
-// Chongshin Univ. with its suffix).
+// Chongshin Univ. with its suffix), and those Migeum, Bokjeong, Garak Market, Songpa and line 8's stretch to Moran add against the 2026-11-10
+// ones (the API writes Namhansanseong Entrance with its suffix).
 const LINE_2_NAMES = {
   잠실: "S1-2-216",
   강남: "S1-2-222",
@@ -141,7 +142,7 @@ const LINE_3_NAMES = {
   경찰병원: "S1-3-341",
   오금: "S1-3-342",
 };
-// WHY: the API writes two line 8 stations with a bracketed suffix the train map leaves out.
+// WHY: the API writes three line 8 stations with a bracketed suffix the train map leaves out.
 const LINE_8_STATIONS = {
   잠실: "S1-8-2815",
   강동구청: "S1-8-2813",
@@ -155,9 +156,14 @@ const LINE_8_STATIONS = {
   장지: "S1-8-2820",
   복정: "S1-8-2821",
   남위례: "S1-8-2828",
+  산성: "S1-8-2822",
+  단대오거리: "S1-8-2824",
+  신흥: "S1-8-2825",
+  수진: "S1-8-2826",
+  모란: "S1-8-2827",
 };
-const LINE_8_API_NAMES = { ...LINE_8_STATIONS, "천호(풍납토성)": "S1-8-2812", "몽촌토성(평화의문)": "S1-8-2814" };
-const LINE_8_MAP_NAMES = { ...LINE_8_STATIONS, 천호: "S1-8-2812", 몽촌토성: "S1-8-2814" };
+const LINE_8_API_NAMES = { ...LINE_8_STATIONS, "천호(풍납토성)": "S1-8-2812", "몽촌토성(평화의문)": "S1-8-2814", "남한산성입구(성남법원,검찰청)": "S1-8-2823" };
+const LINE_8_MAP_NAMES = { ...LINE_8_STATIONS, 천호: "S1-8-2812", 몽촌토성: "S1-8-2814", 남한산성입구: "S1-8-2823" };
 const SHINBUNDANG_NAMES = {
   정자: "DX-D1-4312",
   강남: "DX-D1-4307",
@@ -210,10 +216,10 @@ const SUIN_BUNDANG_NAMES = {
 const LINE_1_STATN_IDS = { "1001080153": "KR-1-P153", "1001080149": "KR-1-P149", "1001000129": "S1-1-154" };
 const LINE_4_STATN_IDS = { "1004000420": "S1-4-420", "1004000433": "S1-4-433", "1004000443": "KR-4-443" };
 const LINE_2_STATN_IDS = { "1002000216": "S1-2-216", "1002000222": "S1-2-222", "1002000226": "S1-2-226" };
-const LINE_3_STATN_IDS = { "1003000344": "S1-3-334", "1003000342": "S1-3-332" };
-const LINE_8_STATN_IDS = { "1008000814": "S1-8-2815" };
-const SUIN_BUNDANG_STATN_IDS = { "1075075230": "KR-K1-K230", "1075075217": "KR-K1-K217" };
-const SHINBUNDANG_STATN_IDS = { "1077006812": "DX-D1-4312", "1077000687": "DX-D1-4307", "1077000688": "DX-D1-4308", "1077006818": "DX-D1-4318" };
+const LINE_3_STATN_IDS = { "1003000344": "S1-3-334", "1003000342": "S1-3-332", "1003000350": "S1-3-340" };
+const LINE_8_STATN_IDS = { "1008000814": "S1-8-2815", "1008000816": "S1-8-2817", "1008000817": "S1-8-2818", "1008000820": "S1-8-2821" };
+const SUIN_BUNDANG_STATN_IDS = { "1075075230": "KR-K1-K230", "1075075217": "KR-K1-K217", "1075075231": "KR-K1-K231", "1075075222": "KR-K1-K222" };
+const SHINBUNDANG_STATN_IDS = { "1077006812": "DX-D1-4312", "1077000687": "DX-D1-4307", "1077000688": "DX-D1-4308", "1077006818": "DX-D1-4318", "1077006813": "DX-D1-D13" };
 const neighborNames = (names: Record<string, string>, statnIds: Record<string, string>) =>
   Object.fromEntries(Object.entries(names).filter(([, platformId]) => !Object.values(statnIds).includes(platformId)));
 
@@ -392,6 +398,28 @@ describe("toSeoulStations", () => {
         },
       ],
       ["종로5가", { "1001000129": { platformId: "S1-1-154", trainNumbers: "timetable" } }],
+      [
+        "미금",
+        {
+          "1077006813": { platformId: "DX-D1-D13", trainNumbers: "trainset" },
+          "1075075231": { platformId: "KR-K1-K231", trainNumbers: "timetable" },
+        },
+      ],
+      [
+        "복정",
+        {
+          "1008000820": { platformId: "S1-8-2821", trainNumbers: "timetable" },
+          "1075075222": { platformId: "KR-K1-K222", trainNumbers: "timetable" },
+        },
+      ],
+      [
+        "가락시장",
+        {
+          "1003000350": { platformId: "S1-3-340", trainNumbers: "timetable" },
+          "1008000817": { platformId: "S1-8-2818", trainNumbers: "timetable" },
+        },
+      ],
+      ["송파", { "1008000816": { platformId: "S1-8-2817", trainNumbers: "timetable" } }],
     ]);
   });
 

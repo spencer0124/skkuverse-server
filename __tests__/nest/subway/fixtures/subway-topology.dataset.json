@@ -1,5 +1,5 @@
 {
-  "_about": "Revision 1 of the subway-topology dataset: the committed subway registry file as production served it at commit d856f333 (captured 2026-10-20; the file is deleted), its platform directions keyed by platform id in the registry order, and its neighbors. The lines, stations and platform identities stay in code as SUBWAY_LINES and SUBWAY_STATIONS. Not trimmed. Revision 2 (2026-10-25, ADR 0022 D4), pushed to skku_content_dev from this checkout, adds the platforms of 사당 (S1-2-226, S1-4-433), 금정 (KR-1-P149, KR-4-443) and 종로5가 (S1-1-154), carries the line 1, 2 and 4 platforms' upstream, watched and next platforms to the wider stretches of subway-timetables revision 2, and adds those stretches' stops as neighbors (Seoul API and train-map names as both wrote them on 2026-10-25 12:23-12:27 KST). Renamed 2026-10-25 (owner decision): 성균관대's platform id KR-1-0153 became its KRIC code KR-1-P153 wherever it appears; no other value changed. Revision 3 (2026-10-26, ADR 0022 D5), drafted from this checkout and pushed after its deploy, gives every line 1 and 4 neighbor a station id (a slug of its English name in the Seoul SearchSTNBySubwayLineInfo) and its coords (the Seoul subwayStationMaster row of the same station code), so a journey ride can list the stops it passes; both APIs called once on 2026-10-26; no other value changed. Names added 2026-10-27 from production revision 4: every neighbor with a station id carries its name in every language (Seoul SearchSTNBySubwayLineInfo), as the push now requires; no other value changed.",
+  "_about": "Revision 1 of the subway-topology dataset: the committed subway registry file as production served it at commit d856f333 (captured 2026-10-20; the file is deleted), its platform directions keyed by platform id in the registry order, and its neighbors. The lines, stations and platform identities stay in code as SUBWAY_LINES and SUBWAY_STATIONS. Not trimmed. Revision 2 (2026-10-25, ADR 0022 D4), pushed to skku_content_dev from this checkout, adds the platforms of 사당 (S1-2-226, S1-4-433), 금정 (KR-1-P149, KR-4-443) and 종로5가 (S1-1-154), carries the line 1, 2 and 4 platforms' upstream, watched and next platforms to the wider stretches of subway-timetables revision 2, and adds those stretches' stops as neighbors (Seoul API and train-map names as both wrote them on 2026-10-25 12:23-12:27 KST). Renamed 2026-10-25 (owner decision): 성균관대's platform id KR-1-0153 became its KRIC code KR-1-P153 wherever it appears; no other value changed. Revision 3 (2026-10-26, ADR 0022 D5), drafted from this checkout and pushed after its deploy, gives every line 1 and 4 neighbor a station id (a slug of its English name in the Seoul SearchSTNBySubwayLineInfo) and its coords (the Seoul subwayStationMaster row of the same station code), so a journey ride can list the stops it passes; both APIs called once on 2026-10-26; no other value changed. Names added 2026-10-27 from production revision 4: every neighbor with a station id carries its name in every language (Seoul SearchSTNBySubwayLineInfo), as the push now requires; no other value changed. Revision 5 (2026-11-10), drafted from this checkout and pushed after its deploy, adds the platforms of 미금 (DX-D1-D13, KR-K1-K231), 복정 (S1-8-2821, KR-K1-K222), 가락시장 (S1-3-340, S1-8-2818) and 송파 (S1-8-2817), which leave the neighbors, and carries line 8 to its 모란 terminus: S1-8-2815's up watched platforms and the neighbors S1-8-2822 to S1-8-2827 (Seoul API names from the position and arrival rows and train-map names from the page, all of 2026-11-10; the API writes 남한산성입구 with its suffix). Neighbors that a new platform's direction now ends at gain their names in every language (SearchSTNBySubwayLineInfo, 2026-11-10); no other value changed.",
   "platforms": {
     "KR-1-P153": {
       "up": {
@@ -277,7 +277,13 @@
           "S1-8-2819",
           "S1-8-2820",
           "S1-8-2821",
-          "S1-8-2828"
+          "S1-8-2828",
+          "S1-8-2822",
+          "S1-8-2823",
+          "S1-8-2824",
+          "S1-8-2825",
+          "S1-8-2826",
+          "S1-8-2827"
         ],
         "nextPlatformId": "S1-8-2814"
       },
@@ -889,6 +895,329 @@
         ],
         "nextPlatformId": "S1-1-153"
       }
+    },
+    "DX-D1-D13": {
+      "up": {
+        "name": {
+          "ko": "신사 방면",
+          "en": "Toward Sinsa",
+          "zh": "新沙方向"
+        },
+        "upstreamPlatformIds": [
+          "DX-D1-D14",
+          "DX-D1-D15",
+          "DX-D1-4316"
+        ],
+        "watchedPlatformIds": [
+          "DX-D1-4317",
+          "DX-D1-4318",
+          "DX-D1-4319"
+        ],
+        "nextPlatformId": "DX-D1-4312"
+      },
+      "down": {
+        "name": {
+          "ko": "광교 방면",
+          "en": "Toward Gwanggyo",
+          "zh": "光教方向"
+        },
+        "upstreamPlatformIds": [
+          "DX-D1-4312",
+          "DX-D1-4311",
+          "DX-D1-4310"
+        ],
+        "watchedPlatformIds": [
+          "DX-D1-4309",
+          "DX-D1-4308",
+          "DX-D1-4307",
+          "DX-D1-4306",
+          "DX-D1-4305",
+          "DX-D1-D04"
+        ],
+        "nextPlatformId": "DX-D1-D14"
+      }
+    },
+    "KR-K1-K231": {
+      "up": {
+        "name": {
+          "ko": "청량리 방면",
+          "en": "Toward Cheongnyangni",
+          "zh": "清凉里方向"
+        },
+        "upstreamPlatformIds": [
+          "KR-K1-K232",
+          "KR-K1-K233",
+          "KR-K1-K234"
+        ],
+        "watchedPlatformIds": [
+          "KR-K1-K235",
+          "KR-K1-K236",
+          "KR-K1-K237"
+        ],
+        "nextPlatformId": "KR-K1-K230"
+      },
+      "down": {
+        "name": {
+          "ko": "인천 방면",
+          "en": "Toward Incheon",
+          "zh": "仁川方向"
+        },
+        "upstreamPlatformIds": [
+          "KR-K1-K230",
+          "KR-K1-K229",
+          "KR-K1-K228"
+        ],
+        "watchedPlatformIds": [
+          "KR-K1-K227",
+          "KR-K1-K226",
+          "KR-K1-K225",
+          "KR-K1-K224",
+          "KR-K1-K223",
+          "KR-K1-K222",
+          "KR-K1-K221",
+          "KR-K1-K220",
+          "KR-K1-K219",
+          "KR-K1-K218",
+          "KR-K1-K217",
+          "KR-K1-K216",
+          "KR-K1-K215",
+          "KR-K1-K214",
+          "KR-K1-K213",
+          "KR-K1-K212",
+          "KR-K1-K211",
+          "KR-K1-K210"
+        ],
+        "nextPlatformId": "KR-K1-K232"
+      }
+    },
+    "S1-8-2821": {
+      "up": {
+        "name": {
+          "ko": "별내 방면",
+          "en": "Toward Byeollae",
+          "zh": "别内方向"
+        },
+        "upstreamPlatformIds": [
+          "S1-8-2828",
+          "S1-8-2822",
+          "S1-8-2823"
+        ],
+        "watchedPlatformIds": [
+          "S1-8-2824",
+          "S1-8-2825",
+          "S1-8-2826",
+          "S1-8-2827"
+        ],
+        "nextPlatformId": "S1-8-2820"
+      },
+      "down": {
+        "name": {
+          "ko": "모란 방면",
+          "en": "Toward Moran",
+          "zh": "牡丹方向"
+        },
+        "upstreamPlatformIds": [
+          "S1-8-2820",
+          "S1-8-2819",
+          "S1-8-2818"
+        ],
+        "watchedPlatformIds": [
+          "S1-8-2817",
+          "S1-8-2816",
+          "S1-8-2815",
+          "S1-8-2814",
+          "S1-8-2813",
+          "S1-8-2812",
+          "S1-8-2811",
+          "S1-8-2809",
+          "GU-8-2808"
+        ],
+        "nextPlatformId": "S1-8-2828"
+      }
+    },
+    "KR-K1-K222": {
+      "up": {
+        "name": {
+          "ko": "청량리 방면",
+          "en": "Toward Cheongnyangni",
+          "zh": "清凉里方向"
+        },
+        "upstreamPlatformIds": [
+          "KR-K1-K223",
+          "KR-K1-K224",
+          "KR-K1-K225"
+        ],
+        "watchedPlatformIds": [
+          "KR-K1-K226",
+          "KR-K1-K227",
+          "KR-K1-K228",
+          "KR-K1-K229",
+          "KR-K1-K230",
+          "KR-K1-K231",
+          "KR-K1-K232",
+          "KR-K1-K233",
+          "KR-K1-K234",
+          "KR-K1-K235",
+          "KR-K1-K236",
+          "KR-K1-K237"
+        ],
+        "nextPlatformId": "KR-K1-K221"
+      },
+      "down": {
+        "name": {
+          "ko": "인천 방면",
+          "en": "Toward Incheon",
+          "zh": "仁川方向"
+        },
+        "upstreamPlatformIds": [
+          "KR-K1-K221",
+          "KR-K1-K220",
+          "KR-K1-K219"
+        ],
+        "watchedPlatformIds": [
+          "KR-K1-K218",
+          "KR-K1-K217",
+          "KR-K1-K216",
+          "KR-K1-K215",
+          "KR-K1-K214",
+          "KR-K1-K213",
+          "KR-K1-K212",
+          "KR-K1-K211",
+          "KR-K1-K210"
+        ],
+        "nextPlatformId": "KR-K1-K223"
+      }
+    },
+    "S1-3-340": {
+      "up": {
+        "name": {
+          "ko": "대화 방면",
+          "en": "Toward Daehwa",
+          "zh": "大化方向"
+        },
+        "upstreamPlatformIds": [
+          "S1-3-341",
+          "S1-3-342"
+        ],
+        "watchedPlatformIds": [],
+        "nextPlatformId": "S1-3-339"
+      },
+      "down": {
+        "name": {
+          "ko": "오금 방면",
+          "en": "Toward Ogeum",
+          "zh": "梧琴方向"
+        },
+        "upstreamPlatformIds": [
+          "S1-3-339",
+          "S1-3-338",
+          "S1-3-337"
+        ],
+        "watchedPlatformIds": [
+          "S1-3-336",
+          "S1-3-335",
+          "S1-3-334",
+          "S1-3-333",
+          "S1-3-332",
+          "S1-3-331",
+          "S1-3-330",
+          "S1-3-329",
+          "S1-3-328",
+          "S1-3-327",
+          "S1-3-326"
+        ],
+        "nextPlatformId": "S1-3-341"
+      }
+    },
+    "S1-8-2818": {
+      "up": {
+        "name": {
+          "ko": "별내 방면",
+          "en": "Toward Byeollae",
+          "zh": "别内方向"
+        },
+        "upstreamPlatformIds": [
+          "S1-8-2819",
+          "S1-8-2820",
+          "S1-8-2821"
+        ],
+        "watchedPlatformIds": [
+          "S1-8-2828",
+          "S1-8-2822",
+          "S1-8-2823",
+          "S1-8-2824",
+          "S1-8-2825",
+          "S1-8-2826",
+          "S1-8-2827"
+        ],
+        "nextPlatformId": "S1-8-2817"
+      },
+      "down": {
+        "name": {
+          "ko": "모란 방면",
+          "en": "Toward Moran",
+          "zh": "牡丹方向"
+        },
+        "upstreamPlatformIds": [
+          "S1-8-2817",
+          "S1-8-2816",
+          "S1-8-2815"
+        ],
+        "watchedPlatformIds": [
+          "S1-8-2814",
+          "S1-8-2813",
+          "S1-8-2812",
+          "S1-8-2811",
+          "S1-8-2809",
+          "GU-8-2808"
+        ],
+        "nextPlatformId": "S1-8-2819"
+      }
+    },
+    "S1-8-2817": {
+      "up": {
+        "name": {
+          "ko": "별내 방면",
+          "en": "Toward Byeollae",
+          "zh": "别内方向"
+        },
+        "upstreamPlatformIds": [
+          "S1-8-2818",
+          "S1-8-2819",
+          "S1-8-2820"
+        ],
+        "watchedPlatformIds": [
+          "S1-8-2821",
+          "S1-8-2828",
+          "S1-8-2822",
+          "S1-8-2823",
+          "S1-8-2824",
+          "S1-8-2825",
+          "S1-8-2826",
+          "S1-8-2827"
+        ],
+        "nextPlatformId": "S1-8-2816"
+      },
+      "down": {
+        "name": {
+          "ko": "모란 방면",
+          "en": "Toward Moran",
+          "zh": "牡丹方向"
+        },
+        "upstreamPlatformIds": [
+          "S1-8-2816",
+          "S1-8-2815",
+          "S1-8-2814"
+        ],
+        "watchedPlatformIds": [
+          "S1-8-2813",
+          "S1-8-2812",
+          "S1-8-2811",
+          "S1-8-2809",
+          "GU-8-2808"
+        ],
+        "nextPlatformId": "S1-8-2818"
+      }
     }
   },
   "neighbors": {
@@ -1333,15 +1662,21 @@
     },
     "S1-3-339": {
       "line": "3",
-      "seoulName": "수서"
-    },
-    "S1-3-340": {
-      "line": "3",
-      "seoulName": "가락시장"
+      "seoulName": "수서",
+      "name": {
+        "ko": "수서",
+        "en": "Suseo",
+        "zh": "水西"
+      }
     },
     "S1-3-341": {
       "line": "3",
-      "seoulName": "경찰병원"
+      "seoulName": "경찰병원",
+      "name": {
+        "ko": "경찰병원",
+        "en": "National Police Hospital",
+        "zh": "警察医院"
+      }
     },
     "S1-3-342": {
       "line": "3",
@@ -1387,29 +1722,57 @@
         "zh": "石村"
       }
     },
-    "S1-8-2817": {
-      "line": "8",
-      "seoulName": "송파"
-    },
-    "S1-8-2818": {
-      "line": "8",
-      "seoulName": "가락시장"
-    },
     "S1-8-2819": {
       "line": "8",
-      "seoulName": "문정"
+      "seoulName": "문정",
+      "name": {
+        "ko": "문정",
+        "en": "Munjeong",
+        "zh": "文井"
+      }
     },
     "S1-8-2820": {
       "line": "8",
-      "seoulName": "장지"
-    },
-    "S1-8-2821": {
-      "line": "8",
-      "seoulName": "복정"
+      "seoulName": "장지",
+      "name": {
+        "ko": "장지",
+        "en": "Jangji",
+        "zh": "长旨"
+      }
     },
     "S1-8-2828": {
       "line": "8",
-      "seoulName": "남위례"
+      "seoulName": "남위례",
+      "name": {
+        "ko": "남위례",
+        "en": "Namwirye",
+        "zh": "南慰礼"
+      }
+    },
+    "S1-8-2822": {
+      "line": "8",
+      "seoulName": "산성"
+    },
+    "S1-8-2823": {
+      "line": "8",
+      "seoulName": "남한산성입구(성남법원,검찰청)",
+      "trainMapName": "남한산성입구"
+    },
+    "S1-8-2824": {
+      "line": "8",
+      "seoulName": "단대오거리"
+    },
+    "S1-8-2825": {
+      "line": "8",
+      "seoulName": "신흥"
+    },
+    "S1-8-2826": {
+      "line": "8",
+      "seoulName": "수진"
+    },
+    "S1-8-2827": {
+      "line": "8",
+      "seoulName": "모란"
     },
     "KR-K1-K210": {
       "line": "K1",
@@ -1463,15 +1826,21 @@
     },
     "KR-K1-K221": {
       "line": "K1",
-      "seoulName": "수서"
-    },
-    "KR-K1-K222": {
-      "line": "K1",
-      "seoulName": "복정"
+      "seoulName": "수서",
+      "name": {
+        "ko": "수서",
+        "en": "Suseo",
+        "zh": "水西"
+      }
     },
     "KR-K1-K223": {
       "line": "K1",
-      "seoulName": "가천대"
+      "seoulName": "가천대",
+      "name": {
+        "ko": "가천대",
+        "en": "Gachon Univ.",
+        "zh": "嘉泉大学"
+      }
     },
     "KR-K1-K224": {
       "line": "K1",
@@ -1502,18 +1871,14 @@
         "zh": "薮内"
       }
     },
-    "KR-K1-K231": {
-      "line": "K1",
-      "seoulName": "미금",
-      "name": {
-        "ko": "미금",
-        "en": "Migeum",
-        "zh": "美金"
-      }
-    },
     "KR-K1-K232": {
       "line": "K1",
-      "seoulName": "오리"
+      "seoulName": "오리",
+      "name": {
+        "ko": "오리",
+        "en": "Ori",
+        "zh": "梧里"
+      }
     },
     "KR-K1-K233": {
       "line": "K1",
@@ -1574,18 +1939,14 @@
         "zh": "板桥"
       }
     },
-    "DX-D1-D13": {
-      "line": "D1",
-      "seoulName": "미금",
-      "name": {
-        "ko": "미금",
-        "en": "Migeum",
-        "zh": "美金"
-      }
-    },
     "DX-D1-D14": {
       "line": "D1",
-      "seoulName": "동천"
+      "seoulName": "동천",
+      "name": {
+        "ko": "동천",
+        "en": "Dongcheon",
+        "zh": "東川"
+      }
     },
     "DX-D1-D15": {
       "line": "D1",

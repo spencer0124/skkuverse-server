@@ -30,7 +30,7 @@ import { FakeRateLimitPolicy } from "../../helpers/fakes/perimeter/rate-limit-po
 
 const CLOCK: Clock = { now: () => new Date("2026-10-24T03:00:00.000Z") };
 
-const SERVED_ORDER = ["sungkyunkwan", "hyehwa", "jeongja", "jamsil", "dogok", "gangnam", "yangjae", "gwanggyo-jungang", "sadang", "geumjeong", "jongno-5-ga"];
+const SERVED_ORDER = ["sungkyunkwan", "hyehwa", "jeongja", "jamsil", "dogok", "gangnam", "yangjae", "gwanggyo-jungang", "sadang", "geumjeong", "jongno-5-ga", "migeum", "bokjeong", "garak-market", "songpa"];
 
 function bootWith(coordsRepository: FakeSubwayStationCoordsRepository, rateLimitPolicy = new FakeRateLimitPolicy()): Promise<NestExpressApplication> {
   return buildTestApp({
@@ -89,7 +89,7 @@ describe("GET /subway/stations", () => {
     expectWire(subwayStationList, res.body.data);
   });
 
-  it("files every station under its campus, as the bus stop list does: 혜화 under hssc, 사당, 금정 and 종로5가 under none, the rest under nsc, as the wire publishes it", async () => {
+  it("files every station under its campus, as the bus stop list does: 혜화 under hssc, 사당, 금정, 종로5가, 미금, 복정, 가락시장 and 송파 under none, the rest under nsc, as the wire publishes it", async () => {
     // Act
     const res = await request(app.getHttpServer()).get("/subway/stations");
 
@@ -107,7 +107,32 @@ describe("GET /subway/stations", () => {
       ["sadang", null],
       ["geumjeong", null],
       ["jongno-5-ga", null],
+      ["migeum", null],
+      ["bokjeong", null],
+      ["garak-market", null],
+      ["songpa", null],
     ]);
+    expectWire(subwayStationList, res.body.data);
+  });
+
+  it("lists 미금, 복정, 가락시장 and 송파, where the commute shuttle calls between its ends, with every line that stops there and no campus, as the wire publishes it", async () => {
+    // Act
+    const res = await request(app.getHttpServer()).get("/subway/stations");
+
+    // Assert
+    expect(stationOf(res.body, "migeum")).toEqual({
+      id: "migeum",
+      title: "미금역",
+      campus: null,
+      lines: [
+        { code: "D1", name: "신분당선", color: "D4003B", marker: { text: "신", color: "D4003B" } },
+        { code: "K1", name: "수인분당선", color: "F5A200", marker: { text: "수", color: "A26B00" } },
+      ],
+      coords: { lat: 37.35003, lng: 127.108914 },
+    });
+    expect(stationOf(res.body, "bokjeong")?.lines.map((line) => line.code)).toEqual(["8", "K1"]);
+    expect(stationOf(res.body, "garak-market")?.lines.map((line) => line.code)).toEqual(["3", "8"]);
+    expect(stationOf(res.body, "songpa")).toMatchObject({ title: "송파역", campus: null, lines: [{ code: "8" }], coords: { lat: 37.499703, lng: 127.112183 } });
     expectWire(subwayStationList, res.body.data);
   });
 

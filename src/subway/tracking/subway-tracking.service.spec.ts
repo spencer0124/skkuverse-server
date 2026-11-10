@@ -549,7 +549,7 @@ describe("SubwayTrackingService.track without a table", () => {
     await tickAt("20:39:10", api()).catch(() => undefined);
 
     // Assert
-    expect(ticks.map((tick) => tick.platforms.length)).toEqual([15]);
+    expect(ticks.map((tick) => tick.platforms.length)).toEqual([22]);
   });
 
   it("finds no timetable-only document for 성균관대 but rejects with the unavailable error", async () => {

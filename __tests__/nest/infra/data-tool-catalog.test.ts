@@ -248,7 +248,7 @@ describe("loadCatalog code-held sources", () => {
     // Act & Assert
     expect(source.owner).toBe("src/subway");
     expect(source.ids()).toEqual(SUBWAY_STATIONS.flatMap((station) => station.platforms.map((platform) => platform.id)));
-    expect(source.ids()).toHaveLength(18);
+    expect(source.ids()).toHaveLength(25);
     expect(source.has("S1-4-420")).toBe(true);
     expect(source.has("hyehwa")).toBe(false);
   });

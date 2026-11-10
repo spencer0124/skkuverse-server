@@ -1,5 +1,5 @@
 {
-  "_about": "Synthetic: GET /subway/stations, Accept-Language ko, as the route answers it 2026-10-25, each station with its campus or, for 사당, 금정 and 종로5가 (ADR 0022 D7), null: the served stations of SUBWAY_STATIONS mapped by toListedStation in src/subway/station-list/subway-station-list.mapper.ts, each joined to its coords from revision 2 of subway-station-coords (__tests__/nest/subway/fixtures/subway-station-coords.dataset.json). Never captured from a running server, since the route is new; not trimmed.",
+  "_about": "Synthetic: GET /subway/stations, Accept-Language ko, as the route answers it 2026-11-10, each station with its campus or, for 사당, 금정, 종로5가 (ADR 0022 D7), 미금, 복정, 가락시장 and 송파, null: the served stations of SUBWAY_STATIONS mapped by toListedStation in src/subway/station-list/subway-station-list.mapper.ts, each joined to its coords from revision 3 of subway-station-coords (__tests__/nest/subway/fixtures/subway-station-coords.dataset.json). Never captured from a running server, since the route is new; not trimmed.",
   "data": {
     "stations": [
       {
@@ -283,6 +283,113 @@
         "coords": {
           "lat": 37.570926,
           "lng": 127.001849
+        }
+      },
+      {
+        "id": "migeum",
+        "title": "미금역",
+        "campus": null,
+        "lines": [
+          {
+            "code": "D1",
+            "name": "신분당선",
+            "color": "D4003B",
+            "marker": {
+              "text": "신",
+              "color": "D4003B"
+            }
+          },
+          {
+            "code": "K1",
+            "name": "수인분당선",
+            "color": "F5A200",
+            "marker": {
+              "text": "수",
+              "color": "A26B00"
+            }
+          }
+        ],
+        "coords": {
+          "lat": 37.35003,
+          "lng": 127.108914
+        }
+      },
+      {
+        "id": "bokjeong",
+        "title": "복정역",
+        "campus": null,
+        "lines": [
+          {
+            "code": "8",
+            "name": "8호선",
+            "color": "E6186C",
+            "marker": {
+              "text": "8",
+              "color": "E4186B"
+            }
+          },
+          {
+            "code": "K1",
+            "name": "수인분당선",
+            "color": "F5A200",
+            "marker": {
+              "text": "수",
+              "color": "A26B00"
+            }
+          }
+        ],
+        "coords": {
+          "lat": 37.47055,
+          "lng": 127.126696
+        }
+      },
+      {
+        "id": "garak-market",
+        "title": "가락시장역",
+        "campus": null,
+        "lines": [
+          {
+            "code": "3",
+            "name": "3호선",
+            "color": "EF7C1C",
+            "marker": {
+              "text": "3",
+              "color": "BB5C0D"
+            }
+          },
+          {
+            "code": "8",
+            "name": "8호선",
+            "color": "E6186C",
+            "marker": {
+              "text": "8",
+              "color": "E4186B"
+            }
+          }
+        ],
+        "coords": {
+          "lat": 37.492567,
+          "lng": 127.118078
+        }
+      },
+      {
+        "id": "songpa",
+        "title": "송파역",
+        "campus": null,
+        "lines": [
+          {
+            "code": "8",
+            "name": "8호선",
+            "color": "E6186C",
+            "marker": {
+              "text": "8",
+              "color": "E4186B"
+            }
+          }
+        ],
+        "coords": {
+          "lat": 37.499703,
+          "lng": 127.112183
         }
       }
     ]

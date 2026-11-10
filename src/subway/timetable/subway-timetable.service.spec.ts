@@ -81,6 +81,13 @@ describe("SubwayTimetableService.listPlatformSchedules", () => {
       ["KR-1-P149", "2026-10-17", "holiday"],
       ["KR-4-443", "2026-10-17", "saturday"],
       ["S1-1-154", "2026-10-17", "holiday"],
+      ["DX-D1-D13", "2026-10-17", "holiday"],
+      ["KR-K1-K231", "2026-10-17", "holiday"],
+      ["S1-8-2821", "2026-10-17", "saturday"],
+      ["KR-K1-K222", "2026-10-17", "holiday"],
+      ["S1-3-340", "2026-10-17", "saturday"],
+      ["S1-8-2818", "2026-10-17", "saturday"],
+      ["S1-8-2817", "2026-10-17", "saturday"],
     ]);
   });
 
@@ -94,7 +101,7 @@ describe("SubwayTimetableService.listPlatformSchedules", () => {
 
     // Assert
     expect(new Set(schedules.map((s) => s.dayType))).toEqual(new Set(["holiday"]));
-    expect(schedules).toHaveLength(18);
+    expect(schedules).toHaveLength(25);
   });
 
   it("matches 00:13 on Saturday to Friday's weekday table, its trains at instants of that day", async () => {
@@ -256,6 +263,7 @@ describe("SubwayTimetableService.listPlatformSchedules over the tracked stations
     "KR-1-1715 KR-1-P155",
     "S1-8-2809 S1-8-2811",
     "S1-8-2821 S1-8-2828",
+    "S1-8-2828 S1-8-2822",
     "KR-1-134 S1-1-150",
     "S1-1-155 S1-1-159",
     "S1-1-159 S1-1-156",
@@ -433,10 +441,10 @@ describe("SubwayTimetableService over the stored subway-timetables", () => {
     const { schedules } = await service.listPlatformSchedules(NIGHT);
 
     // Assert
-    // WHY: a tick converts tens of thousands of stops; 18 platforms read 7 tables, so a conversion per platform more than doubles it.
+    // WHY: a tick converts tens of thousands of stops; 25 platforms read 7 tables, so a conversion per platform more than doubles it.
     const keyOf = (s: PlatformSchedule): string => `${TIMETABLE_OPERATOR_BY_SOURCE[s.platform.timetable.source]}-${s.platform.line}-${s.dayType}`;
     const firstByKey = new Map(schedules.map((s) => [keyOf(s), s] as const).reverse());
-    expect(schedules).toHaveLength(18);
+    expect(schedules).toHaveLength(25);
     expect(firstByKey.size).toBe(7);
     expect(new Set(schedules.map((s) => s.trains)).size).toBe(7);
     expect(new Set(schedules.map((s) => s.lineRoutes)).size).toBe(7);
@@ -452,7 +460,7 @@ describe("SubwayTimetableService over the stored subway-timetables", () => {
     await service.listPlatformSchedules(NIGHT);
 
     // Assert
-    expect(listed.schedules).toHaveLength(18);
+    expect(listed.schedules).toHaveLength(25);
     expect(listed.unavailable).toBeNull();
     expect(repository.tableReads.map((partId) => partId.replace(/^subway-timetables\/|@.*$/g, "")).sort()).toEqual([
       "DX-D1-weekday",
@@ -575,7 +583,7 @@ describe("SubwayTimetableService over the stored subway-timetables", () => {
     const listed = await service.listPlatformSchedules(advanceTo("2026-10-20T01:10:00.000Z"));
 
     // Assert
-    expect(listed.schedules).toHaveLength(18);
+    expect(listed.schedules).toHaveLength(25);
     expect(listed.unavailable).toBeNull();
   });
 
@@ -605,7 +613,7 @@ describe("SubwayTimetableService over the stored subway-timetables", () => {
     const listed = await service.listPlatformSchedules(advanceTo("2026-10-20T01:04:00.000Z"));
 
     // Assert
-    expect(listed.schedules).toHaveLength(18);
+    expect(listed.schedules).toHaveLength(25);
     expect(mockedLogger.error.mock.calls.map(([fields]) => fields)).toEqual([
       expect.objectContaining({ event: "subway.timetables.table_missing", revision: 1, key: "S1-4-saturday", platformIds: ["S1-4-420", "S1-4-433", "KR-4-443"] }),
       expect.objectContaining({ event: "subway.timetables.table_missing", revision: 2, key: "S1-4-saturday", platformIds: ["S1-4-420", "S1-4-433", "KR-4-443"] }),

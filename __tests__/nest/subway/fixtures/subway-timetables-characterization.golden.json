@@ -1,5 +1,5 @@
 {
- "_about": "Hand-written from today's code, never captured: what GET /subway/stations/<id>/arrivals answered in ko, en and zh, timetable only (no arrival state stored), at a weekday 08:00 (Wednesday 2026-10-21), a Saturday 14:00 (2026-10-24), a public holiday 11:00 (Friday 2026-12-25) and a weekday 00:20 (Wednesday 2026-10-21, service day Tuesday 2026-10-20) KST, each with its status, Cache-Control, Vary, ETag and body (its bytes are JSON.stringify of it); and the subway_arrivals documents one SubwayTrackingService tick wrote at the weekday 08:00 over the characterization's fixed observations. Generated from the committed timetables at commit 2198cf04, before the timetables moved to the subway-timetables dataset. Changed 2026-10-23 with the behavior it pins, no other value changed: each station gained its coords from revision 1 of subway-station-coords, and each ETag was recomputed from the new bytes. Changed 2026-10-24 with the behavior it pins (app ADR 0022, D4), no other value changed: each answer's meta gained serverNow, the clock at +09:00, each train gained isFirstTrain, from the earliest train of its direction at its platform in the instant's table, and each ETag was recomputed from the new bytes. Each written train gained isFirstTrain the same way. Changed 2026-10-25 with the behavior it pins (ADR 0022 D4), no other value changed: the tick also writes the documents of 사당 (S1-2-226, S1-4-433), 금정 (KR-1-P149, KR-4-443) and 종로5가 (S1-1-154), served from revision 2 of the tables and the topology; every other document is byte-identical. Changed 2026-10-25 with the behavior it pins (ADR 0022, D2), no other value changed: each written train gained isLastRun, from the latest train of its direction at its platform in the tick's table, its timetable arrival and departure at the platform (scheduledArrivalAt, scheduledDepartureAt), and, for a train whose row passes an upstream platform within reach, those platforms (passedPlatformIds). Changed 2026-10-25 with the behavior it pins (ADR 0022, D2, D3), no other value changed: each answered train became the shared call plus its trainNo, in the call's key order: arrivalAt became scheduledArrivalAt, or scheduledDepartureAt at a train's origin, to the second at +09:00; each train gained its timetable departure at the platform, isLastRun and runId (<line>/<service day>/<trainNo>); source scheduled became basis timetable and status scheduled; destination, express and isFirstTrain became headsign, isExpress and isFirstRun; each line's generatedAt is at +09:00 to the second; each ETag was recomputed from the new bytes. The written documents did not change. Renamed 2026-10-25 (owner decision): 성균관대's platform id KR-1-0153 became its KRIC code KR-1-P153 wherever it appears; no other value changed, except that each ETag of a 성균관대 answer was recomputed from the new bytes and the written documents are in _id order.",
+ "_about": "Hand-written from today's code, never captured: what GET /subway/stations/<id>/arrivals answered in ko, en and zh, timetable only (no arrival state stored), at a weekday 08:00 (Wednesday 2026-10-21), a Saturday 14:00 (2026-10-24), a public holiday 11:00 (Friday 2026-12-25) and a weekday 00:20 (Wednesday 2026-10-21, service day Tuesday 2026-10-20) KST, each with its status, Cache-Control, Vary, ETag and body (its bytes are JSON.stringify of it); and the subway_arrivals documents one SubwayTrackingService tick wrote at the weekday 08:00 over the characterization's fixed observations. Generated from the committed timetables at commit 2198cf04, before the timetables moved to the subway-timetables dataset. Changed 2026-10-23 with the behavior it pins, no other value changed: each station gained its coords from revision 1 of subway-station-coords, and each ETag was recomputed from the new bytes. Changed 2026-10-24 with the behavior it pins (app ADR 0022, D4), no other value changed: each answer's meta gained serverNow, the clock at +09:00, each train gained isFirstTrain, from the earliest train of its direction at its platform in the instant's table, and each ETag was recomputed from the new bytes. Each written train gained isFirstTrain the same way. Changed 2026-10-25 with the behavior it pins (ADR 0022 D4), no other value changed: the tick also writes the documents of 사당 (S1-2-226, S1-4-433), 금정 (KR-1-P149, KR-4-443) and 종로5가 (S1-1-154), served from revision 2 of the tables and the topology; every other document is byte-identical. Changed 2026-10-25 with the behavior it pins (ADR 0022, D2), no other value changed: each written train gained isLastRun, from the latest train of its direction at its platform in the tick's table, its timetable arrival and departure at the platform (scheduledArrivalAt, scheduledDepartureAt), and, for a train whose row passes an upstream platform within reach, those platforms (passedPlatformIds). Changed 2026-10-25 with the behavior it pins (ADR 0022, D2, D3), no other value changed: each answered train became the shared call plus its trainNo, in the call's key order: arrivalAt became scheduledArrivalAt, or scheduledDepartureAt at a train's origin, to the second at +09:00; each train gained its timetable departure at the platform, isLastRun and runId (<line>/<service day>/<trainNo>); source scheduled became basis timetable and status scheduled; destination, express and isFirstTrain became headsign, isExpress and isFirstRun; each line's generatedAt is at +09:00 to the second; each ETag was recomputed from the new bytes. The written documents did not change. Renamed 2026-10-25 (owner decision): 성균관대's platform id KR-1-0153 became its KRIC code KR-1-P153 wherever it appears; no other value changed, except that each ETag of a 성균관대 answer was recomputed from the new bytes and the written documents are in _id order. Changed 2026-11-10 with the behavior it pins (ADR 0017, D6), no other value changed: the tick also writes the documents of 미금 (DX-D1-D13, KR-K1-K231), 복정 (S1-8-2821, KR-K1-K222), 가락시장 (S1-3-340, S1-8-2818) and 송파 (S1-8-2817), served from the widened tables and the extended topology; every other document is byte-identical.",
  "instants": {
   "2026-10-20T23:00:00.000Z": {
    "sungkyunkwan": {
@@ -23603,6 +23603,95 @@
     }
    },
    {
+    "_id": "DX-D1-D13",
+    "generatedAt": "2026-10-20T23:00:00.000Z",
+    "serviceDate": "2026-10-21",
+    "directions": {
+     "up": [
+      {
+       "trainNo": "1048",
+       "destination": "신사",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:04:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:03:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:03:00.000Z"
+      },
+      {
+       "trainNo": "1050",
+       "destination": "신사",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:09:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:08:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:08:00.000Z"
+      },
+      {
+       "trainNo": "1052",
+       "destination": "신사",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:14:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": {
+        "stationId": "DX-D1-4319",
+        "state": "departed"
+       },
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:13:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:13:00.000Z"
+      }
+     ],
+     "down": [
+      {
+       "trainNo": "1029",
+       "destination": "광교",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:04:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": {
+        "stationId": "DX-D1-4311",
+        "state": "departed"
+       },
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:03:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:03:00.000Z"
+      },
+      {
+       "trainNo": "1031",
+       "destination": "광교",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:09:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:08:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:08:00.000Z"
+      },
+      {
+       "trainNo": "1033",
+       "destination": "광교",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:14:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:13:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:13:00.000Z"
+      }
+     ]
+    }
+   },
+   {
     "_id": "KR-1-P149",
     "generatedAt": "2026-10-20T23:00:00.000Z",
     "serviceDate": "2026-10-21",
@@ -23958,6 +24047,92 @@
     }
    },
    {
+    "_id": "KR-K1-K222",
+    "generatedAt": "2026-10-20T23:00:00.000Z",
+    "serviceDate": "2026-10-21",
+    "directions": {
+     "up": [
+      {
+       "trainNo": "6044",
+       "destination": "왕십리",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:00:30.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T22:59:30.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:00:00.000Z"
+      },
+      {
+       "trainNo": "6046",
+       "destination": "왕십리",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:04:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:03:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:03:30.000Z"
+      },
+      {
+       "trainNo": "6504",
+       "destination": "왕십리",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:09:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:08:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:08:30.000Z"
+      }
+     ],
+     "down": [
+      {
+       "trainNo": "6035",
+       "destination": "고색",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:02:30.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:01:30.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:02:00.000Z"
+      },
+      {
+       "trainNo": "6037",
+       "destination": "고색",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:07:30.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:06:30.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:07:00.000Z"
+      },
+      {
+       "trainNo": "6039",
+       "destination": "죽전",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:12:30.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": {
+        "stationId": "KR-K1-K216",
+        "state": "departed"
+       },
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:11:30.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:12:00.000Z"
+      }
+     ]
+    }
+   },
+   {
     "_id": "KR-K1-K230",
     "generatedAt": "2026-10-20T23:00:00.000Z",
     "serviceDate": "2026-10-21",
@@ -24042,6 +24217,98 @@
        "isLastRun": false,
        "scheduledArrivalAt": "2026-10-20T23:15:30.000Z",
        "scheduledDepartureAt": "2026-10-20T23:16:00.000Z"
+      }
+     ]
+    }
+   },
+   {
+    "_id": "KR-K1-K231",
+    "generatedAt": "2026-10-20T23:00:00.000Z",
+    "serviceDate": "2026-10-21",
+    "directions": {
+     "up": [
+      {
+       "trainNo": "6506",
+       "destination": "왕십리",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:03:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:02:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:02:30.000Z"
+      },
+      {
+       "trainNo": "6306",
+       "destination": "왕십리",
+       "express": true,
+       "arrivalAt": "2026-10-20T23:08:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:07:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:07:30.000Z",
+       "passedPlatformIds": [
+        "KR-K1-K234"
+       ]
+      },
+      {
+       "trainNo": "6302",
+       "destination": "왕십리",
+       "express": true,
+       "arrivalAt": "2026-10-20T23:11:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T22:35:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T22:35:30.000Z",
+       "passedPlatformIds": [
+        "KR-K1-K234"
+       ]
+      }
+     ],
+     "down": [
+      {
+       "trainNo": "6303",
+       "destination": "고색",
+       "express": true,
+       "arrivalAt": "2026-10-20T23:04:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": {
+        "stationId": "KR-K1-K229",
+        "state": "departed"
+       },
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:03:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:03:30.000Z"
+      },
+      {
+       "trainNo": "6033",
+       "destination": "고색",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:11:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:10:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:10:30.000Z"
+      },
+      {
+       "trainNo": "6527",
+       "destination": "인천",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:19:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:18:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:18:30.000Z"
       }
      ]
     }
@@ -24578,6 +24845,92 @@
     }
    },
    {
+    "_id": "S1-3-340",
+    "generatedAt": "2026-10-20T23:00:00.000Z",
+    "serviceDate": "2026-10-21",
+    "directions": {
+     "up": [
+      {
+       "trainNo": "3096",
+       "destination": "구파발",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:00:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T22:59:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T22:59:30.000Z"
+      },
+      {
+       "trainNo": "3090",
+       "destination": "구파발",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:02:30.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T22:48:30.000Z",
+       "scheduledDepartureAt": "2026-10-20T22:49:00.000Z"
+      },
+      {
+       "trainNo": "3092",
+       "destination": "대화",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:02:30.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T22:52:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T22:52:30.000Z"
+      }
+     ],
+     "down": [
+      {
+       "trainNo": "3033",
+       "destination": "오금",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:02:00.000Z",
+       "source": "scheduled",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:02:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:02:30.000Z"
+      },
+      {
+       "trainNo": "3035",
+       "destination": "오금",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:06:30.000Z",
+       "source": "scheduled",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:06:30.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:07:00.000Z"
+      },
+      {
+       "trainNo": "3037",
+       "destination": "오금",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:11:30.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": {
+        "stationId": "S1-3-333",
+        "state": "departed"
+       },
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:10:30.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:11:00.000Z"
+      }
+     ]
+    }
+   },
+   {
     "_id": "S1-4-420",
     "generatedAt": "2026-10-20T23:00:00.000Z",
     "serviceDate": "2026-10-21",
@@ -24834,6 +25187,264 @@
        "isLastRun": false,
        "scheduledArrivalAt": "2026-10-20T23:05:50.000Z",
        "scheduledDepartureAt": "2026-10-20T23:06:40.000Z"
+      }
+     ]
+    }
+   },
+   {
+    "_id": "S1-8-2817",
+    "generatedAt": "2026-10-20T23:00:00.000Z",
+    "serviceDate": "2026-10-21",
+    "directions": {
+     "up": [
+      {
+       "trainNo": "8060",
+       "destination": "별내",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:01:30.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:00:30.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:01:10.000Z"
+      },
+      {
+       "trainNo": "8062",
+       "destination": "별내",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:07:30.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:06:30.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:07:10.000Z"
+      },
+      {
+       "trainNo": "8064",
+       "destination": "별내",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:13:30.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:12:30.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:13:10.000Z"
+      }
+     ],
+     "down": [
+      {
+       "trainNo": "8039",
+       "destination": "모란",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:01:50.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": {
+        "stationId": "S1-8-2814",
+        "state": "departed"
+       },
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:00:50.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:01:30.000Z"
+      },
+      {
+       "trainNo": "8041",
+       "destination": "모란",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:06:50.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:05:50.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:06:30.000Z"
+      },
+      {
+       "trainNo": "8043",
+       "destination": "모란",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:11:20.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:10:20.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:11:00.000Z"
+      }
+     ]
+    }
+   },
+   {
+    "_id": "S1-8-2818",
+    "generatedAt": "2026-10-20T23:00:00.000Z",
+    "serviceDate": "2026-10-21",
+    "directions": {
+     "up": [
+      {
+       "trainNo": "8060",
+       "destination": "별내",
+       "express": false,
+       "arrivalAt": "2026-10-20T22:59:30.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T22:58:30.000Z",
+       "scheduledDepartureAt": "2026-10-20T22:59:20.000Z"
+      },
+      {
+       "trainNo": "8062",
+       "destination": "별내",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:05:30.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:04:30.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:05:20.000Z"
+      },
+      {
+       "trainNo": "8064",
+       "destination": "별내",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:11:30.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:10:30.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:11:20.000Z"
+      }
+     ],
+     "down": [
+      {
+       "trainNo": "8039",
+       "destination": "모란",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:03:40.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": {
+        "stationId": "S1-8-2814",
+        "state": "departed"
+       },
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:02:40.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:03:30.000Z"
+      },
+      {
+       "trainNo": "8041",
+       "destination": "모란",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:08:40.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:07:40.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:08:30.000Z"
+      },
+      {
+       "trainNo": "8043",
+       "destination": "모란",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:13:10.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:12:10.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:13:00.000Z"
+      }
+     ]
+    }
+   },
+   {
+    "_id": "S1-8-2821",
+    "generatedAt": "2026-10-20T23:00:00.000Z",
+    "serviceDate": "2026-10-21",
+    "directions": {
+     "up": [
+      {
+       "trainNo": "8062",
+       "destination": "별내",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:00:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T22:59:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T22:59:40.000Z"
+      },
+      {
+       "trainNo": "8064",
+       "destination": "별내",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:06:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:05:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:05:40.000Z"
+      },
+      {
+       "trainNo": "8066",
+       "destination": "별내",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:12:00.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:11:00.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:11:40.000Z"
+      }
+     ],
+     "down": [
+      {
+       "trainNo": "8037",
+       "destination": "모란",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:03:20.000Z",
+       "source": "scheduled",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:03:20.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:04:00.000Z"
+      },
+      {
+       "trainNo": "8039",
+       "destination": "모란",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:09:20.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": {
+        "stationId": "S1-8-2814",
+        "state": "departed"
+       },
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:08:20.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:09:00.000Z"
+      },
+      {
+       "trainNo": "8041",
+       "destination": "모란",
+       "express": false,
+       "arrivalAt": "2026-10-20T23:14:20.000Z",
+       "source": "estimated",
+       "isFirstTrain": false,
+       "position": null,
+       "isLastRun": false,
+       "scheduledArrivalAt": "2026-10-20T23:13:20.000Z",
+       "scheduledDepartureAt": "2026-10-20T23:14:00.000Z"
       }
      ]
     }

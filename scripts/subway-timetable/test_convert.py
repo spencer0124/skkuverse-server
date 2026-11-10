@@ -342,6 +342,64 @@ class SeoulLineCoverage(unittest.TestCase):
         self.assertEqual(served, ("KR-1-P153", "KR-1-P149", "S1-1-154"))
 
 
+class CommuteViaCoverage(unittest.TestCase):
+    """The commute shuttle's via stops 미금, 복정, 가락시장 and 송파 are served with every line that stops there, each
+    station between the served platforms covered and far enough beyond them that a train is in view for ten minutes (ADR 0017 D6)."""
+
+    def test_line_3_serves_garak_market_inside_its_covered_stretch(self):
+        # Arrange
+        line = line_of("3")
+
+        # Act
+        codes = convert.station_codes(line)
+
+        # Assert
+        self.assertEqual(line["served"], ("S1-3-332", "S1-3-334", "S1-3-340"))
+        self.assertEqual(codes, ["S1-3-%d" % n for n in range(326, 343)])
+        self.assertEqual(dict(line["stations"])["S1-3-340"], "0340")
+
+    def test_line_8_serves_songpa_garak_market_and_bokjeong_and_reaches_moran(self):
+        # Arrange
+        line = line_of("8")
+
+        # Act
+        codes = convert.station_codes(line)
+
+        # Assert
+        self.assertEqual(line["served"], ("S1-8-2815", "S1-8-2817", "S1-8-2818", "S1-8-2821"))
+        self.assertEqual(codes[-8:], ["S1-8-2821", "S1-8-2828", "S1-8-2822", "S1-8-2823", "S1-8-2824", "S1-8-2825", "S1-8-2826", "S1-8-2827"])
+        self.assertEqual([dict(line["stations"])[code] for code in ("S1-8-2817", "S1-8-2818", "S1-8-2821", "S1-8-2827")], ["2817", "2818", "2821", "2827"])
+
+    def test_line_k1_serves_migeum_and_bokjeong_inside_its_covered_stretch(self):
+        # Arrange
+        line = line_of("K1")
+
+        # Act
+        codes = convert.station_codes(line)
+
+        # Assert
+        self.assertEqual(line["served"], ("KR-K1-K217", "KR-K1-K222", "KR-K1-K230", "KR-K1-K231"))
+        self.assertEqual(codes, ["KR-K1-K%d" % n for n in range(210, 238)])
+
+    def test_line_d1_serves_migeum_inside_its_covered_stretch(self):
+        # Arrange
+        line = line_of("D1")
+
+        # Act
+        codes = convert.station_codes(line)
+
+        # Assert
+        self.assertEqual(line["served"], ("DX-D1-4307", "DX-D1-4308", "DX-D1-4312", "DX-D1-D13", "DX-D1-4318"))
+        self.assertIn("DX-D1-D13", codes)
+
+    def test_every_served_platform_is_a_covered_station_of_its_line(self):
+        # Act
+        uncovered = [(line["line"], code) for line in convert.LINES for code in line["served"] if code not in convert.station_codes(line)]
+
+        # Assert
+        self.assertEqual(uncovered, [])
+
+
 class SavedSeoulRows(unittest.TestCase):
     """A Seoul answer saved under --seoul-rows is read back instead of called again; one not saved is fetched and saved."""
 

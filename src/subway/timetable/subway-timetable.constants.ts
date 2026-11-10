@@ -55,4 +55,5 @@ export const ADJACENT_PLATFORM_ID_PAIRS: ReadonlyArray<readonly [string, string]
   ["S1-1-158", "KR-1-123"],
   ["S1-8-2809", "S1-8-2811"],
   ["S1-8-2821", "S1-8-2828"],
+  ["S1-8-2828", "S1-8-2822"],
 ];

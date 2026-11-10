@@ -614,6 +614,13 @@ describe("listSubwayPlatforms", () => {
       ["KR-1-P149", "1"],
       ["KR-4-443", "4"],
       ["S1-1-154", "1"],
+      ["DX-D1-D13", "D1"],
+      ["KR-K1-K231", "K1"],
+      ["S1-8-2821", "8"],
+      ["KR-K1-K222", "K1"],
+      ["S1-3-340", "3"],
+      ["S1-8-2818", "8"],
+      ["S1-8-2817", "8"],
     ]);
   });
 });
@@ -656,6 +663,20 @@ describe("revision 2 of subway-topology at each served platform", () => {
     ["KR-4-443", "down", ["KR-4-442", "KR-4-441", "KR-4-440"]],
     ["S1-1-154", "up", ["S1-1-153", "S1-1-152", "S1-1-151"]],
     ["S1-1-154", "down", ["S1-1-155", "S1-1-159", "S1-1-156"]],
+    ["DX-D1-D13", "up", ["DX-D1-D14", "DX-D1-D15", "DX-D1-4316"]],
+    ["DX-D1-D13", "down", ["DX-D1-4312", "DX-D1-4311", "DX-D1-4310"]],
+    ["KR-K1-K231", "up", ["KR-K1-K232", "KR-K1-K233", "KR-K1-K234"]],
+    ["KR-K1-K231", "down", ["KR-K1-K230", "KR-K1-K229", "KR-K1-K228"]],
+    ["S1-8-2821", "up", ["S1-8-2828", "S1-8-2822", "S1-8-2823"]],
+    ["S1-8-2821", "down", ["S1-8-2820", "S1-8-2819", "S1-8-2818"]],
+    ["KR-K1-K222", "up", ["KR-K1-K223", "KR-K1-K224", "KR-K1-K225"]],
+    ["KR-K1-K222", "down", ["KR-K1-K221", "KR-K1-K220", "KR-K1-K219"]],
+    ["S1-3-340", "up", ["S1-3-341", "S1-3-342"]],
+    ["S1-3-340", "down", ["S1-3-339", "S1-3-338", "S1-3-337"]],
+    ["S1-8-2818", "up", ["S1-8-2819", "S1-8-2820", "S1-8-2821"]],
+    ["S1-8-2818", "down", ["S1-8-2817", "S1-8-2816", "S1-8-2815"]],
+    ["S1-8-2817", "up", ["S1-8-2818", "S1-8-2819", "S1-8-2820"]],
+    ["S1-8-2817", "down", ["S1-8-2816", "S1-8-2815", "S1-8-2814"]],
   ] as const)("lists the upstream platforms of %s %s nearest first", (id, direction, upstreamPlatformIds) => {
     // Act
     const directions = TOPOLOGY.platforms[id];
@@ -679,7 +700,7 @@ describe("revision 2 of subway-topology at each served platform", () => {
     ["S1-3-332", "down", ["S1-3-328", "S1-3-327", "S1-3-326"]],
     ["KR-K1-K230", "up", ["KR-K1-K234", "KR-K1-K235", "KR-K1-K236", "KR-K1-K237"]],
     ["KR-K1-K230", "down", ["KR-K1-K226", "KR-K1-K225", "KR-K1-K224", "KR-K1-K223", "KR-K1-K222", "KR-K1-K221", "KR-K1-K220", "KR-K1-K219", "KR-K1-K218", "KR-K1-K217", "KR-K1-K216", "KR-K1-K215", "KR-K1-K214", "KR-K1-K213", "KR-K1-K212", "KR-K1-K211", "KR-K1-K210"]],
-    ["S1-8-2815", "up", ["S1-8-2819", "S1-8-2820", "S1-8-2821", "S1-8-2828"]],
+    ["S1-8-2815", "up", ["S1-8-2819", "S1-8-2820", "S1-8-2821", "S1-8-2828", "S1-8-2822", "S1-8-2823", "S1-8-2824", "S1-8-2825", "S1-8-2826", "S1-8-2827"]],
     ["S1-8-2815", "down", ["S1-8-2811", "S1-8-2809", "GU-8-2808"]],
     ["KR-K1-K217", "up", ["KR-K1-K221", "KR-K1-K222", "KR-K1-K223", "KR-K1-K224", "KR-K1-K225", "KR-K1-K226", "KR-K1-K227", "KR-K1-K228", "KR-K1-K229", "KR-K1-K230", "KR-K1-K231", "KR-K1-K232", "KR-K1-K233", "KR-K1-K234", "KR-K1-K235", "KR-K1-K236", "KR-K1-K237"]],
     ["KR-K1-K217", "down", ["KR-K1-K213", "KR-K1-K212", "KR-K1-K211", "KR-K1-K210"]],
@@ -701,6 +722,20 @@ describe("revision 2 of subway-topology at each served platform", () => {
     ["KR-4-443", "down", ["KR-4-439", "KR-4-438", "KR-4-437", "KR-4-436", "KR-4-435", "S1-4-434", "S1-4-433", "S1-4-432", "S1-4-431", "S1-4-430", "S1-4-429", "S1-4-428", "S1-4-427", "S1-4-426", "S1-4-425", "S1-4-424", "S1-4-423", "S1-4-422", "S1-4-421", "S1-4-420", "S1-4-419", "S1-4-418", "S1-4-417", "S1-4-416", "S1-4-415", "S1-4-414"]],
     ["S1-1-154", "up", ["S1-1-150", "KR-1-134", "KR-1-135", "KR-1-136", "KR-1-137", "KR-1-138", "KR-1-139", "KR-1-140", "KR-1-141", "KR-1-P142", "KR-1-P143", "KR-1-P144", "KR-1-P145", "KR-1-P146", "KR-1-P147", "KR-1-P148", "KR-1-P149", "KR-1-P150", "KR-1-P151", "KR-1-P152", "KR-1-P153", "KR-1-P154", "KR-1-P155", "KR-1-1715", "KR-1-P157"]],
     ["S1-1-154", "down", ["S1-1-157", "S1-1-158", "KR-1-123"]],
+    ["DX-D1-D13", "up", ["DX-D1-4317", "DX-D1-4318", "DX-D1-4319"]],
+    ["DX-D1-D13", "down", ["DX-D1-4309", "DX-D1-4308", "DX-D1-4307", "DX-D1-4306", "DX-D1-4305", "DX-D1-D04"]],
+    ["KR-K1-K231", "up", ["KR-K1-K235", "KR-K1-K236", "KR-K1-K237"]],
+    ["KR-K1-K231", "down", ["KR-K1-K227", "KR-K1-K226", "KR-K1-K225", "KR-K1-K224", "KR-K1-K223", "KR-K1-K222", "KR-K1-K221", "KR-K1-K220", "KR-K1-K219", "KR-K1-K218", "KR-K1-K217", "KR-K1-K216", "KR-K1-K215", "KR-K1-K214", "KR-K1-K213", "KR-K1-K212", "KR-K1-K211", "KR-K1-K210"]],
+    ["S1-8-2821", "up", ["S1-8-2824", "S1-8-2825", "S1-8-2826", "S1-8-2827"]],
+    ["S1-8-2821", "down", ["S1-8-2817", "S1-8-2816", "S1-8-2815", "S1-8-2814", "S1-8-2813", "S1-8-2812", "S1-8-2811", "S1-8-2809", "GU-8-2808"]],
+    ["KR-K1-K222", "up", ["KR-K1-K226", "KR-K1-K227", "KR-K1-K228", "KR-K1-K229", "KR-K1-K230", "KR-K1-K231", "KR-K1-K232", "KR-K1-K233", "KR-K1-K234", "KR-K1-K235", "KR-K1-K236", "KR-K1-K237"]],
+    ["KR-K1-K222", "down", ["KR-K1-K218", "KR-K1-K217", "KR-K1-K216", "KR-K1-K215", "KR-K1-K214", "KR-K1-K213", "KR-K1-K212", "KR-K1-K211", "KR-K1-K210"]],
+    ["S1-3-340", "up", []],
+    ["S1-3-340", "down", ["S1-3-336", "S1-3-335", "S1-3-334", "S1-3-333", "S1-3-332", "S1-3-331", "S1-3-330", "S1-3-329", "S1-3-328", "S1-3-327", "S1-3-326"]],
+    ["S1-8-2818", "up", ["S1-8-2828", "S1-8-2822", "S1-8-2823", "S1-8-2824", "S1-8-2825", "S1-8-2826", "S1-8-2827"]],
+    ["S1-8-2818", "down", ["S1-8-2814", "S1-8-2813", "S1-8-2812", "S1-8-2811", "S1-8-2809", "GU-8-2808"]],
+    ["S1-8-2817", "up", ["S1-8-2821", "S1-8-2828", "S1-8-2822", "S1-8-2823", "S1-8-2824", "S1-8-2825", "S1-8-2826", "S1-8-2827"]],
+    ["S1-8-2817", "down", ["S1-8-2813", "S1-8-2812", "S1-8-2811", "S1-8-2809", "GU-8-2808"]],
   ] as const)("lists the watched platforms of %s %s, beyond its upstream ones, nearest first", (id, direction, watchedPlatformIds) => {
     // Act
     const directions = TOPOLOGY.platforms[id];
@@ -746,6 +781,20 @@ describe("revision 2 of subway-topology at each served platform", () => {
     ["KR-4-443", "down", "KR-4-444"],
     ["S1-1-154", "up", "S1-1-155"],
     ["S1-1-154", "down", "S1-1-153"],
+    ["DX-D1-D13", "up", "DX-D1-4312"],
+    ["DX-D1-D13", "down", "DX-D1-D14"],
+    ["KR-K1-K231", "up", "KR-K1-K230"],
+    ["KR-K1-K231", "down", "KR-K1-K232"],
+    ["S1-8-2821", "up", "S1-8-2820"],
+    ["S1-8-2821", "down", "S1-8-2828"],
+    ["KR-K1-K222", "up", "KR-K1-K221"],
+    ["KR-K1-K222", "down", "KR-K1-K223"],
+    ["S1-3-340", "up", "S1-3-339"],
+    ["S1-3-340", "down", "S1-3-341"],
+    ["S1-8-2818", "up", "S1-8-2817"],
+    ["S1-8-2818", "down", "S1-8-2819"],
+    ["S1-8-2817", "up", "S1-8-2816"],
+    ["S1-8-2817", "down", "S1-8-2818"],
   ] as const)("names the next platform of %s %s", (id, direction, nextPlatformId) => {
     // Act
     const directions = TOPOLOGY.platforms[id];
@@ -773,6 +822,13 @@ describe("revision 2 of subway-topology at each served platform", () => {
     ["KR-1-P149", { ko: "서울 방면", en: "Toward Seoul", zh: "首尔方向" }, { ko: "천안·서동탄 방면", en: "Toward Cheonan / Seodongtan", zh: "天安·西东滩方向" }],
     ["KR-4-443", { ko: "불암산·진접 방면", en: "Toward Buramsan / Jinjeop", zh: "佛岩山·榛接方向" }, { ko: "오이도·안산 방면", en: "Toward Oido / Ansan", zh: "乌耳岛·安山方向" }],
     ["S1-1-154", { ko: "소요산·광운대 방면", en: "Toward Soyosan / Kwangwoon Univ.", zh: "逍遥山·光云大方向" }, { ko: "인천·신창 방면", en: "Toward Incheon / Sinchang", zh: "仁川·新昌方向" }],
+    ["DX-D1-D13", { ko: "신사 방면", en: "Toward Sinsa", zh: "新沙方向" }, { ko: "광교 방면", en: "Toward Gwanggyo", zh: "光教方向" }],
+    ["KR-K1-K231", { ko: "청량리 방면", en: "Toward Cheongnyangni", zh: "清凉里方向" }, { ko: "인천 방면", en: "Toward Incheon", zh: "仁川方向" }],
+    ["S1-8-2821", { ko: "별내 방면", en: "Toward Byeollae", zh: "别内方向" }, { ko: "모란 방면", en: "Toward Moran", zh: "牡丹方向" }],
+    ["KR-K1-K222", { ko: "청량리 방면", en: "Toward Cheongnyangni", zh: "清凉里方向" }, { ko: "인천 방면", en: "Toward Incheon", zh: "仁川方向" }],
+    ["S1-3-340", { ko: "대화 방면", en: "Toward Daehwa", zh: "大化方向" }, { ko: "오금 방면", en: "Toward Ogeum", zh: "梧琴方向" }],
+    ["S1-8-2818", { ko: "별내 방면", en: "Toward Byeollae", zh: "别内方向" }, { ko: "모란 방면", en: "Toward Moran", zh: "牡丹方向" }],
+    ["S1-8-2817", { ko: "별내 방면", en: "Toward Byeollae", zh: "别内方向" }, { ko: "모란 방면", en: "Toward Moran", zh: "牡丹方向" }],
   ])("names %s's directions in every language", (id, upName, downName) => {
     // Act
     const directions = TOPOLOGY.platforms[id];
@@ -803,6 +859,13 @@ describe("findSubwayPlatform", () => {
     ["KR-1-P149", "1", { source: "korail" }],
     ["KR-4-443", "4", { source: "seoul-station", stationCode: "1458" }],
     ["S1-1-154", "1", { source: "korail" }],
+    ["DX-D1-D13", "D1", { source: "shinbundang" }],
+    ["KR-K1-K231", "K1", { source: "korail" }],
+    ["S1-8-2821", "8", { source: "seoul-station", stationCode: "2821" }],
+    ["KR-K1-K222", "K1", { source: "korail" }],
+    ["S1-3-340", "3", { source: "seoul-station", stationCode: "0340" }],
+    ["S1-8-2818", "8", { source: "seoul-station", stationCode: "2818" }],
+    ["S1-8-2817", "8", { source: "seoul-station", stationCode: "2817" }],
   ])("puts %s on line %s with its timetable source", (id, line, timetable) => {
     // Act
     const platform = findSubwayPlatform(id);

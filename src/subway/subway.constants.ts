@@ -25,7 +25,7 @@ const SHINBUNDANG = { source: "shinbundang" } as const;
 const seoulStation = (stationCode: string) => ({ source: "seoul-station", stationCode }) as const;
 
 // EVIDENCE: each platform's statnId as the Seoul real-time rows write it and its frCode as SearchInfoBySubwayNameService
-// does, captured 2026-10-25 (__tests__/nest/subway/fixtures/; subway.constants.spec.ts checks both against them).
+// does, captured 2026-10-25 and 2026-11-10 (__tests__/nest/subway/fixtures/; subway.constants.spec.ts checks both against them).
 export const SUBWAY_STATIONS: readonly NetworkStation[] = [
   { id: "sungkyunkwan", name: named("성균관대", "Sungkyunkwan Univ.", "成均馆大学"), seoulName: "성균관대", campus: "nsc", platforms: [{ id: "KR-1-P153", line: "1", statnId: "1001080153", frCode: "P153", timetable: KORAIL }] },
   { id: "hyehwa", name: named("혜화", "Hyehwa", "惠化"), seoulName: "혜화", campus: "hssc", platforms: [{ id: "S1-4-420", line: "4", statnId: "1004000420", frCode: "420", timetable: seoulStation("0420") }] },
@@ -38,6 +38,10 @@ export const SUBWAY_STATIONS: readonly NetworkStation[] = [
   { id: "sadang", name: named("사당", "Sadang", "舍堂"), seoulName: "사당", campus: null, platforms: [{ id: "S1-2-226", line: "2", statnId: "1002000226", frCode: "226", timetable: seoulStation("0226") }, { id: "S1-4-433", line: "4", statnId: "1004000433", frCode: "433", timetable: seoulStation("0433") }] },
   { id: "geumjeong", name: named("금정", "Geumjeong", "衿井"), seoulName: "금정", campus: null, platforms: [{ id: "KR-1-P149", line: "1", statnId: "1001080149", frCode: "P149", timetable: KORAIL }, { id: "KR-4-443", line: "4", statnId: "1004000443", frCode: "443", timetable: seoulStation("1458") }] },
   { id: "jongno-5-ga", name: named("종로5가", "Jongno 5(o)-ga", "钟路5街"), seoulName: "종로5가", campus: null, platforms: [{ id: "S1-1-154", line: "1", statnId: "1001000129", frCode: "129", timetable: KORAIL }] },
+  { id: "migeum", name: named("미금", "Migeum", "美金"), seoulName: "미금", campus: null, platforms: [{ id: "DX-D1-D13", line: "D1", statnId: "1077006813", frCode: "D13", timetable: SHINBUNDANG }, { id: "KR-K1-K231", line: "K1", statnId: "1075075231", frCode: "K231", timetable: KORAIL }] },
+  { id: "bokjeong", name: named("복정", "Bokjeong", "福井"), seoulName: "복정", campus: null, platforms: [{ id: "S1-8-2821", line: "8", statnId: "1008000820", frCode: "820", timetable: seoulStation("2821") }, { id: "KR-K1-K222", line: "K1", statnId: "1075075222", frCode: "K222", timetable: KORAIL }] },
+  { id: "garak-market", name: named("가락시장", "Garak Market", "可乐市场"), seoulName: "가락시장", campus: null, platforms: [{ id: "S1-3-340", line: "3", statnId: "1003000350", frCode: "350", timetable: seoulStation("0340") }, { id: "S1-8-2818", line: "8", statnId: "1008000817", frCode: "817", timetable: seoulStation("2818") }] },
+  { id: "songpa", name: named("송파", "Songpa", "松坡"), seoulName: "송파", campus: null, platforms: [{ id: "S1-8-2817", line: "8", statnId: "1008000816", frCode: "816", timetable: seoulStation("2817") }] },
 ];
 
 export const SUBWAY_NETWORK: SubwayNetwork = { lines: SUBWAY_LINES, stations: SUBWAY_STATIONS };
