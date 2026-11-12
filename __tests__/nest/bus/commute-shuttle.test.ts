@@ -97,13 +97,13 @@ describe("commute timetable (spec scenarios: departure → arrival per run)", ()
     // Act & Assert
     expect(runs("commute-jeongja")).toEqual([
       "up 07:45→07:48→08:25", "up 09:20→09:23→10:05", "up 11:00→11:03→11:45",
-      "down 16:30→?→17:15", "down 18:30→19:06→19:10", "down 20:30→?→21:15",
+      "down 16:30→?→17:15", "down 18:30→?→19:15", "down 20:30→?→21:15",
     ]);
   });
 
-  it("잠실: 하교 drops at 복정, 가락시장 and 송파 before 잠실 (times observed for the 18:00 run, unknown for the 21:00 run)", () => {
+  it("잠실: 하교 drops at 복정, 가락시장 and 송파 before 잠실 (the school publishes no time for them)", () => {
     // Act & Assert
-    expect(runs("commute-jamsil")).toEqual(["up 07:30→08:40", "up 10:20→11:40", "down 18:00→18:38→18:48→18:51→19:20", "down 21:00→?→?→?→22:20"]);
+    expect(runs("commute-jamsil")).toEqual(["up 07:30→08:40", "up 10:20→11:40", "down 18:00→?→?→?→19:20", "down 21:00→?→?→?→22:20"]);
   });
 
   it("도곡", () => {
