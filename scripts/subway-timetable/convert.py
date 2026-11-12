@@ -264,11 +264,13 @@ LINE3 = {
     "source": "seoul",
     "stations": tuple(("S1-3-%d" % n, "%04d" % n) for n in range(326, 343)),
     "up_order": "reversed",
-    "served": ("S1-3-332", "S1-3-334"),
+    "served": ("S1-3-332", "S1-3-334", "S1-3-340"),
 }
-# 장자호수공원 to 남위례, about ten minutes of running each side of 잠실, in line order; up runs toward 별내, against
-# this order. North of 천호 and at 남위례 (opened after the numbering) the KRIC code and the STATION_CD differ: KRIC
-# writes 장자호수공원 GU-8-2808 (구리도시공사) and 암사역사공원 S1-8-2809, the STATION_CDs are 2809 and 2810.
+# 장자호수공원 to the 모란 terminus, in line order: about ten minutes of running before 잠실 and from 모란 to 복정; up runs
+# toward 별내, against this order. North of 천호 and at 남위례 (opened after the numbering) the KRIC code and the
+# STATION_CD differ: KRIC writes 장자호수공원 GU-8-2808 (구리도시공사) and 암사역사공원 S1-8-2809, the STATION_CDs are 2809
+# and 2810. 산성 to 모란 are written as S1-8-<STATION_CD> (2822 to 2827, SearchInfoBySubwayNameService 2026-11-10), as every
+# Seoul Metro station of the line from 천호 on is; the KRIC list itself was not read for them, and 남위례's 2828 follows 모란's 2827.
 LINE8 = {
     "line": "8",
     "operator": "S1",
@@ -279,9 +281,10 @@ LINE8 = {
         ("S1-8-2811", "2811"),
     )
     + tuple(("S1-8-%d" % n, "%04d" % n) for n in range(2812, 2822))
-    + (("S1-8-2828", "2828"),),
+    + (("S1-8-2828", "2828"),)
+    + tuple(("S1-8-%d" % n, "%04d" % n) for n in range(2822, 2828)),
     "up_order": "reversed",
-    "served": ("S1-8-2815",),
+    "served": ("S1-8-2815", "S1-8-2817", "S1-8-2818", "S1-8-2821"),
 }
 # KRIC code (2026-05-11 list) and the xlsx short name, in line order: 왕십리 (K210), where most trains to 도곡 start,
 # through 도곡 and 정자 to 기흥 (K237), the express's first stop south of 죽전, about twelve minutes before 정자 for a
@@ -322,7 +325,7 @@ LINEK1 = {
         ("KR-K1-K237", "기흥"),
     ),
     "up_order": "reversed",
-    "served": ("KR-K1-K217", "KR-K1-K230"),
+    "served": ("KR-K1-K217", "KR-K1-K222", "KR-K1-K230", "KR-K1-K231"),
     # Every 종착역 of the 2026-08-22 file, as the Seoul API writes it.
     "termini": frozenset(("왕십리", "청량리", "죽전", "고색", "오이도", "인천", "수원")),
     "abbreviations": {"신인천": "인천", "신수원": "수원"},
@@ -360,7 +363,7 @@ LINED1 = {
         ("DX-D1-4319", "광교"),
     ),
     "up_order": "reversed",
-    "served": ("DX-D1-4307", "DX-D1-4308", "DX-D1-4312", "DX-D1-4318"),
+    "served": ("DX-D1-4307", "DX-D1-4308", "DX-D1-4312", "DX-D1-D13", "DX-D1-4318"),
     # The weekday PDF ends one 신사-bound run at 정자 (광교 10:18), besides four 광교-bound ones.
     "two_direction_destinations": ("정자",),
 }

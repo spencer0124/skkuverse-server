@@ -12,12 +12,14 @@
  * KST (the UTC date is still Thursday) with the morning runs under way and HSSC buses on the line; Thursday 16:35, with
  * the afternoon commute runs in their estimate window; Thursday 23:40, while an override's 23:30 잠실 run whose
  * arrival is past midnight runs; Friday 00:20, after that midnight; Friday 22:00, after the week's last run; and
- * Saturday 17:51:10, ten seconds after 7800's capture. The `mongod` holds the committed timetables
- * (scripts/data/*-schedule.json, as `npm run schedule` writes them) with that override, estimates of every kind and
+ * Saturday 17:51:10, ten seconds after 7800's capture. The `mongod` holds the timetables as committed at that commit
+ * (fixtures/*-schedule.frozen.json, byte-identical copies of scripts/data/*-schedule.json, as `npm run schedule`
+ * writes them) with that override, estimates of every kind and
  * precedence in `shuttle_eta` (one crossing midnight, one held at a scheduled stop, one too old to serve but newest),
  * the Jongno and 7800 registry and route lines, `bus_cache` rows for the HSSC line, 종로02 (ended) and 종로07 (a bus
  * standing at 비천당, another on its way), and 7800 as one poller tick over its capture stores it, and in the content
- * database revision 1 of `bus-stops` with the four proposed 7800 stops appended (fixtures/bus-stops-7800-proposal.json),
+ * database revision 1 of `bus-stops` (its frozen copy, fixtures/bus-stops.frozen.dataset.json) with the four proposed
+ * 7800 stops appended (fixtures/bus-stops-7800-proposal.json),
  * `jongro-route-attributes`, `bus-service-notices` and `skku-rest-days`, stored through the data tool's
  * scripts/lib/datasets/store.js.
  *
@@ -105,13 +107,13 @@ const CACHE_UPDATED_AT = new Date("2099-01-01T00:00:00.000Z");
 const ESTIMATES_EXPIRE_AT = new Date("2099-01-01T00:00:00.000Z");
 const STORED_BY = { by: "characterization@example.com", now: new Date(INSTANTS["friday 08:30"]) };
 
-const COMMITTED_PATTERNS = ["campus-schedule.json", "commute-schedule.json"].flatMap((file) =>
-  buildDocuments(parseTimetableFile(JSON.parse(fs.readFileSync(path.join(__dirname, "../../../scripts/data", file), "utf8")))),
+const FROZEN_PATTERNS = ["campus-schedule.frozen.json", "commute-schedule.frozen.json"].flatMap((file) =>
+  buildDocuments(parseTimetableFile(JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures", file), "utf8")))),
 ) as Array<{ serviceId: string; entries: Array<Record<string, unknown>> }>;
 
 // Thursday's 잠실 timetable with a 23:30 run home that reaches 잠실역 at 00:50, past midnight.
 function lateJamsilOverride(): Record<string, unknown> {
-  const { entries } = COMMITTED_PATTERNS.find(({ serviceId }) => serviceId === "commute-jamsil")!;
+  const { entries } = FROZEN_PATTERNS.find(({ serviceId }) => serviceId === "commute-jamsil")!;
   const late = { index: entries.length + 1, time: "23:30", routeType: "down", busCount: 1, notes: null, stopTimes: ["23:30", "00:50"] };
   return { serviceId: "commute-jamsil", date: "2026-10-22", type: "replace", label: "심야 운행", notices: [], entries: [...entries, late] };
 }
@@ -278,7 +280,7 @@ beforeAll(async () => {
   const { storedJongroRouteDocuments } = require("../../helpers/bus/bus-registry") as BusRegistryHelpers;
   const { storedJongroRoutePathDocuments } = require("../../helpers/bus/bus-route-path") as BusRoutePathHelpers;
   const { registryDoc7800, routePathDoc7800 } = require("../../helpers/bus/topis-7800") as Topis7800Helpers;
-  await busDb.collection("bus_schedules").insertMany(COMMITTED_PATTERNS);
+  await busDb.collection("bus_schedules").insertMany(FROZEN_PATTERNS);
   await busDb.collection("bus_overrides").insertOne(lateJamsilOverride());
   await busDb.collection<ShuttleEtaDoc>("shuttle_eta").insertMany(ESTIMATES);
   await busDb.collection<JongroRouteDocument>(config.mongo.collections.jongroRoutes).insertMany([...storedJongroRouteDocuments(), registryDoc7800()]);
@@ -292,8 +294,8 @@ beforeAll(async () => {
     ...(await tick7800()).map((written) => ({ ...written, _updatedAt: CACHE_UPDATED_AT })),
   ];
   await busDb.collection<BusCacheDocument>(config.mongo.collections.busCache).insertMany(cacheDocs as unknown as BusCacheDocument[]);
-  const { busStopsFixture } = require("../../helpers/bus/bus-stops") as BusStopsHelpers;
-  const stops = busStopsFixture() as { stops: unknown[] };
+  const { frozenBusStopsFixture } = require("../../helpers/bus/bus-stops") as BusStopsHelpers;
+  const stops = frozenBusStopsFixture() as { stops: unknown[] };
   stops.stops.push(...proposal.stops);
   await store.create(content, "bus-stops", stops, STORED_BY);
   const { routeAttributesFixture } = require("../../helpers/bus/route-attributes") as RouteAttributesHelpers;

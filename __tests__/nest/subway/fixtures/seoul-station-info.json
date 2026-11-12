@@ -1,5 +1,5 @@
 {
- "_about": "GET http://openapi.seoul.go.kr:8088/<key>/json/SearchInfoBySubwayNameService/1/20/<name> (SEOUL_OPENAPI_GENERAL_KEY, left out) for each served station name, 성균관대, 혜화, 정자, 잠실, 도곡, 강남, 양재, 광교중앙, 사당, 금정, 종로5가, captured 2026-10-25 18:02 KST. Trimmed: the eleven answers joined under one row list in that order, each answer's list_total_count and RESULT (INFO-000 every time) left out; no row dropped.",
+ "_about": "GET http://openapi.seoul.go.kr:8088/<key>/json/SearchInfoBySubwayNameService/1/20/<name> (SEOUL_OPENAPI_GENERAL_KEY, left out) for each served station name, 성균관대, 혜화, 정자, 잠실, 도곡, 강남, 양재, 광교중앙, 사당, 금정, 종로5가, captured 2026-10-25 18:02 KST. Trimmed: the eleven answers joined under one row list in that order, each answer's list_total_count and RESULT (INFO-000 every time) left out; no row dropped. The answers for 미금, 복정, 가락시장 and 송파 follow them in that order, captured 2026-11-10 20:44 KST with the Seoul sample key and a 1/5 range (each answer held at most five rows); no row dropped.",
  "row": [
   {
    "STATION_CD": "1711",
@@ -108,6 +108,48 @@
    "STATION_NM": "종로5가",
    "LINE_NUM": "01호선",
    "FR_CODE": "129"
+  },
+  {
+   "STATION_CD": "1858",
+   "STATION_NM": "미금",
+   "LINE_NUM": "수인분당선",
+   "FR_CODE": "K231"
+  },
+  {
+   "STATION_CD": "4313",
+   "STATION_NM": "미금",
+   "LINE_NUM": "신분당선",
+   "FR_CODE": "D13"
+  },
+  {
+   "STATION_CD": "1031",
+   "STATION_NM": "복정",
+   "LINE_NUM": "수인분당선",
+   "FR_CODE": "K222"
+  },
+  {
+   "STATION_CD": "2821",
+   "STATION_NM": "복정",
+   "LINE_NUM": "08호선",
+   "FR_CODE": "820"
+  },
+  {
+   "STATION_CD": "2818",
+   "STATION_NM": "가락시장",
+   "LINE_NUM": "08호선",
+   "FR_CODE": "817"
+  },
+  {
+   "STATION_CD": "0340",
+   "STATION_NM": "가락시장",
+   "LINE_NUM": "03호선",
+   "FR_CODE": "350"
+  },
+  {
+   "STATION_CD": "2817",
+   "STATION_NM": "송파",
+   "LINE_NUM": "08호선",
+   "FR_CODE": "816"
   }
  ]
 }

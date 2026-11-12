@@ -331,8 +331,10 @@ describe("BusStopsService.servedSequences", () => {
     expect(Object.keys(served.sequences)).toEqual(["commute-jeongja"]);
     expect(served.stops.map((stop) => [stop.id, stop.subwayStation?.title ?? null, "map" in stop])).toEqual([
       ["jeongja-exit3", "Jeongja Station", false],
+      ["migeum-exit8", null, false],
       ["nsc-n-center", null, false],
       ["nsc-opposite", null, false],
+      ["migeum", null, false],
       ["jeongja-exit2", "Jeongja Station", false],
     ]);
   });

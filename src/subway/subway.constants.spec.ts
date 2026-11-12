@@ -18,7 +18,7 @@ import { SUBWAY_LINES, SUBWAY_STATIONS } from "./subway.constants";
 import { subwayNetwork } from "./subway.schema";
 
 describe("SUBWAY_STATIONS", () => {
-  it("lists the stations in served order with their platforms in order, 18 in all", () => {
+  it("lists the stations in served order with their platforms in order, 25 in all", () => {
     // Act
     const stations = SUBWAY_STATIONS.map((station) => [station.id, station.platforms.map((platform) => platform.id)]);
 
@@ -35,8 +35,12 @@ describe("SUBWAY_STATIONS", () => {
       ["sadang", ["S1-2-226", "S1-4-433"]],
       ["geumjeong", ["KR-1-P149", "KR-4-443"]],
       ["jongno-5-ga", ["S1-1-154"]],
+      ["migeum", ["DX-D1-D13", "KR-K1-K231"]],
+      ["bokjeong", ["S1-8-2821", "KR-K1-K222"]],
+      ["garak-market", ["S1-3-340", "S1-8-2818"]],
+      ["songpa", ["S1-8-2817"]],
     ]);
-    expect(stations.flatMap(([, platformIds]) => platformIds)).toHaveLength(18);
+    expect(stations.flatMap(([, platformIds]) => platformIds)).toHaveLength(25);
   });
 
   it("serves each platform from its timetable source, a Seoul station's with its station code", () => {
@@ -63,6 +67,13 @@ describe("SUBWAY_STATIONS", () => {
       ["KR-1-P149", "1", { source: "korail" }],
       ["KR-4-443", "4", { source: "seoul-station", stationCode: "1458" }],
       ["S1-1-154", "1", { source: "korail" }],
+      ["DX-D1-D13", "D1", { source: "shinbundang" }],
+      ["KR-K1-K231", "K1", { source: "korail" }],
+      ["S1-8-2821", "8", { source: "seoul-station", stationCode: "2821" }],
+      ["KR-K1-K222", "K1", { source: "korail" }],
+      ["S1-3-340", "3", { source: "seoul-station", stationCode: "0340" }],
+      ["S1-8-2818", "8", { source: "seoul-station", stationCode: "2818" }],
+      ["S1-8-2817", "8", { source: "seoul-station", stationCode: "2817" }],
     ]);
   });
 
@@ -83,10 +94,14 @@ describe("SUBWAY_STATIONS", () => {
       ["sadang", { ko: "사당", en: "Sadang", zh: "舍堂" }, "사당"],
       ["geumjeong", { ko: "금정", en: "Geumjeong", zh: "衿井" }, "금정"],
       ["jongno-5-ga", { ko: "종로5가", en: "Jongno 5(o)-ga", zh: "钟路5街" }, "종로5가"],
+      ["migeum", { ko: "미금", en: "Migeum", zh: "美金" }, "미금"],
+      ["bokjeong", { ko: "복정", en: "Bokjeong", zh: "福井" }, "복정"],
+      ["garak-market", { ko: "가락시장", en: "Garak Market", zh: "可乐市场" }, "가락시장"],
+      ["songpa", { ko: "송파", en: "Songpa", zh: "松坡" }, "송파"],
     ]);
   });
 
-  it("files each station under the campus whose section of the transit tab lists it: 혜화 under hssc, 사당, 금정 and 종로5가 under none, the rest under nsc", () => {
+  it("files each station under the campus whose section of the transit tab lists it: 혜화 under hssc, 사당, 금정, 종로5가, 미금, 복정, 가락시장 and 송파 under none, the rest under nsc", () => {
     // Act
     const campuses = SUBWAY_STATIONS.map((station) => [station.id, station.campus]);
 
@@ -103,6 +118,10 @@ describe("SUBWAY_STATIONS", () => {
       ["sadang", null],
       ["geumjeong", null],
       ["jongno-5-ga", null],
+      ["migeum", null],
+      ["bokjeong", null],
+      ["garak-market", null],
+      ["songpa", null],
     ]);
   });
 });
@@ -137,6 +156,13 @@ describe("SUBWAY_STATIONS Seoul station ids", () => {
       ["KR-1-P149", "1001080149", "P149"],
       ["KR-4-443", "1004000443", "443"],
       ["S1-1-154", "1001000129", "129"],
+      ["DX-D1-D13", "1077006813", "D13"],
+      ["KR-K1-K231", "1075075231", "K231"],
+      ["S1-8-2821", "1008000820", "820"],
+      ["KR-K1-K222", "1075075222", "K222"],
+      ["S1-3-340", "1003000350", "350"],
+      ["S1-8-2818", "1008000817", "817"],
+      ["S1-8-2817", "1008000816", "816"],
     ]);
   });
 

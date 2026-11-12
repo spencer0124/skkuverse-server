@@ -68,6 +68,28 @@ describe("SubwayStationsService.listStations", () => {
         ],
       },
       { id: "jongno-5-ga", lines: [{ code: "1", color: "0052A4" }] },
+      {
+        id: "migeum",
+        lines: [
+          { code: "D1", color: "D4003B" },
+          { code: "K1", color: "F5A200" },
+        ],
+      },
+      {
+        id: "bokjeong",
+        lines: [
+          { code: "8", color: "E6186C" },
+          { code: "K1", color: "F5A200" },
+        ],
+      },
+      {
+        id: "garak-market",
+        lines: [
+          { code: "3", color: "EF7C1C" },
+          { code: "8", color: "E6186C" },
+        ],
+      },
+      { id: "songpa", lines: [{ code: "8", color: "E6186C" }] },
     ]);
     expect(stations[1]?.title.ko).toBe("혜화역");
   });

@@ -1,5 +1,5 @@
 {
-  "_about": "Revision 1 of the subway-station-coords dataset: each served station's camera point, the mean of its lines' platform points in the Seoul Open Data station master (subwayStationMaster/1/1000, fields BLDN_NM, ROUTE, LAT, LOT, WGS84), captured 2026-10-23: Sungkyunkwan Univ. on the Gyeongbu line; Hyehwa on line 4; Jeongja on the Bundang and Shinbundang lines; Jamsil on lines 2 and 8; Dogok on line 3 and the Bundang line; Gangnam on line 2 and the Shinbundang line; Yangjae on line 3 and the Shinbundang line; Gwanggyojungang on the Shinbundang extension. Means rounded to six decimals, keyed by station slug in SUBWAY_STATIONS order. Not trimmed. Revision 2 (2026-10-25) adds 사당 (lines 2 and 4), 금정 (경부선 and 과천선 rows) and 종로5가 (line 1), from the same master captured 2026-10-25.",
+  "_about": "Revision 1 of the subway-station-coords dataset: each served station's camera point, the mean of its lines' platform points in the Seoul Open Data station master (subwayStationMaster/1/1000, fields BLDN_NM, ROUTE, LAT, LOT, WGS84), captured 2026-10-23: Sungkyunkwan Univ. on the Gyeongbu line; Hyehwa on line 4; Jeongja on the Bundang and Shinbundang lines; Jamsil on lines 2 and 8; Dogok on line 3 and the Bundang line; Gangnam on line 2 and the Shinbundang line; Yangjae on line 3 and the Shinbundang line; Gwanggyojungang on the Shinbundang extension. Means rounded to six decimals, keyed by station slug in SUBWAY_STATIONS order. Not trimmed. Revision 2 (2026-10-25) adds 사당 (lines 2 and 4), 금정 (경부선 and 과천선 rows) and 종로5가 (line 1), from the same master captured 2026-10-25. Revision 3 (2026-11-10) adds 미금 (the Bundang line and Shinbundang extension rows), 복정 (the Bundang line and line 8), 가락시장 (lines 3 and 8) and 송파 (line 8), from the same master captured 2026-11-10, the means rounded half up to six decimals.",
   "stations": {
     "sungkyunkwan": { "lat": 37.300349, "lng": 126.97075 },
     "hyehwa": { "lat": 37.582336, "lng": 127.001844 },
@@ -11,6 +11,10 @@
     "gwanggyo-jungang": { "lat": 37.288617, "lng": 127.051478 },
     "sadang": { "lat": 37.476746, "lng": 126.981597 },
     "geumjeong": { "lat": 37.372215, "lng": 126.943423 },
-    "jongno-5-ga": { "lat": 37.570926, "lng": 127.001849 }
+    "jongno-5-ga": { "lat": 37.570926, "lng": 127.001849 },
+    "migeum": { "lat": 37.35003, "lng": 127.108914 },
+    "bokjeong": { "lat": 37.47055, "lng": 127.126696 },
+    "garak-market": { "lat": 37.492567, "lng": 127.118078 },
+    "songpa": { "lat": 37.499703, "lng": 127.112183 }
   }
 }

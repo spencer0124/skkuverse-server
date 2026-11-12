@@ -391,6 +391,7 @@ describe("SubwaySeoulService matches a served platform's rows by statnId", () =>
   const atSungkyunkwan = rows<SeoulPositionRow>("realtime-position-line1.json", "realtimePositionList").find((row) => row.statnId === "1001080153")!;
   const SADANG_ROWS = rows<SeoulArrivalRow>("realtime-arrival-sadang.json", "realtimeArrivalList");
   const SADANG_FETCHED_AT = new Date("2026-10-25T03:23:14Z");
+  const GARAK_MARKET_FETCHED_AT = new Date("2026-11-10T11:29:30Z");
 
   it("Renamed station: takes a position row carrying 성균관대's statnId under another name as KR-1-P153's", async () => {
     // Arrange
@@ -444,5 +445,19 @@ describe("SubwaySeoulService matches a served platform's rows by statnId", () =>
 
     // Assert
     expect(countdownRows.map((row) => `${row.trainNo} ${row.platformId} ${row.remainingSec}`)).toEqual(["2157 S1-2-226 210"]);
+  });
+
+  it("counts 가락시장's line 3 countdowns for S1-3-340 by their statnId and no countdown for its line 8 platform, whose rows carry none", async () => {
+    // Arrange
+    const { service, apiClient } = setup(GARAK_MARKET_FETCHED_AT);
+    apiClient.positions.clear();
+    apiClient.arrivals.clear();
+    apiClient.arrivals.set("가락시장", rows<SeoulArrivalRow>("realtime-arrival-garak-market.json", "realtimeArrivalList"));
+
+    // Act
+    const { countdownRows } = await service.observeApi();
+
+    // Assert
+    expect(countdownRows.map((row) => `${row.trainNo} ${row.platformId} ${row.remainingSec}`).sort()).toEqual(["3331 S1-3-340 300", "3333 S1-3-340 540", "3374 S1-3-340 180"]);
   });
 });

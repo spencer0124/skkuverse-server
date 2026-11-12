@@ -20,14 +20,26 @@ import { asReal } from "../fakes/public-of";
 type ServiceModule = typeof import("../../../src/bus/stops/bus-stops.service");
 type StationsModule = typeof import("../../../src/subway/stations/subway-stations.service");
 
-const FIXTURE = path.join(__dirname, "../../nest/bus/fixtures/bus-stops.dataset.json");
+const FIXTURES = path.join(__dirname, "../../nest/bus/fixtures");
 const STORED_AT: Clock = { now: () => new Date("2026-10-21T13:52:00.000Z") };
+
+function readFixture(file: string): Record<string, unknown> {
+  const data = JSON.parse(fs.readFileSync(path.join(FIXTURES, file), "utf8")) as Record<string, unknown>;
+  delete data._about;
+  return data;
+}
 
 /** A fresh copy of revision 1 of `bus-stops`, as the push imports it. */
 export function busStopsFixture(): Record<string, unknown> {
-  const data = JSON.parse(fs.readFileSync(FIXTURE, "utf8")) as Record<string, unknown>;
-  delete data._about;
-  return data;
+  return readFixture("bus-stops.dataset.json");
+}
+
+/**
+ * A fresh copy of `busStopsFixture()` as it stood before the commute's via stops were added, for the
+ * characterization tests that pin bytes served before them.
+ */
+export function frozenBusStopsFixture(): Record<string, unknown> {
+  return readFixture("bus-stops.frozen.dataset.json");
 }
 
 /** A FakeBusStopsRepository holding `data` (revision 1 of the fixture by default) as revision 1. */

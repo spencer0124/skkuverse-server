@@ -17,12 +17,14 @@
  * The expected values are production's own answers
  * (fixtures/schedule-production.capture.json, source commit 5c0ee5a9), and the
  * clock stands at their capture instant, 01:56 KST on Tuesday 2026-10-20. The
- * `mongod` holds what production held then: the committed timetables
- * (scripts/data/*-schedule.json, built the way `npm run schedule` writes them,
- * with no override), the Jongno registry (fixtures/jongro-registry-routes.json
+ * `mongod` holds what production held then: the timetables as committed at
+ * that source commit (fixtures/*-schedule.frozen.json, byte-identical copies
+ * of scripts/data/*-schedule.json, built the way `npm run schedule` writes
+ * them, with no override), the Jongno registry (fixtures/jongro-registry-routes.json
  * of bus), no stored public holiday, so date-holidays answers, and the content
- * database holds the fixtures of `bus-service-notices` and `skku-rest-days` as
- * revision 1, pushed the way `npm run data` stores them, through the tool's
+ * database holds the fixtures of `bus-service-notices` and `skku-rest-days`
+ * and the frozen copy of `bus-stops` (fixtures/bus-stops.frozen.dataset.json)
+ * as revision 1, pushed the way `npm run data` stores them, through the tool's
  * own scripts/lib/datasets/store.js. The smart
  * view merges stored arrival estimates, which the pollers wrote from NAVER and
  * TMAP and no test can reproduce, so `shuttle_eta` is seeded from the captured
@@ -134,8 +136,8 @@ function estimatesOf(serviceId: string, days: CapturedDay[]): Array<Record<strin
   );
 }
 
-const COMMITTED_PATTERNS = ["campus-schedule.json", "commute-schedule.json"].flatMap((file) =>
-  buildDocuments(parseTimetableFile(JSON.parse(fs.readFileSync(path.join(__dirname, "../../../scripts/data", file), "utf8")))),
+const FROZEN_PATTERNS = ["campus-schedule.frozen.json", "commute-schedule.frozen.json"].flatMap((file) =>
+  buildDocuments(parseTimetableFile(JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures", file), "utf8")))),
 );
 
 let mongod: TestMongod;
@@ -174,7 +176,7 @@ beforeAll(async () => {
   buildTestApp = (require("../../helpers/nest/build-test-app") as { buildTestApp: BuildTestApp }).buildTestApp;
   const { storedJongroRouteDocuments } = require("../../helpers/bus/bus-registry") as BusRegistryHelpers;
   const busDb = db.getClient().db(config.mongo.dbName);
-  await busDb.collection("bus_schedules").insertMany(COMMITTED_PATTERNS);
+  await busDb.collection("bus_schedules").insertMany(FROZEN_PATTERNS);
   await busDb.collection<JongroRouteDocument>(config.mongo.collections.jongroRoutes).insertMany(storedJongroRouteDocuments());
   const estimates = SERVICE_IDS.flatMap((serviceId) => estimatesOf(serviceId, (captured.smart[serviceId].ko.body.data as { days: CapturedDay[] }).days));
   await busDb.collection("shuttle_eta").insertMany(estimates);
@@ -185,8 +187,8 @@ beforeAll(async () => {
   await store.create(content, "skku-rest-days", restDaysFixture(), STORED_BY);
   const { routeAttributesFixture } = require("../../helpers/bus/route-attributes") as RouteAttributesHelpers;
   await store.create(content, "jongro-route-attributes", routeAttributesFixture(), STORED_BY);
-  const { busStopsFixture } = require("../../helpers/bus/bus-stops") as BusStopsHelpers;
-  await store.create(content, "bus-stops", busStopsFixture(), STORED_BY);
+  const { frozenBusStopsFixture } = require("../../helpers/bus/bus-stops") as BusStopsHelpers;
+  await store.create(content, "bus-stops", frozenBusStopsFixture(), STORED_BY);
 }, MONGOD_START_TIMEOUT_MS);
 
 beforeAll(async () => {

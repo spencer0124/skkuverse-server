@@ -3,7 +3,7 @@ title: Update Subway Timetables
 type: how-to
 status: draft
 owner: spencer0124
-last-updated: 2026-10-25
+last-updated: 2026-11-10
 audience: internal
 ---
 
@@ -48,7 +48,7 @@ Rerun when:
 
    A rebuilt Seoul table whose trains equal the pulled file's keeps the pulled source revision, so it pushes as unchanged.
 
-   To add stations to a Seoul line without calling again for the ones its pulled tables hold, add `--seoul-keep-pulled` (keep those stations' stop times) and `--seoul-rows scripts/subway-timetable/seoul-rows` (read the saved answers, save the new ones; six calls a station). Commit the saved files with the change. A new Seoul Metro timetable takes neither option.
+   To add stations to a Seoul line without calling again for the ones its pulled tables hold, add `--seoul-keep-pulled` (keep those stations' stop times) and `--seoul-rows scripts/subway-timetable/seoul-rows` (read the saved answers, save the new ones; six calls a station). Commit the saved files with the change. A new Seoul Metro timetable takes neither option, and neither does a change that makes a covered station served: `--seoul-keep-pulled` rebuilds a kept station's rows from the pulled table, which lists only trains that called at a platform served before, so a train that calls only at the newly served one (line `8`'s `8001`, from 가락시장, on 2026-11-10) is lost.
 
 3. Preview, then push to `_dev` with a note:
 

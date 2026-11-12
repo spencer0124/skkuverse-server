@@ -15,14 +15,16 @@
  * `src/scheduling/`, `src/bus/`, `src/ui/transit-list/` and `src/ui/transit/`,
  * through the production pipeline with only `Clock` overridden, at the
  * capture's instant (22:52 KST on Wednesday 2026-10-21, after the day's last
- * run). The `mongod` holds what production held then: the committed
- * timetables (scripts/data/*-schedule.json, built the way `npm run schedule`
- * writes them), the Jongno registry and route lines
+ * run). The `mongod` holds what production held then: the timetables as
+ * committed at the source commit (fixtures/*-schedule.frozen.json,
+ * byte-identical copies of scripts/data/*-schedule.json, built the way
+ * `npm run schedule` writes them), the Jongno registry and route lines
  * (fixtures/jongro-registry-routes.json and jongro-route-paths.json, the
  * stations versions the captures carry), the `bus_cache` rows below, and in
  * the content database revision 1 of `transit-layout`, `miniapps`,
  * `jongro-route-attributes`, `bus-service-notices`, `skku-rest-days` and
- * `bus-lane-corridor`, stored through the tool's own
+ * `bus-lane-corridor`, and of `bus-stops` as its frozen copy
+ * (fixtures/bus-stops.frozen.dataset.json), stored through the tool's own
  * scripts/lib/datasets/store.js. The smart view merges stored estimates the
  * pollers wrote from NAVER and TMAP, so `shuttle_eta` is seeded from the
  * captured bodies themselves (one document per estimated run, its offsets the
@@ -178,8 +180,8 @@ function estimatesOf(serviceId: string, days: CapturedDay[]): Array<Record<strin
   );
 }
 
-const COMMITTED_PATTERNS = ["campus-schedule.json", "commute-schedule.json"].flatMap((file) =>
-  buildDocuments(parseTimetableFile(JSON.parse(fs.readFileSync(path.join(__dirname, "../../../scripts/data", file), "utf8")))),
+const FROZEN_PATTERNS = ["campus-schedule.frozen.json", "commute-schedule.frozen.json"].flatMap((file) =>
+  buildDocuments(parseTimetableFile(JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures", file), "utf8")))),
 );
 
 // Three HSSC buses as the poller writes them: after the turnaround (seq 6 → 2), at 혜화역 (seq 0 → 7) and the last
@@ -251,7 +253,7 @@ beforeAll(async () => {
   config = require("../../../src/infra/config") as Config;
   assertConfigReaches(mongod, config.mongo.url);
   busDb = db.getClient().db(config.mongo.dbName);
-  await busDb.collection("bus_schedules").insertMany(COMMITTED_PATTERNS);
+  await busDb.collection("bus_schedules").insertMany(FROZEN_PATTERNS);
   const { storedJongroRouteDocuments } = require("../../helpers/bus/bus-registry") as BusRegistryHelpers;
   await busDb.collection<JongroRouteDocument>(config.mongo.collections.jongroRoutes).insertMany(storedJongroRouteDocuments());
   const { storedJongroRoutePathDocuments } = require("../../helpers/bus/bus-route-path") as BusRoutePathHelpers;
@@ -275,8 +277,8 @@ beforeAll(async () => {
   await store.create(content, "miniapps", fixtureRegistry(), STORED_BY);
   const { routeAttributesFixture } = require("../../helpers/bus/route-attributes") as RouteAttributesHelpers;
   await store.create(content, "jongro-route-attributes", routeAttributesFixture(), STORED_BY);
-  const { busStopsFixture } = require("../../helpers/bus/bus-stops") as BusStopsHelpers;
-  await store.create(content, "bus-stops", busStopsFixture(), STORED_BY);
+  const { frozenBusStopsFixture } = require("../../helpers/bus/bus-stops") as BusStopsHelpers;
+  await store.create(content, "bus-stops", frozenBusStopsFixture(), STORED_BY);
   const { serviceNoticesFixture } = require("../../helpers/bus/schedule-content") as ScheduleContentHelpers;
   const { restDaysFixture } = require("../../helpers/calendar/rest-days") as RestDaysHelpers;
   await store.create(content, "bus-service-notices", serviceNoticesFixture(), STORED_BY);

@@ -1,0 +1,1297 @@
+{
+  "_about": "Synthetic, never captured: a frozen copy of bus-stops.dataset.json as it stood before the commute via stops were added (2026-11-09), which the characterization route tests (schedule-content, bus-stops, stop-calls) read in place of the live fixture so that an edit of the commute stops leaves the bytes they pin alone. Its provenance is the fixture's own: Synthetic, never captured: revision 1 of the bus-stops dataset, built from src/bus/stops/schedule-stops.json at commit 50f3405c and HSSC_STATIONS (src/bus/config/bus-config.constants.ts) at commit 98a4992b, both unchanged at 099bbbb9: the catalog's stops and sequences as they are, then the nine HSSC stops named from their positions with the trailing bracketed note removed, and the HSSC line with those stops' ids. No arsIds and no topis. Not trimmed. Since 2026-10-23 each of the nine HSSC stops carries the coords production's revision 6 stores (skku_content datasets, bus-stops), which a push requires of a served stop; no other field changed.",
+  "stops": [
+    {
+      "id": "jeongja-exit3",
+      "name": {
+        "ko": "정자역 3번 출구",
+        "en": "Jeongja Stn. Exit 3",
+        "zh": "亭子站 3号出口"
+      },
+      "detail": {
+        "ko": "파리바게뜨 앞",
+        "en": "In front of Paris Baguette",
+        "zh": "巴黎贝甜门前"
+      },
+      "subwayStationId": "jeongja",
+      "coords": {
+        "lat": 37.365499,
+        "lng": 127.107906
+      },
+      "photo": {
+        "original": "https://media.skkuverse.com/commute/stops/jeongja-exit3/original-f8dfae12.jpg",
+        "localized": {
+          "ko": "https://media.skkuverse.com/commute/stops/jeongja-exit3/ko-f3580542.jpg",
+          "en": "https://media.skkuverse.com/commute/stops/jeongja-exit3/en-f6225593.jpg",
+          "zh": "https://media.skkuverse.com/commute/stops/jeongja-exit3/zh-b4096697.jpg"
+        }
+      },
+      "panorama": {
+        "panoId": "4MWo62oDv4KAFMmR86SRaA",
+        "pan": -75,
+        "tilt": 0,
+        "fov": 80
+      },
+      "guide": {
+        "places": [
+          {
+            "id": "exit3",
+            "kind": "subwayExit",
+            "number": 3,
+            "name": {
+              "ko": "3번 출구",
+              "en": "Exit 3",
+              "zh": "3号出口"
+            },
+            "coords": {
+              "lat": 37.365922,
+              "lng": 127.107774
+            }
+          }
+        ],
+        "walks": [
+          {
+            "from": "exit3",
+            "to": "stop",
+            "path": [
+              {
+                "lat": 37.365922,
+                "lng": 127.107774
+              },
+              {
+                "lat": 37.365882,
+                "lng": 127.107844
+              },
+              {
+                "lat": 37.365712,
+                "lng": 127.107844
+              },
+              {
+                "lat": 37.365699,
+                "lng": 127.107876
+              },
+              {
+                "lat": 37.365581,
+                "lng": 127.107876
+              },
+              {
+                "lat": 37.365499,
+                "lng": 127.107906
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "jamsil-exit4",
+      "name": {
+        "ko": "잠실역 4번 출구",
+        "en": "Jamsil Stn. Exit 4",
+        "zh": "蚕室站 4号出口"
+      },
+      "detail": {
+        "ko": "약 200 m, 롯데마트(하이마트) 앞",
+        "en": "About 200 m, in front of Lotte Mart (Hi-Mart)",
+        "zh": "约200米，乐天玛特（Hi-Mart）门前"
+      },
+      "subwayStationId": "jamsil",
+      "coords": {
+        "lat": 37.512278,
+        "lng": 127.097033
+      },
+      "photo": {
+        "original": "https://media.skkuverse.com/commute/stops/jamsil-exit4/original-c0c18db8.jpg",
+        "localized": {
+          "ko": "https://media.skkuverse.com/commute/stops/jamsil-exit4/ko-77d838fe.jpg",
+          "en": "https://media.skkuverse.com/commute/stops/jamsil-exit4/en-e842efe3.jpg",
+          "zh": "https://media.skkuverse.com/commute/stops/jamsil-exit4/zh-66e4bebe.jpg"
+        }
+      },
+      "panorama": {
+        "panoId": "Ztgh1UEOQ2hXbzUpjiWOwA",
+        "pan": -172,
+        "tilt": 0,
+        "fov": 80
+      },
+      "guide": {
+        "places": [
+          {
+            "id": "exit4",
+            "kind": "subwayExit",
+            "number": 4,
+            "name": {
+              "ko": "4번 출구",
+              "en": "Exit 4",
+              "zh": "4号出口"
+            },
+            "coords": {
+              "lat": 37.512743,
+              "lng": 127.099156
+            }
+          }
+        ],
+        "walks": [
+          {
+            "from": "exit4",
+            "to": "stop",
+            "path": [
+              {
+                "lat": 37.512743,
+                "lng": 127.099156
+              },
+              {
+                "lat": 37.512704,
+                "lng": 127.099055
+              },
+              {
+                "lat": 37.512281,
+                "lng": 127.097237
+              },
+              {
+                "lat": 37.512278,
+                "lng": 127.097033
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dogok-exit1",
+      "name": {
+        "ko": "도곡역 1번 출구",
+        "en": "Dogok Stn. Exit 1",
+        "zh": "道谷站 1号出口"
+      },
+      "detail": {
+        "ko": "약 50 m, 붉은 벽돌 건물 앞",
+        "en": "About 50 m, in front of the red-brick building",
+        "zh": "约50米，红砖建筑门前"
+      },
+      "subwayStationId": "dogok",
+      "coords": {
+        "lat": 37.4907,
+        "lng": 127.054417
+      },
+      "photo": {
+        "original": "https://media.skkuverse.com/commute/stops/dogok-exit1/original-1bfce45a.jpg",
+        "localized": {
+          "ko": "https://media.skkuverse.com/commute/stops/dogok-exit1/ko-89ecba02.jpg",
+          "en": "https://media.skkuverse.com/commute/stops/dogok-exit1/en-07203bbc.jpg",
+          "zh": "https://media.skkuverse.com/commute/stops/dogok-exit1/zh-6e331b49.jpg"
+        }
+      },
+      "panorama": {
+        "panoId": "MP3SWzWvq5ayB2qIfZrveA",
+        "pan": -66,
+        "tilt": 8,
+        "fov": 80
+      },
+      "guide": {
+        "places": [
+          {
+            "id": "exit1",
+            "kind": "subwayExit",
+            "number": 1,
+            "name": {
+              "ko": "1번 출구",
+              "en": "Exit 1",
+              "zh": "1号出口"
+            },
+            "coords": {
+              "lat": 37.490911,
+              "lng": 127.054844
+            }
+          }
+        ],
+        "walks": [
+          {
+            "from": "exit1",
+            "to": "stop",
+            "path": [
+              {
+                "lat": 37.490911,
+                "lng": 127.054844
+              },
+              {
+                "lat": 37.490854,
+                "lng": 127.05478
+              },
+              {
+                "lat": 37.4907,
+                "lng": 127.054417
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "gangnam-exit5",
+      "name": {
+        "ko": "강남역 5번 출구",
+        "en": "Gangnam Stn. Exit 5",
+        "zh": "江南站 5号出口"
+      },
+      "detail": {
+        "ko": "삼성화재 서초사옥 앞",
+        "en": "In front of the Samsung Fire & Marine Seocho building",
+        "zh": "三星火灾瑞草大楼门前"
+      },
+      "subwayStationId": "gangnam",
+      "coords": {
+        "lat": 37.494424,
+        "lng": 127.029091
+      },
+      "photo": {
+        "original": "https://media.skkuverse.com/commute/stops/gangnam-exit5/original-d2563ab3.jpg",
+        "localized": {
+          "ko": "https://media.skkuverse.com/commute/stops/gangnam-exit5/ko-87520a78.jpg",
+          "en": "https://media.skkuverse.com/commute/stops/gangnam-exit5/en-790cefe1.jpg",
+          "zh": "https://media.skkuverse.com/commute/stops/gangnam-exit5/zh-688582db.jpg"
+        }
+      },
+      "panorama": {
+        "panoId": "JMkZUkg-9kO4MiUe-GnGVg",
+        "pan": -95,
+        "tilt": 10,
+        "fov": 80
+      },
+      "guide": {
+        "places": [
+          {
+            "id": "exit5",
+            "kind": "subwayExit",
+            "number": 5,
+            "name": {
+              "ko": "5번 출구",
+              "en": "Exit 5",
+              "zh": "5号出口"
+            },
+            "coords": {
+              "lat": 37.495333,
+              "lng": 127.02863
+            }
+          }
+        ],
+        "walks": [
+          {
+            "from": "exit5",
+            "to": "stop",
+            "path": [
+              {
+                "lat": 37.495333,
+                "lng": 127.02863
+              },
+              {
+                "lat": 37.495215,
+                "lng": 127.028675
+              },
+              {
+                "lat": 37.49449,
+                "lng": 127.028998
+              },
+              {
+                "lat": 37.494424,
+                "lng": 127.029091
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "yangjae-exit2",
+      "name": {
+        "ko": "양재역 2번 출구",
+        "en": "Yangjae Stn. Exit 2",
+        "zh": "良才站 2号出口"
+      },
+      "detail": {
+        "ko": "강남대로37길 건너 서초르니드 앞",
+        "en": "Across Gangnam-daero 37-gil, in front of Seocho Lenid",
+        "zh": "过江南大路37街，瑞草Lenid门前"
+      },
+      "subwayStationId": "yangjae",
+      "coords": {
+        "lat": 37.485406,
+        "lng": 127.033382
+      },
+      "photo": {
+        "original": "https://media.skkuverse.com/commute/stops/yangjae-exit2/original-0f84c315.jpg",
+        "localized": {
+          "ko": "https://media.skkuverse.com/commute/stops/yangjae-exit2/ko-249a2124.jpg",
+          "en": "https://media.skkuverse.com/commute/stops/yangjae-exit2/en-8015f79c.jpg",
+          "zh": "https://media.skkuverse.com/commute/stops/yangjae-exit2/zh-b3e9be96.jpg"
+        }
+      },
+      "panorama": {
+        "panoId": "t3fVimfVujMkQbI7-J3YnQ",
+        "pan": -72,
+        "tilt": 0,
+        "fov": 80
+      },
+      "guide": {
+        "places": [
+          {
+            "id": "exit2",
+            "kind": "subwayExit",
+            "number": 2,
+            "name": {
+              "ko": "2번 출구",
+              "en": "Exit 2",
+              "zh": "2号出口"
+            },
+            "coords": {
+              "lat": 37.485018,
+              "lng": 127.033534
+            }
+          }
+        ],
+        "walks": [
+          {
+            "from": "exit2",
+            "to": "stop",
+            "path": [
+              {
+                "lat": 37.485018,
+                "lng": 127.033534
+              },
+              {
+                "lat": 37.485172,
+                "lng": 127.033487
+              },
+              {
+                "lat": 37.48531,
+                "lng": 127.03341
+              },
+              {
+                "lat": 37.485372,
+                "lng": 127.033378
+              },
+              {
+                "lat": 37.485406,
+                "lng": 127.033382
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "gwanggyo-exit4",
+      "name": {
+        "ko": "광교중앙역 4번 출구",
+        "en": "Gwanggyo Jungang Stn. Exit 4",
+        "zh": "光教中央站 4号出口"
+      },
+      "detail": {
+        "ko": "약 50 m, 경기도서관 광장 입구 앞",
+        "en": "About 50 m, at the Gyeonggi Library plaza entrance",
+        "zh": "约50米，京畿道图书馆广场入口"
+      },
+      "subwayStationId": "gwanggyo-jungang",
+      "coords": {
+        "lat": 37.287931,
+        "lng": 127.052631
+      },
+      "photo": {
+        "original": "https://media.skkuverse.com/commute/stops/gwanggyo-exit4/original-5bb504fe.jpg",
+        "localized": {
+          "ko": "https://media.skkuverse.com/commute/stops/gwanggyo-exit4/ko-2930e200.jpg",
+          "en": "https://media.skkuverse.com/commute/stops/gwanggyo-exit4/en-2caa0d51.jpg",
+          "zh": "https://media.skkuverse.com/commute/stops/gwanggyo-exit4/zh-6f296ed3.jpg"
+        }
+      },
+      "panorama": {
+        "panoId": "7ScvFBuRYj398Dtktxmesw",
+        "pan": 70,
+        "tilt": 5,
+        "fov": 80
+      },
+      "guide": {
+        "places": [
+          {
+            "id": "exit4",
+            "kind": "subwayExit",
+            "number": 4,
+            "name": {
+              "ko": "4번 출구",
+              "en": "Exit 4",
+              "zh": "4号出口"
+            },
+            "coords": {
+              "lat": 37.288187,
+              "lng": 127.052357
+            }
+          }
+        ],
+        "walks": [
+          {
+            "from": "exit4",
+            "to": "stop",
+            "path": [
+              {
+                "lat": 37.288187,
+                "lng": 127.052357
+              },
+              {
+                "lat": 37.288168,
+                "lng": 127.0524
+              },
+              {
+                "lat": 37.287931,
+                "lng": 127.052631
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "nsc-opposite",
+      "name": {
+        "ko": "N센터 맞은편",
+        "en": "Across from N Center",
+        "zh": "N中心对面"
+      },
+      "detail": {
+        "ko": "글로벌광장 쪽, 연석의 BUS STOP 표시",
+        "en": "Global Plaza side, at the BUS STOP mark on the curb",
+        "zh": "环球广场一侧，路缘BUS STOP标志处"
+      },
+      "coords": {
+        "lat": 37.292536,
+        "lng": 126.975077
+      },
+      "photo": {
+        "original": "https://media.skkuverse.com/commute/stops/nsc-opposite/original-3406c12b.jpg"
+      },
+      "panorama": {
+        "panoId": "1pS33oeIOFDwuxlq1Prstg",
+        "pan": 84,
+        "tilt": 12,
+        "fov": 80
+      },
+      "guide": {}
+    },
+    {
+      "id": "jeongja-exit2",
+      "name": {
+        "ko": "정자역 2번 출구 앞",
+        "en": "Jeongja Stn. Exit 2",
+        "zh": "亭子站 2号出口"
+      },
+      "subwayStationId": "jeongja",
+      "coords": {
+        "lat": 37.366014,
+        "lng": 127.10836
+      },
+      "guide": {
+        "places": [
+          {
+            "id": "exit2",
+            "kind": "subwayExit",
+            "number": 2,
+            "name": {
+              "ko": "2번 출구",
+              "en": "Exit 2",
+              "zh": "2号出口"
+            },
+            "coords": {
+              "lat": 37.366095,
+              "lng": 127.108414
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "jamsil-exit5",
+      "name": {
+        "ko": "잠실역 5번 출구 앞",
+        "en": "Jamsil Stn. Exit 5",
+        "zh": "蚕室站 5号出口"
+      },
+      "subwayStationId": "jamsil",
+      "coords": {
+        "lat": 37.513114,
+        "lng": 127.098842
+      },
+      "guide": {
+        "places": [
+          {
+            "id": "exit5",
+            "kind": "subwayExit",
+            "number": 5,
+            "name": {
+              "ko": "5번 출구",
+              "en": "Exit 5",
+              "zh": "5号出口"
+            },
+            "coords": {
+              "lat": 37.513133,
+              "lng": 127.098907
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "dogok-exit4",
+      "name": {
+        "ko": "도곡역 4번 출구 앞",
+        "en": "Dogok Stn. Exit 4",
+        "zh": "道谷站 4号出口"
+      },
+      "subwayStationId": "dogok",
+      "coords": {
+        "lat": 37.490607,
+        "lng": 127.055048
+      },
+      "guide": {
+        "places": [
+          {
+            "id": "exit4",
+            "kind": "subwayExit",
+            "number": 4,
+            "name": {
+              "ko": "4번 출구",
+              "en": "Exit 4",
+              "zh": "4号出口"
+            },
+            "coords": {
+              "lat": 37.49054,
+              "lng": 127.055081
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "yangjae-exit3",
+      "name": {
+        "ko": "양재역 3번 출구 앞",
+        "en": "Yangjae Stn. Exit 3",
+        "zh": "良才站 3号出口"
+      },
+      "subwayStationId": "yangjae",
+      "coords": {
+        "lat": 37.48499,
+        "lng": 127.034064
+      },
+      "guide": {
+        "places": [
+          {
+            "id": "exit3",
+            "kind": "subwayExit",
+            "number": 3,
+            "name": {
+              "ko": "3번 출구",
+              "en": "Exit 3",
+              "zh": "3号出口"
+            },
+            "coords": {
+              "lat": 37.485008,
+              "lng": 127.03418
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "gwanggyo-exit1",
+      "name": {
+        "ko": "광교중앙역 1번 출구 앞",
+        "en": "Gwanggyo Jungang Stn. Exit 1",
+        "zh": "光教中央站 1号出口"
+      },
+      "subwayStationId": "gwanggyo-jungang",
+      "coords": {
+        "lat": 37.287978,
+        "lng": 127.052104
+      },
+      "guide": {
+        "places": [
+          {
+            "id": "exit1",
+            "kind": "subwayExit",
+            "number": 1,
+            "name": {
+              "ko": "1번 출구",
+              "en": "Exit 1",
+              "zh": "1号出口"
+            },
+            "coords": {
+              "lat": 37.287918,
+              "lng": 127.052047
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "gangnam-median",
+      "name": {
+        "ko": "강남역 사거리 전 중앙버스차로 정류장",
+        "en": "Median bus stop before Gangnam Station intersection",
+        "zh": "江南站十字路口前中央公交车站"
+      },
+      "subwayStationId": "gangnam",
+      "coords": {
+        "lat": 37.495049,
+        "lng": 127.029076
+      },
+      "guide": {}
+    },
+    {
+      "id": "hssc-bus-lot",
+      "name": {
+        "ko": "학생회관 버스 주차장",
+        "en": "Student Union bus parking lot",
+        "zh": "学生会馆巴士停车场"
+      },
+      "detail": {
+        "ko": "600주년기념관 맞은편",
+        "en": "Across from the 600th Anniversary Hall",
+        "zh": "600周年纪念馆对面"
+      },
+      "coords": {
+        "lat": 37.587367,
+        "lng": 126.993643
+      },
+      "photo": {
+        "original": "https://media.skkuverse.com/bus/stops/hssc-bus-lot/original-b431e3b1.jpg"
+      },
+      "panorama": {
+        "panoId": "oCt8OYgXgYopNL-f4h4MAw",
+        "pan": -24,
+        "tilt": 0,
+        "fov": 80
+      },
+      "guide": {}
+    },
+    {
+      "id": "hssc-600th",
+      "name": {
+        "ko": "600주년기념관 앞",
+        "en": "600th Anniversary Hall",
+        "zh": "600周年纪念馆前"
+      },
+      "detail": {
+        "ko": "학생회관 버스 주차장 건너편",
+        "en": "Across the road from the Student Union bus parking lot",
+        "zh": "学生会馆巴士停车场对面"
+      },
+      "coords": {
+        "lat": 37.587258,
+        "lng": 126.993904
+      },
+      "guide": {}
+    },
+    {
+      "id": "nsc-n-center",
+      "name": {
+        "ko": "N센터 앞",
+        "en": "N Center",
+        "zh": "N中心前"
+      },
+      "detail": {
+        "ko": "N센터 쪽 인도",
+        "en": "On the N Center side of the road",
+        "zh": "N中心一侧人行道"
+      },
+      "coords": {
+        "lat": 37.292298,
+        "lng": 126.975057
+      },
+      "photo": {
+        "original": "https://media.skkuverse.com/bus/stops/nsc-n-center/original-53c0cde5.jpg"
+      },
+      "panorama": {
+        "panoId": "YntS5LxXHav0lPF1zQf9tA",
+        "pan": 152,
+        "tilt": 2,
+        "fov": 80
+      },
+      "guide": {}
+    },
+    {
+      "id": "hssc-basketball-court",
+      "name": {
+        "ko": "농구장",
+        "en": "Basketball Court (Shuttle Bus Stop)"
+      },
+      "coords": {
+        "lat": 37.5878487,
+        "lng": 126.9923859
+      }
+    },
+    {
+      "id": "hssc-student-center",
+      "name": {
+        "ko": "학생회관",
+        "en": "Student Center"
+      },
+      "coords": {
+        "lat": 37.58719,
+        "lng": 126.99393
+      }
+    },
+    {
+      "id": "hssc-main-gate-out",
+      "name": {
+        "ko": "정문",
+        "en": "Main Gate of SKKU"
+      },
+      "coords": {
+        "lat": 37.5848389,
+        "lng": 126.996727
+      }
+    },
+    {
+      "id": "hssc-olympic-hall",
+      "name": {
+        "ko": "올림픽기념국민생활관",
+        "en": "Olympic Hall"
+      },
+      "coords": {
+        "lat": 37.589635,
+        "lng": 126.99918
+      }
+    },
+    {
+      "id": "hssc-hyehwa-post-office",
+      "name": {
+        "ko": "혜화동우체국",
+        "en": "Hyehwa Postoffice"
+      },
+      "coords": {
+        "lat": 37.5859,
+        "lng": 127.00085
+      }
+    },
+    {
+      "id": "hssc-hyehwa-exit1",
+      "name": {
+        "ko": "혜화역 1번출구",
+        "en": "Hyehwa Station (Shuttle Bus Stop)"
+      },
+      "coords": {
+        "lat": 37.5836601,
+        "lng": 127.0018387
+      }
+    },
+    {
+      "id": "hssc-skku-junction",
+      "name": {
+        "ko": "성균관대입구사거리",
+        "en": "SKKU Junction"
+      },
+      "coords": {
+        "lat": 37.5833015,
+        "lng": 126.9988861
+      }
+    },
+    {
+      "id": "hssc-main-gate-in",
+      "name": {
+        "ko": "정문",
+        "en": "Main Gate of SKKU"
+      },
+      "coords": {
+        "lat": 37.5849915,
+        "lng": 126.9966659
+      }
+    },
+    {
+      "id": "hssc-600th-hall",
+      "name": {
+        "ko": "600주년기념관",
+        "en": "600th Anniversary Hall"
+      },
+      "coords": {
+        "lat": 37.5874214,
+        "lng": 126.9938431
+      }
+    }
+  ],
+  "sequences": {
+    "commute-jeongja": {
+      "up": [
+        {
+          "stopId": "jeongja-exit3",
+          "note": {
+            "ko": "정자역 탑승",
+            "en": "Board · Jeongja Stn.",
+            "zh": "亭子站上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "nsc-n-center",
+          "note": {
+            "ko": "자과캠 하차",
+            "en": "Get off · NSC",
+            "zh": "自然校区下车"
+          },
+          "detail": {
+            "ko": "N센터 인근 → CNS센터 → 산학협력센터 인근 → 학생회관 인근",
+            "en": "Near N Center → CNS Center → near Industry-Academic Cooperation Center → near Student Center",
+            "zh": "N中心附近 → CNS中心 → 产学合作中心附近 → 学生会馆附近"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        }
+      ],
+      "down": [
+        {
+          "stopId": "nsc-opposite",
+          "note": {
+            "ko": "자과캠 탑승",
+            "en": "Board · NSC",
+            "zh": "自然校区上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "jeongja-exit2",
+          "note": {
+            "ko": "정자역 하차",
+            "en": "Get off · Jeongja Stn.",
+            "zh": "亭子站下车"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        }
+      ]
+    },
+    "commute-jamsil": {
+      "up": [
+        {
+          "stopId": "jamsil-exit4",
+          "note": {
+            "ko": "잠실역 탑승",
+            "en": "Board · Jamsil Stn.",
+            "zh": "蚕室站上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "nsc-n-center",
+          "note": {
+            "ko": "자과캠 하차",
+            "en": "Get off · NSC",
+            "zh": "自然校区下车"
+          },
+          "detail": {
+            "ko": "N센터 인근 → CNS센터 → 산학협력센터 인근 → 학생회관 인근",
+            "en": "Near N Center → CNS Center → near Industry-Academic Cooperation Center → near Student Center",
+            "zh": "N中心附近 → CNS中心 → 产学合作中心附近 → 学生会馆附近"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        }
+      ],
+      "down": [
+        {
+          "stopId": "nsc-opposite",
+          "note": {
+            "ko": "자과캠 탑승",
+            "en": "Board · NSC",
+            "zh": "自然校区上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "jamsil-exit5",
+          "note": {
+            "ko": "잠실역 하차",
+            "en": "Get off · Jamsil Stn.",
+            "zh": "蚕室站下车"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        }
+      ]
+    },
+    "commute-dogok": {
+      "up": [
+        {
+          "stopId": "dogok-exit1",
+          "note": {
+            "ko": "도곡역 탑승",
+            "en": "Board · Dogok Stn.",
+            "zh": "道谷站上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "nsc-n-center",
+          "note": {
+            "ko": "자과캠 하차",
+            "en": "Get off · NSC",
+            "zh": "自然校区下车"
+          },
+          "detail": {
+            "ko": "N센터 인근 → CNS센터 → 산학협력센터 인근 → 학생회관 인근",
+            "en": "Near N Center → CNS Center → near Industry-Academic Cooperation Center → near Student Center",
+            "zh": "N中心附近 → CNS中心 → 产学合作中心附近 → 学生会馆附近"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        }
+      ],
+      "down": [
+        {
+          "stopId": "nsc-opposite",
+          "note": {
+            "ko": "자과캠 탑승",
+            "en": "Board · NSC",
+            "zh": "自然校区上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "dogok-exit4",
+          "note": {
+            "ko": "도곡역 하차",
+            "en": "Get off · Dogok Stn.",
+            "zh": "道谷站下车"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        }
+      ]
+    },
+    "commute-gangnam-yangjae": {
+      "up": [
+        {
+          "stopId": "gangnam-exit5",
+          "note": {
+            "ko": "강남역 탑승",
+            "en": "Board · Gangnam Stn.",
+            "zh": "江南站上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "yangjae-exit2",
+          "note": {
+            "ko": "양재역 탑승",
+            "en": "Board · Yangjae Stn.",
+            "zh": "良才站上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "nsc-n-center",
+          "note": {
+            "ko": "자과캠 하차",
+            "en": "Get off · NSC",
+            "zh": "自然校区下车"
+          },
+          "detail": {
+            "ko": "N센터 인근 → CNS센터 → 산학협력센터 인근 → 학생회관 인근",
+            "en": "Near N Center → CNS Center → near Industry-Academic Cooperation Center → near Student Center",
+            "zh": "N中心附近 → CNS中心 → 产学合作中心附近 → 学生会馆附近"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        }
+      ],
+      "down": [
+        {
+          "stopId": "nsc-opposite",
+          "note": {
+            "ko": "자과캠 탑승",
+            "en": "Board · NSC",
+            "zh": "自然校区上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "yangjae-exit3",
+          "note": {
+            "ko": "양재역 하차",
+            "en": "Get off · Yangjae Stn.",
+            "zh": "良才站下车"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        },
+        {
+          "stopId": "gangnam-median",
+          "note": {
+            "ko": "강남역 하차",
+            "en": "Get off · Gangnam Stn.",
+            "zh": "江南站下车"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        }
+      ]
+    },
+    "commute-gwanggyo": {
+      "up": [
+        {
+          "stopId": "gwanggyo-exit4",
+          "note": {
+            "ko": "광교중앙역 탑승",
+            "en": "Board · Gwanggyo Jungang Stn.",
+            "zh": "光教中央站上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "nsc-n-center",
+          "note": {
+            "ko": "자과캠 하차",
+            "en": "Get off · NSC",
+            "zh": "自然校区下车"
+          },
+          "detail": {
+            "ko": "N센터 인근 → CNS센터 → 산학협력센터 인근 → 학생회관 인근",
+            "en": "Near N Center → CNS Center → near Industry-Academic Cooperation Center → near Student Center",
+            "zh": "N中心附近 → CNS中心 → 产学合作中心附近 → 学生会馆附近"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        }
+      ],
+      "down": [
+        {
+          "stopId": "nsc-opposite",
+          "note": {
+            "ko": "자과캠 탑승",
+            "en": "Board · NSC",
+            "zh": "自然校区上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "gwanggyo-exit1",
+          "note": {
+            "ko": "광교중앙역 하차",
+            "en": "Get off · Gwanggyo Jungang Stn.",
+            "zh": "光教中央站下车"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        }
+      ]
+    },
+    "campus-inja": {
+      "regular": [
+        {
+          "stopId": "hssc-bus-lot",
+          "note": {
+            "ko": "인사캠 탑승",
+            "en": "Board · HSSC",
+            "zh": "人文校区上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "nsc-n-center",
+          "note": {
+            "ko": "자과캠 하차",
+            "en": "Get off · NSC",
+            "zh": "自然校区下车"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        }
+      ],
+      "hakbu": [
+        {
+          "stopId": "hssc-bus-lot",
+          "note": {
+            "ko": "인사캠 탑승",
+            "en": "Board · HSSC",
+            "zh": "人文校区上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "nsc-n-center",
+          "note": {
+            "ko": "자과캠 하차",
+            "en": "Get off · NSC",
+            "zh": "自然校区下车"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        }
+      ]
+    },
+    "campus-jain": {
+      "regular": [
+        {
+          "stopId": "nsc-opposite",
+          "note": {
+            "ko": "자과캠 탑승",
+            "en": "Board · NSC",
+            "zh": "自然校区上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "hssc-600th",
+          "note": {
+            "ko": "인사캠 하차",
+            "en": "Get off · HSSC",
+            "zh": "人文校区下车"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        }
+      ],
+      "hakbu": [
+        {
+          "stopId": "nsc-opposite",
+          "note": {
+            "ko": "자과캠 탑승",
+            "en": "Board · NSC",
+            "zh": "自然校区上车"
+          },
+          "action": "board",
+          "timing": "scheduled"
+        },
+        {
+          "stopId": "hssc-600th",
+          "note": {
+            "ko": "인사캠 하차",
+            "en": "Get off · HSSC",
+            "zh": "人文校区下车"
+          },
+          "action": "alight",
+          "timing": "estimated"
+        }
+      ]
+    }
+  },
+  "hssc": {
+    "stations": [
+      {
+        "stopId": "hssc-basketball-court",
+        "name": "농구장",
+        "subtitle": "Basketball Court (Shuttle Bus Stop)",
+        "isFirstStation": true,
+        "isLastStation": false,
+        "isRotationStation": false,
+        "transferLines": []
+      },
+      {
+        "stopId": "hssc-student-center",
+        "name": "학생회관",
+        "subtitle": "Student Center",
+        "isFirstStation": false,
+        "isLastStation": false,
+        "isRotationStation": false,
+        "transferLines": []
+      },
+      {
+        "stopId": "hssc-main-gate-out",
+        "name": "정문",
+        "subtitle": "Main Gate of SKKU",
+        "isFirstStation": false,
+        "isLastStation": false,
+        "isRotationStation": false,
+        "transferLines": []
+      },
+      {
+        "stopId": "hssc-olympic-hall",
+        "name": "올림픽기념국민생활관 [하차전용]",
+        "subtitle": "Olympic Hall [Drop-off Only]",
+        "isFirstStation": false,
+        "isLastStation": false,
+        "isRotationStation": false,
+        "transferLines": []
+      },
+      {
+        "stopId": "hssc-hyehwa-post-office",
+        "name": "혜화동우체국 [하차전용]",
+        "subtitle": "Hyehwa Postoffice [Drop-off Only]",
+        "isFirstStation": false,
+        "isLastStation": false,
+        "isRotationStation": false,
+        "transferLines": []
+      },
+      {
+        "stopId": null,
+        "name": "혜화동로터리 [미정차]",
+        "subtitle": "Hyehwa Rotary [Non-stop]",
+        "isFirstStation": false,
+        "isLastStation": false,
+        "isRotationStation": false,
+        "transferLines": []
+      },
+      {
+        "stopId": "hssc-hyehwa-exit1",
+        "name": "혜화역 1번출구",
+        "subtitle": "Hyehwa Station (Shuttle Bus Stop)",
+        "isFirstStation": false,
+        "isLastStation": false,
+        "isRotationStation": false,
+        "transferLines": [
+          {
+            "line": "4",
+            "color": "00A5DE"
+          }
+        ]
+      },
+      {
+        "stopId": null,
+        "name": "혜화동로터리 [미정차]",
+        "subtitle": "Hyehwa Rotary [Non-stop]",
+        "isFirstStation": false,
+        "isLastStation": false,
+        "isRotationStation": false,
+        "transferLines": []
+      },
+      {
+        "stopId": "hssc-skku-junction",
+        "name": "성균관대입구사거리",
+        "subtitle": "SKKU Junction",
+        "isFirstStation": false,
+        "isLastStation": false,
+        "isRotationStation": false,
+        "transferLines": []
+      },
+      {
+        "stopId": "hssc-main-gate-in",
+        "name": "정문",
+        "subtitle": "Main Gate of SKKU",
+        "isFirstStation": false,
+        "isLastStation": false,
+        "isRotationStation": false,
+        "transferLines": []
+      },
+      {
+        "stopId": "hssc-600th-hall",
+        "name": "600주년기념관",
+        "subtitle": "600th Anniversary Hall",
+        "isFirstStation": false,
+        "isLastStation": true,
+        "isRotationStation": false,
+        "transferLines": []
+      }
+    ]
+  }
+}
