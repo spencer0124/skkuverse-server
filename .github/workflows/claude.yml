@@ -10,17 +10,18 @@ permissions: {}
 
 # WHY: Claude reads text that outsiders wrote (an issue, a fork's pull request and its code), so a reply can
 # carry a prompt injection. Whatever token sits in the job is what an injection could make Claude echo.
+# No gh command is allowed: gh's `--jq` evaluates jq's `env`, and gh needs the job token in its environment.
 # QUIRK(claude-code-action): the action writes its token into .git/config's origin URL in every mode, and
 # passes `--permission-mode acceptEdits` ahead of claude_args. So each lock below is a deny list, and the
 # action is pinned to a commit: a tool added upstream arrives here as a reviewed diff.
 env:
   CLAUDE_READ_TOOLS: >-
-    --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(git log:*),Bash(git show:*),Bash(git status:*),Bash(git rev-parse:*),Bash(git merge-base:*),Bash(git ls-files:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr list:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh run view:*),Bash(gh run list:*)"
+    --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(git log:*),Bash(git show:*),Bash(git status:*),Bash(git rev-parse:*),Bash(git merge-base:*),Bash(git ls-files:*)"
   # The tokens stay unread: no file tool reaches .git/ or the credentials file actions/checkout v6+ keeps
   # in RUNNER_TEMP, and no git form that writes a file (--output) or reads one outside the history is allowed.
   # `git diff` and `git blame` are out entirely: `git diff /dev/null <file>` and `blame -S <file>` read any file.
   CLAUDE_GIT_LOCK: >-
-    --disallowedTools "Read(.git/**),Edit(.git/**),Write(.git/**),Read(//home/runner/work/_temp/git-credentials-*),Bash(git diff:*),Bash(git blame:*),Bash(*--output*),Bash(*--no-index*),Bash(*--contents*)"
+    --disallowedTools "Read(.git/**),Edit(.git/**),Write(.git/**),Read(//home/runner/work/_temp/git-credentials-*),Bash(git diff:*),Bash(git blame:*),Bash(*--output*),Bash(*--no-index*),Bash(*--contents*),Bash(gh:*)"
   CLAUDE_READ_ONLY_LOCK: >-
     --permission-mode default
     --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,Bash(git add:*),Bash(git commit:*),Bash(git rm:*),Bash(git push:*),Bash(*git-push.sh*),mcp__github_file_ops__commit_files,mcp__github_file_ops__delete_files"
