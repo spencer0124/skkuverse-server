@@ -166,14 +166,17 @@ jobs:
             Return {"answer": "<reply>"}. The reply is GitHub Markdown in English, addressed to the commenter. Be direct
             and specific: cite files as path:line, quote only what you need, and mark a claim about code you did not read
             as Unverified. Never include a credential, a token or the value of an environment variable.
-          # WHY: Bash runs sandboxed with no network and without GH_TOKEN or GITHUB_TOKEN, and the file tools stop at the
-          # checkout. Read(.git/config) hides the action's token from the file tools, and from git in the sandbox too.
-          # QUIRK(claude-code): a Read deny rule also mounts over its path in the sandbox, so .git/** would break git.
+          # WHY: Bash runs sandboxed, with no network and without GH_TOKEN or GITHUB_TOKEN, and the file tools stop at the
+          # checkout. Read(.git/config) hides the action's token from both: a Read deny rule also masks its path in the
+          # sandbox, so .git/** would break git. --output and --no-index would let git write or read a named file.
           settings: |
             {
               "permissions": {
                 "defaultMode": "dontAsk",
-                "deny": ["Read(.git/config)", "Edit", "Write", "NotebookEdit", "WebFetch", "WebSearch", "Bash(gh *)"],
+                "deny": [
+                  "Read(.git/config)", "Edit", "Write", "NotebookEdit", "WebFetch", "WebSearch", "Bash(gh *)",
+                  "Bash(*--output*)", "Bash(*--no-index*)"
+                ],
                 "blockReadsOutsideWorkingDirectories": true
               },
               "sandbox": {
@@ -231,6 +234,8 @@ jobs:
   # WHY: the only job that writes Claude's text. It runs no Claude and posts one comment, on the thread that asked.
   post:
     needs: answer
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
     runs-on: ubuntu-latest
     permissions:
       issues: write
