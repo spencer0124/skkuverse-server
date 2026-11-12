@@ -7,7 +7,7 @@ Closes #
 ## Checklist
 
 - [ ] A maintainer asked for this pull request (CONTRIBUTING.md).
-- [ ] It targets `dev`.
+- [ ] It targets `dev`, or it is the `dev` → `main` release pull request.
 - [ ] A behavior change has a test written first (ADR 0011, `docs/decisions/0011-test-strategy.md`). No existing test was weakened, skipped or deleted.
 - [ ] `npm run check:ci` passes locally.
 - [ ] Nothing in the change says how production runs or is guarded (CLAUDE.md).
