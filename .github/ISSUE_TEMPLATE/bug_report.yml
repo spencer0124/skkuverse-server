@@ -1,0 +1,52 @@
+name: Bug report
+description: The API returns a wrong answer, an error or nothing.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Never paste a token, a cookie or request headers. For a security problem, use the private report link instead of this form.
+  - type: input
+    id: endpoint
+    attributes:
+      label: Endpoint
+      description: The method and path.
+      placeholder: GET /bus/live
+    validations:
+      required: true
+  - type: textarea
+    id: request
+    attributes:
+      label: Request
+      description: The query string or body you sent. No tokens and no headers.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected response
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual response
+      description: The status code and the body, or what the app showed.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: If you saw it in the app.
+      placeholder: 3.7.0 (iOS)
+  - type: input
+    id: time
+    attributes:
+      label: Time (KST)
+      description: When it happened, so we can find it.
+      placeholder: 2026-11-12 08:45
+    validations:
+      required: true

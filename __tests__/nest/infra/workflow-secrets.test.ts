@@ -21,12 +21,15 @@
  *     conventions checks in scripts/check-ci.sh, which it runs, use the copies
  *     vendored under .github/contract-tools/, hash-locked in
  *     .contracts.lock.json;
- *   - claude.yml has one job, and the gate sits on it: it starts only for an
+ *   - every job in claude.yml holds the gate itself: it starts only for an
  *     issue comment from an OWNER, MEMBER or COLLABORATOR, and every
  *     disjunct of its gate checks `author_association`;
  *   - claude.yml never holds a token that can push: no `id-token` permission
  *     (the action mints its GitHub App token through it), no `@claude edit`
  *     mode, and the action runs on the job's own `github.token`;
+ *   - claude.yml runs Claude only in `answer`, whose token reads, with Bash
+ *     sandboxed without network or GitHub tokens; only `ack` and `post`,
+ *     which run no Claude, write, and `post` writes to the event's thread;
  *   - contracts-sync.yml runs on a schedule or by hand, on the default branch,
  *     never for a pull request; it checks that its secrets are set before any
  *     other step, and its PR body links no private repository;
@@ -476,12 +479,14 @@ describe("the vendored contract tools", () => {
 describe("claude.yml", () => {
   const claude = workflow("claude.yml");
   const jobs = jobBlocks(claude);
-  const [job = ""] = jobs.values();
+  const answer = jobs.get("answer") ?? "";
+  const post = jobs.get("post") ?? "";
+  const runsClaude = (body: string) => /^ +uses: anthropics\/claude-code-action@/m.test(body);
 
-  it("has one job, which starts only for an OWNER, MEMBER or COLLABORATOR, for every event it listens to", () => {
+  it("has an ack, an answer and a post job, each starting only for an OWNER, MEMBER or COLLABORATOR, for every event it listens to", () => {
     // Assert
     expect(triggerNames(claude).length).toBeGreaterThan(0);
-    expect([...jobs.keys()]).toHaveLength(1);
+    expect([...jobs.keys()]).toEqual(["ack", "answer", "post"]);
     expect(ungatedJobs(claude)).toEqual([]);
     expect(eventsWithoutGate(claude)).toEqual([]);
   });
@@ -503,30 +508,62 @@ describe("claude.yml", () => {
     expect(claude).not.toMatch(/@claude\s+edit/i);
   });
 
-  it("runs the action on the job's own token and scrubs subprocess environments", () => {
+  it("runs Claude only in answer, on a token that reads, and writes only from the jobs that run no Claude", () => {
+    // Act
+    const claudeJobs = [...jobs].filter(([, body]) => runsClaude(body)).map(([name]) => name);
+
+    // Assert
+    expect(claudeJobs).toEqual(["answer"]);
+    expect(jobPermissions(answer)).toEqual(["actions: read", "contents: read", "issues: read", "pull-requests: read"]);
+    expect(jobPermissions(jobs.get("ack") ?? "")).toEqual(["issues: write"]);
+    expect(jobPermissions(post)).toEqual(["issues: write"]);
+  });
+
+  it("runs the action on the job's own token, with the user settings alone, and scrubs subprocess environments", () => {
     // Arrange
-    const actionSteps = job.match(/^ +uses: anthropics\/claude-code-action@/gm) ?? [];
-    const ownTokens = job.match(/^ {10}github_token: \$\{\{ github\.token \}\}$/gm) ?? [];
+    const actionSteps = answer.match(/^ +uses: anthropics\/claude-code-action@/gm) ?? [];
+    const ownTokens = answer.match(/^ {10}github_token: \$\{\{ github\.token \}\}$/gm) ?? [];
 
     // Assert
     expect(actionSteps.length).toBeGreaterThan(0);
     expect(ownTokens).toHaveLength(actionSteps.length);
-    expect(job).toMatch(/^ {6}CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1"$/m);
-    expect(job).toMatch(/\$\{\{ env\.CLAUDE_READ_ONLY_LOCK \}\}/);
-    expect(job).toMatch(/\$\{\{ env\.CLAUDE_GIT_LOCK \}\}/);
+    expect(answer).toMatch(/^ {6}CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1"$/m);
+    expect(answer).toMatch(/^ {12}--setting-sources user$/m);
   });
 
-  it("keeps Claude out of .git/ and away from the git forms that read or write other files", () => {
+  it("sandboxes Claude's commands without network or GitHub tokens, and keeps it out of .git/config and the git forms that read or write other files", () => {
     // Act
-    const lock = /^ {2}CLAUDE_GIT_LOCK: >-\n {4}--disallowedTools "([^"]*)"$/m.exec(claude)?.[1]?.split(",") ?? [];
+    const settings = JSON.parse(/^ {10}settings: \|\n((?: {12}.*\n)+)/m.exec(answer)?.[1] ?? "{}");
 
     // Assert
-    expect(lock).toEqual(expect.arrayContaining(["Read(.git/**)", "Bash(*--output*)", "Bash(*--no-index*)"]));
+    expect(settings.permissions).toMatchObject({ defaultMode: "dontAsk", blockReadsOutsideWorkingDirectories: true });
+    expect(settings.permissions.deny).toEqual(
+      expect.arrayContaining(["Read(.git/config)", "Bash(*--output*)", "Bash(*--no-index*)", "Edit", "Write", "WebFetch", "Bash(gh *)"]),
+    );
+    expect(settings.sandbox).toMatchObject({
+      enabled: true,
+      failIfUnavailable: true,
+      allowUnsandboxedCommands: false,
+      autoAllowBashIfSandboxed: false,
+      network: { allowedDomains: [], strictAllowlist: true },
+    });
+    expect(settings.sandbox.credentials.envVars).toEqual(
+      expect.arrayContaining([
+        { name: "GH_TOKEN", mode: "deny" },
+        { name: "GITHUB_TOKEN", mode: "deny" },
+      ]),
+    );
+  });
+
+  it("posts to the thread the event names, never to one the answer names", () => {
+    // Assert
+    expect(post).toMatch(/^ {10}NUMBER: \$\{\{ github\.event\.issue\.number \}\}$/m);
+    expect(post).toMatch(/gh api "repos\/\$REPO\/issues\/\$NUMBER\/comments"/);
   });
 
   it("keeps its secret in the `claude` environment", () => {
     // Assert
-    expect(job).toMatch(/^ {4}environment: claude$/m);
+    expect(answer).toMatch(/^ {4}environment: claude$/m);
   });
 
   // WHY: the `claude` environment admits only the default branch. An issue comment runs there, while a review or a
