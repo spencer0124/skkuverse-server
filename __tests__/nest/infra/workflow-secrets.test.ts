@@ -561,6 +561,28 @@ describe("claude.yml", () => {
     expect(post).toMatch(/gh api "repos\/\$REPO\/issues\/\$NUMBER\/comments"/);
   });
 
+  // WHY: the runner image loads Ubuntu's bwrap-userns-restrict AppArmor profile, whose unpriv_bwrap child profile
+  // strips the capabilities the sandbox's seccomp helper needs, so every sandboxed command failed before it started.
+  it("replaces Ubuntu's bubblewrap profile and checks a nested user namespace before Claude runs", () => {
+    // Arrange
+    const steps = answer.split(/^ {6}- /m);
+    const install = steps.findIndex((step) => /^name: Install the sandbox$/m.test(step));
+    const run = steps.findIndex((step) => /^ {8}uses: anthropics\/claude-code-action@/m.test(step));
+
+    // Assert
+    expect(install).toBeGreaterThan(0);
+    expect(install).toBeLessThan(run);
+    expect(steps[install]).toMatch(/^ {10}profile bwrap \/usr\/bin\/bwrap flags=\(unconfined\) \{$/m);
+    expect(steps[install]).toMatch(/^ {10}sudo apparmor_parser --replace \/etc\/apparmor\.d\/bwrap$/m);
+    expect(steps[install]).toMatch(/^ {10}bwrap .*--unshare-user .* -- unshare --user --map-root-user true$/m);
+  });
+
+  // WHY: the action's Agent SDK run starts in the default mode whatever permissions.defaultMode says.
+  it("starts Claude in dontAsk mode from the command line", () => {
+    // Assert
+    expect(answer).toMatch(/^ {12}--permission-mode dontAsk$/m);
+  });
+
   it("keeps its secret in the `claude` environment", () => {
     // Assert
     expect(answer).toMatch(/^ {4}environment: claude$/m);

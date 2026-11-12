@@ -125,8 +125,9 @@ jobs:
           } > "$tmp/README.md"
           mv "$tmp/README.md" "$ctx/README.md"
 
-      # QUIRK(ubuntu): the runner image lacks bubblewrap and socat, which Claude Code's Linux sandbox needs, and 24.04
-      # restricts the unprivileged user namespaces bubblewrap creates. The action takes the same steps for outsiders.
+      # QUIRK(ubuntu): the image lacks socat, restricts unprivileged user namespaces, and confines bubblewrap's children
+      # to a profile without capabilities, so every sandboxed command failed in its seccomp helper. The profile below is
+      # Claude Code's documented fix; the VM is disposable and its job has sudo, so the hardening guarded nothing here.
       - name: Install the sandbox
         run: |
           sudo apt-get update -qq
@@ -134,7 +135,17 @@ jobs:
           if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           fi
-          bwrap --version
+          sudo tee /etc/apparmor.d/bwrap > /dev/null <<'EOF'
+          abi <abi/4.0>,
+          include <tunables/global>
+
+          profile bwrap /usr/bin/bwrap flags=(unconfined) {
+            userns,
+            include if exists <local/bwrap>
+          }
+          EOF
+          sudo apparmor_parser --replace /etc/apparmor.d/bwrap
+          bwrap --ro-bind / / --dev /dev --proc /proc --unshare-user --unshare-pid -- unshare --user --map-root-user true
 
       - name: Run Claude
         id: claude
@@ -193,10 +204,12 @@ jobs:
                 }
               }
             }
-          # WHY: --setting-sources user drops the repository's own settings, so only the settings above apply.
-          # dontAsk refuses every tool call these allow rules and the read-only defaults do not cover.
+          # WHY: --setting-sources user drops the repository's own settings, so only the settings above apply. dontAsk
+          # refuses every tool call these allow rules and the read-only defaults do not cover. QUIRK(claude-code-action):
+          # its Agent SDK run starts in the default mode whatever defaultMode says, so the flag sets the mode.
           claude_args: |
             --setting-sources user
+            --permission-mode dontAsk
             --allowedTools "Bash(git log *),Bash(git show *),Bash(git diff *),Bash(git grep *),Bash(git status *),Bash(git ls-files *),Bash(git rev-parse *),Bash(git merge-base *)"
             --json-schema '{"type":"object","properties":{"answer":{"type":"string","description":"The reply, in GitHub Markdown."}},"required":["answer"],"additionalProperties":false}'
 
