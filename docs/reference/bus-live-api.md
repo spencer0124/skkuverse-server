@@ -3,7 +3,7 @@ title: Bus Live API Reference
 type: reference
 status: draft
 owner: spencer0124
-last-updated: 2026-10-25
+last-updated: 2026-11-12
 audience: internal
 ---
 
@@ -232,7 +232,7 @@ Each realtime screen of `/bus/config` and `/bus/config/:groupId` lists its line'
 | `jongro02` | `100900116` 종각역YMCA 방면 0–12, `100900204` 성균관대학교 방면 13–26 |
 | `jongro08` | `100900191` 종로5가 방면 0–15, `100900040` 명륜3가 방면 16–30 |
 
-A Jongno direction is TOPIS's (`getStaionByRoute` `direction`, as of 2026-10-23): it flips at the station after the turnaround, so the turnaround stop itself (종로07's 방송통신대앞, index 12) belongs to the outbound direction. A station whose stored route line cannot be joined to it (a sync in flight between the two stores, a route with no stored line, a line stored before the field shipped) has `directionId: null` inside or between the ranges, and a route whose lines cannot be read serves `directions: []`: never a guess.
+A Jongno direction is TOPIS's (`getStaionByRoute` `direction`, as of 2026-11-12): it flips at the station after the turnaround, so the turnaround stop itself (종로07's 방송통신대앞, index 12) belongs to the outbound direction. A station whose stored route line cannot be joined to it (a sync in flight between the two stores, a route with no stored line, a line stored before the field shipped) has `directionId: null` inside or between the ranges, and a route whose lines cannot be read serves `directions: []`: never a guess.
 
 How a client uses it:
 

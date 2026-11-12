@@ -13,7 +13,7 @@
         { "time": "09:20", "routeType": "up", "busCount": 1, "notes": "미금역 09:23", "stopTimes": ["09:20", "09:23", "10:05"] },
         { "time": "11:00", "routeType": "up", "busCount": 1, "notes": "미금역 11:03", "stopTimes": ["11:00", "11:03", "11:45"] },
         { "time": "16:30", "routeType": "down", "busCount": 1, "notes": "미금역 먼저 하차", "stopTimes": ["16:30", null, "17:15"] },
-        { "time": "18:30", "routeType": "down", "busCount": 1, "notes": "미금역 먼저 하차", "stopTimes": ["18:30", "19:06", "19:10"] },
+        { "time": "18:30", "routeType": "down", "busCount": 1, "notes": "미금역 먼저 하차", "stopTimes": ["18:30", null, "19:15"] },
         { "time": "20:30", "routeType": "down", "busCount": 1, "notes": "미금역 먼저 하차", "stopTimes": ["20:30", null, "21:15"] }
       ]
     },
@@ -24,7 +24,7 @@
       "entries": [
         { "time": "07:30", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["07:30", "08:40"] },
         { "time": "10:20", "routeType": "up", "busCount": 1, "notes": null, "stopTimes": ["10:20", "11:40"] },
-        { "time": "18:00", "routeType": "down", "busCount": 1, "notes": "복정·가락시장·송파역 경유", "stopTimes": ["18:00", "18:38", "18:48", "18:51", "19:20"] },
+        { "time": "18:00", "routeType": "down", "busCount": 1, "notes": "복정·가락시장·송파역 경유", "stopTimes": ["18:00", null, null, null, "19:20"] },
         { "time": "21:00", "routeType": "down", "busCount": 1, "notes": "복정·가락시장·송파역 경유", "stopTimes": ["21:00", null, null, null, "22:20"] }
       ]
     },
