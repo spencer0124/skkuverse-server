@@ -4,6 +4,9 @@
 # instruction points the reviewer at the contract a finding there must be checked against first.
 inheritance: true
 reviews:
+  auto_review:
+    base_branches:
+      - "^dev$"
   path_instructions:
     - path: "**"
       instructions: >-
