@@ -5,7 +5,7 @@
  *   - each `uses:` in `.github/workflows/*.yml` is a local `./…` workflow or
  *     `<owner>/<repo>[/<path>]@<40 hex>` followed by `# v<version>`, so a tag
  *     moved upstream cannot change what runs, and a reader still sees which
- *     release it is. The shared workflow `ci.yml` calls is pinned the same way;
+ *     release it is;
  *   - `.github/dependabot.yml` updates the `github-actions` pins monthly, as one
  *     grouped pull request into `dev`, once a release is 5 days old, and takes
  *     npm security updates only, which GitHub opens against `main`
@@ -17,8 +17,8 @@
  *     it executes unpinned. Dependabot skips `docker://` steps, so a bump
  *     changes the digest and the version comment together;
  *   - no workflow names a floating release (`latest`). The workflow linters
- *     are downloaded by the shared workflow, which pins each by version and
- *     by the sha256 of its release archive.
+ *     are downloaded by checks.yml, which pins each by version and by the
+ *     sha256 of its release archive.
  *
  * Patterns rather than a YAML parser: the repo avoids the dependency.
  */
