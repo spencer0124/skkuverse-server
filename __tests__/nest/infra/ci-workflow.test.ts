@@ -3,10 +3,10 @@
  * drift apart:
  *
  *   - ci.yml runs on a pull request to main or dev and on a push to dev, one run per ref, and has one job, `ci`,
- *     that only calls the copy of the checks workflow in this repository, ./.github/workflows/checks.yml, with
- *     `toolchain: node`, `check-cmd: "npm run check:ci"` and `public: true`. That workflow checks out full history
- *     (list-growth fails in CI without its base), installs with `sfw npm ci` and lints the workflows; the ruleset
- *     requires its `ci / gate`. A call of any other workflow, local or remote, fails;
+ *     that only calls ./.github/workflows/checks.yml with `toolchain: node`, `check-cmd: "npm run check:ci"` and
+ *     `public: true`. That workflow checks out full history (list-growth fails in CI without its base), installs
+ *     with `sfw npm ci` and lints the workflows; the ruleset requires its `ci / gate`. A call of any other
+ *     workflow, local or remote, fails;
  *   - package.json's `check:ci` runs scripts/check-ci.sh, which stops at the first failing step and runs CI's steps
  *     in order, the mongod binary check first: mongodb-memory-server's postinstall exits 0 when its download
  *     fails, so without it a failed download surfaces later as test files that find no binary;
@@ -41,7 +41,6 @@ function jobBlocks(yaml: string): Map<string, string> {
 
 const unquote = (value: string) => value.trim().replace(/^(["'])(.*)\1$/, "$2");
 
-/** Why ci.yml is more than a call of the local checks workflow with the server's inputs; empty when it is only that. */
 export function callerProblems(yaml: string): string[] {
   const jobs = jobBlocks(yaml);
   const problems = [...jobs.keys()].filter((name) => name !== "ci").map((name) => `job ${name} besides ci`);

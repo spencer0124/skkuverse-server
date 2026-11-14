@@ -193,7 +193,7 @@ const GATED_IF = (event: string, field: string) =>
   `(github.event_name == '${event}' && contains(github.event.${field}.body, '@claude') && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.${field}.author_association))`;
 
 describe("the public-workflow rules apply as specified", () => {
-  // M1: a new workflow a fork's pull request starts, holding what only claude.yml may hold.
+  // M1: a new workflow a fork's pull request starts, holding claude.yml's secret and a write grant.
   const forkWorkflow = [
     "name: Mutant",
     "on:",
