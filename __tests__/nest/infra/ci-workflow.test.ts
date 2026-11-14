@@ -3,10 +3,10 @@
  * drift apart:
  *
  *   - ci.yml runs on a pull request to main or dev and on a push to dev, one run per ref, and has one job, `ci`,
- *     that only calls the shared workflow skkuverse/.github/.github/workflows/checks.yml, pinned to a commit with its
- *     version, with `toolchain: node`, `check-cmd: "npm run check:ci"` and `public: true`. The shared workflow checks
- *     out full history (list-growth fails in CI without its base), installs with `sfw npm ci` and lints the
- *     workflows; the ruleset requires its `ci / gate`;
+ *     that only calls the copy of the checks workflow in this repository, ./.github/workflows/checks.yml, with
+ *     `toolchain: node`, `check-cmd: "npm run check:ci"` and `public: true`. That workflow checks out full history
+ *     (list-growth fails in CI without its base), installs with `sfw npm ci` and lints the workflows; the ruleset
+ *     requires its `ci / gate`. A call of any other workflow, local or remote, fails;
  *   - package.json's `check:ci` runs scripts/check-ci.sh, which stops at the first failing step and runs CI's steps
  *     in order, the mongod binary check first: mongodb-memory-server's postinstall exits 0 when its download
  *     fails, so without it a failed download surfaces later as test files that find no binary;
@@ -28,7 +28,7 @@ import path from "path";
 const root = path.join(__dirname, "../../..");
 const readIfPresent = (rel: string) => (fs.existsSync(path.join(root, rel)) ? fs.readFileSync(path.join(root, rel), "utf8") : "");
 
-const SHARED_WORKFLOW = "skkuverse/.github/.github/workflows/checks.yml";
+const CHECKS_WORKFLOW = "./.github/workflows/checks.yml";
 const CALLER_WITH = { toolchain: "node", "check-cmd": "npm run check:ci", public: "true" };
 
 /** Two-space-indented keys under `jobs:`, each with its indented body. */
@@ -41,7 +41,7 @@ function jobBlocks(yaml: string): Map<string, string> {
 
 const unquote = (value: string) => value.trim().replace(/^(["'])(.*)\1$/, "$2");
 
-/** Why ci.yml is more than a call of the shared workflow with the server's inputs; empty when it is only that. */
+/** Why ci.yml is more than a call of the local checks workflow with the server's inputs; empty when it is only that. */
 export function callerProblems(yaml: string): string[] {
   const jobs = jobBlocks(yaml);
   const problems = [...jobs.keys()].filter((name) => name !== "ci").map((name) => `job ${name} besides ci`);
@@ -49,7 +49,7 @@ export function callerProblems(yaml: string): string[] {
   if (body === undefined) return [...problems, "no ci job"];
   const lines = body.split("\n").filter((line) => line.trim() !== "" && !/^\s*#/.test(line));
   const keys = lines.filter((line) => /^ {4}\S/.test(line)).map((line) => /^ {4}([\w-]+):/.exec(line)?.[1] ?? line.trim());
-  const uses = /^ {4}uses: (\S+)@([0-9a-f]+)(?: # (v\S+))?$/m.exec(body);
+  const uses = /^ {4}uses: (\S+)(?: # .*)?$/m.exec(body)?.[1];
   const withEntries = Object.fromEntries(
     lines.filter((line) => /^ {6}\S/.test(line)).map((line) => {
       const [, key = line.trim(), value = ""] = /^ {6}([\w-]+):(.*)$/.exec(line) ?? [];
@@ -57,9 +57,7 @@ export function callerProblems(yaml: string): string[] {
     }),
   );
   if (keys.join(",") !== "uses,with") problems.push(`ci job keys: ${keys.join(", ")}`);
-  if (uses?.[1] !== SHARED_WORKFLOW) problems.push(`ci calls ${uses?.[1] ?? "nothing"}`);
-  if (!/^[0-9a-f]{40}$/.test(uses?.[2] ?? "")) problems.push("the shared workflow is not pinned to a 40-hex commit");
-  if (!/^v\d+\.\d+\.\d+$/.test(uses?.[3] ?? "")) problems.push("the pin has no # vX.Y.Z version comment");
+  if (uses !== CHECKS_WORKFLOW) problems.push(`ci calls ${uses ?? "nothing"}`);
   if (JSON.stringify(withEntries) !== JSON.stringify(CALLER_WITH)) problems.push(`ci passes ${JSON.stringify(withEntries)}`);
   return problems;
 }
@@ -81,20 +79,36 @@ export const checkSteps = (script: string): Array<[string, string]> =>
   [...script.matchAll(/^step (\S+) (.+?)\s*$/gm)].map((m) => [m[1]!, m[2]!]);
 
 describe("the CI entry point rules apply as specified", () => {
-  const SHA = "0123456789abcdef0123456789abcdef01234567";
+  const REMOTE_CALL = `skkuverse/.github/.github/workflows/checks.yml@0123456789abcdef0123456789abcdef01234567`;
   const caller = (job: string[], extraJobs: string[] = []) =>
     ["name: CI", "jobs:", "  ci:", ...job, ...extraJobs, ""].join("\n");
   const CALL = [
-    `    uses: ${SHARED_WORKFLOW}@${SHA} # v1.0.0`,
+    `    uses: ${CHECKS_WORKFLOW}`,
     "    with:",
     "      toolchain: node",
     '      check-cmd: "npm run check:ci"',
     "      public: true",
   ];
 
-  it("passes a job that only calls the shared workflow with the server's inputs", () => {
+  it("passes a job that only calls the local checks workflow with the server's inputs", () => {
     // Act & Assert
     expect(callerProblems(caller(CALL))).toEqual([]);
+  });
+
+  it("passes the call when a comment follows it on the line", () => {
+    // Arrange
+    const commented = CALL.map((l) => (l.startsWith("    uses:") ? `${l} # zizmor: ignore[self-repository] a reason` : l));
+
+    // Act & Assert
+    expect(callerProblems(caller(commented))).toEqual([]);
+  });
+
+  it("names the workflow ci calls when it is not the local copy", () => {
+    // Arrange
+    const remote = CALL.map((l) => l.replace(CHECKS_WORKFLOW, `${REMOTE_CALL} # v1.0.0`));
+
+    // Act & Assert
+    expect(callerProblems(caller(remote))).toEqual([`ci calls ${REMOTE_CALL}`]);
   });
 
   it.each([
@@ -103,9 +117,8 @@ describe("the CI entry point rules apply as specified", () => {
     ["a check command that skips a step", caller(CALL.map((l) => l.replace('"npm run check:ci"', '"npm run check:ci -- --skip test"')))],
     ["an input left out", caller(CALL.filter((l) => !l.includes("public:")))],
     ["an extra input", caller([...CALL, "      check-cmd-extra: npm run knip"])],
-    ["a tag instead of a commit", caller(CALL.map((l) => l.replace(`@${SHA} # v1.0.0`, "@v1")))],
-    ["a commit without its version", caller(CALL.map((l) => l.replace(" # v1.0.0", "")))],
-    ["another workflow", caller(CALL.map((l) => l.replace("skkuverse/.github/", "someone/.github/")))],
+    ["a remote caller", caller(CALL.map((l) => l.replace(CHECKS_WORKFLOW, `${REMOTE_CALL} # v1.0.0`)))],
+    ["another local workflow", caller(CALL.map((l) => l.replace("checks.yml", "other.yml")))],
     ["secrets handed to the call", caller([...CALL, "    secrets: inherit"])],
     ["no job", "name: CI\njobs:\n"],
   ])("refuses %s", (_case, yaml) => {
@@ -154,7 +167,7 @@ describe("the CI entry point rules apply as specified", () => {
 describe(".github/workflows/ci.yml", () => {
   const ci = readIfPresent(".github/workflows/ci.yml");
 
-  it("only calls the shared workflow, pinned, with check-cmd npm run check:ci", () => {
+  it("only calls the local checks workflow, with check-cmd npm run check:ci", () => {
     // Act & Assert
     expect(callerProblems(ci)).toEqual([]);
   });
