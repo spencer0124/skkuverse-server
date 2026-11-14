@@ -1,0 +1,158 @@
+name: Checks
+
+# A copy of checks.yml from skkuverse/.github v1.0.1 (285b822), called by ci.yml as `ci`, so the check a ruleset
+# requires is still `ci / gate`. The pinned tool versions and the zizmor configuration it read from that repository
+# are copied beside it in .github/checks/. Only those reads differ from the original.
+on:
+  workflow_call:
+    inputs:
+      toolchain:
+        description: "node: setup-node from .nvmrc, sfw npm ci, npm audit signatures. python: setup-python from .python-version. none: no setup or install."
+        type: string
+        required: true
+      check-cmd:
+        description: The repository's check entry point, run with bash after the install.
+        type: string
+        required: true
+      public:
+        description: Whether the repository is public. Dependency review runs only on a public repository's pull requests.
+        type: boolean
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Known toolchain
+        env:
+          TOOLCHAIN: ${{ inputs.toolchain }}
+        run: |
+          case "$TOOLCHAIN" in
+            node | python | none) ;;
+            *) echo "::error::toolchain is node, python or none, not '$TOOLCHAIN'"; exit 1 ;;
+          esac
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # WHY: full history: a check may compare with the merge base of the pull request's base branch.
+          fetch-depth: 0
+          # WHY: no step pushes, so the token is not left in .git/config for the code under check.
+          persist-credentials: false
+      - name: Pinned tool versions
+        id: versions
+        run: grep -E '^[A-Z0-9_]+=[0-9a-f.]+$' .github/checks/versions.env >> "$GITHUB_OUTPUT"
+      - if: inputs.toolchain == 'node'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - if: inputs.toolchain == 'python'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+      # WHY: Socket Firewall blocks a known-malicious package while it installs. firewall-version is pinned in
+      # tools/versions.env because the action's default, `latest`, downloads whatever was released last.
+      - if: inputs.toolchain != 'none'
+        id: sfw
+        uses: SocketDev/action@ba6de6cc0565af1f42295590380973573297e31f # v1.3.2
+        with:
+          mode: firewall-free
+          firewall-version: ${{ steps.versions.outputs.SFW_VERSION }}
+      # WHY: the action fetches sfw by version alone, so the binary is checked against its pinned sha256 before any
+      # install runs through it, as the linters' archives are.
+      - if: inputs.toolchain != 'none'
+        name: Socket Firewall checksum
+        env:
+          SFW_BINARY: ${{ steps.sfw.outputs.firewall-path-binary }}
+          SFW_SHA256: ${{ steps.versions.outputs.SFW_SHA256_LINUX_X64 }}
+        run: echo "${SFW_SHA256:?no SFW_SHA256_LINUX_X64}  ${SFW_BINARY:?no firewall-path-binary}" | sha256sum --check
+      - if: inputs.toolchain == 'node'
+        run: sfw npm ci
+      - if: inputs.toolchain == 'node'
+        run: npm audit signatures
+      # TODO(python): no install step yet. The check command installs, with `sfw` on PATH, until the first Python
+      # repository settles how (pip or uv) and what stands in for `npm audit signatures`.
+      - name: Check
+        env:
+          CHECK_CMD: ${{ inputs.check-cmd }}
+        run: bash -c "$CHECK_CMD"
+
+  # WHY: a workflow runs with its repository's token, so each change to one gets two linters. actionlint checks syntax,
+  # expressions and the shell in run scripts. zizmor checks for unsafe patterns, online so that it can also check that
+  # each pinned commit belongs to its action and matches its version comment. A deliberate pattern is suppressed on its
+  # line with `# zizmor: ignore[<rule>]` and a reason.
+  workflows:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Pinned tool versions
+        id: versions
+        run: grep -E '^[A-Z0-9_]+=[0-9a-f.]+$' .github/checks/versions.env >> "$GITHUB_OUTPUT"
+      # WHY: each archive is checked against its sha256 before it is unpacked, as actions are pinned by commit: an
+      # archive fetched without a checksum is whatever the URL serves that day.
+      - name: Install actionlint and zizmor
+        env:
+          ACTIONLINT_VERSION: ${{ steps.versions.outputs.ACTIONLINT_VERSION }}
+          ACTIONLINT_SHA256: ${{ steps.versions.outputs.ACTIONLINT_SHA256_LINUX_X64 }}
+          ZIZMOR_VERSION: ${{ steps.versions.outputs.ZIZMOR_VERSION }}
+          ZIZMOR_SHA256: ${{ steps.versions.outputs.ZIZMOR_SHA256_LINUX_X64 }}
+        run: |
+          set -euo pipefail
+          : "${ACTIONLINT_VERSION:?}" "${ACTIONLINT_SHA256:?}" "${ZIZMOR_VERSION:?}" "${ZIZMOR_SHA256:?}"
+          cd "$RUNNER_TEMP"
+          fetch() {
+            curl --fail --silent --show-error --location --retry 3 --output "$1" "$2"
+            echo "$3  $1" | sha256sum --check
+          }
+          fetch actionlint.tar.gz "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" "$ACTIONLINT_SHA256"
+          fetch zizmor.tar.gz "https://github.com/zizmorcore/zizmor/releases/download/v${ZIZMOR_VERSION}/zizmor-x86_64-unknown-linux-gnu.tar.gz" "$ZIZMOR_SHA256"
+          mkdir lint-bin
+          tar --extract --gzip --file actionlint.tar.gz --directory lint-bin actionlint
+          tar --extract --gzip --file zizmor.tar.gz --directory lint-bin zizmor
+          echo "$RUNNER_TEMP/lint-bin" >> "$GITHUB_PATH"
+      - name: actionlint
+        run: actionlint
+      - name: zizmor
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: zizmor --config .github/checks/zizmor.yml .
+
+  # WHY: dependency review fails a pull request that adds a dependency with a known vulnerability. A private repository
+  # gets it only with a paid GitHub security product, so it runs only when the caller says the repository is public.
+  dependency-review:
+    if: inputs.public && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+
+  # WHY: a required check is matched by name, and a job skipped by its `if:` reports success, so one job judges the
+  # others: it passes only when each of them succeeded or was skipped on purpose.
+  gate:
+    if: always()
+    needs: [check, workflows, dependency-review]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Every job succeeded or was skipped
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          jq --raw-output 'to_entries[] | "\(.key): \(.value.result)"' <<< "$NEEDS"
+          failed=$(jq --raw-output 'to_entries[] | select(.value.result != "success" and .value.result != "skipped") | .key' <<< "$NEEDS")
+          if [ -n "$failed" ]; then
+            echo "::error::not passed: $(echo "$failed" | tr '\n' ' ')"
+            exit 1
+          fi

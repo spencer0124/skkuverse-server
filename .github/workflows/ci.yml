@@ -1,6 +1,6 @@
 name: CI
 
-# The checks themselves are `npm run check:ci` (scripts/check-ci.sh), which local hooks run too. The shared workflow
+# The checks themselves are `npm run check:ci` (scripts/check-ci.sh), which local hooks run too. The checks workflow
 # installs, runs it, lints the workflows and reviews new dependencies; the ruleset requires its `ci / gate`.
 # WHY: a push to dev runs too, because work lands on dev directly and would otherwise meet CI only on the release.
 # The repository is public: the token is read-only and the job passes no secret, so a fork's pull request runs the
@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   ci:
-    uses: skkuverse/.github/.github/workflows/checks.yml@285b8226d57b25c620521056c52cc0d7c685a917 # v1.0.1
+    uses: ./.github/workflows/checks.yml # zizmor: ignore[self-repository] actionlint 1.7.12 rejects the $/ form
     with:
       toolchain: node
       check-cmd: "npm run check:ci"

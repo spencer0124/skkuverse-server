@@ -1,0 +1,6 @@
+# zizmor configuration, copied from skkuverse/.github v1.0.1 (tools/zizmor.yml) and passed with --config.
+rules:
+  dependabot-cooldown:
+    config:
+      # WHY: npm installs take only releases at least 5 days old (min-release-age=5), and Dependabot waits as long.
+      days: 5
