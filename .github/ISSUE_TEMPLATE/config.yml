@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Report a security vulnerability
-    url: https://github.com/skkuverse/skkuverse-server/security/advisories/new
+    url: https://github.com/spencer0124/skkuverse-server/security/advisories/new
     about: Report it privately. Do not open a public issue. See SECURITY.md.

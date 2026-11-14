@@ -15,7 +15,8 @@
  *     name or a step output reaches a script only through `env:`, so text an
  *     outsider wrote is never pasted into a shell command;
  *   - nothing under .github/ names a repository of the maintainer's personal
- *     account, where the private repositories live;
+ *     account, where the private repositories live, except the public ones
+ *     that repo-links.json lists;
  *   - ci.yml reads no secret and clones no other repository: the contract and
  *     conventions checks in scripts/check-ci.sh, which it runs, use the copies
  *     vendored under .github/contract-tools/, hash-locked in
@@ -102,7 +103,20 @@ export function interpolatedRuns(yaml: string): string[] {
   return found;
 }
 
-export const namesPersonalRepository = (text: string) => /github\.com[:/]spencer0124\//.test(text);
+const personalAccount = "spencer0124";
+
+interface RepoLinks {
+  owner: string;
+  public: string[];
+}
+const repoLinks = JSON.parse(read("repo-links.json")) as RepoLinks;
+
+const repoNameOf = (token: string) => token.replace(/\.+$/, "").replace(/\.git$/i, "").toLowerCase();
+
+export function namesPersonalRepository(text: string, links: RepoLinks = repoLinks): boolean {
+  const exposed = new Set(links.owner.toLowerCase() === personalAccount ? links.public.map((name) => name.toLowerCase()) : []);
+  return [...text.matchAll(new RegExp(`github\\.com[:/]${personalAccount}/([\\w.-]*)`, "gi"))].some(([, repo]) => !exposed.has(repoNameOf(repo!)));
+}
 
 /** Two-space-indented keys under `jobs:`, each with its body. */
 function jobBlocks(yaml: string): Map<string, string> {
@@ -281,13 +295,41 @@ describe("the public-workflow rules apply as specified", () => {
     expect(interpolatedRuns(yaml)).toEqual([]);
   });
 
-  const personalAccount = "spencer0124";
   it.each([
     ["an ssh clone URL", `git clone git@github.com:${personalAccount}/example.git`],
     ["an https URL", `see https://github.com/${personalAccount}/example/blob/main/x.md`],
   ])("finds %s of a personal-account repository", (_case, text) => {
     // Act & Assert
     expect(namesPersonalRepository(text)).toBe(true);
+  });
+
+  it.each([
+    ["a repository that repo-links.json does not list", `https://github.com/${personalAccount}/skkuverse-web`],
+    ["the umbrella repository", `https://github.com/${personalAccount}/skkuverse`],
+    ["a repository whose name extends a public one", `git@github.com:${personalAccount}/${repoLinks.public[0]}-extra.git`],
+    ["a repository whose name extends a public one with a dot", `https://github.com/${personalAccount}/${repoLinks.public[0]}.evil`],
+    ["a public repository next to a private one", `https://github.com/${personalAccount}/${repoLinks.public[0]} https://github.com/${personalAccount}/skkuverse-web`],
+    ["a private repository whose account is in other letter case", `https://github.com/${personalAccount.toUpperCase()}/skkuverse-web`],
+  ])("finds %s on the personal account", (_case, text) => {
+    // Act & Assert
+    expect(namesPersonalRepository(text)).toBe(true);
+  });
+
+  it("finds a public repository of the personal account once repo-links.json names another owner", () => {
+    // Arrange
+    const text = `https://github.com/${personalAccount}/${repoLinks.public[0]}`;
+
+    // Act & Assert
+    expect(namesPersonalRepository(text, { owner: "someone-else", public: repoLinks.public })).toBe(true);
+  });
+
+  it.each([
+    ["a public repository's advisory form", `https://github.com/${repoLinks.owner}/${repoLinks.public[0]}/security/advisories/new`],
+    ["a clone URL of a public repository", `git clone git@github.com:${repoLinks.owner}/${repoLinks.public[0]}.git`],
+    ["a public repository in other letter case", `https://github.com/${repoLinks.owner}/${repoLinks.public[0]}`.toUpperCase()],
+  ])("passes %s at the configured owner", (_case, text) => {
+    // Act & Assert
+    expect(namesPersonalRepository(text)).toBe(false);
   });
 
   it("finds a security-events write grant, and reads a job's own permissions as sorted entries", () => {
@@ -417,7 +459,7 @@ describe(".github/workflows on a public repository", () => {
 });
 
 describe(".github/", () => {
-  it("names no repository of the maintainer's personal account", () => {
+  it("names no repository of the maintainer's personal account but the public ones", () => {
     // Arrange
     const walk = (dir: string): string[] =>
       fs.readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((e) =>
