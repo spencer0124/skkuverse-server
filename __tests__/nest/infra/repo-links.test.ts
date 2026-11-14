@@ -57,10 +57,13 @@ function linkHits(text: string): Hit[] {
   );
 }
 
-/** No backslash: Jest prints a failure with each backslash doubled, and a copied `\\.` matches nothing. */
+/**
+ * No backslash: Jest prints a failure with each backslash doubled, and a copied `\\.` matches nothing.
+ * A name ends where `repoName` ends the token: at an optional `.git` and sentence dots, never at a dot that leads into more name.
+ */
 function rewriteCommand(links: RepoLinks, oldOwners: readonly string[]): string {
   const old = oldOwners.length === 1 ? oldOwners[0]! : `(?:${oldOwners.join("|")})`;
-  const names = `(${links.public.join("|")})(?![A-Za-z0-9_-])`;
+  const names = `(${links.public.join("|")})(?=(?:[.]git)?[.]*(?![A-Za-z0-9_.-]))`;
   const https = `s#github[.]com([:/])${old}/${names}#github.com\${1}${links.owner}/\${2}#gi`;
   const pages = `s#(?<![A-Za-z0-9-])${old}[.]github[.]io/${names}#${links.owner}.github.io/\${1}#gi`;
   return `git ls-files -z | xargs -0 perl -pi -e '${https}; ${pages}'`;
@@ -221,10 +224,17 @@ describe("the printed rewrite command", () => {
     const before: Record<string, string> = {
       "a.md": [
         `[readme](https://github.com/${OTHER}/skkuverse-server/blob/dev/README.md) and https://${OTHER}.github.io/skkuverse-app/`,
+        `Read https://github.com/${OTHER}/skkuverse-server.`,
         `the umbrella is https://github.com/${OTHER}/skkuverse`,
+        `the fork is https://github.com/${OTHER}/skkuverse-app.evil`,
         "an unrelated line",
       ].join("\n"),
-      "b.sh": `git clone git@github.com:${OTHER}/skkuverse-app.git\ngit clone https://github.com/${OTHER}/skkuverse-server-extra\n`,
+      "b.sh": [
+        `git clone git@github.com:${OTHER}/skkuverse-app.git`,
+        `git clone https://github.com/${OTHER}/skkuverse-server-extra`,
+        `git clone https://${OTHER}.github.io/skkuverse-app.evil`,
+        "",
+      ].join("\n"),
     };
     const printed = linkReport(Object.entries(before).map(([file, text]) => ({ file, text })), LINKS).find((line) => line.startsWith(REWRITE));
 
@@ -240,10 +250,17 @@ describe("the printed rewrite command", () => {
       expect(after).toEqual({
         "a.md": [
           `[readme](https://github.com/${OWNER}/skkuverse-server/blob/dev/README.md) and https://${OWNER}.github.io/skkuverse-app/`,
+          `Read https://github.com/${OWNER}/skkuverse-server.`,
           `the umbrella is https://github.com/${OTHER}/skkuverse`,
+          `the fork is https://github.com/${OTHER}/skkuverse-app.evil`,
           "an unrelated line",
         ].join("\n"),
-        "b.sh": `git clone git@github.com:${OWNER}/skkuverse-app.git\ngit clone https://github.com/${OTHER}/skkuverse-server-extra\n`,
+        "b.sh": [
+          `git clone git@github.com:${OWNER}/skkuverse-app.git`,
+          `git clone https://github.com/${OTHER}/skkuverse-server-extra`,
+          `git clone https://${OTHER}.github.io/skkuverse-app.evil`,
+          "",
+        ].join("\n"),
       });
       expect(linkReport(Object.entries(after).map(([file, text]) => ({ file, text })), LINKS).every((line) => !line.startsWith(REWRITE))).toBe(true);
     } finally {

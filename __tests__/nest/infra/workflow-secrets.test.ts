@@ -325,8 +325,8 @@ describe("the public-workflow rules apply as specified", () => {
 
   it.each([
     ["a public repository's advisory form", `https://github.com/${repoLinks.owner}/${repoLinks.public[0]}/security/advisories/new`],
-    ["a clone URL of a public repository", `git clone git@github.com:${repoLinks.owner}/${repoLinks.public[1]}.git`],
-    ["a public repository in other letter case", `https://github.com/${repoLinks.owner.toUpperCase()}/${repoLinks.public[2]!.toUpperCase()}`],
+    ["a clone URL of a public repository", `git clone git@github.com:${repoLinks.owner}/${repoLinks.public[0]}.git`],
+    ["a public repository in other letter case", `https://github.com/${repoLinks.owner}/${repoLinks.public[0]}`.toUpperCase()],
   ])("passes %s at the configured owner", (_case, text) => {
     // Act & Assert
     expect(namesPersonalRepository(text)).toBe(false);
