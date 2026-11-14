@@ -50,7 +50,7 @@ const repoName = (token: string) => token.replace(/\.+$/, "").replace(/\.git$/i,
 function linkHits(text: string): Hit[] {
   return text.split("\n").flatMap((lineText, i) =>
     [GITHUB_LINK, PAGES_LINK].flatMap((pattern) =>
-      [...lineText.matchAll(pattern)].map((m) => ({ line: i + 1, url: m[0], owner: m[1]!, repo: repoName(m[2]!) })),
+      [...lineText.matchAll(pattern)].map((m) => ({ line: i + 1, url: m[0].replace(/\.+$/, ""), owner: m[1]!, repo: repoName(m[2]!) })),
     ),
   );
 }
@@ -152,6 +152,12 @@ describe("a link to a skkuverse repository", () => {
     ["a wrong owner in a clone URL",`git@github.com:${OTHER}/skkuverse-app.git`, `github.com:${OTHER}/skkuverse-app.git`, `owner is not ${OWNER}`],
     ["a wrong owner in a Pages link", `https://${OTHER}.github.io/skkuverse-app/`, `${OTHER}.github.io/skkuverse-app`, `owner is not ${OWNER}`],
     ["a private repository", `https://github.com/${OWNER}/skkuverse`, `github.com/${OWNER}/skkuverse`, "skkuverse is not in public"],
+    [
+      "a private repository at the end of a sentence",
+      `Read https://github.com/${OWNER}/skkuverse.`,
+      `github.com/${OWNER}/skkuverse`,
+      "skkuverse is not in public",
+    ],
     ["a private repository in a Pages link", `https://${OWNER}.github.io/skkuverse-web/`, `${OWNER}.github.io/skkuverse-web`, "skkuverse-web is not in public"],
     [
       "a repository whose name starts with a public name",
