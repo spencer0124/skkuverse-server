@@ -6,11 +6,10 @@
  *     with the base repository's secrets and a write token; owner-gate.yml
  *     checks out nothing (owner-gate.test.ts);
  *   - every workflow sets `permissions:` at the top, read-only or empty, so a
- *     job gets write access only where it names it, and only contracts-sync.yml
- *     names `contents: write`;
- *   - only claude.yml and contracts-sync.yml read a secret, in any syntax,
- *     and each keeps its secrets in an environment of its own (`claude`,
- *     `contracts-sync`), which no other workflow uses;
+ *     job gets write access only where it names it, and none names
+ *     `contents: write`;
+ *   - only claude.yml reads a secret, in any syntax, and it keeps its secret
+ *     in an environment of its own (`claude`), which no other workflow uses;
  *   - no workflow grants `security-events: write`;
  *   - no `run:` script interpolates an expression: an event field, a branch
  *     name or a step output reaches a script only through `env:`, so text an
@@ -30,9 +29,6 @@
  *   - claude.yml runs Claude only in `answer`, whose token reads, with Bash
  *     sandboxed without network or GitHub tokens; only `ack` and `post`,
  *     which run no Claude, write, and `post` writes to the event's thread;
- *   - contracts-sync.yml runs on a schedule or by hand, on the default branch,
- *     never for a pull request; it checks that its secrets are set before any
- *     other step, and its PR body links no private repository;
  *
  * Patterns rather than a YAML parser: the repo has no parser dependency. The
  * rules are tested on the mutants they exist to catch, then on the real files.
@@ -46,7 +42,7 @@ const read = (rel: string) => fs.readFileSync(path.join(root, rel), "utf8");
 const files = fs.readdirSync(path.join(root, WORKFLOWS)).filter((f) => /\.ya?ml$/.test(f));
 const workflow = (name: string) => read(`${WORKFLOWS}/${name}`);
 
-const SECRET_HOLDERS = ["claude.yml", "contracts-sync.yml"];
+const SECRET_HOLDERS = ["claude.yml"];
 const GATE = /^contains\(fromJSON\('\["OWNER","MEMBER","COLLABORATOR"\]'\), github\.event\.(comment|review)\.author_association\)$/;
 
 /** The top-level `on:` block. */
@@ -197,7 +193,7 @@ const GATED_IF = (event: string, field: string) =>
   `(github.event_name == '${event}' && contains(github.event.${field}.body, '@claude') && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.${field}.author_association))`;
 
 describe("the public-workflow rules apply as specified", () => {
-  // M1: a new workflow a fork's pull request starts, holding what only contracts-sync.yml may hold.
+  // M1: a new workflow a fork's pull request starts, holding what only claude.yml may hold.
   const forkWorkflow = [
     "name: Mutant",
     "on:",
@@ -207,12 +203,12 @@ describe("the public-workflow rules apply as specified", () => {
     "jobs:",
     "  steal:",
     "    runs-on: ubuntu-latest",
-    "    environment: contracts-sync",
+    "    environment: claude",
     "    permissions:",
     "      contents: write",
     "    steps:",
     "      - run: |",
-    "          echo \"${{ secrets.FLEET_READ_TOKEN }}\"",
+    "          echo \"${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}\"",
     "          echo \"${{ github.event.pull_request.title }}\"",
     "",
   ].join("\n");
@@ -223,7 +219,7 @@ describe("the public-workflow rules apply as specified", () => {
     expect(usesEnvironment(forkWorkflow)).toBe(true);
     expect(grantsWrite(forkWorkflow)).toBe(true);
     expect(interpolatedRuns(forkWorkflow)).toEqual([
-      '14: echo "${{ secrets.FLEET_READ_TOKEN }}"',
+      '14: echo "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}"',
       '15: echo "${{ github.event.pull_request.title }}"',
     ]);
   });
@@ -379,7 +375,7 @@ describe(".github/workflows on a public repository", () => {
     for (const f of files) expect([f, defaults[f]]).toEqual([f, expect.stringMatching(/^(\{\}|contents: read)$/)]);
   });
 
-  it("read secrets only in claude.yml and contracts-sync.yml", () => {
+  it("read secrets only in claude.yml", () => {
     // Act
     const readers = files.filter((f) => readsSecret(workflow(f)));
 
@@ -395,12 +391,12 @@ describe(".github/workflows on a public repository", () => {
     expect(users).toEqual(SECRET_HOLDERS);
   });
 
-  it("grant contents: write only in contracts-sync.yml", () => {
+  it("grant contents: write in no workflow", () => {
     // Act
     const writers = files.filter((f) => grantsWrite(workflow(f)));
 
     // Assert
-    expect(writers).toEqual(["contracts-sync.yml"]);
+    expect(writers).toEqual([]);
   });
 
   it("grant security-events: write in no workflow", () => {
@@ -593,38 +589,5 @@ describe("claude.yml", () => {
   it("listens only to issue comments", () => {
     // Assert
     expect(triggerNames(claude)).toEqual(["issue_comment"]);
-  });
-});
-
-describe("contracts-sync.yml", () => {
-  const sync = workflow("contracts-sync.yml");
-
-  it("runs on a schedule or by hand, never for a pull request", () => {
-    // Assert
-    expect(triggerNames(sync)).toEqual(["schedule", "workflow_dispatch"]);
-  });
-
-  it("keeps its secrets in an environment, so no other workflow can read them", () => {
-    // Assert
-    expect(sync).toMatch(/^ {4}environment: contracts-sync$/m);
-  });
-
-  it("checks that every secret it reads is set before any other step", () => {
-    // Arrange
-    const names = [...new Set([...sync.matchAll(/\bsecrets\.([A-Z0-9_]+)/g)].map((m) => m[1]))];
-    const firstStep = /^ {4}steps:\n((?: *#.*\n)*(?: {6}- [\s\S]*?))(?=^ {6}- )/m.exec(sync)?.[1] ?? "";
-
-    // Act
-    const loop = /for name in ([A-Z0-9_ ]+); do/.exec(firstStep)?.[1]?.split(" ") ?? [];
-
-    // Assert
-    expect(names.length).toBeGreaterThan(0);
-    expect(loop.sort()).toEqual([...names].sort());
-    expect(firstStep).toMatch(/exit 1/);
-  });
-
-  it("links no private repository in the pull request it opens", () => {
-    // Assert
-    expect(sync).not.toMatch(/https:\/\/github\.com\//);
   });
 });
