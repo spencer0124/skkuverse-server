@@ -48,6 +48,8 @@ const PAGES_LINK = /([A-Za-z0-9-]+)\.github\.io\/(skkuverse[\w.-]*)/gi;
 const repoName = (token: string) => token.replace(/\.+$/, "").replace(/\.git$/i, "").toLowerCase();
 
 function linkHits(text: string): Hit[] {
+  // Most files hold no link, so two tests of the whole text spare splitting them into lines.
+  if (!/skkuverse/i.test(text) || !/github\.(?:com|io)/i.test(text)) return [];
   return text.split("\n").flatMap((lineText, i) =>
     [GITHUB_LINK, PAGES_LINK].flatMap((pattern) =>
       [...lineText.matchAll(pattern)].map((m) => ({ line: i + 1, url: m[0].replace(/\.+$/, ""), owner: m[1]!, repo: repoName(m[2]!) })),
@@ -227,12 +229,11 @@ describe("the printed rewrite command", () => {
     const printed = linkReport(Object.entries(before).map(([file, text]) => ({ file, text })), LINKS).find((line) => line.startsWith(REWRITE));
 
     try {
-      execFileSync("git", ["init", "-q"], { cwd: dir });
       for (const [file, text] of Object.entries(before)) fs.writeFileSync(path.join(dir, file), text);
-      execFileSync("git", ["add", ...Object.keys(before)], { cwd: dir });
 
       // Act
-      execFileSync("sh", ["-c", printed!.slice(REWRITE.length)], { cwd: dir });
+      // A spawn costs about 130 ms inside Jest, so the repository setup and the printed command share one shell.
+      execFileSync("sh", ["-c", `git init -q && git add -- ${Object.keys(before).join(" ")} && ${printed!.slice(REWRITE.length)}`], { cwd: dir });
       const after = Object.fromEntries(Object.keys(before).map((file) => [file, fs.readFileSync(path.join(dir, file), "utf8")]));
 
       // Assert
