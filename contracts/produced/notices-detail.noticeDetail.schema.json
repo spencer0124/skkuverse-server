@@ -709,6 +709,221 @@
           "type": "null"
         }
       ]
+    },
+    "schedule": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "start": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "time": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "date"
+                ]
+              },
+              "end": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "time": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "date"
+                ]
+              },
+              "precision": {
+                "type": "string",
+                "enum": [
+                  "month",
+                  "week"
+                ]
+              },
+              "repeat": {
+                "type": "object",
+                "properties": {
+                  "freq": {
+                    "type": "string",
+                    "enum": [
+                      "weekly",
+                      "daily"
+                    ]
+                  },
+                  "byDay": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "MO",
+                        "TU",
+                        "WE",
+                        "TH",
+                        "FR",
+                        "SA",
+                        "SU"
+                      ]
+                    }
+                  },
+                  "until": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  }
+                },
+                "required": [
+                  "freq"
+                ]
+              },
+              "except": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                }
+              },
+              "slots": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "start": {
+                      "type": "object",
+                      "properties": {
+                        "date": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "time": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "date"
+                      ]
+                    },
+                    "end": {
+                      "type": "object",
+                      "properties": {
+                        "date": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "time": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "date"
+                      ]
+                    },
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "start",
+                    "text"
+                  ]
+                }
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "scheduled",
+                  "tentative",
+                  "rescheduled",
+                  "cancelled",
+                  "suspended"
+                ]
+              },
+              "quote": {
+                "type": "string"
+              },
+              "place": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "mapTarget": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "skkuId": {
+                            "type": "number"
+                          },
+                          "spaceCd": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "skkuId",
+                          "spaceCd"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "text",
+                  "name",
+                  "mapTarget"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "start",
+              "except",
+              "slots",
+              "status"
+            ]
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "required": [
@@ -728,6 +943,7 @@
     "crawledAt",
     "editInfo",
     "summary",
-    "screen"
+    "screen",
+    "schedule"
   ]
 }

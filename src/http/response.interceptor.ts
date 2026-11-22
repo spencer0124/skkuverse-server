@@ -1,5 +1,6 @@
 import {
   Injectable,
+  StreamableFile,
   type CallHandler,
   type ExecutionContext,
   type NestInterceptor,
@@ -29,8 +30,9 @@ function successEnvelope(req: Request, res: Response, data: unknown): SuccessEnv
   return data instanceof MetaEnvelope ? { meta: { ...lang, ...data.meta }, data: data.data } : { meta: lang, data };
 }
 
+// WHY: a StreamableFile is a body of its own type (a file, not JSON), which Nest's adapter writes with its headers.
 function handlerWroteResponse(res: Response, data: unknown): boolean {
-  return res.headersSent || data === undefined;
+  return res.headersSent || data === undefined || data instanceof StreamableFile;
 }
 
 @Injectable()

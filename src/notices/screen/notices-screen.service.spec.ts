@@ -9,6 +9,9 @@
  * schema.
  * src/infra/logger.ts is mocked: a refused record logs `notices.facts.unparsed`, and a place read building fails
  * logs `notices.screen.places_unavailable` while the screen shows each place's quote.
+ *
+ * NoticesScreenService.renderSchedule serves the notice's stored schedule with its places named by building
+ * (notices-schedule.service.spec.ts holds the cases), and null for a notice with none.
  */
 import fs from "fs";
 import path from "path";
@@ -29,6 +32,7 @@ import { BuildingPlaceDisplayService } from "../../building/place/display/buildi
 import { NoticesFactsService } from "../facts/notices-facts.service";
 import { noticeScreen } from "../notices.wire";
 import { NoticesRowService } from "../row/notices-row.service";
+import { NoticesScheduleService } from "../schedule/notices-schedule.service";
 import { NoticesScreenService } from "./notices-screen.service";
 import type { ScreenNotice } from "./notices-screen.types";
 
@@ -53,7 +57,8 @@ beforeEach(() => {
   buildings.buildings = [storedBuilding({ _id: 12, buildNo: "133", campus: "hssc", name: text("경영관") })];
   spaces.spaces = [{ spaceCd: "33B101" as SpaceCd, buildNo: "133" as BuildNo, campus: "hssc", floor: text("지하1층"), name: text("계단강의실"), buildingName: text("경영관"), conspaceCd: null }];
   const placeService = new BuildingPlaceService(asReal<ConstructorParameters<typeof BuildingPlaceService>[0]>(buildings), asReal<ConstructorParameters<typeof BuildingPlaceService>[1]>(spaces));
-  service = new NoticesScreenService(new NoticesRowService(new NoticesFactsService(FIXED_CLOCK)), new BuildingPlaceDisplayService(placeService));
+  const places = new BuildingPlaceDisplayService(placeService);
+  service = new NoticesScreenService(new NoticesRowService(new NoticesFactsService(FIXED_CLOCK)), places, new NoticesScheduleService(FIXED_CLOCK, places));
 });
 
 const record = (name: string, edit: (stored: RawRecord) => void = () => undefined): RawRecord => {
@@ -286,5 +291,20 @@ describe("NoticesScreenService.renderScreen", () => {
     expect(block?.lines.slice(0, 3).map((line) => line.text)).toEqual(["11/3(화)~12/18(금) 기간", "[디자인학과] 11/3(화)~11/8(일) 졸업전시회", "11/4(수) 15시 개막식"]);
     expect(block?.lines.at(-1)?.text).toBe("[디자인학과] 9/29(화)~10/3(토) 석사학위 청구전");
     expect(block?.foldedCount).toBe(12);
+  });
+});
+
+describe("NoticesScreenService.renderSchedule", () => {
+  it("serves the stored schedule with a place building knows named, and null for a notice with none", async () => {
+    // Arrange
+    const schedule = { version: "v", items: [{ id: "D1", title: "설명회", start: { date: "2026-11-10" }, except: [], slots: [], status: "scheduled", place: { text: "경영관 33B101호", id: "space:hssc:33B101" } }] };
+    const id = new ObjectId("6a5ed9e520097db8672d2097");
+
+    // Act
+    const [served, none] = await Promise.all([service.renderSchedule({ _id: id, schedule }), service.renderSchedule({ _id: id })]);
+
+    // Assert
+    expect(served?.map((item) => item.place)).toEqual([{ text: "경영관 33B101호", name: "경영관 33B101", mapTarget: { skkuId: 12, spaceCd: "33B101" } }]);
+    expect(none).toBeNull();
   });
 });

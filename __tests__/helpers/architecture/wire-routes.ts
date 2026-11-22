@@ -113,11 +113,14 @@ function writesOwnResponse(handler: ts.MethodDeclaration): boolean {
   return !handler.body || !callsSendSuccess(handler.body);
 }
 
+/** A handler whose payload is a `StreamableFile`: Nest writes it as a file with its own content type, never the envelope. */
+const returnsFile = (handler: ts.MethodDeclaration): boolean => payloadTypes(handler).every((type) => isReference(type, "StreamableFile"));
+
 const routeName = (r: RouteHandler) => `${r.method} ${r.path}`;
 
-/** The routes in one file that serve JSON to a client: not internal, not health, not a raw response. */
+/** The routes in one file that serve JSON to a client: not internal, not health, not a raw response or a file. */
 export function clientRoutes(file: string, source: string): RouteHandler[] {
-  return routeHandlersIn(file, source).filter((r) => !isExemptPath(r.path) && !writesOwnResponse(r.handler));
+  return routeHandlersIn(file, source).filter((r) => !isExemptPath(r.path) && !writesOwnResponse(r.handler) && !returnsFile(r.handler));
 }
 
 /** `<METHOD> <path>` for each client-facing route whose payload type, or `meta` type, names no `.wire` type. */

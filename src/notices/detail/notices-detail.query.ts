@@ -30,4 +30,6 @@ export const DETAIL_PROJECTION = {
   facts: 1,
   factsHistory: 1,
   firstSeenAt: 1,
+  schedule: 1,
+  dupOf: 1,
 } as const satisfies Record<keyof NoticeDetailRow, 1>;

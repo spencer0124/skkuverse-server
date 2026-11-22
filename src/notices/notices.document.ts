@@ -115,6 +115,9 @@ export interface NoticeDoc {
   // CONTRACT(skkuverse-crawler): the record of skkuverse-crawler/docs/notice-facts/notice-facts.schema.json, as stored: read it
   // only through NoticesFactsService, which parses it. Absent until the crawler's facts stage has run.
   facts?: unknown;
+  // CONTRACT(skkuverse-crawler): the `schedule` of skkuverse/docs/decisions/0012-notice-brief-and-add-ons.md ("D4"), as stored:
+  // read it only through NoticesScheduleService, which parses it. Absent until the crawler's schedule stage has run.
+  schedule?: unknown;
   // CONTRACT(skkuverse-crawler): the push gate the dispatch claim reads (skkuverse-crawler/docs/notice-facts/design.md
   // "Push gate contract (crawler ↔ server)"): only the live job writes both, once, so a backfill never makes a notice claimable.
   factsAt?: Date | null;

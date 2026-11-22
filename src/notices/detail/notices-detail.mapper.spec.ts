@@ -1,7 +1,7 @@
 /**
  * The detail response: the Markdown body as contentMarkdown (null when the crawler has none), attachments with a
  * referer only when stored, an edit history only once edited, the full summary only once summarized, and every
- * stored time as the ISO string JSON writes, and the screen it is given beside them, null when there is none.
+ * stored time as the ISO string JSON writes, and the screen and schedule it is given beside them, null when there is none.
  */
 import { ObjectId } from "mongodb";
 import type { NoticeDoc } from "../notices.document";
@@ -40,6 +40,7 @@ describe("toDetailItem", () => {
       editInfo: null,
       summary: null,
       screen: null,
+      schedule: null,
     });
   });
 
@@ -48,7 +49,7 @@ describe("toDetailItem", () => {
     const derived = { oneLiner: "내일 마감", type: "action_required" as const, startAt: null, endAt: null };
 
     // Act
-    const item = toDetailItem(BASE, null, derived);
+    const item = toDetailItem(BASE, null, { derived });
 
     // Assert
     expect(item.summary).toEqual({
@@ -68,7 +69,7 @@ describe("toDetailItem", () => {
     const stored = { ...BASE, summaryAt: new Date("2026-10-14T06:00:00Z"), summaryOneLiner: "한 줄", summaryType: "event" };
 
     // Act
-    const item = toDetailItem(stored, null, { oneLiner: "다른 줄", type: "informational", startAt: null, endAt: null });
+    const item = toDetailItem(stored, null, { derived: { oneLiner: "다른 줄", type: "informational", startAt: null, endAt: null } });
 
     // Assert
     expect(item.summary).toEqual(toSummaryFull(stored));
@@ -121,6 +122,20 @@ describe("toDetailItem, the screen", () => {
     expect(withScreen.screen).toEqual(SCREEN);
     expect({ ...withScreen, screen: null }).toEqual(without);
     expect(withScreen.summary).toMatchObject({ oneLiner: "한 줄" });
+  });
+});
+
+describe("toDetailItem, the schedule", () => {
+  it("serves the schedule items it is given, and changes no other field", () => {
+    // Arrange
+    const schedule = [{ id: "D1", title: "설명회", start: { date: "2026-11-10" }, except: [], slots: [], status: "scheduled" as const }];
+
+    // Act
+    const withSchedule = toDetailItem(BASE, null, { schedule });
+
+    // Assert
+    expect(withSchedule.schedule).toEqual(schedule);
+    expect({ ...withSchedule, schedule: null }).toEqual(toDetailItem(BASE, null));
   });
 });
 

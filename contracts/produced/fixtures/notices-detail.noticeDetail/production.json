@@ -60,6 +60,7 @@
       "model": "claude-haiku-5-5",
       "generatedAt": "2026-10-12T02:20:15.269Z"
     },
-    "screen": null
+    "screen": null,
+    "schedule": null
   }
 }

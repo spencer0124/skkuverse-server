@@ -1,0 +1,32 @@
+{
+  "_about": "Hand-written 2026-11-22: a notice `schedule` in the shape of umbrella docs/decisions/0012-notice-brief-and-add-ons.md D4, items as skkuverse-ai's schedule stage assembles them (app/schedule/assemble.py) plus the crawler's place fields. Synthetic because the crawler stores no schedule yet; replace it with a captured one when it does.",
+  "schedule": {
+    "version": "schedule-v3.3",
+    "items": [
+      { "id": "D1", "title": "참가 신청", "start": { "date": "2026-11-02" }, "end": { "date": "2026-11-06" }, "except": [], "slots": [], "status": "scheduled" },
+      {
+        "id": "D3",
+        "title": "진로 설명회",
+        "start": { "date": "2026-11-10", "time": "14:00" },
+        "end": { "date": "2026-11-10", "time": "16:00" },
+        "except": [],
+        "slots": [{ "start": { "date": "2026-11-10", "time": "14:00" }, "end": { "date": "2026-11-10", "time": "15:00" }, "text": "14:00 1부 학과 소개" }],
+        "status": "tentative",
+        "quote": "일정은 변동될 수 있음",
+        "place": { "text": "경영관 33B101호", "id": "space:hssc:33B101", "campus": "hssc" }
+      },
+      {
+        "id": "D5",
+        "title": "스터디",
+        "start": { "date": "2026-11-04", "time": "19:00" },
+        "end": { "date": "2026-11-04", "time": "21:00" },
+        "repeat": { "freq": "weekly", "byDay": ["WE"], "until": "2026-12-16" },
+        "except": ["2026-11-25"],
+        "slots": [],
+        "status": "scheduled",
+        "place": { "text": "온라인 (Zoom)", "reason": "online" }
+      },
+      { "id": "D7", "title": "결과 발표", "start": { "date": "2026-12-01" }, "precision": "month", "except": [], "slots": [], "status": "scheduled" }
+    ]
+  }
+}

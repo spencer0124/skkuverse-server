@@ -12,7 +12,7 @@ audience: internal
 > The request and response contracts of the read-only `/notices/*` routes and the `/internal/notices/*` dispatch trigger. The design is in [explanation/notices-architecture.md](../explanation/notices-architecture.md), the FCM dispatch decision in [decisions/0003](../decisions/0003-fcm-dispatch-cloud-function-claim-lease.md).
 
 > [!NOTE]
-> Every route except `GET /notices/proxy/attachment` answers in the server's common `{ meta, data }` envelope (`src/http/response.interceptor.ts`). The attachment proxy streams the file body itself.
+> Every route except `GET /notices/proxy/attachment` and `GET /notices/:sourceId/:articleNo/schedule.ics` answers in the server's common `{ meta, data }` envelope (`src/http/response.interceptor.ts`). The attachment proxy streams the file body itself, and the calendar export is an iCalendar file.
 
 ## Summary
 
@@ -23,6 +23,7 @@ audience: internal
 | GET | `/notices` | optional | Several sources merged into one list, each article once (`?sourceIds=`) |
 | GET | `/notices/proxy/attachment` | optional | The attachment proxy |
 | GET | `/notices/:sourceId/:articleNo` | optional | One notice's detail |
+| GET | `/notices/:sourceId/:articleNo/schedule.ics` | optional | One notice's schedule as an iCalendar file |
 | GET | `/notices/overview` | optional | AI answer card for a search (`?q=&sourceIds=`) |
 | POST | `/internal/notices/dispatch-pending` | internal | The crawler's ping that starts an FCM dispatch sweep |
 
@@ -200,8 +201,39 @@ Outbound policy (`OUTBOUND_POLICY`, purpose `notice-attachment`, [ADR 0023](../d
   | `original` | `{ posterCount, attachments: [{ role, name, url }], links: [{ role, domain, url }] }`. An attachment's `url` is the one in the detail's `attachments` for that file, `null` when the list no longer holds it |
 
   The text is Korean for every `Accept-Language`. A place building cannot name, or one no building sheet holds, shows its quote with no action, and a fact the verifier disputed is left out. Renamed from `SketchDetail`: the fields sit under `screen`; `change.what` is `날짜` or `장소`; `posters` is `posterCount`; `action` also carries its `target`; `englishOnly` is dropped (umbrella ADR 0009, 2026-10-28), and the body is the existing `contentMarkdown`.
+- **`schedule` (the timeline).** The items of the `schedule` the crawler stores on the notice (umbrella ADR 0012 D4), in stored order, or `null` when the notice has none, its list is empty or it fails the stored schema. Each item is served as stored, optional keys left out when absent, except `place`:
+
+  | Field | Meaning |
+  | --- | --- |
+  | `id`, `title` | The item's id, unique in the notice and stable across its edits, and its short title |
+  | `start`, `end` | `{ date, time? }`, a Seoul local day (`YYYY-MM-DD`) and clock (`HH:MM`); `end` absent for a single moment or day |
+  | `precision` | `month` or `week` when the notice gives only a month or a week; `start` is then that period's first day, and the item is not exported |
+  | `repeat` | `{ freq: "weekly" \| "daily", byDay?, until? }` for a series, whose `start` and `end` are its first occurrence; `byDay` holds `MO` to `SU` |
+  | `except` | The days a series or range skips |
+  | `slots` | `{ start, end?, text }`, the times inside the item, `text` the notice line it sits on |
+  | `status`, `quote` | `scheduled`, `tentative`, `rescheduled`, `cancelled` or `suspended`, and the notice's words that show a status other than `scheduled` |
+  | `place` | `{ text, name, mapTarget }`: `text` the notice's words, always shown; `name` the place's name and code and `mapTarget` `{ skkuId, spaceCd }` (the building sheet) when the crawler stored an id building names, else `null` |
+
 - **ETag/304:** the response carries Express's default weak `ETag`, and a matching `If-None-Match` answers 304.
 - A notice the crawler marked `isDeleted` answers 404.
+
+## GET /notices/:sourceId/:articleNo/schedule.ics
+
+The notice's schedule as an iCalendar file (RFC 5545), `Content-Type: text/calendar; charset=utf-8`, outside the JSON envelope. The parameters and their 400 answers are the detail route's. It answers 404 `NOT_FOUND` (`notice has no calendar events`) for a missing or deleted notice and for one with no exportable item. Errors keep the JSON error body.
+
+| Item | iCalendar |
+| --- | --- |
+| The item | One `VEVENT`; an item with `precision` is left out |
+| `id` | `UID:<cluster key>-<id>@skkuverse`: the crawler's `dupOf`, or the notice's own `_id` while it is unlinked, so the copies of one article on several boards export one event |
+| `start`, `end` with a time | `DTSTART`, `DTEND` with `TZID=Asia/Seoul`, under one `VTIMEZONE`; no `end` writes no `DTEND`, and an `end` with no time ends at the start of the next day |
+| `start` with no time | An all-day event: `DTSTART;VALUE=DATE` and an exclusive `DTEND` the day after the last day |
+| `repeat` | `RRULE`, its `UNTIL` the close of the last Seoul day (in UTC for a timed series) |
+| `except` | `EXDATE` at the series' time. A range with skipped days and no `repeat` becomes a daily series over the range, since an `EXDATE` removes only occurrences of a recurrence |
+| `slots` | Their lines, once each, in the `DESCRIPTION` |
+| `place` | Its `text` in `LOCATION` |
+| `status` | `STATUS:CONFIRMED` for `scheduled` and `rescheduled`, `TENTATIVE` for `tentative`, `CANCELLED` for `cancelled` and for `suspended`, which will not happen at its stored time |
+
+Each event also carries `DTSTAMP` (the request's time), `SUMMARY` (the title) and `URL` (the notice's `sourceUrl`). Lines end in CRLF and fold at 75 octets.
 
 ## GET /notices/overview
 
@@ -283,7 +315,7 @@ The internal route the crawler calls at the end of each crawl cycle, not callabl
 | 400 | `INVALID_CURSOR` | A cursor that fails base64url decoding, JSON parsing or its shape check |
 | 401 | `AUTH_INVALID` | A bearer token that fails verification (no token is not a 401) |
 | 403 | `FORBIDDEN` | An attachment `url` or redirect hop the outbound policy refuses |
-| 404 | `NOT_FOUND` | No such notice, or one marked `isDeleted` |
+| 404 | `NOT_FOUND` | No such notice, or one marked `isDeleted`; on `schedule.ics`, also a notice with no exportable schedule item |
 | 429 | `RATE_LIMIT` | Over the rate limit |
 | 502 | `UPSTREAM_ERROR`, `UPSTREAM_TOO_LARGE` | The attachment host failed, or the file is over the size cap |
 
@@ -297,7 +329,8 @@ The code is the source of truth for file names; `docs/explanation/notices-archit
 | The notice document type | `notices.document.ts` |
 | `GET /notices/tabs` | `tabs/` |
 | `GET /notices/source/:sourceId`, `GET /notices`: reads, index, projection, cursor, list item, badge | `list/` |
-| `GET /notices/:sourceId/:articleNo` | `detail/` |
+| `GET /notices/:sourceId/:articleNo` and its `schedule.ics` | `detail/` |
+| The detail's `schedule`: the stored schedule parsed and its places named, through `screen/` | `schedule/`, and the published shape in `detail/notices-detail.wire.ts` |
 | The detail's `screen`, rendered from `row/`'s reading of the notice | `screen/`, and the published shape in `notices.wire.ts` |
 | `GET /notices/overview`: retrieval, the ai call, citation mapping, cache | `overview/` |
 | `GET /notices/proxy/attachment` | `attachment/`, with the outbound policy behind `OUTBOUND_POLICY` (`src/perimeter/perimeter.ports.ts`) |
@@ -318,6 +351,7 @@ The choices behind the routes above, kept out of the module doc.
 - **Brief and full summaries.** A list cell gets the one-liner and badge dates; the detail gets the full summary with the ai's arrays passed through.
 - **Auth before the limiter, as middleware.** Nest runs middleware before guards, and the limiter may read `req.principal`, so a guard would set it too late ([ADR 0010](../decisions/0010-server-architecture.md), D7).
 - **`sources.json` is the server's copy.** It adds the UX metadata (campus, category, availability) the crawler's selector config lacks, so editing it needs no app release.
+- **The calendar export is a file, not the envelope.** The handler returns a `StreamableFile`, which `ResponseInterceptor` passes through, so no handler takes `@Res()`; the iCalendar text is written by hand (`detail/notices-detail.rules.ts`, from the items the detail serves), since the subset is small and no library is a dependency.
 - **A deleted notice is a 404.** The crawler soft-deletes; lists hide it and the detail answers 404, which clears the app's cache entry.
 - **One row per article by scanning past the page.** A read of several sources scans `CLUSTER_SCAN_FACTOR × (limit + 1)` rows after the cursor, reading only `_id`, `dupOf`, `date` and `crawledAt` (`SCAN_PROJECTION`), and keeps a scanned row only when no copy of its article sorts before it. Copies before it in the batch are in hand; for the others it looks up the copies of the scanned articles in the same scope at or before the cursor, which an earlier page served. Page 1 has no cursor and needs no lookup. It scans again after the last row scanned until it holds `limit + 1` rows or the list ends, at most `MAX_SCANS_PER_PAGE` times. A page that runs out of scans is served short, with `hasMore` true and a cursor after its last scanned row, so the next page resumes there. It then reads the `limit` rows it serves in full with one `_id: { $in }` read. Rejected: a `$group` of the whole scope by `dupOf`, which reads every notice of the scope before it can serve page 1.
 - **The read indexes are the server's.** The crawler owns the unique `articleNo_1_sourceId_1`; the poller creates `sourceId_1_date_-1__id_-1` and `dupOf_1_sourceId_1__id_1` at boot (three attempts, an error-level log on failure). Every list read and scan is hinted to `sourceId_1_date_-1__id_-1`, and the lookup of a scanned batch's earlier copies to `dupOf_1_sourceId_1__id_1`; the read of the served rows by `_id` takes the `_id` index.
