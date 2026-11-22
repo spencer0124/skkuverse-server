@@ -1,6 +1,6 @@
 /**
- * storedSchedule: the server's reader of the `schedule` the crawler stores on a notice (umbrella ADR 0012 D4), mirrored
- * by hand until the crawler's JSON Schema is vendored.
+ * storedSchedule: the server's reader of the `schedule` the crawler stores on a notice (umbrella ADR 0012 D4). Its
+ * agreement with the crawler's vendored JSON Schema is __tests__/contracts/notice-schedule.test.ts.
  *
  * The hand-written schedule in fixtures/notice-schedule.stored.json parses and comes out equal to what was stored. A copy
  * missing any top-level key or any required key of an item does not parse, and neither does an optional key stored as

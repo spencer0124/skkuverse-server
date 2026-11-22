@@ -81,6 +81,7 @@
     "@types/supertest": "7.2.0",
     "@typescript-eslint/eslint-plugin": "8.59.4",
     "@typescript-eslint/parser": "8.59.4",
+    "ajv": "8.20.0",
     "concurrently": "9.2.5",
     "eslint": "10.4.0",
     "jest": "30.4.2",

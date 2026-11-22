@@ -3,11 +3,18 @@ import { SCHEDULE_FREQUENCIES, SCHEDULE_PRECISIONS, SCHEDULE_STATUSES, SCHEDULE_
 
 const day = z.iso.date();
 const point = z.object({ date: day, time: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/).optional() });
-const place = z.object({ text: z.string(), id: z.string().optional(), campus: z.enum(["hssc", "nsc"]).optional(), reason: z.string().optional() });
+const place = z
+  .object({
+    text: z.string().min(1),
+    id: z.string().regex(/^(?:space|building|facility):(?:hssc|nsc):[^:]+$/).optional(),
+    campus: z.enum(["hssc", "nsc"]).optional(),
+    reason: z.enum(["campus_only", "ambiguous", "offcampus", "online", "not_a_place", "unknown_place"]).optional(),
+  })
+  .refine(({ id, campus, reason }) => (reason === undefined ? id !== undefined && campus !== undefined : id === undefined), { error: "a place is pinned (id and campus) or says why not (reason)", path: [] });
 
 const scheduleItem = z.object({
   id: z.string().min(1),
-  title: z.string(),
+  title: z.string().min(1),
   start: point,
   end: point.optional(),
   precision: z.enum(SCHEDULE_PRECISIONS).optional(),
@@ -19,10 +26,10 @@ const scheduleItem = z.object({
   place: place.optional(),
 });
 
-// CONTRACT(skkuverse-crawler): the `schedule` of skkuverse/docs/decisions/0012-notice-brief-and-add-ons.md ("D4"), mirrored by hand
-// until the crawler's schema is vendored; a key the mirror does not know is stripped. An item id is its calendar event's identity.
+// CONTRACT(skkuverse-crawler): skkuverse-crawler/docs/notice-schedule/notice-schedule.schema.json, vendored as
+// contracts/consumed/notice-schedule.schema.json and pinned by __tests__/contracts/notice-schedule.test.ts. An item id is its calendar event's identity.
 export const storedSchedule = z
-  .object({ version: z.string(), items: z.array(scheduleItem) })
+  .object({ version: z.string().min(1), items: z.array(scheduleItem) })
   .refine(({ items }) => new Set(items.map((item) => item.id)).size === items.length, { error: "item ids repeat", path: ["items"] });
 
 export type ScheduleItem = z.output<typeof scheduleItem>;
