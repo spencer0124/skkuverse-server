@@ -3,8 +3,9 @@
  * X-Response-Time, as sendSuccess() does for an @Res() handler, and leaves errors to the filter.
  * A response a shared cache may store (`public` or `s-maxage`) carries no `meta.lang`: Cloudflare
  * keys it without Accept-Language, so the lang would be another requester's (umbrella issue 63).
+ * A returned StreamableFile is a file: it goes out as itself, with its own content type.
  */
-import { Controller, Get, type INestApplication, Req, Res } from "@nestjs/common";
+import { Controller, Get, type INestApplication, Req, Res, StreamableFile } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import type { Request, Response } from "express";
 import request from "supertest";
@@ -46,6 +47,11 @@ class EnvelopeController {
   sMaxAge(@Res({ passthrough: true }) res: Response) {
     res.setHeader("Cache-Control", "max-age=0, s-maxage=600");
     return { a: 1 };
+  }
+
+  @Get("file")
+  file() {
+    return new StreamableFile(Buffer.from("BEGIN:VCALENDAR\r\n"), { type: "text/calendar; charset=utf-8" });
   }
 
   @Get("error")
@@ -122,5 +128,15 @@ describe("ResponseInterceptor", () => {
     // Assert
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: { code: "INVALID_CAMPUS", message: "campus must be 'hssc' or 'nsc'" } });
+  });
+
+  it("sends a returned StreamableFile as itself, outside the envelope", async () => {
+    // Act
+    const res = await request(app.getHttpServer()).get("/t/file");
+
+    // Assert
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toBe("text/calendar; charset=utf-8");
+    expect(res.text).toBe("BEGIN:VCALENDAR\r\n");
   });
 });

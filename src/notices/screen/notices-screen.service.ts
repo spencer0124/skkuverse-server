@@ -2,8 +2,11 @@ import { Injectable } from "@nestjs/common";
 import { BuildingPlaceDisplayService } from "../../building/place/display/building-place-display.service";
 import type { PlaceDisplay } from "../../building/place/display/building-place-display.types";
 import logger from "../../infra/logger";
+import type { NoticeScheduleItem } from "../detail/notices-detail.wire";
+import type { NoticeDoc } from "../notices.document";
 import type { NoticeScreen } from "../notices.wire";
 import { NoticesRowService } from "../row/notices-row.service";
+import { NoticesScheduleService } from "../schedule/notices-schedule.service";
 import { toOriginal, toScreenBlocks } from "./notices-screen.mapper";
 import { isPosterOnly, toBarAction, toBlockOrder, toCollapse, toDisplayByPlaceId, toFirstSeen, toHeaderChange, toPlaceIds, toStatusLine } from "./notices-screen.rules";
 import type { ScreenNotice, ScreenScope } from "./notices-screen.types";
@@ -13,7 +16,13 @@ export class NoticesScreenService {
   constructor(
     private readonly rows: NoticesRowService,
     private readonly places: BuildingPlaceDisplayService,
+    private readonly schedules: NoticesScheduleService,
   ) {}
+
+  // WHY: the detail screen's timeline (umbrella ADR 0012 D3); the schedule flow parses it and names its places.
+  renderSchedule(notice: Pick<NoticeDoc, "_id" | "schedule">): Promise<NoticeScheduleItem[] | null> {
+    return this.schedules.describeSchedule(notice);
+  }
 
   async renderScreen(notice: ScreenNotice, now: Date): Promise<NoticeScreen | null> {
     const reading = this.rows.readNotice(notice, now);

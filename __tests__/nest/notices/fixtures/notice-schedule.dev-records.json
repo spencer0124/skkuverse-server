@@ -1,0 +1,412 @@
+{
+  "_about": "9 `schedule` values read from skku_notices_dev.notices on 2026-11-22 with a one-off read-only script: one per notice group, from a crawler dev run (skkuverse-crawler c791562, skkuverse-ai stage schedule-1) that stored 9 groups on 18 copies. Every group is here, in the JSON the driver hands over. Trimmed: one e-mail address replaced with contact@example.com. No repeat, except or campus-only place was stored, so the contract test writes those by hand.",
+  "schedules": [
+    {
+      "version": "schedule-1",
+      "key": "5b173dd8abacf46cbcec",
+      "groupId": "50c7684082ba97e1",
+      "items": [
+        {
+          "id": "93693668",
+          "title": "사회과학대학 제41회 수선포럼",
+          "start": {
+            "date": "2026-11-18",
+            "time": "11:30"
+          },
+          "end": {
+            "date": "2026-11-18",
+            "time": "13:00"
+          },
+          "except": [],
+          "slots": [],
+          "status": "scheduled",
+          "place": {
+            "text": "사회과학연구원 컨퍼런스룸(수선관 901호)",
+            "id": "space:hssc:61901",
+            "campus": "hssc"
+          }
+        }
+      ]
+    },
+    {
+      "version": "schedule-1",
+      "key": "569afdc880398576aa66",
+      "groupId": "482946193e55c6fe",
+      "items": [
+        {
+          "id": "c99a0ccf",
+          "title": "KB손해보험 신입사원 지원서 접수",
+          "start": {
+            "date": "2026-10-23"
+          },
+          "end": {
+            "date": "2026-11-01",
+            "time": "23:00"
+          },
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        },
+        {
+          "id": "3b046aae",
+          "title": "KB손해보험 서류전형",
+          "start": {
+            "date": "2026-11-01"
+          },
+          "end": {
+            "date": "2026-11-08"
+          },
+          "precision": "week",
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        },
+        {
+          "id": "e0382472",
+          "title": "KB손해보험 AI역량검사",
+          "start": {
+            "date": "2026-11-08"
+          },
+          "end": {
+            "date": "2026-11-15"
+          },
+          "precision": "week",
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        },
+        {
+          "id": "3eed4d9c",
+          "title": "KB손해보험 실무면접",
+          "start": {
+            "date": "2026-11-22"
+          },
+          "precision": "week",
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        },
+        {
+          "id": "3811699a",
+          "title": "KB손해보험 임원면접",
+          "start": {
+            "date": "2026-12-15"
+          },
+          "precision": "week",
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        },
+        {
+          "id": "4ff73d00",
+          "title": "KB손해보험 채용검진",
+          "start": {
+            "date": "2026-12-15"
+          },
+          "end": {
+            "date": "2026-12-22"
+          },
+          "precision": "week",
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        },
+        {
+          "id": "fb37e16f",
+          "title": "KB손해보험 입사",
+          "start": {
+            "date": "2027-01-01"
+          },
+          "precision": "month",
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        }
+      ]
+    },
+    {
+      "version": "schedule-1",
+      "key": "a5677ed804ac4384d77f",
+      "groupId": "7a411d9356bbd1ba",
+      "items": [
+        {
+          "id": "bdacfb3a",
+          "title": "교육생 신청",
+          "start": {
+            "date": "2026-11-02"
+          },
+          "end": {
+            "date": "2026-11-14"
+          },
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        },
+        {
+          "id": "0fdca2d1",
+          "title": "면접 대상자(서류 합격자) 발표",
+          "start": {
+            "date": "2026-11-22"
+          },
+          "precision": "week",
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        },
+        {
+          "id": "f16c7b2e",
+          "title": "면접 전형",
+          "start": {
+            "date": "2026-11-29"
+          },
+          "end": {
+            "date": "2026-12-01"
+          },
+          "precision": "week",
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        },
+        {
+          "id": "0a20ab80",
+          "title": "최종 합격자 발표",
+          "start": {
+            "date": "2026-12-01"
+          },
+          "precision": "week",
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        },
+        {
+          "id": "08480396",
+          "title": "제14기 시스템반도체설계실무인력양성 교육",
+          "start": {
+            "date": "2027-01-04"
+          },
+          "end": {
+            "date": "2027-04-23"
+          },
+          "except": [],
+          "slots": [],
+          "status": "scheduled",
+          "place": {
+            "text": "KAIST IDEC 동탄교육장 (롯데백화점 동탄점 내)",
+            "reason": "offcampus"
+          }
+        }
+      ]
+    },
+    {
+      "version": "schedule-1",
+      "key": "672b1645a438d7ae7884",
+      "groupId": "f2d76a02a9db4f18",
+      "items": [
+        {
+          "id": "5e145484",
+          "title": "교육생 신청",
+          "start": {
+            "date": "2026-11-02"
+          },
+          "end": {
+            "date": "2026-11-14"
+          },
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        },
+        {
+          "id": "1a212b49",
+          "title": "면접 대상자(서류 합격자) 발표",
+          "start": {
+            "date": "2026-11-22"
+          },
+          "precision": "week",
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        },
+        {
+          "id": "94461289",
+          "title": "면접 전형",
+          "start": {
+            "date": "2026-11-29"
+          },
+          "end": {
+            "date": "2026-12-01"
+          },
+          "precision": "week",
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        },
+        {
+          "id": "918e3921",
+          "title": "최종 합격자 발표",
+          "start": {
+            "date": "2026-12-01"
+          },
+          "precision": "week",
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        },
+        {
+          "id": "bbc8abb7",
+          "title": "제14기 시스템반도체설계실무인력양성 교육",
+          "start": {
+            "date": "2027-01-04"
+          },
+          "end": {
+            "date": "2027-04-23"
+          },
+          "except": [],
+          "slots": [],
+          "status": "scheduled",
+          "place": {
+            "text": "KAIST IDEC 동탄교육장 (롯데백화점 동탄점 내)",
+            "reason": "offcampus"
+          }
+        }
+      ]
+    },
+    {
+      "version": "schedule-1",
+      "key": "3152b752f639c9140fcf",
+      "groupId": "940e6d0528fe0eed",
+      "items": [
+        {
+          "id": "9166f9f9",
+          "title": "부트캠프 연구과제 신청 마감",
+          "start": {
+            "date": "2026-11-27"
+          },
+          "except": [],
+          "slots": [],
+          "status": "scheduled"
+        }
+      ]
+    },
+    {
+      "version": "schedule-1",
+      "key": "49a87f0c29fc01046153",
+      "groupId": "4666756be2c5e4fc",
+      "items": [
+        {
+          "id": "9044be75",
+          "title": "부트캠프 연구과제 신청 마감",
+          "start": {
+            "date": "2026-11-27"
+          },
+          "except": [],
+          "slots": [],
+          "status": "rescheduled",
+          "quote": "(기한연장)"
+        }
+      ]
+    },
+    {
+      "version": "schedule-1",
+      "key": "85bd16a11c6a99c9a797",
+      "groupId": "557de7199f439e58",
+      "items": [
+        {
+          "id": "594d80ad",
+          "title": "행정직원 지원서 접수",
+          "start": {
+            "date": "2026-11-17"
+          },
+          "end": {
+            "date": "2026-12-16",
+            "time": "17:00"
+          },
+          "except": [],
+          "slots": [],
+          "status": "scheduled",
+          "place": {
+            "text": "contact@example.com",
+            "reason": "online"
+          }
+        }
+      ]
+    },
+    {
+      "version": "schedule-1",
+      "key": "d8db9566daaf018dc4e7",
+      "groupId": "199d71cf8d3a2c79",
+      "items": [
+        {
+          "id": "ae1729b1",
+          "title": "로스쿨 1단계 전형 합격자 발표",
+          "start": {
+            "date": "2026-11-19",
+            "time": "17:00"
+          },
+          "except": [],
+          "slots": [],
+          "status": "scheduled",
+          "place": {
+            "text": "성균관대학교 대학원 입학 홈페이지",
+            "reason": "online"
+          }
+        }
+      ]
+    },
+    {
+      "version": "schedule-1",
+      "key": "c2f16db1a5f672498102",
+      "groupId": "367f764e612341aa",
+      "items": [
+        {
+          "id": "47097025",
+          "title": "2026학년도 추가 졸업시험",
+          "start": {
+            "date": "2026-12-17"
+          },
+          "except": [],
+          "slots": [
+            {
+              "start": {
+                "date": "2026-12-17",
+                "time": "10:00"
+              },
+              "end": {
+                "date": "2026-12-17",
+                "time": "11:00"
+              },
+              "text": "3. 과목별 시험시간: 공법(10:00∼11:00), 형사법(13:00∼14:00), 민사법(15:00∼16:00)"
+            },
+            {
+              "start": {
+                "date": "2026-12-17",
+                "time": "13:00"
+              },
+              "end": {
+                "date": "2026-12-17",
+                "time": "14:00"
+              },
+              "text": "3. 과목별 시험시간: 공법(10:00∼11:00), 형사법(13:00∼14:00), 민사법(15:00∼16:00)"
+            },
+            {
+              "start": {
+                "date": "2026-12-17",
+                "time": "15:00"
+              },
+              "end": {
+                "date": "2026-12-17",
+                "time": "16:00"
+              },
+              "text": "3. 과목별 시험시간: 공법(10:00∼11:00), 형사법(13:00∼14:00), 민사법(15:00∼16:00)"
+            }
+          ],
+          "status": "scheduled",
+          "place": {
+            "text": "법학관 1층, 102호 강의실",
+            "id": "space:hssc:20102",
+            "campus": "hssc"
+          }
+        }
+      ]
+    }
+  ]
+}

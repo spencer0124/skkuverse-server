@@ -12,3 +12,9 @@ export const QUOTE_LABEL_JOINER = " · ";
 
 export const DRAW_MARK = "추첨";
 
+
+// SEE: docs/explanation/notices-architecture.md ("Glossary"): the schedule item's enums, which the stored schedule and the detail wire share.
+export const SCHEDULE_STATUSES = ["scheduled", "tentative", "rescheduled", "cancelled", "suspended"] as const;
+export const SCHEDULE_PRECISIONS = ["month", "week"] as const;
+export const SCHEDULE_FREQUENCIES = ["weekly", "daily"] as const;
+export const SCHEDULE_WEEKDAYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] as const;

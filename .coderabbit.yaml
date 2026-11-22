@@ -4,6 +4,9 @@
 # instruction points the reviewer at the contract a finding there must be checked against first.
 inheritance: true
 reviews:
+  auto_review:
+    base_branches:
+      - "^dev$"
   path_instructions:
     - path: "**"
       instructions: >-
@@ -30,9 +33,9 @@ reviews:
         existing test, floor or allowlist entry is never edited, skipped or deleted to get green.
     - path: ".github/workflows/**"
       instructions: >-
-        The checks are scripts/check-ci.sh (`npm run check:ci`). ci.yml only calls the shared workflow in the
-        organization's `.github` repository, pinned to a commit, which installs, runs that command, lints the
-        workflows and reviews dependencies; __tests__/nest/infra/ci-workflow.test.ts pins both files.
+        The checks are scripts/check-ci.sh (`npm run check:ci`). ci.yml only calls .github/workflows/checks.yml,
+        which installs, runs that command, lints the workflows and reviews dependencies;
+        __tests__/nest/infra/ci-workflow.test.ts pins both files.
     - path: "{.github/**,.coderabbit.yaml,.claude/**,CLAUDE.md,scripts/check-ci.sh,package.json,jest.config.js,eslint.config.js,__tests__/architecture/**}"
       instructions: >-
         Report as Critical any change that weakens or skips a check, a test, a lint rule, a threshold or an allowlist,

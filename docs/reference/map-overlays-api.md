@@ -1562,5 +1562,5 @@ layer, which is why a festival zone needs no style of its own.
 
 - [event-places.md](event-places.md) — the festival's storage, authoring and ops tiers
 - Umbrella ADR 0004: event map layer ownership
-- [skkuverse-app `docs/explanation/shared-map.md`](https://github.com/skkuverse/skkuverse-app/blob/main/docs/explanation/shared-map.md) — the client side
+- [skkuverse-app `docs/explanation/shared-map.md`](https://github.com/spencer0124/skkuverse-app/blob/main/docs/explanation/shared-map.md) — the client side
 - [docs/README.md](../README.md) — writing rules

@@ -4,7 +4,7 @@ import type { NoticeScreen } from "../notices.wire";
 import { textOrNull } from "../notices.mapper";
 import type { NoticeDetailRow } from "./notices-detail.document";
 import { normalizeSummaryType } from "../notices.rules";
-import type { NoticeDetail, NoticeSummaryFull } from "./notices-detail.wire";
+import type { NoticeDetail, NoticeScheduleItem, NoticeSummaryFull } from "./notices-detail.wire";
 
 // WHY: what JSON.stringify writes for the value, so the wire's string type holds a Date and a stored string alike.
 const toJsonTime = (value: Date | string): string => (value instanceof Date ? value.toISOString() : value);
@@ -40,7 +40,9 @@ function toEditInfo(doc: NoticeDetailRow): NoticeDetail["editInfo"] {
   return (doc.editCount || 0) > 0 ? { count: doc.editCount, history: (doc.editHistory || []).map(toJsonEdit) } : null;
 }
 
-export function toDetailItem(doc: NoticeDetailRow, screen: NoticeScreen | null, derived: DerivedBrief | null = null): NoticeDetail {
+interface DetailParts { derived?: DerivedBrief | null; schedule?: NoticeScheduleItem[] | null }
+
+export function toDetailItem(doc: NoticeDetailRow, screen: NoticeScreen | null, { derived = null, schedule = null }: DetailParts = {}): NoticeDetail {
   return {
     id: doc._id.toHexString(),
     sourceId: doc.sourceId,
@@ -59,5 +61,6 @@ export function toDetailItem(doc: NoticeDetailRow, screen: NoticeScreen | null, 
     editInfo: toEditInfo(doc),
     summary: toSummaryFull(doc) ?? (derived && toDerivedSummary(doc, derived)),
     screen,
+    schedule,
   };
 }

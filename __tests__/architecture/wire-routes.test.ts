@@ -13,6 +13,8 @@
  * `@Res()` handler that sends the envelope through `sendSuccess` still serves
  * JSON to a client, so it is checked, and its `void` return fails. A
  * `@Res({ passthrough: true })` handler returns its payload like any other.
+ * A handler whose payload type is `StreamableFile` returns a file, which the
+ * ResponseInterceptor passes through unwrapped, so it is exempt too.
  * The rule is strict: no route is exempt beyond these.
  *
  * Each wire name a route references must also map to an id in
@@ -107,6 +109,21 @@ describe("wire-routes rule applies as specified", () => {
 
     // Act & Assert
     expect(unwiredRoutes("src/x/x.controller.ts", source)).toEqual([]);
+  });
+
+  it("exempts a handler that returns a StreamableFile, and checks one that returns it beside a payload", () => {
+    // Arrange
+    const source = controller(
+      "x",
+      [
+        '  @Get("file.ics") file(): Promise<StreamableFile> {}',
+        '  @Get("bare") bare(): StreamableFile {}',
+        '  @Get("either") either(): Promise<StreamableFile | XInternal> {}',
+      ].join("\n"),
+    );
+
+    // Act & Assert
+    expect(unwiredRoutes("src/x/x.controller.ts", source)).toEqual(["GET x/either"]);
   });
 
   it("checks a @Res() handler that sends the envelope, and a passthrough one by its return type", () => {

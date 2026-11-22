@@ -22,6 +22,7 @@ import { NoticesFactsService } from "../facts/notices-facts.service";
 import { NoticesLegacyService } from "../legacy/notices-legacy.service";
 import type { NoticeDoc } from "../notices.document";
 import { NoticesRowService } from "../row/notices-row.service";
+import { NoticesScheduleService } from "../schedule/notices-schedule.service";
 import { NoticesScreenService } from "../screen/notices-screen.service";
 import type { NoticesDetailRepository } from "./notices-detail.repository";
 import { NoticesDetailService } from "./notices-detail.service";
@@ -52,7 +53,8 @@ beforeEach(() => {
     asReal<ConstructorParameters<typeof BuildingPlaceService>[1]>(new FakeBuildingPlaceRepository()),
   );
   const rows = new NoticesRowService(new NoticesFactsService(clock));
-  const screens = new NoticesScreenService(rows, new BuildingPlaceDisplayService(placeService));
+  const places = new BuildingPlaceDisplayService(placeService);
+  const screens = new NoticesScreenService(rows, places, new NoticesScheduleService(clock, places));
   service = new NoticesDetailService(asReal<NoticesDetailRepository>(repository), screens, new NoticesLegacyService(rows), clock);
 });
 
@@ -118,5 +120,19 @@ describe("NoticesDetailService.findNotice", () => {
 
     // Assert
     expect(served?.screen?.header.change).toEqual({ what: "날짜", before: "10/19(월)~10/30(금)", after: "10/19(월)~10/26(월)" });
+  });
+});
+
+describe("NoticesDetailService.exportCalendar", () => {
+  it("exports a stored notice's schedule, and null for a missing or soft-deleted notice", async () => {
+    // Arrange
+    const schedule = { version: "v", items: [{ id: "D1", title: "설명회", start: { date: "2026-11-03" }, except: [], slots: [], status: "scheduled" }] };
+    repository.docs = [doc({ articleNo: 1, schedule }), doc({ articleNo: 2, schedule, isDeleted: true })];
+
+    // Act
+    const exported = await Promise.all([1, 2, 3].map((articleNo) => service.exportCalendar("skku-notice02", articleNo)));
+
+    // Assert
+    expect(exported.map((calendar) => calendar?.match(/^SUMMARY:.*$/m)?.[0] ?? null)).toEqual(["SUMMARY:설명회", null, null]);
   });
 });
