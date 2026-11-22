@@ -87,6 +87,8 @@ describe("GET /notices/:sourceId/:articleNo, the schedule", () => {
     // Assert
     expect(res.status).toBe(200);
     expectWire(noticeDetail, res.body.data);
+    expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
+    expect(res.body.meta).toEqual({ lang: "ko" });
     expect(res.body.data.schedule.map((item: { id: string }) => item.id)).toEqual(["D1", "D3", "D5", "D7"]);
     expect(res.body.data.schedule[1]).toEqual({
       id: "D3",
@@ -114,6 +116,9 @@ describe("GET /notices/:sourceId/:articleNo, the schedule", () => {
     // Assert
     expect(res.status).toBe(200);
     expect(res.body.data.schedule).toBeNull();
+    expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
+    expect(Object.keys(res.body)).toEqual(["meta", "data"]);
+    expect(res.body.meta).toEqual({ lang: "ko" });
   });
 });
 
@@ -152,6 +157,7 @@ describe("GET /notices/:sourceId/:articleNo/schedule.ics", () => {
     // Assert
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: { code: "NOT_FOUND", message: "notice has no calendar events" } });
+    expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
   });
 
   it("answers 400 INVALID_SOURCE_ID for an unknown source", async () => {
@@ -161,5 +167,7 @@ describe("GET /notices/:sourceId/:articleNo/schedule.ics", () => {
     // Assert
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("INVALID_SOURCE_ID");
+    expect(res.body.error.message).toBe("unknown sourceId: nope");
+    expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
   });
 });
