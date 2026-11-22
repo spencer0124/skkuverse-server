@@ -82,6 +82,22 @@
       ]
     },
     {
+      "id": "notices.schedule",
+      "kind": "file",
+      "status": "planned",
+      "producer": {
+        "repo": "crawler",
+        "path": "docs/notice-schedule/notice-schedule.schema.json"
+      },
+      "consumers": [
+        {
+          "repo": "server",
+          "path": "contracts/consumed/notice-schedule.schema.json",
+          "mode": "copy"
+        }
+      ]
+    },
+    {
       "id": "search.config",
       "kind": "file",
       "status": "planned",

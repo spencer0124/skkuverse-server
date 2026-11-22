@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skkuverse.com/schemas/notice-schedule/1.json",
+  "title": "noticeSchedule",
+  "description": "The dated items of one notice group (umbrella ADR 0012 D3, D4), stored as `schedule` on every copy of the group by the crawler's notices-schedule job (docs/notice-schedule/README.md). A notice without the field has no schedule yet; an empty `items` means the notice states no dated item.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "key", "groupId", "items"],
+  "$defs": {
+    "date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "A calendar day, YYYY-MM-DD, in the notice's own time zone (KST)."
+    },
+    "point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["date"],
+      "properties": {
+        "date": { "$ref": "#/$defs/date" },
+        "time": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "description": "HH:MM. Absent when the notice gives no time. A 24:00 end is stored as 00:00 of the next day."
+        }
+      }
+    },
+    "place": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text"],
+      "description": "Either `id` and `campus` (the crawler's resolver pinned a place), or `reason` (it did not).",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The place as the notice writes it, verbatim. Always shown."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^(space|building|facility):(hssc|nsc):[^:]+$",
+          "description": "A campus place id: space:{campus}:{spaceCd}, building:{campus}:{buildNo} or facility:{campus}:{slug}."
+        },
+        "campus": {
+          "enum": ["hssc", "nsc"],
+          "description": "The campus of `id`, or the campus a `campus_only` place names."
+        },
+        "reason": {
+          "enum": ["campus_only", "ambiguous", "offcampus", "online", "not_a_place", "unknown_place"],
+          "description": "Why no place id was pinned."
+        }
+      },
+      "oneOf": [
+        { "required": ["id", "campus"], "not": { "required": ["reason"] } },
+        { "required": ["reason"], "not": { "required": ["id"] } }
+      ]
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "start", "except", "slots", "status"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}$",
+          "description": "Opaque, unique within the notice, and kept across the notice's edits: an edited notice's item keeps the id of the stored item with the same start and end, else the same title. Never reused for another item. The calendar UID is the notice's `dupOf` plus this id."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A short noun phrase in the notice's language, written by the schedule stage's model. Not verbatim."
+        },
+        "start": { "$ref": "#/$defs/point" },
+        "end": { "$ref": "#/$defs/point" },
+        "precision": {
+          "enum": ["month", "week"],
+          "description": "The notice gives only a month or a week; `start` is its first day. Absent for a day or a time."
+        },
+        "repeat": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["freq"],
+          "description": "A series from `start`, until `until` or open. `end`, when present, is the end time of each occurrence on the first day.",
+          "properties": {
+            "freq": { "enum": ["daily", "weekly"] },
+            "byDay": {
+              "type": "array",
+              "items": { "enum": ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] }
+            },
+            "until": { "$ref": "#/$defs/date" }
+          }
+        },
+        "except": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/date" },
+          "description": "Days the range or series skips, sorted and unique."
+        },
+        "slots": {
+          "type": "array",
+          "description": "Times or sessions inside the item, each with the notice line it comes from.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["start", "text"],
+            "properties": {
+              "start": { "$ref": "#/$defs/point" },
+              "end": { "$ref": "#/$defs/point" },
+              "text": { "type": "string" }
+            }
+          }
+        },
+        "status": {
+          "enum": ["scheduled", "tentative", "rescheduled", "cancelled", "suspended"],
+          "description": "A rescheduled item is the entry as it now stands, with its new date and place."
+        },
+        "quote": {
+          "type": "string",
+          "description": "The notice's words that show a status other than `scheduled`."
+        },
+        "place": { "$ref": "#/$defs/place" }
+      }
+    }
+  },
+  "properties": {
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The skkuverse-ai schedule stage's version that built the items, such as `schedule-1`."
+    },
+    "key": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The stage's freeze key: crawler bookkeeping, sent back so an unchanged notice reuses its items. Not for readers."
+    },
+    "groupId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The group key (trimmed title and contentHash) of the version the items were built from: crawler bookkeeping, the staleness stamp. Never key anything on it."
+    },
+    "items": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/item" },
+      "description": "In time order: by start date, then start time."
+    }
+  }
+}
