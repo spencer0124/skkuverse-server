@@ -160,6 +160,20 @@ describe("GET /notices/:sourceId/:articleNo/schedule.ics", () => {
     expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
   });
 
+  it("answers 404 NOT_FOUND for a notice whose only series has none of its days before its last day", async () => {
+    // Arrange
+    const emptySeries = { id: "0a1b2c3d", title: "스터디", start: { date: "2026-11-02" }, repeat: { freq: "weekly", byDay: ["WE"], until: "2026-11-03" }, except: [], slots: [], status: "scheduled" };
+    detailRepository.docs = [notice({ schedule: { ...SCHEDULE, items: [emptySeries] } })];
+
+    // Act
+    const res = await request(app.getHttpServer()).get("/notices/skku-main/136023/schedule.ics");
+
+    // Assert
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: { code: "NOT_FOUND", message: "notice has no calendar events" } });
+    expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
+  });
+
   it("answers 400 INVALID_SOURCE_ID for an unknown source", async () => {
     // Act
     const res = await request(app.getHttpServer()).get("/notices/nope/136023/schedule.ics");

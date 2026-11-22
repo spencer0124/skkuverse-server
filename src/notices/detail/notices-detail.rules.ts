@@ -12,7 +12,7 @@ const EVENT_STATUS: Readonly<Record<NoticeScheduleItem["status"], string>> = { s
 // EVIDENCE: RFC 5545 section 3.1: a content line is at most 75 octets before a fold.
 const MAX_LINE_OCTETS = 75;
 
-export const isExportable = (item: NoticeScheduleItem): boolean => item.precision === undefined;
+export const isExportable = (item: NoticeScheduleItem): boolean => item.precision === undefined && toExportableSeries(toSeries(item)).length > 0;
 
 export function toCalendar(notice: Pick<NoticeDoc, "_id" | "dupOf" | "sourceUrl">, items: readonly NoticeScheduleItem[], now: Date): string {
   const stamp = { url: notice.sourceUrl, stampedAt: now };

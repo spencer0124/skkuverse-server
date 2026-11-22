@@ -337,4 +337,12 @@ describe("isExportable", () => {
     // Act & Assert
     expect(isExportable(item(precision ? { precision } : {}))).toBe(exportable);
   });
+
+  it.each([
+    ["has none of its days before its last day", "2026-11-03", false],
+    ["has its first day on its last day", "2026-11-04", true],
+  ])("is a series that %s exportable: %s", (_case, until, exportable) => {
+    // Act & Assert
+    expect(isExportable(item({ start: { date: "2026-11-02" }, repeat: { freq: "weekly", byDay: ["WE"], until } }))).toBe(exportable);
+  });
 });
