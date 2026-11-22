@@ -16,7 +16,7 @@ export const isExportable = (item: NoticeScheduleItem): boolean => item.precisio
 
 export function toCalendar(notice: Pick<NoticeDoc, "_id" | "dupOf" | "sourceUrl">, items: readonly NoticeScheduleItem[], now: Date): string {
   const stamp = { url: notice.sourceUrl, stampedAt: now };
-  const events = items.flatMap((item) => toEvent(toSeries(item), `${clusterKeyOf(notice)}-${item.id}@skkuverse`, stamp));
+  const events = items.flatMap((item) => toExportableSeries(toSeries(item))).flatMap((series) => toEvent(series, `${clusterKeyOf(notice)}-${encodeURIComponent(series.id)}@skkuverse`, stamp));
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//skkuverse//Notice Schedule//KO", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", ...KST_TIMEZONE, ...events, "END:VCALENDAR"];
   return `${lines.map(toFoldedLine).join("\r\n")}\r\n`;
 }
@@ -25,10 +25,23 @@ export function toCalendar(notice: Pick<NoticeDoc, "_id" | "dupOf" | "sourceUrl"
 function toSeries(item: NoticeScheduleItem): NoticeScheduleItem {
   const { start, end, repeat, except } = item;
   if (repeat || except.length === 0 || !end || end.date === start.date) return item;
-  const series: NoticeScheduleItem = { ...item, repeat: { freq: "daily", until: end.date } };
-  delete series.end;
-  return start.time && end.time ? { ...series, end: { date: start.date, time: end.time } } : series;
+  return { ...item, repeat: { freq: "daily", until: toShiftedDay(end.date, isOvernight(start, end) ? -1 : 0) } };
 }
+
+// WHY: RFC 5545 section 3.8.5.3 leaves a series undefined when DTSTART is not one of its days, so it starts on the first one.
+// CONTRACT(skkuverse-crawler): skkuverse-crawler/docs/notice-schedule/notice-schedule.schema.json: a series' `end` is its first day's end time.
+function toExportableSeries(item: NoticeScheduleItem): NoticeScheduleItem[] {
+  const { start, end, repeat } = item;
+  if (!repeat) return [item];
+  const date = toFirstDay(start.date, repeat.byDay ?? []);
+  if (repeat.until !== undefined && date > repeat.until) return [];
+  const series: NoticeScheduleItem = { ...item, start: { ...start, date } };
+  if (start.time && end?.time) series.end = { date: toShiftedDay(date, isOvernight(start, end) ? 1 : 0), time: end.time };
+  else delete series.end;
+  return [series];
+}
+
+const toFirstDay = (date: string, days: readonly string[]): string => (days.length === 0 || days.includes(toWeekday(date)) ? date : toFirstDay(toShiftedDay(date, 1), days));
 
 function toEvent(item: NoticeScheduleItem, uid: string, { url, stampedAt }: { url: string; stampedAt: Date }): string[] {
   const isAllDay = item.start.time === undefined;
@@ -51,16 +64,19 @@ function toEvent(item: NoticeScheduleItem, uid: string, { url, stampedAt }: { ur
 }
 
 function toEventEnd({ start, end }: NoticeScheduleItem, isAllDay: boolean): Point | null {
-  if (isAllDay) return { date: toNextDay(end?.date ?? start.date) };
+  if (isAllDay) return { date: toShiftedDay(end && end.date > start.date ? end.date : start.date, 1) };
   if (!end) return null;
-  return end.time ? end : { date: toNextDay(end.date), time: "00:00" };
+  const stated = end.time ? end : { date: toShiftedDay(end.date, 1), time: "00:00" };
+  return toDateValue(stated) > toDateValue(start) ? stated : null;
 }
+
+const isOvernight = (start: Point, end: Point): boolean => start.time !== undefined && end.time !== undefined && end.time <= start.time;
 
 function toRecurrence({ repeat, except, start }: NoticeScheduleItem, isAllDay: boolean): string[] {
   if (!repeat) return [];
   // WHY: RFC 5545 section 3.3.10: UNTIL is a UTC instant when DTSTART has a zoned time; the series runs through its last KST day.
   const until = repeat.until && (isAllDay ? toDateValue({ date: repeat.until }) : toUtcStamp(new Date(`${repeat.until}T23:59:59+09:00`)));
-  const rule = [`FREQ=${repeat.freq.toUpperCase()}`, ...(repeat.byDay ? [`BYDAY=${repeat.byDay.join(",")}`] : []), ...(until ? [`UNTIL=${until}`] : [])];
+  const rule = [`FREQ=${repeat.freq.toUpperCase()}`, ...(repeat.byDay?.length ? [`BYDAY=${repeat.byDay.join(",")}`] : []), ...(until ? [`UNTIL=${until}`] : [])];
   const exdates = except.map((date) => toDateValue(start.time ? { date, time: start.time } : { date }));
   return [`RRULE:${rule.join(";")}`, ...(exdates.length > 0 ? [`EXDATE${toDateParam(isAllDay)}:${exdates.join(",")}`] : [])];
 }
@@ -69,7 +85,8 @@ const toDateParam = (isAllDay: boolean): string => (isAllDay ? ";VALUE=DATE" : `
 
 const toDateValue = ({ date, time }: Point): string => date.replaceAll("-", "") + (time ? `T${time.replace(":", "")}00` : "");
 
-const toNextDay = (date: string): string => new Date(Date.parse(`${date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+const toShiftedDay = (date: string, days: number): string => new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+const toWeekday = (date: string): string => new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }).slice(0, 2).toUpperCase();
 
 const toUtcStamp = (instant: Date): string => instant.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 

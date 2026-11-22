@@ -5,6 +5,8 @@
  * `repeat` is an RRULE whose UNTIL closes its last KST day, `except` an EXDATE, the slots the DESCRIPTION, and the
  * status a STATUS (suspended exports as cancelled), and the place's words the LOCATION. Lines end in CRLF, TEXT values are escaped, and a line longer than
  * 75 octets folds without splitting a character. An item dated only to a month or a week is not exportable.
+ * Every DTEND follows its DTSTART: a series' end is its first day's end time, an overnight one ending the next day,
+ * and a series starts on the first of its days. The UID percent-encodes the item id, and an empty day list writes no BYDAY.
  */
 import { ObjectId } from "mongodb";
 import { isExportable, toCalendar } from "./notices-detail.rules";
@@ -159,6 +161,98 @@ describe("toCalendar", () => {
       "EXDATE;VALUE=DATE:20261111",
     ]);
     expect(second!.filter((line) => /^(DTSTART|DTEND|RRULE|EXDATE)/.test(line))).toEqual(["DTSTART;VALUE=DATE:20261109", "DTEND;VALUE=DATE:20261114"]);
+  });
+
+  it("ends each night of an overnight range that skips days on the morning after it starts, the last night starting the day before the range ends", () => {
+    // Arrange
+    const nightly = item({ start: { date: "2026-11-09", time: "22:00" }, end: { date: "2026-11-13", time: "02:00" }, except: ["2026-11-11"] });
+
+    // Act
+    const [event] = eventsOf(toCalendar(NOTICE, [nightly], NOW));
+
+    // Assert
+    expect(event!.filter((line) => /^(DTSTART|DTEND|RRULE)/.test(line))).toEqual([
+      "DTSTART;TZID=Asia/Seoul:20261109T220000",
+      "DTEND;TZID=Asia/Seoul:20261110T020000",
+      "RRULE:FREQ=DAILY;UNTIL=20261112T145959Z",
+    ]);
+  });
+
+  it.each([
+    ["an end dated before the start", { date: "2026-11-04", time: "21:00" }, "DTEND;TZID=Asia/Seoul:20261110T210000"],
+    ["an end dated on the series' last day", { date: "2026-12-15", time: "21:00" }, "DTEND;TZID=Asia/Seoul:20261110T210000"],
+    ["an end time before the start time", { date: "2026-11-10", time: "01:00" }, "DTEND;TZID=Asia/Seoul:20261111T010000"],
+    ["an end time equal to the start time", { date: "2026-11-10", time: "14:00" }, "DTEND;TZID=Asia/Seoul:20261111T140000"],
+  ])("ends the first occurrence of a timed series with %s on the first day's end time, after its start", (_case, end, dtend) => {
+    // Arrange
+    const series = item({ start: { date: "2026-11-10", time: "14:00" }, end, repeat: { freq: "weekly", until: "2026-12-15" } });
+
+    // Act
+    const [event] = eventsOf(toCalendar(NOTICE, [series], NOW));
+
+    // Assert
+    expect(propertyOf(event!, "DTEND")).toBe(dtend);
+  });
+
+  it("ends an all-day series' occurrence the day after it starts, whatever day its end names", () => {
+    // Act
+    const [event] = eventsOf(toCalendar(NOTICE, [item({ end: { date: "2026-11-30" }, repeat: { freq: "weekly" } })], NOW));
+
+    // Assert
+    expect(propertyOf(event!, "DTEND")).toBe("DTEND;VALUE=DATE:20261103");
+  });
+
+  it.each([
+    ["a timed item", item({ start: { date: "2026-11-10", time: "14:00" }, end: { date: "2026-11-04", time: "21:00" } }), undefined],
+    ["a timed item ending at its start", item({ start: { date: "2026-11-10", time: "14:00" }, end: { date: "2026-11-10", time: "14:00" } }), undefined],
+    ["an all-day item", item({ start: { date: "2026-11-10" }, end: { date: "2026-11-04" } }), "DTEND;VALUE=DATE:20261111"],
+  ])("writes no end before the start of %s whose stored end precedes it", (_case, backwards, dtend) => {
+    // Act
+    const [event] = eventsOf(toCalendar(NOTICE, [backwards], NOW));
+
+    // Assert
+    expect(propertyOf(event!, "DTEND")).toBe(dtend);
+  });
+
+  it.each([
+    ["a Monday start", "2026-11-02", "DTSTART;TZID=Asia/Seoul:20261104T190000", "DTEND;TZID=Asia/Seoul:20261104T210000"],
+    ["a start on a listed day", "2026-11-06", "DTSTART;TZID=Asia/Seoul:20261106T190000", "DTEND;TZID=Asia/Seoul:20261106T210000"],
+    ["a Saturday start", "2026-11-07", "DTSTART;TZID=Asia/Seoul:20261111T190000", "DTEND;TZID=Asia/Seoul:20261111T210000"],
+  ])("starts a series with %s on the first of its days on or after the start", (_case, date, dtstart, dtend) => {
+    // Arrange
+    const series = item({ start: { date, time: "19:00" }, end: { date, time: "21:00" }, repeat: { freq: "weekly", byDay: ["WE", "FR"] } });
+
+    // Act
+    const [event] = eventsOf(toCalendar(NOTICE, [series], NOW));
+
+    // Assert
+    expect([propertyOf(event!, "DTSTART"), propertyOf(event!, "DTEND")]).toEqual([dtstart, dtend]);
+  });
+
+  it("writes no event for a series whose days fall only after its last day", () => {
+    // Arrange
+    const empty = item({ start: { date: "2026-11-02" }, repeat: { freq: "weekly", byDay: ["WE"], until: "2026-11-03" } });
+
+    // Act & Assert
+    expect(eventsOf(toCalendar(NOTICE, [empty, TALK], NOW)).map((event) => propertyOf(event, "UID"))).toEqual(["UID:6a5ed9e520097db8672d2097-D2@skkuverse"]);
+  });
+
+  it("writes no BYDAY for a series with an empty day list", () => {
+    // Act
+    const [event] = eventsOf(toCalendar(NOTICE, [item({ repeat: { freq: "weekly", byDay: [] } })], NOW));
+
+    // Assert
+    expect(propertyOf(event!, "RRULE")).toBe("RRULE:FREQ=WEEKLY");
+  });
+
+  it("encodes an item id that would break the UID's content line, and keeps a hex id as stored", () => {
+    // Act
+    const [unsafe, hex] = eventsOf(toCalendar(NOTICE, [item({ id: "D1\r\nCOMMENT:x" }), item({ id: "0a1b2c3d" })], NOW));
+
+    // Assert
+    expect(propertyOf(unsafe!, "UID")).toBe("UID:6a5ed9e520097db8672d2097-D1%0D%0ACOMMENT%3Ax@skkuverse");
+    expect(propertyOf(unsafe!, "COMMENT")).toBeUndefined();
+    expect(propertyOf(hex!, "UID")).toBe("UID:6a5ed9e520097db8672d2097-0a1b2c3d@skkuverse");
   });
 
   it.each([

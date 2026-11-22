@@ -224,11 +224,11 @@ The notice's schedule as an iCalendar file (RFC 5545), `Content-Type: text/calen
 | Item | iCalendar |
 | --- | --- |
 | The item | One `VEVENT`; an item with `precision` is left out |
-| `id` | `UID:<cluster key>-<id>@skkuverse`: the crawler's `dupOf`, or the notice's own `_id` while it is unlinked, so the copies of one article on several boards export one event |
-| `start`, `end` with a time | `DTSTART`, `DTEND` with `TZID=Asia/Seoul`, under one `VTIMEZONE`; no `end` writes no `DTEND`, and an `end` with no time ends at the start of the next day |
-| `start` with no time | An all-day event: `DTSTART;VALUE=DATE` and an exclusive `DTEND` the day after the last day |
-| `repeat` | `RRULE`, its `UNTIL` the close of the last Seoul day (in UTC for a timed series) |
-| `except` | `EXDATE` at the series' time. A range with skipped days and no `repeat` becomes a daily series over the range, since an `EXDATE` removes only occurrences of a recurrence |
+| `id` | `UID:<cluster key>-<id>@skkuverse`: the crawler's `dupOf`, or the notice's own `_id` while it is unlinked, so the copies of one article on several boards export one event. The id is percent-encoded, which leaves a hex id as stored |
+| `start`, `end` with a time | `DTSTART`, `DTEND` with `TZID=Asia/Seoul`, under one `VTIMEZONE`; no `end` writes no `DTEND`, and an `end` with no time ends at the start of the next day. An `end` that is not after the `start` writes no `DTEND` |
+| `start` with no time | An all-day event: `DTSTART;VALUE=DATE` and an exclusive `DTEND` the day after the last day, or after the first day when `end` comes before it |
+| `repeat` | `RRULE`, its `UNTIL` the close of the last Seoul day (in UTC for a timed series). `DTSTART` is the first `byDay` day on or after `start`, and a series with no such day before `until` is left out. Each occurrence ends at the `end` time on its own day, or on the next day when that time is not after the start time; an all-day occurrence lasts one day. An empty `byDay` writes no `BYDAY` |
+| `except` | `EXDATE` at the series' time. A range with skipped days and no `repeat` becomes a daily series over the range, since an `EXDATE` removes only occurrences of a recurrence. When its end time is not after its start time, each night ends the next morning and the last night starts the day before the range ends |
 | `slots` | Their lines, once each, in the `DESCRIPTION` |
 | `place` | Its `text` in `LOCATION` |
 | `status` | `STATUS:CONFIRMED` for `scheduled` and `rescheduled`, `TENTATIVE` for `tentative`, `CANCELLED` for `cancelled` and for `suspended`, which will not happen at its stored time |
