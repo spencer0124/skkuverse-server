@@ -7,8 +7,10 @@
  * occurrence that starts on the day, and cuts the whole day out of a plain span; `gaps` cut their stretch out of
  * every occurrence and drop a moment inside one. An extra equal to an occurrence counts once. A cut that lands on
  * midnight ends the day before at 24:00, or on that day when the item has no time. The first MAX_SCHEDULE_OCCURRENCES
- * are served and the rest counted, or counted as null for a series with no `until`. An item dated by a range of days
- * (`latest`) is its one occurrence as stored.
+ * are served and the rest counted, or counted as null for a series with no `until`, whose served ones are still its
+ * first in time order when gaps cut its occurrences into pieces. A series through a far `until` (2099, 9999) is counted
+ * exactly, every exception included, in well under a second. Occurrences merge only when their served points are
+ * equal. An item dated by a range of days (`latest`) is its one occurrence as stored.
  *
  * toTimelineMinute orders items on their end, else their start: a point on its `latest` day, else its date, then its
  * time, 24:00 after 23:59, and a point with no time at the end of its day. An item with more than one occurrence (a
@@ -195,6 +197,89 @@ describe("toOccurrences, the cap", () => {
     expect(expanded.occurrences).toHaveLength(MAX_SCHEDULE_OCCURRENCES);
     expect(expanded.occurrences.slice(0, 2)).toEqual([span(at("2026-11-02", "09:00"), at("2026-11-02", "10:00")), span(at("2026-11-16", "09:00"), at("2026-11-16", "10:00"))]);
     expect(expanded.omittedCount).toBeNull();
+  });
+});
+
+const dayAfter = (date: string, days: number): string => new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+
+describe("toOccurrences, a series with no until whose gaps cut its occurrences", () => {
+  it("serves 31 distinct occurrences when two days' occurrences leave the same piece", () => {
+    // Arrange
+    const gaps = [{ start: at("2026-11-02", "10:00"), end: at("2026-11-02", "11:00") }, { start: at("2026-11-02", "12:00"), end: at("2026-11-02", "13:00") }];
+    const open = item({ start: at("2026-11-01", "09:00"), end: at("2026-11-03", "10:00"), rrule: { freq: "daily" }, gaps });
+
+    // Act & Assert
+    expect(toOccurrences(open)).toEqual({
+      occurrences: [
+        span(at("2026-11-01", "09:00"), at("2026-11-02", "10:00")),
+        span(at("2026-11-02", "09:00"), at("2026-11-02", "10:00")),
+        span(at("2026-11-02", "11:00"), at("2026-11-02", "12:00")),
+        span(at("2026-11-02", "13:00"), at("2026-11-03", "10:00")),
+        span(at("2026-11-02", "13:00"), at("2026-11-04", "10:00")),
+        ...Array.from({ length: 26 }, (_unused, index) => span(at(dayAfter("2026-11-03", index), "09:00"), at(dayAfter("2026-11-05", index), "10:00"))),
+      ],
+      omittedCount: null,
+    });
+  });
+
+  it("serves the first 31 in time order when a gap splits each long occurrence", () => {
+    // Arrange
+    const open = item({ start: at("2026-11-01"), end: at("2026-11-21"), rrule: { freq: "daily" }, gaps: [{ start: at("2026-11-20"), end: at("2026-11-20") }] });
+
+    // Act & Assert
+    expect(toOccurrences(open)).toEqual({
+      occurrences: [
+        ...Array.from({ length: 19 }, (_unused, index) => span(at(dayAfter("2026-11-01", index)), at("2026-11-19"))),
+        ...Array.from({ length: 12 }, (_unused, index) => span(at("2026-11-21"), at(dayAfter("2026-11-21", index)))),
+      ],
+      omittedCount: null,
+    });
+  });
+});
+
+describe("toOccurrences and toTimelineMinute, a series with a far until", () => {
+  const hour = { start: at("2026-11-02", "09:00"), end: at("2026-11-02", "10:00") };
+  const FAR_EXCEPTIONS: Partial<ScheduleItem> = {
+    exdate: ["2050-06-01"],
+    gaps: [{ start: at("2060-01-01", "09:30"), end: at("2060-01-01", "09:40") }, { start: at("2099-12-29"), end: at("2099-12-31") }],
+    rdate: [span(at("2070-03-03", "09:00"), at("2070-03-03", "10:00")), span(at("2080-01-01", "15:00"))],
+  };
+
+  it.each([
+    ["every day", item({ ...hour, rrule: { freq: "daily", until: "2099-12-31" } }), 26_692, "2099-12-31"],
+    ["two weekdays", item({ ...hour, rrule: { freq: "weekly", byDay: ["MO", "WE"], until: "2099-12-31" } }), 7_605, "2099-12-30"],
+    ["every day less a far exdate and its last days, a gap splitting one day and an extra equal to a day", item({ ...hour, rrule: { freq: "daily", until: "2099-12-31" }, ...FAR_EXCEPTIONS }), 26_690, "2099-12-28"],
+    [
+      "three-day spans every day, a far gap splitting the two that cross it",
+      item({ ...hour, end: at("2026-11-04", "10:00"), rrule: { freq: "daily", until: "2099-12-31" }, gaps: [{ start: at("2060-01-06", "12:00"), end: at("2060-01-06", "13:00") }] }),
+      26_694,
+      "2100-01-02",
+    ],
+  ])("counts the occurrences of %s through 2099 past the first 31 and sorts the series on its last", (_case, series, omittedCount, lastDate) => {
+    // Act
+    const expanded = toOccurrences(series);
+
+    // Assert
+    expect(expanded.occurrences).toHaveLength(MAX_SCHEDULE_OCCURRENCES);
+    expect(expanded.occurrences[0]).toEqual(span(at("2026-11-02", "09:00"), series.end));
+    expect(expanded.omittedCount).toBe(omittedCount);
+    expect(toTimelineMinute(series)).toBe(toTimelineMinute(item({ end: at(lastDate, "10:00") })));
+  });
+
+  it("expands a daily series through 9999-12-31 within a second", () => {
+    // Arrange
+    const MAX_ELAPSED_MS = 1_000;
+    const series = item({ ...hour, rrule: { freq: "daily", until: "9999-12-31" }, ...FAR_EXCEPTIONS });
+    const startedAt = performance.now();
+
+    // Act
+    const expanded = toOccurrences(series);
+    const minute = toTimelineMinute(series);
+
+    // Assert
+    expect(performance.now() - startedAt).toBeLessThan(MAX_ELAPSED_MS);
+    expect(expanded.omittedCount).toBe((Date.parse("9999-12-31") - Date.parse("2026-11-02")) / 86_400_000 + 1 - 1 + 1 - 3 + 1 - MAX_SCHEDULE_OCCURRENCES);
+    expect(minute).toBe(toTimelineMinute(item({ end: at("9999-12-31", "10:00") })));
   });
 });
 
