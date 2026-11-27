@@ -105,6 +105,7 @@ describe("GET /notices/:sourceId/:articleNo, the brief", () => {
 
     // Assert
     expect(res.status).toBe(200);
+    expectWire(noticeDetail, res.body.data);
     expect(res.body.meta).toEqual({ lang: requestLanguage });
     expect(res.body.data.brief?.question).toBe(question);
   });
@@ -118,6 +119,7 @@ describe("GET /notices/:sourceId/:articleNo, the brief", () => {
 
     // Assert
     expect(res.status).toBe(200);
+    expectWire(noticeDetail, res.body.data);
     expect(res.body.data.brief?.question).toBeNull();
     expect(res.body.data.brief?.bullets).toHaveLength(3);
   });
