@@ -129,7 +129,7 @@ describe("toDetailItem, the screen", () => {
 describe("toDetailItem, the schedule", () => {
   it("serves the schedule items it is given, and changes no other field", () => {
     // Arrange
-    const schedule = [{ id: "D1", title: "설명회", start: { date: "2026-11-10" }, except: [], slots: [], status: "scheduled" as const }];
+    const schedule = [{ id: "D1", title: "설명회", status: "scheduled" as const, start: { date: "2026-11-10" }, occurrences: [{ start: { date: "2026-11-10" } }], omittedCount: 0 }];
 
     // Act
     const withSchedule = toDetailItem(BASE, null, { schedule });

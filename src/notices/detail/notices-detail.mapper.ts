@@ -1,10 +1,10 @@
 import type { DerivedBrief } from "../legacy/notices-legacy.types";
 import type { NoticeEdit } from "../notices.document";
-import type { NoticeScreen } from "../notices.wire";
+import type { NoticeScheduleItem, NoticeScreen } from "../notices.wire";
 import { textOrNull } from "../notices.mapper";
 import type { NoticeDetailRow } from "./notices-detail.document";
 import { normalizeSummaryType } from "../notices.rules";
-import type { NoticeBrief, NoticeDetail, NoticeScheduleItem, NoticeSummaryFull } from "./notices-detail.wire";
+import type { NoticeBrief, NoticeDetail, NoticeSummaryFull } from "./notices-detail.wire";
 
 // WHY: what JSON.stringify writes for the value, so the wire's string type holds a Date and a stored string alike.
 const toJsonTime = (value: Date | string): string => (value instanceof Date ? value.toISOString() : value);

@@ -1,5 +1,5 @@
 {
-  "_about": "Synthetic: production.json's notice with the schedule the server serves for the hand-written stored schedule in __tests__/nest/notices/fixtures/notice-schedule.stored.json (notices-schedule.routes.test.ts), since the crawler stores no schedule yet",
+  "_about": "Synthetic: production.json's notice with the schedule the server serves for the hand-written v2 stored schedule in __tests__/nest/notices/fixtures/notice-schedule.stored.json (notices-schedule.routes.test.ts), since no crawler run has stored a v2 schedule yet",
   "data": {
     "id": "6acc38239cb01d9a98e2a2b9",
     "sourceId": "skku-notice02",
@@ -63,57 +63,9 @@
     "screen": null,
     "schedule": [
       {
-        "id": "D1",
-        "title": "참가 신청",
-        "start": {
-          "date": "2026-11-02"
-        },
-        "end": {
-          "date": "2026-11-06"
-        },
-        "except": [],
-        "slots": [],
-        "status": "scheduled"
-      },
-      {
-        "id": "D3",
-        "title": "진로 설명회",
-        "start": {
-          "date": "2026-11-10",
-          "time": "14:00"
-        },
-        "end": {
-          "date": "2026-11-10",
-          "time": "16:00"
-        },
-        "except": [],
-        "slots": [
-          {
-            "start": {
-              "date": "2026-11-10",
-              "time": "14:00"
-            },
-            "end": {
-              "date": "2026-11-10",
-              "time": "15:00"
-            },
-            "text": "14:00 1부 학과 소개"
-          }
-        ],
-        "status": "tentative",
-        "quote": "일정은 변동될 수 있음",
-        "place": {
-          "text": "경영관 33B101호",
-          "name": "경영관 33B101",
-          "mapTarget": {
-            "skkuId": 12,
-            "spaceCd": "33B101"
-          }
-        }
-      },
-      {
-        "id": "D5",
+        "id": "5e6f7081",
         "title": "스터디",
+        "status": "scheduled",
         "start": {
           "date": "2026-11-04",
           "time": "19:00"
@@ -122,34 +74,286 @@
           "date": "2026-11-04",
           "time": "21:00"
         },
-        "repeat": {
+        "rrule": {
           "freq": "weekly",
           "byDay": [
             "WE"
           ],
           "until": "2026-12-16"
         },
-        "except": [
+        "exdate": [
           "2026-11-25"
         ],
-        "slots": [],
-        "status": "scheduled",
         "place": {
           "text": "온라인 (Zoom)",
           "name": null,
           "mapTarget": null
-        }
+        },
+        "occurrences": [
+          {
+            "start": {
+              "date": "2026-11-04",
+              "time": "19:00"
+            },
+            "end": {
+              "date": "2026-11-04",
+              "time": "21:00"
+            }
+          },
+          {
+            "start": {
+              "date": "2026-11-11",
+              "time": "19:00"
+            },
+            "end": {
+              "date": "2026-11-11",
+              "time": "21:00"
+            }
+          },
+          {
+            "start": {
+              "date": "2026-11-18",
+              "time": "19:00"
+            },
+            "end": {
+              "date": "2026-11-18",
+              "time": "21:00"
+            }
+          },
+          {
+            "start": {
+              "date": "2026-12-02",
+              "time": "19:00"
+            },
+            "end": {
+              "date": "2026-12-02",
+              "time": "21:00"
+            }
+          },
+          {
+            "start": {
+              "date": "2026-12-09",
+              "time": "19:00"
+            },
+            "end": {
+              "date": "2026-12-09",
+              "time": "21:00"
+            }
+          },
+          {
+            "start": {
+              "date": "2026-12-16",
+              "time": "19:00"
+            },
+            "end": {
+              "date": "2026-12-16",
+              "time": "21:00"
+            }
+          }
+        ],
+        "omittedCount": 0
       },
       {
-        "id": "D7",
-        "title": "결과 발표",
-        "start": {
-          "date": "2026-12-01"
+        "id": "1a2b3c4d",
+        "title": "참가 신청 마감",
+        "status": "scheduled",
+        "end": {
+          "date": "2026-11-06",
+          "time": "24:00"
         },
-        "precision": "month",
-        "except": [],
-        "slots": [],
-        "status": "scheduled"
+        "occurrences": [
+          {
+            "end": {
+              "date": "2026-11-06",
+              "time": "24:00"
+            }
+          }
+        ],
+        "omittedCount": 0
+      },
+      {
+        "id": "2b3c4d5e",
+        "title": "진로 설명회",
+        "status": "tentative",
+        "start": {
+          "date": "2026-11-10",
+          "time": "14:00"
+        },
+        "end": {
+          "date": "2026-11-10",
+          "time": "16:00"
+        },
+        "rdate": [
+          {
+            "start": {
+              "date": "2026-11-17",
+              "time": "14:00"
+            },
+            "end": {
+              "date": "2026-11-17",
+              "time": "16:00"
+            }
+          }
+        ],
+        "place": {
+          "text": "경영관 33B101호",
+          "name": "경영관 33B101",
+          "mapTarget": {
+            "skkuId": 12,
+            "spaceCd": "33B101"
+          }
+        },
+        "occurrences": [
+          {
+            "start": {
+              "date": "2026-11-10",
+              "time": "14:00"
+            },
+            "end": {
+              "date": "2026-11-10",
+              "time": "16:00"
+            }
+          },
+          {
+            "start": {
+              "date": "2026-11-17",
+              "time": "14:00"
+            },
+            "end": {
+              "date": "2026-11-17",
+              "time": "16:00"
+            }
+          }
+        ],
+        "omittedCount": 0,
+        "parts": [
+          {
+            "id": "3c4d5e6f",
+            "title": "1부 학과 소개",
+            "status": "tentative",
+            "start": {
+              "date": "2026-11-10",
+              "time": "14:00"
+            },
+            "end": {
+              "date": "2026-11-10",
+              "time": "15:00"
+            },
+            "occurrences": [
+              {
+                "start": {
+                  "date": "2026-11-10",
+                  "time": "14:00"
+                },
+                "end": {
+                  "date": "2026-11-10",
+                  "time": "15:00"
+                }
+              }
+            ],
+            "omittedCount": 0
+          },
+          {
+            "id": "4d5e6f70",
+            "title": "2부 질의응답",
+            "status": "tentative",
+            "start": {
+              "date": "2026-11-10",
+              "time": "15:00"
+            },
+            "end": {
+              "date": "2026-11-10",
+              "time": "16:00"
+            },
+            "place": {
+              "text": "경영관",
+              "name": "경영관 33",
+              "mapTarget": {
+                "skkuId": 12,
+                "spaceCd": null
+              }
+            },
+            "occurrences": [
+              {
+                "start": {
+                  "date": "2026-11-10",
+                  "time": "15:00"
+                },
+                "end": {
+                  "date": "2026-11-10",
+                  "time": "16:00"
+                }
+              }
+            ],
+            "omittedCount": 0
+          }
+        ]
+      },
+      {
+        "id": "6f708192",
+        "title": "수강신청 시스템 운영",
+        "status": "scheduled",
+        "start": {
+          "date": "2026-11-09",
+          "time": "09:00"
+        },
+        "end": {
+          "date": "2026-11-13",
+          "time": "18:00"
+        },
+        "gaps": [
+          {
+            "start": {
+              "date": "2026-11-11",
+              "time": "12:00"
+            },
+            "end": {
+              "date": "2026-11-11",
+              "time": "13:00"
+            }
+          }
+        ],
+        "occurrences": [
+          {
+            "start": {
+              "date": "2026-11-09",
+              "time": "09:00"
+            },
+            "end": {
+              "date": "2026-11-11",
+              "time": "12:00"
+            }
+          },
+          {
+            "start": {
+              "date": "2026-11-11",
+              "time": "13:00"
+            },
+            "end": {
+              "date": "2026-11-13",
+              "time": "18:00"
+            }
+          }
+        ],
+        "omittedCount": 0
+      },
+      {
+        "id": "708192a3",
+        "title": "결과 발표",
+        "status": "scheduled",
+        "start": {
+          "date": "2026-12-01",
+          "latest": "2026-12-10"
+        },
+        "occurrences": [
+          {
+            "start": {
+              "date": "2026-12-01",
+              "latest": "2026-12-10"
+            }
+          }
+        ],
+        "omittedCount": 0
       }
     ],
     "brief": null

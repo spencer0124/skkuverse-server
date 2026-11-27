@@ -1,0 +1,94 @@
+{
+  "_about": "Synthetic: one schedule item the detail serves for the hand-written v2 stored schedule in __tests__/nest/notices/fixtures/notice-schedule.stored.json (notices-schedule.routes.test.ts): a weekly series with one skipped day, online; no crawler run has stored a v2 schedule yet",
+  "data": {
+    "id": "5e6f7081",
+    "title": "스터디",
+    "status": "scheduled",
+    "start": {
+      "date": "2026-11-04",
+      "time": "19:00"
+    },
+    "end": {
+      "date": "2026-11-04",
+      "time": "21:00"
+    },
+    "rrule": {
+      "freq": "weekly",
+      "byDay": [
+        "WE"
+      ],
+      "until": "2026-12-16"
+    },
+    "exdate": [
+      "2026-11-25"
+    ],
+    "place": {
+      "text": "온라인 (Zoom)",
+      "name": null,
+      "mapTarget": null
+    },
+    "occurrences": [
+      {
+        "start": {
+          "date": "2026-11-04",
+          "time": "19:00"
+        },
+        "end": {
+          "date": "2026-11-04",
+          "time": "21:00"
+        }
+      },
+      {
+        "start": {
+          "date": "2026-11-11",
+          "time": "19:00"
+        },
+        "end": {
+          "date": "2026-11-11",
+          "time": "21:00"
+        }
+      },
+      {
+        "start": {
+          "date": "2026-11-18",
+          "time": "19:00"
+        },
+        "end": {
+          "date": "2026-11-18",
+          "time": "21:00"
+        }
+      },
+      {
+        "start": {
+          "date": "2026-12-02",
+          "time": "19:00"
+        },
+        "end": {
+          "date": "2026-12-02",
+          "time": "21:00"
+        }
+      },
+      {
+        "start": {
+          "date": "2026-12-09",
+          "time": "19:00"
+        },
+        "end": {
+          "date": "2026-12-09",
+          "time": "21:00"
+        }
+      },
+      {
+        "start": {
+          "date": "2026-12-16",
+          "time": "19:00"
+        },
+        "end": {
+          "date": "2026-12-16",
+          "time": "21:00"
+        }
+      }
+    ],
+    "omittedCount": 0
+  }
+}

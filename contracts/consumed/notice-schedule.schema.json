@@ -1,35 +1,94 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://skkuverse.com/schemas/notice-schedule/1.json",
+  "$id": "https://skkuverse.com/schemas/notice-schedule/2.json",
   "title": "noticeSchedule",
-  "description": "The dated items of one notice group (umbrella ADR 0012 D3, D4), stored as `schedule` on every copy of the group by the crawler's notices-schedule job (docs/notice-schedule/README.md). A notice without the field has no schedule yet; an empty `items` means the notice states no dated item.",
+  "description": "The dated items of one notice group (umbrella ADR 0012 D3, D4; skkuverse-ai docs/explanation/notice-schedule-v2.md), stored as `schedule` on every copy of the group by the crawler's notices-schedule job (docs/notice-schedule/README.md). A notice without the field has no schedule yet; an empty `items` means the notice states no dated item. `run` is bookkeeping and is never served. Every date and time is Asia/Seoul wall time.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "key", "groupId", "items"],
+  "required": ["version", "key", "groupId", "items", "run"],
   "$defs": {
     "date": {
       "type": "string",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-      "description": "A calendar day, YYYY-MM-DD, in the notice's own time zone (KST)."
+      "description": "A calendar day, YYYY-MM-DD, in Asia/Seoul."
     },
-    "point": {
+    "start": {
       "type": "object",
       "additionalProperties": false,
       "required": ["date"],
+      "description": "A point that begins a span: a day, a day and a time, or a range of days it can fall on (`latest`).",
       "properties": {
         "date": { "$ref": "#/$defs/date" },
         "time": {
           "type": "string",
           "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
-          "description": "HH:MM. Absent when the notice gives no time. A 24:00 end is stored as 00:00 of the next day."
+          "description": "HH:MM, Asia/Seoul wall time. Absent when the notice gives no time."
+        },
+        "latest": {
+          "$ref": "#/$defs/date",
+          "description": "The last day the point can fall on, after `date`: \"11월 말\" is date 11-21, latest 11-30. Display text such as \"11월 하순\" is computed from the range."
         }
+      },
+      "not": { "required": ["time", "latest"] }
+    },
+    "end": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["date"],
+      "description": "A point that ends a span. As `start`, and its time may be 24:00: the end of that day, never 00:00 of the next.",
+      "properties": {
+        "date": { "$ref": "#/$defs/date" },
+        "time": {
+          "type": "string",
+          "pattern": "^(([01]\\d|2[0-3]):[0-5]\\d|24:00)$",
+          "description": "HH:MM, Asia/Seoul wall time; 24:00 is the end of `date`."
+        },
+        "latest": { "$ref": "#/$defs/date" }
+      },
+      "not": { "required": ["time", "latest"] }
+    },
+    "rrule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["freq"],
+      "description": "An iCalendar RRULE from the item's start: every day, or each week's `byDay` days (the start's weekday when absent), until `until` or open. The item's start and end bound the first occurrence, as DTSTART and DTEND do.",
+      "properties": {
+        "freq": { "enum": ["daily", "weekly"] },
+        "byDay": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] },
+          "description": "In week order, Monday first."
+        },
+        "until": { "$ref": "#/$defs/date" }
+      }
+    },
+    "gap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "description": "A partial-day stretch the item does not happen in, inside its span. iCalendar has no equivalent.",
+      "properties": {
+        "start": { "$ref": "#/$defs/start" },
+        "end": { "$ref": "#/$defs/end" }
+      }
+    },
+    "occurrence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start"],
+      "description": "An extra occurrence of the item (an iCalendar RDATE).",
+      "properties": {
+        "start": { "$ref": "#/$defs/start" },
+        "end": { "$ref": "#/$defs/end" }
       }
     },
     "place": {
       "type": "object",
       "additionalProperties": false,
       "required": ["text"],
-      "description": "Either `id` and `campus` (the crawler's resolver pinned a place), or `reason` (it did not).",
+      "description": "Either `id` and `campus` (the crawler's resolver pinned an SKKU place), or `reason` (none is pinned).",
       "properties": {
         "text": {
           "type": "string",
@@ -47,7 +106,7 @@
         },
         "reason": {
           "enum": ["campus_only", "ambiguous", "offcampus", "online", "not_a_place", "unknown_place"],
-          "description": "Why no place id was pinned."
+          "description": "Why no place id was pinned. `offcampus` and `online` are the schedule stage's reading of the place; the others are the resolver's answer for an SKKU place: `campus_only` names only a campus, `ambiguous` fits more than one place, `not_a_place` is not a place, `unknown_place` is an SKKU place the index lacks."
         }
       },
       "oneOf": [
@@ -55,69 +114,114 @@
         { "required": ["reason"], "not": { "required": ["id"] } }
       ]
     },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "from", "for"],
+      "description": "Where a value comes from in the notice.",
+      "properties": {
+        "text": { "type": "string" },
+        "from": {
+          "type": "string",
+          "pattern": "^(title|body|poster:[1-9]\\d*)$",
+          "description": "The text it is in: the title, the body, or the poster numbered n in reading order."
+        },
+        "for": {
+          "enum": ["when", "status", "place"],
+          "description": "`when`: a date expression; `status`: the words that show a status other than `scheduled`; `place`: the place words."
+        },
+        "begin": { "type": "integer", "minimum": 0, "description": "The offset of `text` in that source." },
+        "end": { "type": "integer", "minimum": 0 }
+      },
+      "dependentRequired": { "begin": ["end"], "end": ["begin"] }
+    },
     "item": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "title", "start", "except", "slots", "status"],
+      "required": ["id", "title", "status", "evidence"],
+      "anyOf": [{ "required": ["start"] }, { "required": ["end"] }],
+      "dependentRequired": { "rrule": ["start"] },
       "properties": {
         "id": {
           "type": "string",
           "pattern": "^[0-9a-f]{8}$",
-          "description": "Opaque, unique within the notice, and kept across the notice's edits: an edited notice's item keeps the id of the stored item with the same start and end, else the same title. Never reused for another item. The calendar UID is the notice's `dupOf` plus this id."
+          "description": "Opaque, unique across the schedule's items and parts, and kept across the notice's edits: an edited notice's item keeps the id of the stored item with the same start and end (an end-only deadline matches on its end), else the same title. A part keeps the id of a part of the stored item its own item continues. Never reused for another item. The calendar UID is the notice's `dupOf` plus this id."
         },
         "title": {
           "type": "string",
           "minLength": 1,
           "description": "A short noun phrase in the notice's language, written by the schedule stage's model. Not verbatim."
         },
-        "start": { "$ref": "#/$defs/point" },
-        "end": { "$ref": "#/$defs/point" },
-        "precision": {
-          "enum": ["month", "week"],
-          "description": "The notice gives only a month or a week; `start` is its first day. Absent for a day or a time."
-        },
-        "repeat": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["freq"],
-          "description": "A series from `start`, until `until` or open. `end`, when present, is the end time of each occurrence on the first day.",
-          "properties": {
-            "freq": { "enum": ["daily", "weekly"] },
-            "byDay": {
-              "type": "array",
-              "items": { "enum": ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] }
-            },
-            "until": { "$ref": "#/$defs/date" }
-          }
-        },
-        "except": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/date" },
-          "description": "Days the range or series skips, sorted and unique."
-        },
-        "slots": {
-          "type": "array",
-          "description": "Times or sessions inside the item, each with the notice line it comes from.",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["start", "text"],
-            "properties": {
-              "start": { "$ref": "#/$defs/point" },
-              "end": { "$ref": "#/$defs/point" },
-              "text": { "type": "string" }
-            }
-          }
-        },
         "status": {
           "enum": ["scheduled", "tentative", "rescheduled", "cancelled", "suspended"],
           "description": "A rescheduled item is the entry as it now stands, with its new date and place."
         },
-        "quote": {
-          "type": "string",
-          "description": "The notice's words that show a status other than `scheduled`."
+        "start": { "$ref": "#/$defs/start" },
+        "end": {
+          "$ref": "#/$defs/end",
+          "description": "With `start`, the two bound the whole span, holes included, or the first occurrence when the item has `rrule`. Alone, the item is a deadline."
         },
-        "place": { "$ref": "#/$defs/place" }
+        "rrule": { "$ref": "#/$defs/rrule" },
+        "exdate": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/date" },
+          "description": "Whole days removed from the span or the series, sorted and unique."
+        },
+        "gaps": { "type": "array", "items": { "$ref": "#/$defs/gap" } },
+        "rdate": { "type": "array", "items": { "$ref": "#/$defs/occurrence" } },
+        "parts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/item" },
+          "description": "Agenda entries, each on one of the item's occurrence days and in time order; a part may carry its own `rrule` (several times a day across a span, as a shuttle timetable)."
+        },
+        "place": { "$ref": "#/$defs/place" },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["usd", "ms", "model", "prompt", "repaired", "warnings", "unplaced", "missed", "decided", "missing", "failures", "nextTry"],
+      "description": "How the extraction that built `items` ran (skkuverse-ai app/schedule/model.py `Run`). The stage writes the fields up to `decided`; the crawler writes `missing`, `failures` and `nextTry`. Bookkeeping: never served.",
+      "properties": {
+        "usd": { "type": "number", "minimum": 0, "description": "The stage's model cost." },
+        "ms": { "type": "integer", "minimum": 0, "description": "The stage's wall time." },
+        "model": { "type": "string" },
+        "prompt": { "type": "string", "description": "The stage's prompt version." },
+        "repaired": { "type": "boolean", "description": "The answer failed its form check once and was repaired." },
+        "warnings": { "type": "array", "items": { "type": "string" }, "description": "Values the stage left out, and items its checks dropped." },
+        "unplaced": { "type": "array", "items": { "type": "string" }, "description": "Rows that name no calendar day." },
+        "missed": {
+          "type": "array",
+          "description": "Dates the model saw that the date list did not number.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["text", "where"],
+            "properties": { "text": { "type": "string" }, "where": { "type": "string" } }
+          }
+        },
+        "decided": {
+          "type": "object",
+          "additionalProperties": { "type": "object", "additionalProperties": { "type": "string" } },
+          "description": "By D#, the resolver rule behind each value it changed, such as {\"end\": \"order\"}."
+        },
+        "missing": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "The parts of the notice the items were built without, such as `poster:2`: the crawler's fetch of that poster kept failing, so the items lack what only that poster says."
+        },
+        "failures": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Failed attempts in a row when these items were stored; 0 when nothing is missing."
+        },
+        "nextTry": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "When the crawler planned, as these items were stored, to try again with the missing parts; null when nothing is missing."
+        }
       }
     }
   },
@@ -125,7 +229,7 @@
     "version": {
       "type": "string",
       "minLength": 1,
-      "description": "The skkuverse-ai schedule stage's version that built the items, such as `schedule-1`."
+      "description": "The skkuverse-ai schedule stage's version that built the items, such as `schedule-2`."
     },
     "key": {
       "type": "string",
@@ -140,7 +244,8 @@
     "items": {
       "type": "array",
       "items": { "$ref": "#/$defs/item" },
-      "description": "In time order: by start date, then start time."
-    }
+      "description": "In time order: by start, else end, date, then time."
+    },
+    "run": { "$ref": "#/$defs/run" }
   }
 }

@@ -46,7 +46,7 @@
         "repo": "crawler",
         "path": "py/generated/server-categories.json",
         "ref": "main",
-        "commit": "bae09adb99335c1d2c0445fa787e7aa272fb6e3f",
+        "commit": "be1f7176067a5d84f8f7f16cee05c1bcb5af7e8f",
         "sha256": "36e26285167b79517800f6136a1fc729445e6a2795747c4bac7fcb92b7513ce2"
       },
       "syncedAt": "2026-08-04T10:48:30Z"
@@ -58,7 +58,7 @@
         "repo": "crawler",
         "path": "py/generated/server-exclude-reasons.json",
         "ref": "main",
-        "commit": "bae09adb99335c1d2c0445fa787e7aa272fb6e3f",
+        "commit": "be1f7176067a5d84f8f7f16cee05c1bcb5af7e8f",
         "sha256": "33d092f8c2f0d13f585a6f24660f2fd0bde38893e3a35e6c72ef277f6ec14f8c"
       },
       "syncedAt": "2026-08-04T10:48:30Z"
@@ -70,22 +70,22 @@
         "repo": "crawler",
         "path": "docs/notice-facts/notice-facts.schema.json",
         "ref": "main",
-        "commit": "bae09adb99335c1d2c0445fa787e7aa272fb6e3f",
+        "commit": "be1f7176067a5d84f8f7f16cee05c1bcb5af7e8f",
         "sha256": "e1c85bb1f9977d6add642a457f6e70274c6102f37a5aacfa661d4c8cfbeac4a7"
       },
       "syncedAt": "2026-10-29T06:56:19Z"
     },
     "notices.schedule": {
       "path": "contracts/consumed/notice-schedule.schema.json",
-      "sha256": "4084a9c7ee9690b5f8331d39076f1fdbf416dcd044d9383e05581cea69779c27",
+      "sha256": "200017f5656f59d4e5f8e0a9be3b10a05318d06e88b2c5465368c68050848267",
       "producer": {
         "repo": "crawler",
         "path": "docs/notice-schedule/notice-schedule.schema.json",
         "ref": "main",
-        "commit": "bae09adb99335c1d2c0445fa787e7aa272fb6e3f",
-        "sha256": "4084a9c7ee9690b5f8331d39076f1fdbf416dcd044d9383e05581cea69779c27"
+        "commit": "be1f7176067a5d84f8f7f16cee05c1bcb5af7e8f",
+        "sha256": "200017f5656f59d4e5f8e0a9be3b10a05318d06e88b2c5465368c68050848267"
       },
-      "syncedAt": "2026-11-22T12:02:20Z"
+      "syncedAt": "2026-11-27T07:38:02Z"
     },
     "notices.sources": {
       "path": "src/notices/sources.json",
@@ -94,7 +94,7 @@
         "repo": "crawler",
         "path": "py/generated/server-sources.json",
         "ref": "main",
-        "commit": "bae09adb99335c1d2c0445fa787e7aa272fb6e3f",
+        "commit": "be1f7176067a5d84f8f7f16cee05c1bcb5af7e8f",
         "sha256": "c18defa82ae4615ce66e15bc80c2833c9804d1d7bed37a9afa5bbbcd7b49100d"
       },
       "syncedAt": "2026-10-16T05:00:32Z"

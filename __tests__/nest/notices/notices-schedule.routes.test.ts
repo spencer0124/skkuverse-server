@@ -1,8 +1,9 @@
 /**
- * The notice schedule on the wire (umbrella ADR 0012 D4): the detail serves the stored schedule items, each place
- * named by building, and null for a notice without one; `GET /notices/:sourceId/:articleNo/schedule.ics` serves its
- * exportable items as `text/calendar`, outside the JSON envelope, and answers 404 NOT_FOUND for a notice with no
- * exportable item or no notice at all, and 400 for a bad source, as the detail route does.
+ * The notice schedule on the wire, in its v2 shape: the detail serves the stored schedule items in timeline order, each
+ * with its occurrences and parts, each place named by building, and null for a notice without one or with one the
+ * schema refuses, a v1 schedule included; `GET /notices/:sourceId/:articleNo/schedule.ics` serves its exportable items
+ * as `text/calendar`, outside the JSON envelope, writing their rules as stored, and answers 404 NOT_FOUND for a notice
+ * with no exportable item or no notice at all, and 400 for a bad source, as the detail route does.
  *
  * The app boots the notices modules through the production pipeline (buildTestApp). The detail repository and
  * building's two place repositories are typed fakes; the clock is fixed.
@@ -31,6 +32,8 @@ import { FakeRequestAuthenticator } from "../../helpers/fakes/perimeter/request-
 import { buildTestApp } from "../../helpers/nest/build-test-app";
 
 const SCHEDULE = (JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures/notice-schedule.stored.json"), "utf8")) as { schedule: { version: string; items: Array<Record<string, unknown>> } }).schedule;
+const V1_SCHEDULE = { version: "schedule-1", items: [{ id: "D1", title: "설명회", start: { date: "2026-11-10" }, except: [], slots: [], status: "scheduled" }] };
+const at = (date: string, time: string) => ({ date, time });
 const NOW = new Date("2026-11-22T03:00:00.000Z");
 const fakeClock: Clock = { now: () => NOW };
 
@@ -77,7 +80,7 @@ beforeEach(() => {
 });
 
 describe("GET /notices/:sourceId/:articleNo, the schedule", () => {
-  it("serves the stored items with each place named by building, as its wire publishes", async () => {
+  it("serves the stored items in timeline order with their occurrences and parts, each place named by building, as its wire publishes", async () => {
     // Arrange
     detailRepository.docs = [notice({ schedule: SCHEDULE })];
 
@@ -89,23 +92,47 @@ describe("GET /notices/:sourceId/:articleNo, the schedule", () => {
     expectWire(noticeDetail, res.body.data);
     expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
     expect(res.body.meta).toEqual({ lang: "ko" });
-    expect(res.body.data.schedule.map((item: { id: string }) => item.id)).toEqual(["D1", "D3", "D5", "D7"]);
-    expect(res.body.data.schedule[1]).toEqual({
-      id: "D3",
+    expect(res.body.data.schedule.map((item: { id: string }) => item.id)).toEqual(["5e6f7081", "1a2b3c4d", "2b3c4d5e", "6f708192", "708192a3"]);
+    expect(res.body.data.schedule[2]).toEqual({
+      id: "2b3c4d5e",
       title: "진로 설명회",
-      start: { date: "2026-11-10", time: "14:00" },
-      end: { date: "2026-11-10", time: "16:00" },
-      except: [],
-      slots: [{ start: { date: "2026-11-10", time: "14:00" }, end: { date: "2026-11-10", time: "15:00" }, text: "14:00 1부 학과 소개" }],
       status: "tentative",
-      quote: "일정은 변동될 수 있음",
+      start: at("2026-11-10", "14:00"),
+      end: at("2026-11-10", "16:00"),
+      rdate: [{ start: at("2026-11-17", "14:00"), end: at("2026-11-17", "16:00") }],
       place: { text: "경영관 33B101호", name: "경영관 33B101", mapTarget: { skkuId: 12, spaceCd: "33B101" } },
+      occurrences: [
+        { start: at("2026-11-10", "14:00"), end: at("2026-11-10", "16:00") },
+        { start: at("2026-11-17", "14:00"), end: at("2026-11-17", "16:00") },
+      ],
+      omittedCount: 0,
+      parts: [
+        { id: "3c4d5e6f", title: "1부 학과 소개", status: "tentative", start: at("2026-11-10", "14:00"), end: at("2026-11-10", "15:00"), occurrences: [{ start: at("2026-11-10", "14:00"), end: at("2026-11-10", "15:00") }], omittedCount: 0 },
+        {
+          id: "4d5e6f70",
+          title: "2부 질의응답",
+          status: "tentative",
+          start: at("2026-11-10", "15:00"),
+          end: at("2026-11-10", "16:00"),
+          place: { text: "경영관", name: "경영관 33", mapTarget: { skkuId: 12, spaceCd: null } },
+          occurrences: [{ start: at("2026-11-10", "15:00"), end: at("2026-11-10", "16:00") }],
+          omittedCount: 0,
+        },
+      ],
     });
+    expect(res.body.data.schedule.map((item: { occurrences: unknown[] }) => item.occurrences)).toEqual([
+      ["2026-11-04", "2026-11-11", "2026-11-18", "2026-12-02", "2026-12-09", "2026-12-16"].map((date) => ({ start: at(date, "19:00"), end: at(date, "21:00") })),
+      [{ end: at("2026-11-06", "24:00") }],
+      [{ start: at("2026-11-10", "14:00"), end: at("2026-11-10", "16:00") }, { start: at("2026-11-17", "14:00"), end: at("2026-11-17", "16:00") }],
+      [{ start: at("2026-11-09", "09:00"), end: at("2026-11-11", "12:00") }, { start: at("2026-11-11", "13:00"), end: at("2026-11-13", "18:00") }],
+      [{ start: { date: "2026-12-01", latest: "2026-12-10" } }],
+    ]);
   });
 
   it.each([
     ["no schedule", {}],
     ["a schedule the schema refuses", { schedule: { items: [] } }],
+    ["a v1 schedule", { schedule: V1_SCHEDULE }],
   ])("serves a null schedule for a notice with %s", async (_case, extra) => {
     // Arrange
     detailRepository.docs = [notice(extra)];
@@ -136,34 +163,27 @@ describe("GET /notices/:sourceId/:articleNo/schedule.ics", () => {
     expect(res.text.startsWith("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n")).toBe(true);
     expect(res.text.endsWith("END:VCALENDAR\r\n")).toBe(true);
     expect(res.text.match(/^UID:.*$/gm)).toEqual([
-      "UID:6a5ed9e520097db8672d2097-D1@skkuverse",
-      "UID:6a5ed9e520097db8672d2097-D3@skkuverse",
-      "UID:6a5ed9e520097db8672d2097-D5@skkuverse",
+      "UID:6a5ed9e520097db8672d2097-5e6f7081@skkuverse",
+      "UID:6a5ed9e520097db8672d2097-1a2b3c4d@skkuverse",
+      "UID:6a5ed9e520097db8672d2097-2b3c4d5e@skkuverse",
+      "UID:6a5ed9e520097db8672d2097-6f708192@skkuverse",
     ]);
     expect(res.text).toContain("DTSTAMP:20261122T030000Z\r\n");
+    expect(res.text).toContain("RRULE:FREQ=WEEKLY;BYDAY=WE;UNTIL=20261216T145959Z\r\nEXDATE;TZID=Asia/Seoul:20261125T190000\r\n");
+    expect(res.text).toContain("DTSTART;TZID=Asia/Seoul:20261107T000000\r\nSUMMARY:참가 신청 마감\r\n");
+    expect(res.text).toContain("RDATE;TZID=Asia/Seoul;VALUE=PERIOD:20261117T140000/20261117T160000\r\n");
+    expect(res.text).toContain("DESCRIPTION:14:00~15:00 1부 학과 소개\\n15:00~16:00 2부 질의응답\r\n");
+    expect(res.text).toContain("DESCRIPTION:제외 2026-11-11 12:00~13:00\r\n");
   });
 
   it.each([
     ["no schedule", [notice({})]],
-    ["only an item dated to a month", [notice({ schedule: { ...SCHEDULE, items: [SCHEDULE.items[3]] } })]],
+    ["only an item dated by a range of days", [notice({ schedule: { ...SCHEDULE, items: [SCHEDULE.items[4]] } })]],
+    ["only a v1 schedule", [notice({ schedule: V1_SCHEDULE })]],
     ["no notice", []],
   ])("answers 404 NOT_FOUND for %s", async (_case, docs) => {
     // Arrange
     detailRepository.docs = docs;
-
-    // Act
-    const res = await request(app.getHttpServer()).get("/notices/skku-main/136023/schedule.ics");
-
-    // Assert
-    expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: { code: "NOT_FOUND", message: "notice has no calendar events" } });
-    expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
-  });
-
-  it("answers 404 NOT_FOUND for a notice whose only series has none of its days before its last day", async () => {
-    // Arrange
-    const emptySeries = { id: "0a1b2c3d", title: "스터디", start: { date: "2026-11-02" }, repeat: { freq: "weekly", byDay: ["WE"], until: "2026-11-03" }, except: [], slots: [], status: "scheduled" };
-    detailRepository.docs = [notice({ schedule: { ...SCHEDULE, items: [emptySeries] } })];
 
     // Act
     const res = await request(app.getHttpServer()).get("/notices/skku-main/136023/schedule.ics");

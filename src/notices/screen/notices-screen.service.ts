@@ -3,9 +3,9 @@ import { BuildingPlaceDisplayService } from "../../building/place/display/buildi
 import type { PlaceDisplay } from "../../building/place/display/building-place-display.types";
 import logger from "../../infra/logger";
 import { NoticesBriefService } from "../brief/notices-brief.service";
-import type { NoticeBrief, NoticeScheduleItem } from "../detail/notices-detail.wire";
+import type { NoticeBrief } from "../detail/notices-detail.wire";
 import type { NoticeDoc } from "../notices.document";
-import type { NoticeScreen } from "../notices.wire";
+import type { NoticeScheduleItem, NoticeScreen } from "../notices.wire";
 import { NoticesRowService } from "../row/notices-row.service";
 import { NoticesScheduleService } from "../schedule/notices-schedule.service";
 import { toOriginal, toScreenBlocks } from "./notices-screen.mapper";

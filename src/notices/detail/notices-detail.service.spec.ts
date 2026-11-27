@@ -143,7 +143,8 @@ describe("NoticesDetailService.findNotice, the brief", () => {
 describe("NoticesDetailService.exportCalendar", () => {
   it("exports a stored notice's schedule, and null for a missing or soft-deleted notice", async () => {
     // Arrange
-    const schedule = { version: "v", items: [{ id: "D1", title: "설명회", start: { date: "2026-11-03" }, except: [], slots: [], status: "scheduled" }] };
+    const run = { usd: 0, ms: 0, model: "m", prompt: "p", repaired: false, warnings: [], unplaced: [], missed: [], decided: {}, missing: [], failures: 0, nextTry: null };
+    const schedule = { version: "v", items: [{ id: "D1", title: "설명회", status: "scheduled", start: { date: "2026-11-03" }, evidence: [] }], run };
     repository.docs = [doc({ articleNo: 1, schedule }), doc({ articleNo: 2, schedule, isDeleted: true })];
 
     // Act

@@ -6,7 +6,7 @@ import { Clock } from "../../infra/clock";
 import logger from "../../infra/logger";
 import { createLogThrottle } from "../../shared/log-throttle.util";
 import { issuePaths } from "../../shared/zod-list.util";
-import type { NoticeScheduleItem } from "../detail/notices-detail.wire";
+import type { NoticeScheduleItem } from "../notices.wire";
 import type { NoticeDoc } from "../notices.document";
 import { NOTICES_SCHEDULE_LOG_INTERVAL_MS } from "./notices-schedule.constants";
 import { toPlaceIds, toScheduleItems } from "./notices-schedule.mapper";

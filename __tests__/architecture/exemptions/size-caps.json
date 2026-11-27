@@ -64,8 +64,8 @@
     "reason": "ADR 0010 D9, no domain seam: `BASE_LAYERS` is the one ordered layer catalogue /map/config serves, typed `as const` so `BaseLayerId` names its ids; the campus rules, the layer-set loader and service and the config flow all read it, so it stays at the map root, which holds one `.constants` file, beside the event cache constants several flows share. The Jongno route layers, then the HSSC route layer and then the `tabs` each base layer states took it past the role cap."
   },
   "src/notices/detail/notices-detail.wire.ts": {
-    "max": 77,
-    "reason": "ADR 0010 D9, no domain seam: `noticeDetail` is the one body the detail route serves, its screen part already split into `src/notices/notices.wire.ts`, and the other fields are the stored notice passed through (the summary's periods, details and edit history as the crawler and the ai stored them, the schedule items as the crawler stored them with building's place names, and the brief's question and bullets), so no part of it is a flow of its own; the brief's schema cannot move to `src/notices/brief/`, because the detail sub-module imports a sibling's runtime export only through a `.module` or `.service` (`sub-modules`)."
+    "max": 73,
+    "reason": "ADR 0010 D9, no domain seam: `noticeDetail` is the one body the detail route serves, its screen part and its schedule items already split into `src/notices/notices.wire.ts`, and the other fields are the stored notice passed through (the summary's periods, details and edit history as the crawler and the ai stored them, and the brief's question and bullets), so no part of it is a flow of its own; the brief's schema cannot move to `src/notices/brief/`, because the detail sub-module imports a sibling's runtime export only through a `.module` or `.service` (`sub-modules`)."
   },
   "src/notices/facts/notices-facts.schema.ts": {
     "max": 220,
@@ -74,6 +74,10 @@
   "src/notices/list/notices-list.rules.ts": {
     "max": 210,
     "reason": "ADR 0010 D9, no domain seam: the list badge is one priority chain a list item is cut from, the v1 period pick and the v2 role badge feeding one brief, and the cursor decode beside it, with `toListDay`, the one KST day group a served item sits under, and `selectShownRows`, which keeps a scanned row of several boards only as its cluster's shown copy over the list's own scan and filter; none is a flow of its own, so a sub-module would hold rules and nothing else, and the badge alone exceeds the rules cap."
+  },
+  "src/notices/notices.wire.ts": {
+    "max": 65,
+    "reason": "ADR 0010 D9, no domain seam: `noticeScreen` and `noticeScheduleItem` are the two parts of the detail body a flow renders, the screen by `src/notices/screen/` and the timeline by `src/notices/schedule/`; both sit at the notices root because `noticeDetail` composes them and the detail sub-module reaches a sibling's runtime export only through a `.module` or `.service` (`sub-modules`), while one `.wire` per folder (`folders`) leaves this file their only shared home."
   },
   "src/notices/row/notices-row.rules.ts": {
     "max": 462,

@@ -382,6 +382,11 @@
       "GET notices/tabs"
     ]
   },
+  "notices.noticeScheduleItem": {
+    "source": "src/notices/notices.wire.ts",
+    "export": "noticeScheduleItem",
+    "routes": []
+  },
   "notices.noticeScreen": {
     "source": "src/notices/notices.wire.ts",
     "export": "noticeScreen",

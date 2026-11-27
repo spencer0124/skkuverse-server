@@ -301,7 +301,8 @@ describe("NoticesScreenService.renderScreen", () => {
 describe("NoticesScreenService.renderSchedule", () => {
   it("serves the stored schedule with a place building knows named, and null for a notice with none", async () => {
     // Arrange
-    const schedule = { version: "v", items: [{ id: "D1", title: "설명회", start: { date: "2026-11-10" }, except: [], slots: [], status: "scheduled", place: { text: "경영관 33B101호", id: "space:hssc:33B101", campus: "hssc" } }] };
+    const run = { usd: 0, ms: 0, model: "m", prompt: "p", repaired: false, warnings: [], unplaced: [], missed: [], decided: {}, missing: [], failures: 0, nextTry: null };
+    const schedule = { version: "v", items: [{ id: "D1", title: "설명회", status: "scheduled", start: { date: "2026-11-10" }, place: { text: "경영관 33B101호", id: "space:hssc:33B101", campus: "hssc" }, evidence: [] }], run };
     const id = new ObjectId("6a5ed9e520097db8672d2097");
 
     // Act
