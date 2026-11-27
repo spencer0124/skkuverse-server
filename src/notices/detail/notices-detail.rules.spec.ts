@@ -8,7 +8,8 @@
  * recurrence for EXDATE to remove from, so its skipped days, like every item's gaps, go to the DESCRIPTION after its
  * parts as an agenda. The status is a STATUS (suspended exports as cancelled), and the place's words the LOCATION.
  * Lines end in CRLF, TEXT values are escaped, and a line longer than 75 octets folds without splitting a character.
- * An item dated by a range of days (`latest`) is not exportable, nor is an extra so dated written.
+ * An item dated by a range of days (`latest`) is not exportable, nor is an extra so dated written, nor an extra on a
+ * day an `exdate` removes, which the served occurrences leave out.
  */
 import { ObjectId } from "mongodb";
 import type { NoticeScheduleItem } from "../notices.wire";
@@ -179,6 +180,19 @@ describe("toCalendar", () => {
     // Assert
     expect(propertiesOf(first!, "RDATE")).toEqual(["RDATE;TZID=Asia/Seoul;VALUE=PERIOD:20261117T140000/20261118T000000", "RDATE;TZID=Asia/Seoul:20261124T140000"]);
     expect(propertiesOf(second!, "RDATE")).toEqual(["RDATE;VALUE=DATE:20261117"]);
+  });
+
+  it("writes no RDATE for an extra on a day an exdate removes, as the served occurrences leave it out, with a rule or without", () => {
+    // Arrange
+    const series = item({ start: { date: "2026-11-10", time: "14:00" }, rrule: { freq: "weekly", until: "2026-12-01" }, exdate: ["2026-11-24"], rdate: [{ start: { date: "2026-11-24", time: "16:00" } }, { start: { date: "2026-11-27", time: "14:00" } }] });
+    const plain = item({ id: "D2", start: { date: "2026-11-10" }, exdate: ["2026-11-17"], rdate: [{ start: { date: "2026-11-17" } }, { start: { date: "2026-11-20" } }] });
+
+    // Act
+    const [first, second] = eventsOf(toCalendar(NOTICE, [series, plain], NOW));
+
+    // Assert
+    expect(propertiesOf(first!, "RDATE")).toEqual(["RDATE;TZID=Asia/Seoul:20261127T140000"]);
+    expect(propertiesOf(second!, "RDATE")).toEqual(["RDATE;VALUE=DATE:20261120"]);
   });
 
   it("writes a plain span's skipped days and every gap after the agenda in the DESCRIPTION, and no EXDATE for a span with no rule", () => {

@@ -55,7 +55,7 @@ function toTimedBounds({ start, end }: Entry, first: Point): [string, string | u
 }
 
 function toRecurrence({ start, rrule, exdate = [], rdate = [] }: Entry, isTimed: boolean): string[] {
-  const extras = rdate.filter(isExportable).map((extra) => (isTimed ? toTimedExtra(extra) : `RDATE;VALUE=DATE:${toDateValue(extra.start.date)}`));
+  const extras = rdate.filter((extra) => isExportable(extra) && !exdate.includes(extra.start.date)).map((extra) => (isTimed ? toTimedExtra(extra) : `RDATE;VALUE=DATE:${toDateValue(extra.start.date)}`));
   if (!rrule) return extras;
   const exdates = exdate.map((date) => (isTimed ? toDateTimeValue({ date, time: start?.time }, "start") : toDateValue(date)));
   return [`RRULE:${toRule(rrule, isTimed)}`, ...(exdates.length > 0 ? [`EXDATE${toDateParam(isTimed)}:${exdates.join(",")}`] : []), ...extras];

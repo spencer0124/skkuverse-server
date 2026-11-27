@@ -235,7 +235,7 @@ The notice's schedule as an iCalendar file (RFC 5545), `Content-Type: text/calen
 | `start`, `end` | When either has a time, both are `DATE-TIME` with `TZID=Asia/Seoul`, under one `VTIMEZONE`: a `start` with no time opens its day, an `end` with no time closes it, and `24:00` is 00:00 of the next day. An `end` that is not after the `start` writes no `DTEND`. Otherwise the item is an all-day event: `DTSTART;VALUE=DATE` and an exclusive `DTEND` the day after the last day, or after the first day when `end` comes before it. A deadline (`end` alone) starts at its end, with no `DTEND` when it has a time |
 | `rrule` | `RRULE` as stored, its `UNTIL` the close of the last Seoul day (in UTC for a timed series); `DTSTART` is the stored `start`. An empty `byDay` cannot be stored |
 | `exdate` | On a series, `EXDATE` at the series' start time. An item with no `rrule` has no recurrence for `EXDATE` to remove from, so its days go to the `DESCRIPTION` as `제외 <date>` |
-| `rdate` | One `RDATE` each, of the event's type: a timed extra with an `end` is a `PERIOD`, an all-day one its day. An extra with a `latest` day is left out |
+| `rdate` | One `RDATE` each, of the event's type: a timed extra with an `end` is a `PERIOD`, an all-day one its day. An extra with a `latest` day is left out, and so is one on a day an `exdate` removes, as the served occurrences leave it out |
 | `gaps` | `제외 <start>~<end>` lines in the `DESCRIPTION`, since iCalendar cannot remove part of an occurrence |
 | `parts` | The `DESCRIPTION`'s agenda, before any `제외` line: one `<start>~<end> <title>` line each, with a date only where it differs from the item's first day |
 | `place` | Its `text` in `LOCATION` |
