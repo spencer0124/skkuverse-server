@@ -201,18 +201,23 @@ Outbound policy (`OUTBOUND_POLICY`, purpose `notice-attachment`, [ADR 0023](../d
   | `original` | `{ posterCount, attachments: [{ role, name, url }], links: [{ role, domain, url }] }`. An attachment's `url` is the one in the detail's `attachments` for that file, `null` when the list no longer holds it |
 
   The text is Korean for every `Accept-Language`. A place building cannot name, or one no building sheet holds, shows its quote with no action, and a fact the verifier disputed is left out. Renamed from `SketchDetail`: the fields sit under `screen`; `change.what` is `날짜` or `장소`; `posters` is `posterCount`; `action` also carries its `target`; `englishOnly` is dropped (umbrella ADR 0009, 2026-10-28), and the body is the existing `contentMarkdown`.
-- **`schedule` (the timeline).** The items of the `schedule` the crawler stores on the notice (umbrella ADR 0012 D4), in stored order, or `null` when the notice has none, its list is empty or it fails the stored schema. Each item is served as stored, optional keys left out when absent, except `place`:
+- **`schedule` (the timeline).** The items of the `schedule` the crawler stores on the notice, in its v2 shape (`contracts/consumed/notice-schedule.schema.json`), or `null` when the notice has none, its list is empty or it fails the stored schema, as a schedule stored in the v1 shape does. Items come in timeline order: on their `end`, else their `start`, a point on its `latest` day, else its `date`, then its `time`, `24:00` after `23:59`, and a point with no time at the end of its day. Each item is served as stored less its `evidence`, optional keys left out when absent, with its `place` named and its occurrences added:
 
   | Field | Meaning |
   | --- | --- |
-  | `id`, `title` | The item's id, unique in the notice and stable across its edits, and its short title |
-  | `start`, `end` | `{ date, time? }`, a Seoul local day (`YYYY-MM-DD`) and clock (`HH:MM`); `end` absent for a single moment or day |
-  | `precision` | `month` or `week` when the notice gives only a month or a week; `start` is then that period's first day, and the item is not exported |
-  | `repeat` | `{ freq: "weekly" \| "daily", byDay?, until? }` for a series, whose `start` and `end` are its first occurrence; `byDay` holds `MO` to `SU` |
-  | `except` | The days a series or range skips |
-  | `slots` | `{ start, end?, text }`, the times inside the item, `text` the notice line it sits on |
-  | `status`, `quote` | `scheduled`, `tentative`, `rescheduled`, `cancelled` or `suspended`, and the notice's words that show a status other than `scheduled` |
+  | `id`, `title` | The item's id, unique among the notice's items and parts and stable across its edits, and its short title |
+  | `status` | `scheduled`, `tentative`, `rescheduled`, `cancelled` or `suspended`; a rescheduled item is the entry as it now stands |
+  | `start`, `end` | `{ date, time?, latest? }`, a Seoul local day (`YYYY-MM-DD`) and clock (`HH:MM`), at least one of the two. An `end` alone is a deadline. `24:00` appears only on an `end`, the end of that day. `latest` is the last day a point can fall on, as `11월 말` is `2026-11-21` to `2026-11-30`, and a point with it has no `time`. For a plain item the two bound the whole span, holes included; for a series, its first occurrence |
+  | `rrule` | `{ freq: "daily" \| "weekly", byDay?, until? }`: every day, or each week's `byDay` days (`MO` to `SU`, the start's weekday when absent), through `until` or with no end |
+  | `exdate` | Whole days removed: a series' occurrence that starts on one, or that day of a plain span |
+  | `gaps` | `{ start, end }`, partial-day stretches removed from every occurrence |
+  | `rdate` | `{ start, end? }`, extra occurrences |
+  | `occurrences` | `{ start?, end? }` in time order: `rrule + rdate - exdate - gaps`, the first 31. A series' `start` is always its first occurrence, on its `byDay` days or not (RFC 5545). A cut at midnight ends the day before at `24:00`, or on that day for an item with no time. An extra equal to an occurrence counts once. An item with a `latest` point is its one occurrence as stored |
+  | `omittedCount` | How many occurrences past the first 31 are left out; `null` for a series with no `until` |
+  | `parts` | Agenda entries in stored order, each in the item's shape with its own `occurrences` and `omittedCount` and no `parts` of its own. A part with an `rrule` repeats its time across the item's days, as a shuttle timetable does |
   | `place` | `{ text, name, mapTarget }`: `text` the notice's words, always shown; `name` the place's name and code and `mapTarget` `{ skkuId, spaceCd }` (the building sheet) when the crawler stored an id building names, else `null` |
+
+  Every date and time is Asia/Seoul wall time, computed on the strings, so the answer does not depend on the server's time zone. The app computes "passed" itself: an item is passed once the instant it sorts on is past, which for a series is its last occurrence.
 
 - **`brief` (the answer).** `{ question, bullets: [{ text }] }` from the `brief` the crawler stores on the notice (umbrella ADR 0012 D4), or `null` when the notice has none, its bullets are empty or it fails the stored schema, and the app then shows neither. `question` is the tab's question (umbrella ADR 0012 D1) in the language stored with the brief, never the request's `Accept-Language`, and is `null` for the `core` key, which has no question, so the app shows its bullets with no heading. A bullet is an object, so a later add-on can add a field; the writer's `cites` are not served.
 
@@ -221,17 +226,18 @@ Outbound policy (`OUTBOUND_POLICY`, purpose `notice-attachment`, [ADR 0023](../d
 
 ## GET /notices/:sourceId/:articleNo/schedule.ics
 
-The notice's schedule as an iCalendar file (RFC 5545), `Content-Type: text/calendar; charset=utf-8`, outside the JSON envelope. The parameters and their 400 answers are the detail route's. It answers 404 `NOT_FOUND` (`notice has no calendar events`) for a missing or deleted notice and for one with no exportable item. Errors keep the JSON error body.
+The notice's schedule as an iCalendar file (RFC 5545), `Content-Type: text/calendar; charset=utf-8`, outside the JSON envelope. The parameters and their 400 answers are the detail route's. It answers 404 `NOT_FOUND` (`notice has no calendar events`) for a missing or deleted notice and for one with no exportable item. Errors keep the JSON error body. The stored rules are written as they are, with no cap on occurrences.
 
 | Item | iCalendar |
 | --- | --- |
-| The item | One `VEVENT`; an item with `precision` is left out |
+| The item | One `VEVENT`; an item whose `start` or `end` has a `latest` day is left out, since any one day of the range would be invented |
 | `id` | `UID:<cluster key>-<id>@skkuverse`: the crawler's `dupOf`, or the notice's own `_id` while it is unlinked, so the copies of one article on several boards export one event. The id is percent-encoded, which leaves a hex id as stored |
-| `start`, `end` with a time | `DTSTART`, `DTEND` with `TZID=Asia/Seoul`, under one `VTIMEZONE`; no `end` writes no `DTEND`, and an `end` with no time ends at the start of the next day. An `end` that is not after the `start` writes no `DTEND` |
-| `start` with no time | An all-day event: `DTSTART;VALUE=DATE` and an exclusive `DTEND` the day after the last day, or after the first day when `end` comes before it |
-| `repeat` | `RRULE`, its `UNTIL` the close of the last Seoul day (in UTC for a timed series). `DTSTART` is the first `byDay` day on or after `start`, and a series with no such day before `until` is left out, so a notice with only such series answers 404. Each occurrence ends at the `end` time on its own day, or on the next day when that time is not after the start time; an all-day occurrence lasts one day. An empty `byDay` writes no `BYDAY` |
-| `except` | `EXDATE` at the series' time. A range with skipped days and no `repeat` becomes a daily series over the range, since an `EXDATE` removes only occurrences of a recurrence. When its end time is not after its start time, each night ends the next morning and the last night starts the day before the range ends |
-| `slots` | Their lines, once each, in the `DESCRIPTION` |
+| `start`, `end` | When either has a time, both are `DATE-TIME` with `TZID=Asia/Seoul`, under one `VTIMEZONE`: a `start` with no time opens its day, an `end` with no time closes it, and `24:00` is 00:00 of the next day. An `end` that is not after the `start` writes no `DTEND`. Otherwise the item is an all-day event: `DTSTART;VALUE=DATE` and an exclusive `DTEND` the day after the last day, or after the first day when `end` comes before it. A deadline (`end` alone) starts at its end, with no `DTEND` when it has a time |
+| `rrule` | `RRULE` as stored, its `UNTIL` the close of the last Seoul day (in UTC for a timed series); `DTSTART` is the stored `start`. An empty `byDay` cannot be stored |
+| `exdate` | On a series, `EXDATE` at the series' start time. An item with no `rrule` has no recurrence for `EXDATE` to remove from, so its days go to the `DESCRIPTION` as `제외 <date>` |
+| `rdate` | One `RDATE` each, of the event's type: a timed extra with an `end` is a `PERIOD`, an all-day one its day. An extra with a `latest` day is left out |
+| `gaps` | `제외 <start>~<end>` lines in the `DESCRIPTION`, since iCalendar cannot remove part of an occurrence |
+| `parts` | The `DESCRIPTION`'s agenda, before any `제외` line: one `<start>~<end> <title>` line each, with a date only where it differs from the item's first day |
 | `place` | Its `text` in `LOCATION` |
 | `status` | `STATUS:CONFIRMED` for `scheduled` and `rescheduled`, `TENTATIVE` for `tentative`, `CANCELLED` for `cancelled` and for `suspended`, which will not happen at its stored time |
 
@@ -332,7 +338,7 @@ The code is the source of truth for file names; `docs/explanation/notices-archit
 | `GET /notices/tabs` | `tabs/` |
 | `GET /notices/source/:sourceId`, `GET /notices`: reads, index, projection, cursor, list item, badge | `list/` |
 | `GET /notices/:sourceId/:articleNo` and its `schedule.ics` | `detail/` |
-| The detail's `schedule`: the stored schedule parsed and its places named, through `screen/` | `schedule/`, and the published shape in `detail/notices-detail.wire.ts` |
+| The detail's `schedule`: the stored schedule parsed, its occurrences expanded and its places named, through `screen/` | `schedule/`, and the published shape in `notices.wire.ts` |
 | The detail's `brief`: the stored brief parsed and its question fixed, through `screen/` | `brief/`, and the published shape in `detail/notices-detail.wire.ts` |
 | The detail's `screen`, rendered from `row/`'s reading of the notice | `screen/`, and the published shape in `notices.wire.ts` |
 | `GET /notices/overview`: retrieval, the ai call, citation mapping, cache | `overview/` |
@@ -354,7 +360,8 @@ The choices behind the routes above, kept out of the module doc.
 - **Brief and full summaries.** A list cell gets the one-liner and badge dates; the detail gets the full summary with the ai's arrays passed through.
 - **Auth before the limiter, as middleware.** Nest runs middleware before guards, and the limiter may read `req.principal`, so a guard would set it too late ([ADR 0010](../decisions/0010-server-architecture.md), D7).
 - **`sources.json` is the server's copy.** It adds the UX metadata (campus, category, availability) the crawler's selector config lacks, so editing it needs no app release.
-- **The calendar export is a file, not the envelope.** The handler returns a `StreamableFile`, which `ResponseInterceptor` passes through, so no handler takes `@Res()`; the iCalendar text is written by hand (`detail/notices-detail.rules.ts`, from the items the detail serves), since the subset is small and no library is a dependency.
+- **The calendar export is a file, not the envelope.** The handler returns a `StreamableFile`, which `ResponseInterceptor` passes through, so no handler takes `@Res()`; the iCalendar text is written by hand (`detail/notices-detail.rules.ts`, from the items the detail serves, its content lines by `src/shared/icalendar.util.ts`), since the subset is small and no library is a dependency.
+- **The occurrences are expanded by hand.** `schedule/notices-schedule.rules.ts` repeats a stored rule, which is only `daily` or `weekly` with `byDay` and a day `until`, with no interval, count or time zone. Rejected: rrule.js, whose README says it leaves out a `DTSTART` that its rule does not fall on, against RFC 5545, and any iCalendar library, since `exdate` on a plain span, `gaps` and `24:00` have no iCalendar meaning and stay custom either way.
 - **A deleted notice is a 404.** The crawler soft-deletes; lists hide it and the detail answers 404, which clears the app's cache entry.
 - **One row per article by scanning past the page.** A read of several sources scans `CLUSTER_SCAN_FACTOR × (limit + 1)` rows after the cursor, reading only `_id`, `dupOf`, `date` and `crawledAt` (`SCAN_PROJECTION`), and keeps a scanned row only when no copy of its article sorts before it. Copies before it in the batch are in hand; for the others it looks up the copies of the scanned articles in the same scope at or before the cursor, which an earlier page served. Page 1 has no cursor and needs no lookup. It scans again after the last row scanned until it holds `limit + 1` rows or the list ends, at most `MAX_SCANS_PER_PAGE` times. A page that runs out of scans is served short, with `hasMore` true and a cursor after its last scanned row, so the next page resumes there. It then reads the `limit` rows it serves in full with one `_id: { $in }` read. Rejected: a `$group` of the whole scope by `dupOf`, which reads every notice of the scope before it can serve page 1.
 - **The read indexes are the server's.** The crawler owns the unique `articleNo_1_sourceId_1`; the poller creates `sourceId_1_date_-1__id_-1` and `dupOf_1_sourceId_1__id_1` at boot (three attempts, an error-level log on failure). Every list read and scan is hinted to `sourceId_1_date_-1__id_-1`, and the lookup of a scanned batch's earlier copies to `dupOf_1_sourceId_1__id_1`; the read of the served rows by `_id` takes the `_id` index.
