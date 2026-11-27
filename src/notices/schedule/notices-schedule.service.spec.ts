@@ -56,15 +56,15 @@ describe("NoticesScheduleService.describeSchedule", () => {
     const items = await service.describeSchedule(notice(SCHEDULE));
 
     // Assert
-    expect(items?.map((item) => item.id)).toEqual(["1a2b3c4d", "2b3c4d5e", "6f708192", "708192a3", "5e6f7081"]);
+    expect(items?.map((item) => item.id)).toEqual(["1a2b3c4d", "6f708192", "2b3c4d5e", "708192a3", "5e6f7081"]);
     expect(items?.map((item) => item.place ?? null)).toEqual([
+      null,
       null,
       { text: "경영관 33B101호", name: "경영관 33B101", mapTarget: { skkuId: 12, spaceCd: "33B101" } },
       null,
-      null,
       { text: "온라인 (Zoom)", name: null, mapTarget: null },
     ]);
-    expect(items?.[1]?.parts?.map((part) => part.place ?? null)).toEqual([null, { text: "경영관", name: "경영관 33", mapTarget: { skkuId: 12, spaceCd: null } }]);
+    expect(items?.[2]?.parts?.map((part) => part.place ?? null)).toEqual([null, { text: "경영관", name: "경영관 33", mapTarget: { skkuId: 12, spaceCd: null } }]);
     expect(items?.[4]?.occurrences.map((occurrence) => occurrence.start?.date)).toEqual(["2026-11-04", "2026-11-11", "2026-11-18", "2026-12-02", "2026-12-09", "2026-12-16"]);
     expect(mockLogger.warn).not.toHaveBeenCalled();
   });
@@ -117,7 +117,7 @@ describe("NoticesScheduleService.describeSchedule", () => {
     const items = await service.describeSchedule(notice(SCHEDULE));
 
     // Assert
-    expect(items?.[1]?.place).toEqual({ text: "경영관 33B101호", name: null, mapTarget: null });
+    expect(items?.[2]?.place).toEqual({ text: "경영관 33B101호", name: null, mapTarget: null });
     expect(logText(mockLogger.warn.mock.calls[0])).toContain("notices.schedule.places_unavailable");
   });
 });

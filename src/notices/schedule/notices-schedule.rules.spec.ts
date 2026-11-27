@@ -11,8 +11,9 @@
  * (`latest`) is its one occurrence as stored.
  *
  * toTimelineMinute orders items on their end, else their start: a point on its `latest` day, else its date, then its
- * time, 24:00 after 23:59, and a point with no time at the end of its day. A series with an `until` sorts on the end of
- * its last occurrence, extras included; a series with no `until` on the end of its first.
+ * time, 24:00 after 23:59, and a point with no time at the end of its day. An item with more than one occurrence (a
+ * series with an `until`, extras, or both) sorts on the latest end among them; a series with no `until` on the end of
+ * its first occurrence, or of a later extra.
  */
 import { MAX_SCHEDULE_OCCURRENCES } from "./notices-schedule.constants";
 import { toOccurrences, toTimelineMinute } from "./notices-schedule.rules";
@@ -278,5 +279,60 @@ describe("toTimelineMinute", () => {
   it("sorts a series with no until on the end of its first occurrence", () => {
     // Act & Assert
     expect(toTimelineMinute(series({ rrule: { freq: "daily" } }))).toBe(toTimelineMinute(item({ end: at("2026-11-02", "10:00") })));
+  });
+
+  const extra = (date: string) => ({ start: at(date, "09:00"), end: at(date, "10:00") });
+
+  it("sorts an item with extras and no rule on the end of its latest extra", () => {
+    // Arrange
+    const lecture = series({ rdate: [extra("2026-11-09"), extra("2026-12-14"), extra("2026-11-16")] });
+
+    // Act & Assert
+    expect(toTimelineMinute(lecture)).toBe(toTimelineMinute(item({ end: at("2026-12-14", "10:00") })));
+  });
+
+  it("sorts an item with extras on its own end when every extra ends before it", () => {
+    // Arrange
+    const spanned = item({ start: at("2026-11-02", "09:00"), end: at("2026-12-01", "10:00"), rdate: [extra("2026-11-09")] });
+
+    // Act & Assert
+    expect(toTimelineMinute(spanned)).toBe(toTimelineMinute(item({ end: at("2026-12-01", "10:00") })));
+  });
+
+  it("sorts an item with extras on the latest extra that exdate leaves", () => {
+    // Arrange
+    const lecture = series({ rdate: [extra("2026-11-09"), extra("2026-11-16")], exdate: ["2026-11-16"] });
+
+    // Act & Assert
+    expect(toTimelineMinute(lecture)).toBe(toTimelineMinute(item({ end: at("2026-11-09", "10:00") })));
+  });
+
+  it("sorts an item with extras on the end of the extra a gap cuts short", () => {
+    // Arrange
+    const lecture = series({ rdate: [extra("2026-11-09")], gaps: [{ start: at("2026-11-09", "09:30"), end: at("2026-11-09", "10:00") }] });
+
+    // Act & Assert
+    expect(toTimelineMinute(lecture)).toBe(toTimelineMinute(item({ end: at("2026-11-09", "09:30") })));
+  });
+
+  it("sorts a series with no until on a later extra", () => {
+    // Arrange
+    const open = series({ rrule: { freq: "weekly" }, rdate: [extra("2026-11-09"), extra("2027-01-11")] });
+
+    // Act & Assert
+    expect(toTimelineMinute(open)).toBe(toTimelineMinute(item({ end: at("2027-01-11", "10:00") })));
+  });
+
+  it("sorts a series with no until on its first end when the extras end before it", () => {
+    // Arrange
+    const open = series({ start: at("2026-11-10", "09:00"), end: at("2026-11-10", "10:00"), rrule: { freq: "weekly" }, rdate: [extra("2026-11-03")] });
+
+    // Act & Assert
+    expect(toTimelineMinute(open)).toBe(toTimelineMinute(item({ end: at("2026-11-10", "10:00") })));
+  });
+
+  it("sorts a plain item with an exdate on its own end", () => {
+    // Act & Assert
+    expect(toTimelineMinute(series({ exdate: ["2026-11-02"] }))).toBe(toTimelineMinute(item({ end: at("2026-11-02", "10:00") })));
   });
 });

@@ -57,8 +57,7 @@ function toPieces(instance: Instance, stretches: readonly Stretch[]): Instance[]
   );
 }
 
-const toShiftedEdge = (edge: Edge | undefined, minutes: number): Edge | undefined => edge && { ...edge, minute: edge.minute + minutes };
-const toShifted = ({ from, to, start, end }: Instance, minutes: number): Instance => ({ from: from + minutes, to: to + minutes, start: toShiftedEdge(start, minutes), end: toShiftedEdge(end, minutes) });
+const toShifted = ({ from, to, start, end }: Instance, minutes: number): Instance => ({ from: from + minutes, to: to + minutes, start: start && { ...start, minute: start.minute + minutes }, end: end && { ...end, minute: end.minute + minutes } });
 
 function toWeekdayIndexes({ freq, byDay }: Rule, firstDay: number): Set<number> {
   if (byDay) return new Set(byDay.map((code) => SCHEDULE_WEEKDAYS.indexOf(code)));
@@ -99,8 +98,9 @@ const toPointMinute = ({ start, end }: Pick<Entry, "start" | "end">): number => 
   return point ? toEdge({ date: point.latest ?? point.date, time: point.time }, "end").minute : Number.POSITIVE_INFINITY;
 };
 
-// SEE: docs/reference/notices-api.md ("GET /notices/:sourceId/:articleNo"): an item sorts on its end, else its start, and a point on its last possible minute; a series with an `until` on its last occurrence.
+// SEE: docs/reference/notices-api.md ("GET /notices/:sourceId/:articleNo"): an item sorts on its end, else its start, and a point on its last possible minute; an item with more than one occurrence on the latest end among them.
 export function toTimelineMinute(entry: Entry): number {
-  const ends = entry.rrule?.until === undefined ? [] : toInstances(entry).map((instance) => toPointMinute(toOccurrence(instance)));
-  return ends.length > 0 ? ends.reduce((latest, end) => Math.max(latest, end)) : toPointMinute(entry);
+  const isOpenEnded = entry.rrule !== undefined && entry.rrule.until === undefined;
+  const ends = (entry.rrule !== undefined || (entry.rdate?.length ?? 0) > 0 ? toInstances(isOpenEnded ? { ...entry, rrule: undefined } : entry) : []).map((instance) => toPointMinute(toOccurrence(instance)));
+  return [...(isOpenEnded || ends.length === 0 ? [toPointMinute(entry)] : []), ...ends].reduce((latest, end) => Math.max(latest, end));
 }
