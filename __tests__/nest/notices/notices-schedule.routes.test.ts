@@ -92,8 +92,8 @@ describe("GET /notices/:sourceId/:articleNo, the schedule", () => {
     expectWire(noticeDetail, res.body.data);
     expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
     expect(res.body.meta).toEqual({ lang: "ko" });
-    expect(res.body.data.schedule.map((item: { id: string }) => item.id)).toEqual(["5e6f7081", "1a2b3c4d", "2b3c4d5e", "6f708192", "708192a3"]);
-    expect(res.body.data.schedule[2]).toEqual({
+    expect(res.body.data.schedule.map((item: { id: string }) => item.id)).toEqual(["1a2b3c4d", "2b3c4d5e", "6f708192", "708192a3", "5e6f7081"]);
+    expect(res.body.data.schedule[1]).toEqual({
       id: "2b3c4d5e",
       title: "진로 설명회",
       status: "tentative",
@@ -121,11 +121,11 @@ describe("GET /notices/:sourceId/:articleNo, the schedule", () => {
       ],
     });
     expect(res.body.data.schedule.map((item: { occurrences: unknown[] }) => item.occurrences)).toEqual([
-      ["2026-11-04", "2026-11-11", "2026-11-18", "2026-12-02", "2026-12-09", "2026-12-16"].map((date) => ({ start: at(date, "19:00"), end: at(date, "21:00") })),
       [{ end: at("2026-11-06", "24:00") }],
       [{ start: at("2026-11-10", "14:00"), end: at("2026-11-10", "16:00") }, { start: at("2026-11-17", "14:00"), end: at("2026-11-17", "16:00") }],
       [{ start: at("2026-11-09", "09:00"), end: at("2026-11-11", "12:00") }, { start: at("2026-11-11", "13:00"), end: at("2026-11-13", "18:00") }],
       [{ start: { date: "2026-12-01", latest: "2026-12-10" } }],
+      ["2026-11-04", "2026-11-11", "2026-11-18", "2026-12-02", "2026-12-09", "2026-12-16"].map((date) => ({ start: at(date, "19:00"), end: at(date, "21:00") })),
     ]);
   });
 
@@ -163,10 +163,10 @@ describe("GET /notices/:sourceId/:articleNo/schedule.ics", () => {
     expect(res.text.startsWith("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n")).toBe(true);
     expect(res.text.endsWith("END:VCALENDAR\r\n")).toBe(true);
     expect(res.text.match(/^UID:.*$/gm)).toEqual([
-      "UID:6a5ed9e520097db8672d2097-5e6f7081@skkuverse",
       "UID:6a5ed9e520097db8672d2097-1a2b3c4d@skkuverse",
       "UID:6a5ed9e520097db8672d2097-2b3c4d5e@skkuverse",
       "UID:6a5ed9e520097db8672d2097-6f708192@skkuverse",
+      "UID:6a5ed9e520097db8672d2097-5e6f7081@skkuverse",
     ]);
     expect(res.text).toContain("DTSTAMP:20261122T030000Z\r\n");
     expect(res.text).toContain("RRULE:FREQ=WEEKLY;BYDAY=WE;UNTIL=20261216T145959Z\r\nEXDATE;TZID=Asia/Seoul:20261125T190000\r\n");

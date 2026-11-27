@@ -78,23 +78,29 @@ function toSeries(first: Instance, rule: Rule, toKept: (instance: Instance) => I
   return instances;
 }
 
-export function toOccurrences(entry: Entry): Pick<NoticeScheduleItem, "occurrences" | "omittedCount"> {
+function toInstances(entry: Entry): Instance[] {
   const exdays = new Set((entry.exdate ?? []).map(toDayNumber));
   const gaps = (entry.gaps ?? []).map(({ start, end }): Stretch => ({ from: toEdge(start, "start").minute, to: toEdge(end, "end").minute }));
   const isOnExdate = (instance: Instance): boolean => exdays.has(toDayOf(instance.from));
-  const first = toInstance(entry);
   const base = entry.rrule
-    ? toSeries(first, entry.rrule, (instance) => (isOnExdate(instance) ? [] : toPieces(instance, gaps)))
-    : toPieces(first, [...[...exdays].map((day) => ({ from: day * DAY_MINUTES, to: (day + 1) * DAY_MINUTES })), ...gaps]);
+    ? toSeries(toInstance(entry), entry.rrule, (instance) => (isOnExdate(instance) ? [] : toPieces(instance, gaps)))
+    : toPieces(toInstance(entry), [...[...exdays].map((day) => ({ from: day * DAY_MINUTES, to: (day + 1) * DAY_MINUTES })), ...gaps]);
   const extras = (entry.rdate ?? []).map(toInstance).filter((instance) => !isOnExdate(instance)).flatMap((instance) => toPieces(instance, gaps));
-  const byStretch = new Map([...base, ...extras].map((instance) => [`${instance.from}/${instance.to}`, instance]));
-  const instances = [...byStretch.values()].sort((a, b) => a.from - b.from || a.to - b.to);
-  const isEndless = entry.rrule !== undefined && entry.rrule.until === undefined;
-  return { occurrences: instances.slice(0, MAX_SCHEDULE_OCCURRENCES).map(toOccurrence), omittedCount: isEndless ? null : Math.max(0, instances.length - MAX_SCHEDULE_OCCURRENCES) };
+  return [...new Map([...base, ...extras].map((instance) => [`${instance.from}/${instance.to}`, instance])).values()].sort((a, b) => a.from - b.from || a.to - b.to);
 }
 
-// SEE: docs/reference/notices-api.md ("GET /notices/:sourceId/:articleNo"): an item sorts on its end, else its start, and a point on its last possible minute.
-export function toTimelineMinute({ start, end }: Pick<ScheduleItem, "start" | "end">): number {
+export function toOccurrences(entry: Entry): Pick<NoticeScheduleItem, "occurrences" | "omittedCount"> {
+  const instances = toInstances(entry);
+  return { occurrences: instances.slice(0, MAX_SCHEDULE_OCCURRENCES).map(toOccurrence), omittedCount: entry.rrule !== undefined && entry.rrule.until === undefined ? null : Math.max(0, instances.length - MAX_SCHEDULE_OCCURRENCES) };
+}
+
+const toPointMinute = ({ start, end }: Pick<Entry, "start" | "end">): number => {
   const point = end ?? start;
   return point ? toEdge({ date: point.latest ?? point.date, time: point.time }, "end").minute : Number.POSITIVE_INFINITY;
+};
+
+// SEE: docs/reference/notices-api.md ("GET /notices/:sourceId/:articleNo"): an item sorts on its end, else its start, and a point on its last possible minute; a series with an `until` on its last occurrence.
+export function toTimelineMinute(entry: Entry): number {
+  const ends = entry.rrule?.until === undefined ? [] : toInstances(entry).map((instance) => toPointMinute(toOccurrence(instance)));
+  return ends.length > 0 ? ends.reduce((latest, end) => Math.max(latest, end)) : toPointMinute(entry);
 }

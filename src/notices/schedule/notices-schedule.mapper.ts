@@ -23,7 +23,8 @@ function toServedEntry({ place, evidence: _evidence, parts: _parts, ...entry }: 
 /** WHY: `displays` holds building's answer for each of `placeIds` at the same position, null where building names none. */
 export function toScheduleItems(items: readonly ScheduleItem[], placeIds: readonly string[], displays: ReadonlyArray<PlaceDisplay | null>): NoticeScheduleItem[] {
   const names = { placeIds, displays };
-  return [...items]
-    .sort((a, b) => toTimelineMinute(a) - toTimelineMinute(b))
-    .map((item) => ({ ...toServedEntry(item, names), ...(item.parts && { parts: item.parts.map((part) => toServedEntry(part, names)) }) }));
+  return items
+    .map((item) => ({ item, minute: toTimelineMinute(item) }))
+    .sort((a, b) => a.minute - b.minute)
+    .map(({ item }) => ({ ...toServedEntry(item, names), ...(item.parts && { parts: item.parts.map((part) => toServedEntry(part, names)) }) }));
 }

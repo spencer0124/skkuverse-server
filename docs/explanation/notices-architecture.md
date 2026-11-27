@@ -60,7 +60,7 @@ The crawler owns the `notices` collection: it writes every document, and skkuver
 | block key (`BlockKey`) | One block of the umbrella's block table, in its order; its label, numbering and fold are `BLOCK_SPECS` and its lines `BLOCK_LINES` | `BLOCK_KEYS` | — |
 | schedule item (`ScheduleItem`) | One entry of the crawler's `schedule`: a title and status with a start, an end or both, its series (`rrule`), removed days (`exdate`) and stretches (`gaps`), extra occurrences (`rdate`), one level of parts, its place and its evidence | `storedSchedule` | — |
 | occurrence | One stretch or moment of a schedule item in Asia/Seoul wall time, from `rrule + rdate - exdate - gaps`; the detail serves the first `MAX_SCHEDULE_OCCURRENCES` and counts the rest | `toOccurrences` | — |
-| timeline minute | The wall minute an item sorts on: its end, else its start, a point's `latest` day, else its date, and the end of a day with no time | `toTimelineMinute` | — |
+| timeline minute | The wall minute an item sorts on: its end, else its start (for a series with an `until`, the end of its last occurrence), a point's `latest` day, else its date, and the end of a day with no time | `toTimelineMinute` | — |
 | notice schedule item (`NoticeScheduleItem`) | A schedule item as the detail serves it: as stored less its evidence, its place named by building, with its occurrences, in timeline order | `toScheduleItems` | — |
 | calendar export | A notice's exportable schedule items as one iCalendar text, one event per item, its rules written as stored | `toCalendar` | — |
 | stored brief (`StoredBrief`) | The `brief` of the crawler's notice: a question key, the language the bullets are written in, the bullets and the writer's version | `storedBrief` | — |

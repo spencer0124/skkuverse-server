@@ -11,7 +11,8 @@
  * (`latest`) is its one occurrence as stored.
  *
  * toTimelineMinute orders items on their end, else their start: a point on its `latest` day, else its date, then its
- * time, 24:00 after 23:59, and a point with no time at the end of its day.
+ * time, 24:00 after 23:59, and a point with no time at the end of its day. A series with an `until` sorts on the end of
+ * its last occurrence, extras included; a series with no `until` on the end of its first.
  */
 import { MAX_SCHEDULE_OCCURRENCES } from "./notices-schedule.constants";
 import { toOccurrences, toTimelineMinute } from "./notices-schedule.rules";
@@ -232,5 +233,50 @@ describe("toTimelineMinute", () => {
   it("ties a point with no time with 24:00 that day", () => {
     // Act & Assert
     expect(toTimelineMinute(item({ end: at("2026-11-06") }))).toBe(toTimelineMinute(item({ end: at("2026-11-06", "24:00") })));
+  });
+
+  const series = (extra: Partial<ScheduleItem>) => item({ start: at("2026-11-02", "09:00"), end: at("2026-11-02", "10:00"), ...extra });
+
+  it.each([
+    ["a series after an item that ends between its first and last day", series({ rrule: { freq: "weekly", until: "2026-11-30" } }), item({ end: at("2026-11-10") })],
+    ["a series past the occurrences served, on its last", series({ rrule: { freq: "daily", until: "2027-03-01" } }), item({ end: at("2027-02-01") })],
+    ["a series after an item ending on its last day, before its end time", series({ rrule: { freq: "weekly", until: "2026-11-16" } }), item({ end: at("2026-11-16", "09:30") })],
+  ])("sorts %s", (_case, later, earlier) => {
+    // Act & Assert
+    expect(toTimelineMinute(earlier)).toBeLessThan(toTimelineMinute(later));
+  });
+
+  it("sorts a series before an item ending after its last occurrence, though its until is later", () => {
+    // Arrange
+    const ended = series({ rrule: { freq: "weekly", until: "2026-11-29" } });
+
+    // Act & Assert
+    expect(toTimelineMinute(ended)).toBeLessThan(toTimelineMinute(item({ end: at("2026-11-24") })));
+  });
+
+  it("sorts a series on the end of its last occurrence", () => {
+    // Act & Assert
+    expect(toTimelineMinute(series({ rrule: { freq: "weekly", until: "2026-11-30" } }))).toBe(toTimelineMinute(item({ end: at("2026-11-30", "10:00") })));
+  });
+
+  it("sorts a series past its removed last day on the occurrence before it", () => {
+    // Arrange
+    const trimmed = series({ rrule: { freq: "weekly", until: "2026-11-30" }, exdate: ["2026-11-30"] });
+
+    // Act & Assert
+    expect(toTimelineMinute(trimmed)).toBe(toTimelineMinute(item({ end: at("2026-11-23", "10:00") })));
+  });
+
+  it("sorts a series on a later extra", () => {
+    // Arrange
+    const extended = series({ rrule: { freq: "weekly", until: "2026-11-09" }, rdate: [{ start: at("2026-12-01", "09:00"), end: at("2026-12-01", "10:00") }] });
+
+    // Act & Assert
+    expect(toTimelineMinute(extended)).toBe(toTimelineMinute(item({ end: at("2026-12-01", "10:00") })));
+  });
+
+  it("sorts a series with no until on the end of its first occurrence", () => {
+    // Act & Assert
+    expect(toTimelineMinute(series({ rrule: { freq: "daily" } }))).toBe(toTimelineMinute(item({ end: at("2026-11-02", "10:00") })));
   });
 });
