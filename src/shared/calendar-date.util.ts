@@ -17,3 +17,13 @@ export function toDayNumber(date: string): number {
 export function toCalendarDate(dayNumber: number): string {
   return new Date(dayNumber * MS_PER_DAY).toISOString().slice(0, 10);
 }
+
+/** WHY: day 0, 1970-01-01, was a Thursday, index 3 counted from Monday. */
+export const toWeekdayIndex = (dayNumber: number): number => (((dayNumber + 3) % 7) + 7) % 7;
+
+export function countWeekdays(firstDay: number, lastDay: number, weekdays: ReadonlySet<number>): number {
+  const toDaysUntil = (weekday: number): number => (weekday - toWeekdayIndex(firstDay) + 7) % 7;
+  return [...weekdays].reduce((count, weekday) => count + Math.max(0, Math.floor((lastDay - firstDay - toDaysUntil(weekday)) / 7) + 1), 0);
+}
+
+export const toLastWeekday = (lastDay: number, weekdays: ReadonlySet<number>): number => lastDay - Math.min(...[...weekdays].map((weekday) => (toWeekdayIndex(lastDay) - weekday + 7) % 7));
