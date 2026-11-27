@@ -124,6 +124,7 @@
         ]
       }
     },
-    "schedule": null
+    "schedule": null,
+    "brief": null
   }
 }

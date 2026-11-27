@@ -537,6 +537,7 @@ describe("GET /notices/:sourceId/:articleNo over real documents", () => {
       },
       screen: null,
       schedule: null,
+      brief: null,
     });
   });
 

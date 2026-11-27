@@ -1,0 +1,13 @@
+{
+  "_about": "Hand-written 2026-11-27: a notice `brief` in the shape of umbrella docs/decisions/0012-notice-brief-and-add-ons.md D4, as skkuverse-ai's brief writer returns it (app/brief/writer.py): bullets carry the `cites` fragment ids the writer keeps for its own check, and `version` is a 20-hex freeze key. Synthetic because the crawler stores no brief yet; replace it with a captured one when it does.",
+  "brief": {
+    "questionKey": "scholarship",
+    "language": "ko",
+    "bullets": [
+      { "text": "직전학기 12학점(마지막 학기는 9학점) 이상을 이수한 자연과학대학 재학생이 신청할 수 있어요.", "cites": ["f3", "f4"] },
+      { "text": "평점평균이 2.0 이상이어야 해요.", "cites": ["f5"] },
+      { "text": "선발되면 등록금 전액을 지원받아요.", "cites": ["f7"] }
+    ],
+    "version": "9f2c41b07a3de6185c04"
+  }
+}

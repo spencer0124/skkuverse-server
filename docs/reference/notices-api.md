@@ -214,6 +214,8 @@ Outbound policy (`OUTBOUND_POLICY`, purpose `notice-attachment`, [ADR 0023](../d
   | `status`, `quote` | `scheduled`, `tentative`, `rescheduled`, `cancelled` or `suspended`, and the notice's words that show a status other than `scheduled` |
   | `place` | `{ text, name, mapTarget }`: `text` the notice's words, always shown; `name` the place's name and code and `mapTarget` `{ skkuId, spaceCd }` (the building sheet) when the crawler stored an id building names, else `null` |
 
+- **`brief` (the answer).** `{ question, bullets: [{ text }] }` from the `brief` the crawler stores on the notice (umbrella ADR 0012 D4), or `null` when the notice has none, its bullets are empty or it fails the stored schema, and the app then shows neither. `question` is the tab's question (umbrella ADR 0012 D1) in the language stored with the brief, never the request's `Accept-Language`, and is `null` for the `core` key, which has no question, so the app shows its bullets with no heading. A bullet is an object, so a later add-on can add a field; the writer's `cites` are not served.
+
 - **ETag/304:** the response carries Express's default weak `ETag`, and a matching `If-None-Match` answers 304.
 - A notice the crawler marked `isDeleted` answers 404.
 
@@ -331,6 +333,7 @@ The code is the source of truth for file names; `docs/explanation/notices-archit
 | `GET /notices/source/:sourceId`, `GET /notices`: reads, index, projection, cursor, list item, badge | `list/` |
 | `GET /notices/:sourceId/:articleNo` and its `schedule.ics` | `detail/` |
 | The detail's `schedule`: the stored schedule parsed and its places named, through `screen/` | `schedule/`, and the published shape in `detail/notices-detail.wire.ts` |
+| The detail's `brief`: the stored brief parsed and its question fixed, through `screen/` | `brief/`, and the published shape in `detail/notices-detail.wire.ts` |
 | The detail's `screen`, rendered from `row/`'s reading of the notice | `screen/`, and the published shape in `notices.wire.ts` |
 | `GET /notices/overview`: retrieval, the ai call, citation mapping, cache | `overview/` |
 | `GET /notices/proxy/attachment` | `attachment/`, with the outbound policy behind `OUTBOUND_POLICY` (`src/perimeter/perimeter.ports.ts`) |

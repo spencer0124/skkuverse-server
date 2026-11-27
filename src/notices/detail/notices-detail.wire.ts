@@ -51,6 +51,8 @@ const noticeScheduleItem = z.object({
   status: z.enum(SCHEDULE_STATUSES), quote: z.string().optional(), place: schedulePlace.optional(),
 });
 
+const noticeBrief = z.object({ question: z.string().nullable(), bullets: z.array(z.object({ text: z.string() })) });
+
 const attachment = z.object({ name: z.string(), url: z.string(), referer: z.string().optional() });
 
 export const noticeDetail = z.object({
@@ -75,8 +77,11 @@ export const noticeDetail = z.object({
   screen: noticeScreen.nullable(),
   // WHY: null when the notice has no schedule, an empty one or one the schema refuses: the app then shows no timeline.
   schedule: z.array(noticeScheduleItem).nullable(),
+  // WHY: null when the notice has no brief, one with no bullets or one the schema refuses: the app then shows no question and no bullets.
+  brief: noticeBrief.nullable(),
 });
 
 export type NoticeSummaryFull = z.input<typeof noticeSummaryFull>;
 export type NoticeDetail = z.input<typeof noticeDetail>;
 export type NoticeScheduleItem = z.input<typeof noticeScheduleItem>;
+export type NoticeBrief = z.input<typeof noticeBrief>;
