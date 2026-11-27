@@ -1,7 +1,7 @@
 /**
  * The notice schedule on the wire, in its v2 shape: the detail serves the stored schedule items in timeline order, each
- * with its occurrences and parts, each place named by building, and null for a notice without one or with one the
- * schema refuses, a v1 schedule included; `GET /notices/:sourceId/:articleNo/schedule.ics` serves its exportable items
+ * with its occurrences and parts, each place named by building, as the published detail fixture shows it, and null for
+ * a notice without one or with one the schema refuses, a v1 schedule included; `GET /notices/:sourceId/:articleNo/schedule.ics` serves its exportable items
  * as `text/calendar`, outside the JSON envelope, writing their rules as stored, and answers 404 NOT_FOUND for a notice
  * with no exportable item or no notice at all, and 400 for a bad source, as the detail route does.
  *
@@ -32,6 +32,7 @@ import { FakeRequestAuthenticator } from "../../helpers/fakes/perimeter/request-
 import { buildTestApp } from "../../helpers/nest/build-test-app";
 
 const SCHEDULE = (JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures/notice-schedule.stored.json"), "utf8")) as { schedule: { version: string; items: Array<Record<string, unknown>> } }).schedule;
+const PUBLISHED = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../contracts/produced/fixtures/notices-detail.noticeDetail/schedule.json"), "utf8")) as { data: { schedule: unknown } };
 const V1_SCHEDULE = { version: "schedule-1", items: [{ id: "D1", title: "설명회", start: { date: "2026-11-10" }, except: [], slots: [], status: "scheduled" }] };
 const at = (date: string, time: string) => ({ date, time });
 const NOW = new Date("2026-11-22T03:00:00.000Z");
@@ -127,6 +128,18 @@ describe("GET /notices/:sourceId/:articleNo, the schedule", () => {
       [{ start: { date: "2026-12-01", latest: "2026-12-10" } }],
       ["2026-11-04", "2026-11-11", "2026-11-18", "2026-12-02", "2026-12-09", "2026-12-16"].map((date) => ({ start: at(date, "19:00"), end: at(date, "21:00") })),
     ]);
+  });
+
+  it("serves the schedule the published detail fixture shows for the same stored schedule", async () => {
+    // Arrange
+    detailRepository.docs = [notice({ schedule: SCHEDULE })];
+
+    // Act
+    const res = await request(app.getHttpServer()).get("/notices/skku-main/136023");
+
+    // Assert
+    expect(res.status).toBe(200);
+    expect(res.body.data.schedule).toEqual(PUBLISHED.data.schedule);
   });
 
   it.each([
