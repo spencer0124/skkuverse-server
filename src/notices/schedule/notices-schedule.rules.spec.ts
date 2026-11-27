@@ -153,6 +153,14 @@ describe("toOccurrences, removed days and stretches", () => {
       omittedCount: 0,
     });
   });
+
+  it.each([
+    ["a moment and a span of one minute", item({ start: at("2026-11-11", "09:00"), end: at("2026-11-11", "09:01"), rdate: [span(at("2026-11-11", "09:00"))] }), [span(at("2026-11-11", "09:00"), at("2026-11-11", "09:01")), span(at("2026-11-11", "09:00"))]],
+    ["a day and its first moment", item({ start: at("2026-11-11"), rdate: [span(at("2026-11-11", "00:00"))] }), [span(at("2026-11-11")), span(at("2026-11-11", "00:00"))]],
+  ])("keeps %s apart though they start on the same minute", (_case, schedule, occurrences) => {
+    // Act & Assert
+    expect(toOccurrences(schedule)).toEqual({ occurrences, omittedCount: 0 });
+  });
 });
 
 describe("toOccurrences, the cap", () => {

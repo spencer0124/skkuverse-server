@@ -85,7 +85,7 @@ function toInstances(entry: Entry): Instance[] {
     ? toSeries(toInstance(entry), entry.rrule, (instance) => (isOnExdate(instance) ? [] : toPieces(instance, gaps)))
     : toPieces(toInstance(entry), [...[...exdays].map((day) => ({ from: day * DAY_MINUTES, to: (day + 1) * DAY_MINUTES })), ...gaps]);
   const extras = (entry.rdate ?? []).map(toInstance).filter((instance) => !isOnExdate(instance)).flatMap((instance) => toPieces(instance, gaps));
-  return [...new Map([...base, ...extras].map((instance) => [`${instance.from}/${instance.to}`, instance])).values()].sort((a, b) => a.from - b.from || a.to - b.to);
+  return [...new Map([...base, ...extras].map((instance) => [JSON.stringify(toOccurrence(instance)), instance])).values()].sort((a, b) => a.from - b.from || a.to - b.to);
 }
 
 export function toOccurrences(entry: Entry): Pick<NoticeScheduleItem, "occurrences" | "omittedCount"> {
