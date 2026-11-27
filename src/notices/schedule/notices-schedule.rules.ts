@@ -31,7 +31,7 @@ function toInstance(span: { start?: Point; end?: Point }): Instance {
   const start = span.start && toEdge(span.start, "start");
   const end = span.end && toEdge(span.end, "end");
   const from = start ? start.minute : (end?.minute ?? 0) - 1;
-  return { from, to: start && end ? end.minute : from + 1, start, end, asStored: toStoredSpan(span) };
+  return { from, to: start && end && end.minute > from ? end.minute : from + 1, start, end, asStored: toStoredSpan(span) };
 }
 
 function toPoint({ minute, isTimed }: Edge, side: Side): Point {

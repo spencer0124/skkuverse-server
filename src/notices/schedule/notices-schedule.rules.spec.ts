@@ -5,7 +5,8 @@
  * end bounding the whole span; a series repeats its first occurrence on the rule's days through `until`, DTSTART
  * always the first instance even off `byDay` (RFC 5545 section 3.8.5.3). `exdate` drops a series' or an extra's
  * occurrence that starts on the day, and cuts the whole day out of a plain span; `gaps` cut their stretch out of
- * every occurrence and drop a moment inside one. An extra equal to an occurrence counts once. A cut that lands on
+ * every occurrence and drop a moment that falls in one, from its start up to but not at its end, and an occurrence of
+ * no length the same way. An extra equal to an occurrence counts once. A cut that lands on
  * midnight ends the day before at 24:00, or on that day when the item has no time. The first MAX_SCHEDULE_OCCURRENCES
  * are served and the rest counted, or counted as null for a series with no `until`, whose served ones are still its
  * first in time order when gaps cut its occurrences into pieces. A series through a far `until` (2099, 9999) is counted
@@ -137,6 +138,37 @@ describe("toOccurrences, removed days and stretches", () => {
 
     // Act & Assert
     expect(toOccurrences(moment).occurrences).toEqual(occurrences);
+  });
+
+  it.each([
+    ["at the gap's start", "09:00", "10:00", ["2026-11-02", "2026-11-04"]],
+    ["inside the gap", "08:00", "10:00", ["2026-11-02", "2026-11-04"]],
+    ["at the gap's end", "08:00", "09:00", ["2026-11-02", "2026-11-03", "2026-11-04"]],
+  ])("drops a series occurrence of no length %s only as it drops a moment", (_case, from, to, days) => {
+    // Arrange
+    const series = item({ start: at("2026-11-02", "09:00"), end: at("2026-11-02", "09:00"), rrule: { freq: "daily", until: "2026-11-04" }, gaps: [{ start: at("2026-11-03", from), end: at("2026-11-03", to) }] });
+
+    // Act & Assert
+    expect(toOccurrences(series).occurrences).toEqual(days.map((day) => span(at(day, "09:00"), at(day, "09:00"))));
+  });
+
+  it.each([
+    ["at the gap's start", "12:00", []],
+    ["at the gap's end", "13:00", [span(at("2026-11-11", "13:00"), at("2026-11-11", "13:00"))]],
+  ])("drops a plain occurrence of no length %s only as it drops a moment", (_case, time, occurrences) => {
+    // Arrange
+    const plain = item({ start: at("2026-11-11", time), end: at("2026-11-11", time), gaps: [{ start: at("2026-11-11", "12:00"), end: at("2026-11-11", "13:00") }] });
+
+    // Act & Assert
+    expect(toOccurrences(plain).occurrences).toEqual(occurrences);
+  });
+
+  it("counts a series occurrence of no length at a gap's end past the first 31", () => {
+    // Arrange
+    const series = item({ start: at("2026-11-02", "09:00"), end: at("2026-11-02", "09:00"), rrule: { freq: "daily", until: "2026-12-31" }, gaps: [{ start: at("2026-12-15", "08:00"), end: at("2026-12-15", "09:00") }] });
+
+    // Act & Assert
+    expect(toOccurrences(series).omittedCount).toBe(60 - MAX_SCHEDULE_OCCURRENCES);
   });
 
   it("adds each extra in time order, counts one equal to an occurrence once, and drops one on an exdate", () => {
