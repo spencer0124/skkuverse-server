@@ -21,7 +21,7 @@ export class NoticesDetailService {
     if (!doc) return null;
     const now = this.clock.now();
     const schedule = await this.screens.renderSchedule(doc);
-    return toDetailItem(doc, await this.screens.renderScreen(doc, now), { derived: this.legacy.deriveBrief(doc, now), schedule });
+    return toDetailItem(doc, await this.screens.renderScreen(doc, now), { derived: this.legacy.deriveBrief(doc, now), schedule, brief: this.screens.renderBrief(doc) });
   }
 
   async exportCalendar(sourceId: string, articleNo: number): Promise<string | null> {

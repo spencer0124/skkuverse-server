@@ -12,6 +12,9 @@
  *
  * NoticesScreenService.renderSchedule serves the notice's stored schedule with its places named by building
  * (notices-schedule.service.spec.ts holds the cases), and null for a notice with none.
+ *
+ * NoticesScreenService.renderBrief serves the notice's stored brief as its question and bullets
+ * (notices-brief.service.spec.ts holds the cases), and null for a notice with none.
  */
 import fs from "fs";
 import path from "path";
@@ -29,6 +32,7 @@ import { actionOf, contactOf, devRecords, evidenceOf, goldenRecord, linkOf, type
 import type { BuildNo, SpaceCd } from "../../building/building.types";
 import { BuildingPlaceService } from "../../building/place/building-place.service";
 import { BuildingPlaceDisplayService } from "../../building/place/display/building-place-display.service";
+import { NoticesBriefService } from "../brief/notices-brief.service";
 import { NoticesFactsService } from "../facts/notices-facts.service";
 import { noticeScreen } from "../notices.wire";
 import { NoticesRowService } from "../row/notices-row.service";
@@ -58,7 +62,7 @@ beforeEach(() => {
   spaces.spaces = [{ spaceCd: "33B101" as SpaceCd, buildNo: "133" as BuildNo, campus: "hssc", floor: text("지하1층"), name: text("계단강의실"), buildingName: text("경영관"), conspaceCd: null }];
   const placeService = new BuildingPlaceService(asReal<ConstructorParameters<typeof BuildingPlaceService>[0]>(buildings), asReal<ConstructorParameters<typeof BuildingPlaceService>[1]>(spaces));
   const places = new BuildingPlaceDisplayService(placeService);
-  service = new NoticesScreenService(new NoticesRowService(new NoticesFactsService(FIXED_CLOCK)), places, new NoticesScheduleService(FIXED_CLOCK, places));
+  service = new NoticesScreenService(new NoticesRowService(new NoticesFactsService(FIXED_CLOCK)), places, new NoticesScheduleService(FIXED_CLOCK, places), new NoticesBriefService(FIXED_CLOCK));
 });
 
 const record = (name: string, edit: (stored: RawRecord) => void = () => undefined): RawRecord => {
@@ -305,6 +309,22 @@ describe("NoticesScreenService.renderSchedule", () => {
 
     // Assert
     expect(served?.map((item) => item.place)).toEqual([{ text: "경영관 33B101호", name: "경영관 33B101", mapTarget: { skkuId: 12, spaceCd: "33B101" } }]);
+    expect(none).toBeNull();
+  });
+});
+
+describe("NoticesScreenService.renderBrief", () => {
+  it("serves the stored brief as its question and bullets, and null for a notice with none", () => {
+    // Arrange
+    const brief = { questionKey: "event", language: "en", bullets: [{ text: "It runs on Nov 10.", cites: ["f1"] }], version: "v" };
+    const id = new ObjectId("6a5ed9e520097db8672d2097");
+
+    // Act
+    const served = service.renderBrief({ _id: id, brief });
+    const none = service.renderBrief({ _id: id });
+
+    // Assert
+    expect(served).toEqual({ question: "When and where is it?", bullets: [{ text: "It runs on Nov 10." }] });
     expect(none).toBeNull();
   });
 });

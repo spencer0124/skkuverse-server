@@ -64,8 +64,8 @@
     "reason": "ADR 0010 D9, no domain seam: `BASE_LAYERS` is the one ordered layer catalogue /map/config serves, typed `as const` so `BaseLayerId` names its ids; the campus rules, the layer-set loader and service and the config flow all read it, so it stays at the map root, which holds one `.constants` file, beside the event cache constants several flows share. The Jongno route layers, then the HSSC route layer and then the `tabs` each base layer states took it past the role cap."
   },
   "src/notices/detail/notices-detail.wire.ts": {
-    "max": 73,
-    "reason": "ADR 0010 D9, no domain seam: `noticeDetail` is the one body the detail route serves, its screen part already split into `src/notices/notices.wire.ts`, and the other fields are the stored notice passed through (the summary's periods, details and edit history as the crawler and the ai stored them, and the schedule items as the crawler stored them with building's place names), so no part of it is a flow of its own."
+    "max": 77,
+    "reason": "ADR 0010 D9, no domain seam: `noticeDetail` is the one body the detail route serves, its screen part already split into `src/notices/notices.wire.ts`, and the other fields are the stored notice passed through (the summary's periods, details and edit history as the crawler and the ai stored them, the schedule items as the crawler stored them with building's place names, and the brief's question and bullets), so no part of it is a flow of its own; the brief's schema cannot move to `src/notices/brief/`, because the detail sub-module imports a sibling's runtime export only through a `.module` or `.service` (`sub-modules`)."
   },
   "src/notices/facts/notices-facts.schema.ts": {
     "max": 220,

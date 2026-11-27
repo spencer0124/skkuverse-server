@@ -18,6 +18,7 @@ import { asReal } from "../../../__tests__/helpers/fakes/public-of";
 import { goldenRecord } from "../../../__tests__/helpers/notices/facts-records";
 import { BuildingPlaceService } from "../../building/place/building-place.service";
 import { BuildingPlaceDisplayService } from "../../building/place/display/building-place-display.service";
+import { NoticesBriefService } from "../brief/notices-brief.service";
 import { NoticesFactsService } from "../facts/notices-facts.service";
 import { NoticesLegacyService } from "../legacy/notices-legacy.service";
 import type { NoticeDoc } from "../notices.document";
@@ -54,7 +55,7 @@ beforeEach(() => {
   );
   const rows = new NoticesRowService(new NoticesFactsService(clock));
   const places = new BuildingPlaceDisplayService(placeService);
-  const screens = new NoticesScreenService(rows, places, new NoticesScheduleService(clock, places));
+  const screens = new NoticesScreenService(rows, places, new NoticesScheduleService(clock, places), new NoticesBriefService(clock));
   service = new NoticesDetailService(asReal<NoticesDetailRepository>(repository), screens, new NoticesLegacyService(rows), clock);
 });
 
@@ -120,6 +121,22 @@ describe("NoticesDetailService.findNotice", () => {
 
     // Assert
     expect(served?.screen?.header.change).toEqual({ what: "날짜", before: "10/19(월)~10/30(금)", after: "10/19(월)~10/26(월)" });
+  });
+});
+
+describe("NoticesDetailService.findNotice, the brief", () => {
+  it("serves a stored brief with its question, and a null brief for a notice with none or one the schema refuses", async () => {
+    // Arrange
+    const brief = { questionKey: "recruit", language: "ko", bullets: [{ text: "11월 16일까지 신청해요.", cites: ["f1"] }], version: "v" };
+    repository.docs = [doc({ articleNo: 1, brief }), doc({ articleNo: 2 }), doc({ articleNo: 3, brief: { ...brief, questionKey: "housing" } })];
+
+    // Act
+    const [stored, none, refused] = await Promise.all([1, 2, 3].map((articleNo) => service.findNotice("skku-notice02", articleNo)));
+
+    // Assert
+    expect(stored?.brief).toEqual({ question: "언제까지 지원할까?", bullets: [{ text: "11월 16일까지 신청해요." }] });
+    expect(none?.brief).toBeNull();
+    expect(refused?.brief).toBeNull();
   });
 });
 

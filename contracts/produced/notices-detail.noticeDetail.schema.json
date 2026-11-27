@@ -924,6 +924,42 @@
           "type": "null"
         }
       ]
+    },
+    "brief": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "question": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "bullets": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ]
+              }
+            }
+          },
+          "required": [
+            "question",
+            "bullets"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "required": [
@@ -944,6 +980,7 @@
     "editInfo",
     "summary",
     "screen",
-    "schedule"
+    "schedule",
+    "brief"
   ]
 }

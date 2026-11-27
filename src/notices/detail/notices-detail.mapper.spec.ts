@@ -1,7 +1,7 @@
 /**
  * The detail response: the Markdown body as contentMarkdown (null when the crawler has none), attachments with a
  * referer only when stored, an edit history only once edited, the full summary only once summarized, and every
- * stored time as the ISO string JSON writes, and the screen and schedule it is given beside them, null when there is none.
+ * stored time as the ISO string JSON writes, and the screen, schedule and brief it is given beside them, null when there is none.
  */
 import { ObjectId } from "mongodb";
 import type { NoticeDoc } from "../notices.document";
@@ -41,6 +41,7 @@ describe("toDetailItem", () => {
       summary: null,
       screen: null,
       schedule: null,
+      brief: null,
     });
   });
 
@@ -136,6 +137,20 @@ describe("toDetailItem, the schedule", () => {
     // Assert
     expect(withSchedule.schedule).toEqual(schedule);
     expect({ ...withSchedule, schedule: null }).toEqual(toDetailItem(BASE, null));
+  });
+});
+
+describe("toDetailItem, the brief", () => {
+  it("serves the brief it is given, and changes no other field", () => {
+    // Arrange
+    const brief = { question: "누가 받을 수 있을까?", bullets: [{ text: "재학생이 신청할 수 있어요." }] };
+
+    // Act
+    const withBrief = toDetailItem(BASE, null, { brief });
+
+    // Assert
+    expect(withBrief.brief).toEqual(brief);
+    expect({ ...withBrief, brief: null }).toEqual(toDetailItem(BASE, null));
   });
 });
 

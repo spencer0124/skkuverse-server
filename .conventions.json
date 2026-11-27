@@ -5,6 +5,7 @@
   "productCopy": [
     "src/infra/i18n.ts",
     "src/journey/routes/journey-routes.constants.ts",
+    "src/notices/brief/notices-brief.constants.ts",
     "src/notices/notices.constants.ts",
     "src/notices/legacy/notices-legacy.constants.ts",
     "src/notices/row/notices-row.constants.ts",
