@@ -207,7 +207,7 @@ Outbound policy (`OUTBOUND_POLICY`, purpose `notice-attachment`, [ADR 0023](../d
   | --- | --- |
   | `id`, `title` | The item's id, unique among the notice's items and parts and stable across its edits, and its short title |
   | `status` | `scheduled`, `tentative`, `rescheduled`, `cancelled` or `suspended`; a rescheduled item is the entry as it now stands |
-  | `start`, `end` | `{ date, time?, latest? }`, a Seoul local day (`YYYY-MM-DD`) and clock (`HH:MM`), at least one of the two. An `end` alone is a deadline. `24:00` appears only on an `end`, the end of that day. `latest` is the last day a point can fall on, as `11월 말` is `2026-11-21` to `2026-11-30`, and a point with it has no `time`. For a plain item the two bound the whole span, holes included; for a series, its first occurrence |
+  | `start`, `end` | `{ date, time?, latest? }`, a Seoul local day (`YYYY-MM-DD`) and clock (`HH:MM`), at least one of the two. An `end` alone is a deadline. `24:00` appears only on an `end`, the end of that day. `latest` is the last day a point can fall on, as `11월 말` is `2026-11-21` to `2026-11-30`, and a point with it has no `time`. For a plain item the two bound the whole span, holes included; for a series, its first occurrence, on exact days: a series with a `latest` point fails the stored schema |
   | `rrule` | `{ freq: "daily" \| "weekly", byDay?, until? }`: every day, or each week's `byDay` days (`MO` to `SU`, the start's weekday when absent), through `until` or with no end |
   | `exdate` | Whole days removed: a series' occurrence that starts on one, or that day of a plain span |
   | `gaps` | `{ start, end }`, partial-day stretches removed from every occurrence |

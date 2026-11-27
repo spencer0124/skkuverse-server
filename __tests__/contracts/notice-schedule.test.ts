@@ -11,12 +11,14 @@
  * `groupId`, so a key it forgot to declare cannot be stripped unnoticed. Ajv runs without format checks, which it
  * would refuse to compile: the one format, `run.nextTry`'s date-time, is bookkeeping no reader reads.
  *
- * Six differences are deliberate, and pinned below so a move on either side shows:
+ * Seven differences are deliberate, and pinned below so a move on either side shows:
  *   - an unknown key: the schema refuses it, the mirror strips it, as every reader of a crawler record does;
  *   - the bookkeeping `key` and `groupId`: the schema requires them, the mirror never reads them;
  *   - an item id that is not eight hex digits: the reader needs only an id unique within the notice;
  *   - an id another item or part repeats, a day no calendar has, and a part with parts of its own: the schema's
- *     patterns let them through, the mirror refuses what the calendar export and the detail cannot serve.
+ *     patterns let them through, the mirror refuses what the calendar export and the detail cannot serve;
+ *   - a series whose start or end is a range of days: the schema lets it through, though the schedule stage never
+ *     writes one, and the mirror refuses it, since a series repeats a first occurrence on exact days.
  */
 import Ajv2020 from "ajv/dist/2020";
 import fs from "fs";
@@ -192,6 +194,7 @@ describe("the notice schedule mirror departs from the vendored schema only where
     ["a part id its item repeats", withItem({ parts: [{ ...PART, id: ITEM.id }] })],
     ["a day no calendar has", withItem({ start: { date: "2026-02-30" } })],
     ["a part with parts of its own", withItem({ parts: [{ ...PART, parts: [] }] })],
+    ["a series starting on a range of days", withItem({ start: { date: "2026-11-02", latest: "2026-11-08" }, rrule: { freq: "weekly", until: "2026-11-30" } })],
   ])("refuses %s, which the schema's patterns let through", (_name, schedule) => {
     // Act & Assert
     expect([schemaAccepts(schedule), mirrorAccepts(schedule)]).toEqual([true, false]);

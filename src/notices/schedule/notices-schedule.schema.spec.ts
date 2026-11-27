@@ -50,6 +50,9 @@ describe("storedSchedule", () => {
     ["24:00 on a start", (stored: Json) => ({ ...stored, start: { date: "2026-11-10", time: "24:00" } })],
     ["a time beside a latest day", (stored: Json) => ({ ...stored, end: { date: "2026-11-10", time: "16:00", latest: "2026-11-12" } })],
     ["a part id the item repeats", (stored: Json) => ({ ...stored, id: "3c4d5e6f" })],
+    ["a repeat starting on a range of days", (stored: Json) => ({ ...without("end")(stored), start: { date: "2026-11-02", latest: "2026-11-08" }, rrule: { freq: "weekly", until: "2026-11-30" } })],
+    ["a repeat ending on a range of days", (stored: Json) => ({ ...stored, start: { date: "2026-11-02" }, end: { date: "2026-11-02", latest: "2026-11-08" }, rrule: { freq: "weekly", until: "2026-11-30" } })],
+    ["a part repeating on a range of days", (stored: Json) => ({ ...stored, parts: [{ ...(stored.parts as Json[])[0], start: { date: "2026-11-10", latest: "2026-11-12" }, end: undefined, rrule: { freq: "daily" } }] })],
   ])("refuses %s", (_case, patch) => {
     // Act & Assert
     expect(storedSchedule.safeParse(withItem(patch)).success).toBe(false);

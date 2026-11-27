@@ -36,8 +36,11 @@ const itemShape = {
   place: place.optional(),
   evidence: z.array(evidence),
 };
-const withItemChecks = <T extends z.ZodType<{ start?: unknown; end?: unknown; rrule?: unknown }>>(item: T) =>
-  item.refine(({ start, end }) => start !== undefined || end !== undefined, { error: "an item has a start or an end", path: [] }).refine(({ start, rrule }) => rrule === undefined || start !== undefined, { error: "a repeat needs a start", path: ["rrule"] });
+const withItemChecks = <T extends z.ZodType<{ start?: { latest?: string }; end?: { latest?: string }; rrule?: unknown }>>(item: T) =>
+  item
+    .refine(({ start, end }) => start !== undefined || end !== undefined, { error: "an item has a start or an end", path: [] })
+    .refine(({ start, rrule }) => rrule === undefined || start !== undefined, { error: "a repeat needs a start", path: ["rrule"] })
+    .refine(({ start, end, rrule }) => rrule === undefined || (start?.latest === undefined && end?.latest === undefined), { error: "a repeat starts and ends on a day, not on a range of days", path: ["rrule"] });
 // WHY: the schedule stage never nests parts, and the detail serves one level of them, so a part's own parts refuse the schedule.
 const partItem = withItemChecks(z.object({ ...itemShape, parts: z.never().optional() }));
 const scheduleItem = withItemChecks(z.object({ ...itemShape, parts: z.array(partItem).optional() }));
