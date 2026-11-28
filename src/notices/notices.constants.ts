@@ -6,7 +6,7 @@ export const MAX_SOURCE_IDS = 20;
 
 export const MAX_QUERY_CODEPOINTS = 100;
 
-// WHY: product copy (.conventions.json productCopy), the words the row and the screen share (umbrella ADR 0009 D5, D13): the
+// WHY: product copy (.conventions.json productCopy), the words the row and the screen share (umbrella ADR 0001): the
 // joiner between a table label and its quote, and the mark after a draw's text.
 export const QUOTE_LABEL_JOINER = " · ";
 

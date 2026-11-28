@@ -93,7 +93,7 @@ export function toQuoteTexts({ quote, label, compact }: { quote: string; label?:
   return compact ? [full, toQuoteText({ quote: compact, label })] : [full];
 }
 
-// WHY: umbrella ADR 0009 D5 and D13: a draw is always marked as one, unless its text already says so.
+// WHY: umbrella ADR 0001: a draw is always marked as one, unless its text already says so.
 const withDrawMark = (isDraw: boolean, text: string): string => (isDraw && !text.includes(DRAW_MARK) ? `${text} (${DRAW_MARK})` : text);
 
 export function toBenefitText({ isDraw, ev }: { isDraw: boolean; ev: { quote: string; label?: string | undefined } }): string {

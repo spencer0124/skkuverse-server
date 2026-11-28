@@ -1,5 +1,5 @@
 /**
- * The decisions of the notice detail screen (umbrella ADR 0009 D11 to D16) over one RowReading of a notice at a KST
+ * The decisions of the notice detail screen (umbrella ADR 0001) over one RowReading of a notice at a KST
  * moment: which blocks lead for each board category (D13), the status line's fixed words, tones and the closed-sign-up
  * case (D12), the action bar's one open action (D14), the collapse of a closed or cancelled call (D16), the day the
  * notice was first seen, the change against the last extraction (D11), and the place ids building is asked to name.

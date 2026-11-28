@@ -1,5 +1,5 @@
 /**
- * The list row of the umbrella repository's ADR 0009 (notice list rows, D3 to D9, as amended 2026-10-27 and 2026-10-28)
+ * The list row of umbrella ADR 0001 (as amended 2026-10-27 and 2026-10-28)
  * from a parsed facts record at a KST moment: its status token, title, line 2, qualifier, date mark, dimming and urgency.
  * Line 1 falls back to the original title's whole words within 20 characters, a qualifier that would push line 2 past 26
  * characters is left out whole, unless the crawler's compact of its text fits (never without its label), and line 2 drops a
@@ -30,7 +30,7 @@ import type { FactsRow, RowSource, RowTokenTone } from "./notices-row.types";
 
 const FIXTURES = path.join(__dirname, "../../../__tests__/nest/notices/fixtures/facts-rows");
 const ORIGINAL_TITLE = "2026학년도 2학기 장학금 신청 안내";
-// ADR 0009 D3: line 1 holds 20 characters and is never cut mid-word, so the 21-character original falls back to its whole words.
+// umbrella ADR 0001: line 1 holds 20 characters and is never cut mid-word, so the 21-character original falls back to its whole words.
 const FITTED_ORIGINAL_TITLE = "2026학년도 2학기 장학금 신청…";
 const NOTICE_ID = new ObjectId("6a5ed9e520097db8672d2097");
 const FIXED_CLOCK: Clock = { now: () => new Date("2026-10-28T03:00:00Z") };
@@ -73,7 +73,7 @@ const ROW_PY_TONES: Record<string, RowTokenTone> = {
   "내일 마감": "urgent",
 };
 
-/** row.py's row in this port's shape. Dimming and urgency are ADR 0009 D3 and D4 applied to row.py's status and token. */
+/** row.py's row in this port's shape. Dimming and urgency are umbrella ADR 0001 applied to row.py's status and token. */
 function fromRowPy({ expected, record }: GoldenCase): FactsRow {
   const shortTitle = record.shortTitle as { text: string };
   const abstains = expected.status === "check";
@@ -92,25 +92,25 @@ function fromRowPy({ expected, record }: GoldenCase): FactsRow {
   };
 }
 
-const ABSTAINS = "ADR 0009 D4: a row that abstains replaces its date with 날짜 원문 확인";
-const TOMORROW_DEADLINE = "ADR 0009 D4: a deadline within two days reads 오늘 17시 마감, 내일 마감";
-const STOPPED = "ADR 0009 D4: line 2 opens with a date, and a slot with no date stays empty; D3: the token carries the word, so a cancelled call's sign-up window shows none";
+const ABSTAINS = "umbrella ADR 0001: a row that abstains replaces its date with 날짜 원문 확인";
+const TOMORROW_DEADLINE = "umbrella ADR 0001: a deadline within two days reads 오늘 17시 마감, 내일 마감";
+const STOPPED = "umbrella ADR 0001: line 2 opens with a date, and a slot with no date stays empty; the token carries the word, so a cancelled call's sign-up window shows none";
 
-/** Golden cases where ADR 0009 overrides row.py: the fields that differ, and the ADR line each follows. */
+/** Golden cases where umbrella ADR 0001 overrides row.py: the fields that differ, and the ADR line each follows. */
 const OVERRIDES: Record<string, { adr: string; row: Partial<FactsRow> }> = {
   "a_period_with_no_end_written_is_that_one_day__1.json": {
-    adr: "ADR 0009 D3: 오늘 when the deadline or event is today; D4: an event today takes the token but not the colour; relative words in line 2",
+    adr: "umbrella ADR 0001: 오늘 when the deadline or event is today; D4: an event today takes the token but not the colour; relative words in line 2",
     row: { token: { text: "오늘", tone: "today" }, line2: "오늘", trackedLine2: "오늘" },
   },
   "a_bounded_period_under_way_comes_before_what_takes_effect_after_it.json": {
-    adr: "ADR 0009 D4: relative words (today, tomorrow) are computed when the list is shown",
+    adr: "umbrella ADR 0001: relative words (today, tomorrow) are computed when the list is shown",
     row: { line2: "오늘까지 해제", trackedLine2: "오늘까지 해제" },
   },
   "a_deadline_tomorrow_reads_as_one_while_the_window_is_open.json": { adr: TOMORROW_DEADLINE, row: { line2: "내일 마감", trackedLine2: "내일 마감" } },
   "a_mistyped_years_window_yields_to_the_same_deadline_written_correctly.json": { adr: TOMORROW_DEADLINE, row: { line2: "내일 마감", trackedLine2: "내일 마감" } },
   "the_place_qualifier_comes_from_the_item_the_row_shows__1.json": { adr: TOMORROW_DEADLINE, row: { line2: "내일 마감", trackedLine2: "내일 마감" } },
   "an_office_deadline_does_not_open_the_row.json": {
-    adr: "ADR 0009 D4: not open yet reads 내일 접수 시작 · 11/9(월) 마감",
+    adr: "umbrella ADR 0001: not open yet reads 내일 접수 시작 · 11/9(월) 마감",
     row: { line2: "내일 접수 시작 · 11/13(금) 마감", trackedLine2: "내일 접수 시작 · 11/13(금) 마감" },
   },
   "a_stopped_or_filled_notice_keeps_its_token_on_the_last_days__1.json": { adr: STOPPED, row: { line2: "", trackedLine2: "" } },
@@ -169,7 +169,7 @@ describe("toFactsRow, the crawler's golden cases", () => {
     expect(refused).toEqual(Object.keys(UNPARSED).sort());
   });
 
-  it.each(GOLDEN_CASES.filter(([name]) => !(name in UNPARSED)))("renders %s as row.py, or as ADR 0009 overrides it", (name, fixture) => {
+  it.each(GOLDEN_CASES.filter(([name]) => !(name in UNPARSED)))("renders %s as row.py, or as umbrella ADR 0001 overrides it", (name, fixture) => {
     // Arrange
     const expected = { ...fromRowPy(fixture), ...OVERRIDES[name]?.row };
 
@@ -220,7 +220,7 @@ describe("toFactsRow, the D3 token precedence", () => {
   const signUp = (r: any, start: string, end: string) =>
     r.times.push({ ...recordFrom(WINDOW).times[0], id: "tm_signup", thing: MAIN_THING, start: { ...r.times[0].start, date: start }, end: { ...r.times[0].start, date: end } });
 
-  it("reads 마감, dimmed, not 오늘, for an event today whose sign-up window has closed (ADR 0009 D3, owner 2026-10-28)", () => {
+  it("reads 마감, dimmed, not 오늘, for an event today whose sign-up window has closed (umbrella ADR 0001, owner 2026-10-28)", () => {
     // Arrange
     const record = recordFrom(SESSION, (r) => signUp(r, "2026-10-13", "2026-10-20"));
 
@@ -482,7 +482,7 @@ describe("toFactsRow, the D5 qualifier", () => {
   });
 });
 
-describe("toFactsRow, line 1 from the original title when the short title is unusable (ADR 0009 D3)", () => {
+describe("toFactsRow, line 1 from the original title when the short title is unusable (umbrella ADR 0001)", () => {
   const condition = (quote: string) => ({ ev: { src: "body", quote, start: 0, end: quote.length, match: "exact" }, type: "year", polarity: "include", strength: "required", thing: MAIN_THING, scope: "", restricts: true, narrows: true, appliesTo: [], tag: "", tagBy: "" });
   const unusable = (edit: (record: any) => void = () => undefined) =>
     recordFrom(WINDOW, (r) => {
@@ -509,7 +509,7 @@ describe("toFactsRow, line 1 from the original title when the short title is unu
     expect([...row.title].length <= 20 || !row.title.includes(" ")).toBe(true);
   });
 
-  it("keeps a bracket that names the audience the notice restricts, as ADR 0009 D9 forbids dropping it", () => {
+  it("keeps a bracket that names the audience the notice restricts, as umbrella ADR 0001 forbids dropping it", () => {
     // Arrange
     const source = { ...sourceOf(unusable((r) => r.audience.conditions.push(condition("현 5학년 학생")))), title: "[현 5학년] 2027년 아주대학교 병원심화실무실습 지원 안내 (~9/11)" };
 
@@ -518,7 +518,7 @@ describe("toFactsRow, line 1 from the original title when the short title is unu
   });
 });
 
-describe("toFactsRow, the qualifier's fit on line 2 (ADR 0009 D3, D5)", () => {
+describe("toFactsRow, the qualifier's fit on line 2 (umbrella ADR 0001)", () => {
   const benefit = (quote: string, isDraw = false) => ({
     ev: { src: "body", quote, start: 0, end: quote.length, match: "exact" },
     thing: MAIN_THING,

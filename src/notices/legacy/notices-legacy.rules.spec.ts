@@ -1,6 +1,6 @@
 /**
  * The rough one-liner, type and window an app that still reads `summary` gets for a notice with facts and no AI
- * summary (umbrella ADR 0009, owner decision 2026-10-28): line 2 of the row then its qualifier, the shown window's end,
+ * summary (umbrella ADR 0001, owner decision 2026-10-28): line 2 of the row then its qualifier, the shown window's end,
  * and a type from the shown item's kind.
  *
  * Each case is a golden case of the crawler's row.py (__tests__/nest/notices/fixtures/facts-rows/) read at its own

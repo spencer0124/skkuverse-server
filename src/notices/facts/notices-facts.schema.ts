@@ -220,7 +220,7 @@ export const noticeFacts = z.object({
 
 export type NoticeFacts = z.output<typeof noticeFacts>;
 
-// CONTRACT(skkuverse-crawler): one earlier version, as `runner._snapshot` writes it (skkuverse-crawler/docs/notice-facts/design.md "Storage").
+// CONTRACT(skkuverse-crawler): one earlier version, as `runner._snapshot` writes it (skkuverse/docs/decisions/0001-notice-data-ownership.md).
 export const factsSnapshot = z.object({
   extractedAt: z.string(),
   inputHash: z.string(),

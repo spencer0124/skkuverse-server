@@ -1,6 +1,6 @@
 import type { FactsRow, RowToken } from "./notices-row.types";
 
-// WHY: product copy (.conventions.json productCopy), the words of umbrella ADR 0009 D3 to D5, which every language
+// WHY: product copy (.conventions.json productCopy), the words of umbrella ADR 0001, which every language
 // reads in Korean (owner, 2026-10-28).
 export const ROW_TOKENS = {
   cancelled: { text: "취소", tone: "cancelled" },
@@ -40,7 +40,7 @@ export const ROW_WORDS = {
 
 export const DIMMED_STATUSES: ReadonlySet<FactsRow["status"]> = new Set(["closed", "ended", "cancelled"]);
 
-// WHY: the umbrella's ADR 0011 D8: a change token compares only with the versions current in the last 14 days, so a
+// WHY: umbrella ADR 0001: a change token compares only with the versions current in the last 14 days, so a
 // notice that returns to an earlier version (A to B to A) never fires.
 export const CHANGE_WINDOW_DAYS = 14;
 

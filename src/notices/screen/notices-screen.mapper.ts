@@ -122,7 +122,7 @@ export function toOriginal(facts: NoticeFacts, listed: readonly NoticeAttachment
   };
 }
 
-// WHY: umbrella ADR 0009 D15: every link carries the role it plays, never a raw address; a QR code in a poster reads as QR.
+// WHY: umbrella ADR 0001: every link carries the role it plays, never a raw address; a QR code in a poster reads as QR.
 function toLinkRole(link: Link, facts: NoticeFacts): string {
   if (isAnchorText(link)) return link.text;
   const verb = facts.actions.find((action) => action.target === link.id)?.verb.quote;

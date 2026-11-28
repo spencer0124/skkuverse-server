@@ -215,7 +215,7 @@ export function selectRoleBadge(application: unknown, dates: unknown, now: Date)
   return rangeBadge(spans, nowMs) ?? { type: "informational", startAt: null, endAt: null };
 }
 
-// WHY: umbrella ADR 0009 D2 (owner, 2026-10-28): the list's sort key, the posting date as a KST calendar day, sets the
+// WHY: umbrella ADR 0001 (owner, 2026-10-28): the list's sort key, the posting date as a KST calendar day, sets the
 // header, because a crawler batch of old posts must not read as today. A week starts on Monday, so this-week is
 // empty on Monday and Tuesday. A date that is no calendar day sits under earlier.
 export function toListDay(postedDate: string, now: Date): ListDay {
@@ -227,7 +227,7 @@ export function toListDay(postedDate: string, now: Date): ListDay {
   return posted.isBefore(today.clone().startOf("isoWeek")) ? "earlier" : "thisWeek";
 }
 
-// WHY: umbrella ADR 0009 D8 names the board and lists each article once only in a tab of several boards.
+// WHY: umbrella ADR 0001 names the board and lists each article once only in a tab of several boards.
 export function hasSeveralSources(scope: NoticeScope): boolean {
   return typeof scope !== "string" && new Set(scope).size > 1;
 }

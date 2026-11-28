@@ -42,7 +42,7 @@ const DATED_KINDS: ReadonlySet<string> = new Set(["session", "period", "effectiv
 const EVENT_KINDS: ReadonlySet<string> = new Set(["session", "period"]);
 const OPEN_STATUSES: ReadonlySet<string> = new Set(["open", "extended", "ongoing"]);
 const GUESSED_WARNINGS: ReadonlySet<string> = new Set(["monthMissing", "impossibleDate", "reversedRange"]);
-// WHY: umbrella ADR 0009 D3's order; toRowStatus puts a call its dates closed after a stated closure, before the
+// WHY: umbrella ADR 0001's order; toRowStatus puts a call its dates closed after a stated closure, before the
 // suspended and postponed words.
 const STATED_ORDER: readonly StatedStatusKind[] = ["cancelled", "closed", "suspended", "postponed"];
 const SERIES_WORDS: Readonly<Record<string, string>> = { DAILY: ROW_WORDS.daily, MONTHLY: ROW_WORDS.monthly };
@@ -95,7 +95,7 @@ function toRowDate({ scope, status, isAbstained }: { scope: RowScope; status: Ro
 
 const shownOf = (status: RowStatus): RowItem | null => ("item" in status ? status.item : null);
 
-// WHY: a day the calendar cannot hold (2026-02-31) is no day, never the one Date.UTC rolls it to (umbrella ADR 0009 D16).
+// WHY: a day the calendar cannot hold (2026-02-31) is no day, never the one Date.UTC rolls it to (umbrella ADR 0001).
 function toKstDay(isoDate: string): KstDay | null {
   const day = Date.UTC(Number(isoDate.slice(0, 4)), Number(isoDate.slice(5, 7)) - 1, Number(isoDate.slice(8, 10))) / MS_PER_DAY;
   return Number.isInteger(day) && new Date(day * MS_PER_DAY).toISOString().slice(0, 10) === isoDate ? (day as KstDay) : null;
@@ -248,7 +248,7 @@ function toEndedStatus({ times, items, rowThings, today }: RowScope): RowStatus 
   return { basis: "none", kind: "nodate" };
 }
 
-// WHY: umbrella ADR 0009 D3: a row reads only its main thing; a tagged fact is one track's, and a fact with no thing is the
+// WHY: umbrella ADR 0001: a row reads only its main thing; a tagged fact is one track's, and a fact with no thing is the
 // notice's own, as row.py's qualifier reads it.
 function isAboutMainThing(fact: ScopedFact, mainThing: string): boolean {
   if (fact.disputed === true || fact.unattached === true || fact.tag) return false;
@@ -266,7 +266,7 @@ function toRowStatus(scope: RowScope): RowStatus {
   return dated.basis === "dates" && dated.kind === "open" && stated.has("extended") ? { ...dated, kind: "extended" } : dated;
 }
 
-// WHY: umbrella ADR 0009 D4: line 2 opens with a date, so a stopped row keeps its main thing's event date; a sign-up
+// WHY: umbrella ADR 0001: line 2 opens with a date, so a stopped row keeps its main thing's event date; a sign-up
 // window's would advertise a deadline nobody can meet, so it shows none.
 function toStoppedStatus(kind: StoppedStatusKind, dated: RowStatus): RowStatus {
   const event = dated.basis === "dates" && dated.item.kind !== "window" ? dated.item : null;
@@ -304,7 +304,7 @@ function toDeadlineInDays(status: RowStatus, today: KstDay): number | null {
 }
 
 // WHY: a cancelled, suspended or postponed main thing does not happen today; a closed sign-up keeps its event, but the
-// token table gives it the closed token, not the event-today one (umbrella ADR 0009 D3).
+// token table gives it the closed token, not the event-today one (umbrella ADR 0001).
 function hasEventToday({ items, today }: RowScope, status: RowStatus): boolean {
   if (status.basis === "statement" && status.kind !== "closed") return false;
   return items.some((item) => EVENT_KINDS.has(item.kind) && isDated(item) && item.days.spanEnd >= today && nextStartOf(item, today) === today);
@@ -403,7 +403,7 @@ function toLine2({ today }: RowScope, status: RowStatus): string {
 }
 
 // WHY: owner, 2026-10-28: the row's line 2 names the thing a date belongs to but not the track, which the detail's status
-// line still names (umbrella ADR 0009 D12).
+// line still names (umbrella ADR 0001).
 function toRowTags({ facts, times, rowThings }: RowScope, shown: RowItem | null, line2: string): Pick<FactsRow, "line2" | "trackedLine2"> {
   if (shown === null) return { line2, trackedLine2: line2 };
   const labels = new Set(times.filter((item) => item.thing === shown.thing && item.kind === shown.kind && item.track).map((item) => item.track));
@@ -422,7 +422,7 @@ function withRowTag(line2: string, parts: readonly string[]): string {
 
 const isStaffOnly = ({ audience }: NoticeFacts): boolean => audience.forStudents === "no" && audience.forStudentsEv !== null;
 
-// WHY: umbrella ADR 0009 D5: the texts of the first rule that applies, the full text first and then its compact; the
+// WHY: umbrella ADR 0001: the texts of the first rule that applies, the full text first and then its compact; the
 // rules after it never stand in for a fact that fits in no form.
 function toQualifier({ facts, mainThing }: RowScope, shown: RowItem | null): readonly string[] {
   const isMine = (fact: ScopedFact): boolean => isAboutMainThing(fact, mainThing);
@@ -459,7 +459,7 @@ function toCompactTitle({ facts }: RowSource, token: RowToken | null): string | 
 
 const toFullTitle = ({ facts, title }: RowSource): string => (facts.shortTitle.ok ? facts.shortTitle.text : toLine1(title, facts));
 
-// WHY: umbrella ADR 0009 D3: line 1 leaves out bracketed offices and dates and is never cut mid-word; a bracket that names
+// WHY: umbrella ADR 0001: line 1 leaves out bracketed offices and dates and is never cut mid-word; a bracket that names
 // a restricted audience stays (D9).
 function toLine1(title: string, { audience }: NoticeFacts): string {
   const whole = squeezed(title);
@@ -477,7 +477,7 @@ function toWholeWords(text: string, maxChars: number): string {
   return count < words.length ? `${words.slice(0, count).join(" ")}${ELLIPSIS}` : text;
 }
 
-// WHY: umbrella ADR 0009 D3 and D5: line 2 holds 26 characters, and a qualifier that would pass them in every form is left
+// WHY: umbrella ADR 0001: line 2 holds 26 characters, and a qualifier that would pass them in every form is left
 // out whole, so a hard condition never shows in part; the app joins the two with " · ".
 function toFittedQualifier(line2: string, texts: readonly string[]): string | null {
   const fits = (text: string): boolean => text !== "" && [...(line2 === "" ? text : `${line2}${QUALIFIER_JOINER}${text}`)].length <= LINE2_MAX_CHARS;

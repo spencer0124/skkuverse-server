@@ -119,7 +119,7 @@ Query: `cursor` (base64url), `limit` (clamped to 1–50; unreadable means 20), `
   - A v1 notice (no `summaryVersion`): `selectEffectivePeriod`. For `action_required`, the earliest deadline still ahead in `summaryPeriods` (a timed same-day slot is no deadline), or the latest one when all have passed; for any other type, `periods[0]`.
   - A v2 notice (`summaryVersion >= 2` with `summaryDates`): `selectRoleBadge`. It takes the first that applies: an application window (`summaryApplication.windows`), the next `due`, the next `happens` event, all windows and dues passed (closed), a multi-day `runs` range. It ignores the stored `summaryType` and sets `type` to fit what it picked (a window not yet open reads as an `informational` range). Source: skkuverse-ai `openspec/changes/refine-notice-summary-v2` design D11.
 - **Derived `summary`.** A notice with facts and no stored summary (`summaryAt` unset) gets a rough `summary` from its row so an installed app still shows a one-liner and a D-day: `oneLiner` is line 2 of the row, then its qualifier in full (the whole text, never the short form the row's 26 characters may take), led by the token word for a cancelled, stopped, postponed, extended or changed notice; `endAt` is the shown window's end; `type` is `action_required` for a window, `event` for a session and `informational` otherwise. A notice that carries a stored summary is served as before. `type=` and `q=` match a derived notice by its derived type and by `facts.shortTitle`; a typed page can hold fewer than `limit` notices, and `hasMore` and `nextCursor` still follow the read.
-- **`row` (the facts row).** Next to `summary`, an item carries `row`: finished Korean text from the crawler's `facts` record, rendered at the request's KST now (umbrella ADR 0009). It is `null` when the notice has no facts or its facts fail the record schema, and the item then reads as before. `summary` and every other field are unchanged. The fields follow the app sketch's `SketchRow`, and a part the notice lacks is `null`, not left out:
+- **`row` (the facts row).** Next to `summary`, an item carries `row`: finished Korean text from the crawler's `facts` record, rendered at the request's KST now (umbrella ADR 0001). It is `null` when the notice has no facts or its facts fail the record schema, and the item then reads as before. `summary` and every other field are unchanged. The fields follow the app sketch's `SketchRow`, and a part the notice lacks is `null`, not left out:
 
   | Field | Meaning |
   | --- | --- |
@@ -141,7 +141,7 @@ Query: `cursor` (base64url), `limit` (clamped to 1–50; unreadable means 20), `
 
 `?sourceIds=a,b,c` with the same `limit`, `type`, `cursor` and `q` as above. The ids go in one `sourceIds`, comma-separated; a repeated `sourceIds` key is `400 INVALID_PARAMS`, as on `GET /notices/overview`. The named sources are merged into one list, newest first. `src/notices/list/notices-list.schema.ts` and `src/notices/list/notices-list.wire.ts` are the source of truth for the parameters and the response shape.
 
-- **Each article once.** When `sourceIds` names two or more distinct sources, an article posted on several of them is one row (umbrella ADR 0009 D8). Copies are the notices with the same `dupOf`, which the crawler writes; a notice without `dupOf` is an article of its own. Copies on one source collapse too.
+- **Each article once.** When `sourceIds` names two or more distinct sources, an article posted on several of them is one row (umbrella ADR 0001). Copies are the notices with the same `dupOf`, which the crawler writes; a notice without `dupOf` is an article of its own. Copies on one source collapse too.
 - **The copy served.** The row is the first copy in list order: the latest `date`, then the highest `id`. It keeps its own `id`, `sourceId`, `articleNo` and `row.board`, and sits at that copy's place in the list. A copy is hidden only when another copy in the read sorts before it, and the crawler never moves either key, so a refresh of `crawledAt` or `views` between two page reads changes no row.
 - **Paging.** `limit`, `hasMore` and `nextCursor` count served rows. The cursor is the last row served, so an article never appears on two pages. A page can hold fewer than `limit` rows while `hasMore` is `true`, when a long run of copies uses up its scans; only `hasMore` says the list ended.
 - **One source.** `GET /notices/source/:sourceId`, or a `sourceIds` that names one source, serves every copy.
@@ -187,7 +187,7 @@ Outbound policy (`OUTBOUND_POLICY`, purpose `notice-attachment`, [ADR 0023](../d
 - **One body field, `contentMarkdown`.** `content`, `contentText` and `cleanHtml` are not served. When `contentMarkdown` is `null` (never an empty string), the client opens `sourceUrl` instead.
 - **Derived full summary.** The detail serves the same derived `type` and `oneLiner` as a full summary with `text` null, empty `periods` and `locations`, null `details` and `model`, and `generatedAt` set to `crawledAt`, so the summary card hides.
 - **The full summary** is `oneLiner` and `type`, as in the brief, plus `text`, `periods`, `locations`, `details`, `model` and `generatedAt`; it has no `startAt` or `endAt`.
-- **`screen` (the detail screen).** Next to `summary`, the detail carries `screen`: the header, status line, blocks, action bar and original of umbrella ADR 0009 D11 to D16 as finished Korean, rendered from the crawler's `facts` record at the request's KST now. It is `null` when the notice has no facts or its facts fail the record schema, and every other field is unchanged. The fields follow the app sketch's `SketchDetail`, grouped under one key because they are present together, and a part the notice lacks is `null` or empty, not left out:
+- **`screen` (the detail screen).** Next to `summary`, the detail carries `screen`: the header, status line, blocks, action bar and original of umbrella ADR 0001 as finished Korean, rendered from the crawler's `facts` record at the request's KST now. It is `null` when the notice has no facts or its facts fail the record schema, and every other field is unchanged. The fields follow the app sketch's `SketchDetail`, grouped under one key because they are present together, and a part the notice lacks is `null` or empty, not left out:
 
   | Field | Meaning |
   | --- | --- |
@@ -200,7 +200,7 @@ Outbound policy (`OUTBOUND_POLICY`, purpose `notice-attachment`, [ADR 0023](../d
   | `staffOnly`, `posterOnly` | Booleans |
   | `original` | `{ posterCount, attachments: [{ role, name, url }], links: [{ role, domain, url }] }`. An attachment's `url` is the one in the detail's `attachments` for that file, `null` when the list no longer holds it |
 
-  The text is Korean for every `Accept-Language`. A place building cannot name, or one no building sheet holds, shows its quote with no action, and a fact the verifier disputed is left out. Renamed from `SketchDetail`: the fields sit under `screen`; `change.what` is `날짜` or `장소`; `posters` is `posterCount`; `action` also carries its `target`; `englishOnly` is dropped (umbrella ADR 0009, 2026-10-28), and the body is the existing `contentMarkdown`.
+  The text is Korean for every `Accept-Language`. A place building cannot name, or one no building sheet holds, shows its quote with no action, and a fact the verifier disputed is left out. Renamed from `SketchDetail`: the fields sit under `screen`; `change.what` is `날짜` or `장소`; `posters` is `posterCount`; `action` also carries its `target`; `englishOnly` is dropped (umbrella ADR 0001, 2026-10-28), and the body is the existing `contentMarkdown`.
 - **`schedule` (the timeline).** The items of the `schedule` the crawler stores on the notice, in its v2 shape (`contracts/consumed/notice-schedule.schema.json`), or `null` when the notice has none, its list is empty or it fails the stored schema, as a schedule stored in the v1 shape does. Items come in timeline order, on the end of the item as a whole. A plain item sorts on its `end`, else its `start`; an item with more than one occurrence, a series with an `until` or an item with an `rdate`, on the latest end among its occurrences, the last of `rrule + rdate - exdate - gaps`, served or not, so a long series or a lecture series sorts at its last day, not its first; a series with no `until` has no last occurrence and sorts on the end of its first, or of a later `rdate`. A point sorts on its `latest` day, else its `date`, then its `time`, `24:00` after `23:59`, and a point with no time at the end of its day. Each item is served as stored less its `evidence`, optional keys left out when absent, with its `place` named and its occurrences added:
 
   | Field | Meaning |
@@ -245,7 +245,7 @@ Each event also carries `DTSTAMP` (the request's time), `SUMMARY` (the title) an
 
 ## GET /notices/overview
 
-An AI answer for a notice search, in the style of an AI Overview, with numbered sources the app can open. It is a **separate request from the list**: the list never waits for it, and its absence never affects the list. Why it retrieves, caches and times out as it does: [ADR 0016](../decisions/0016-notice-search-overview.md).
+An AI answer for a notice search, in the style of an AI Overview, with numbered sources the app can open. It is a **separate request from the list**: the list never waits for it, and its absence never affects the list. Why it retrieves, caches and times out as it does: umbrella ADR 0001.
 
 **Off in production.** The runtime switch `NOTICE_OVERVIEW` (`src/infra/runtime-switches.ts`) defaults to `off` in production. With it off, every valid request answers `200` with `data.overview: null` and `meta.reason: "unavailable"`, and the server runs no retrieval and no skkuverse-ai call. Development defaults it to `on`.
 
@@ -311,7 +311,7 @@ The internal route the crawler calls at the end of each crawl cycle, not callabl
 - **Response:** `SweepSummary` (`src/notices/dispatch/notices-dispatch.wire.ts`): `status`, `source`, `processed`, `sent`, `failed`, `skippedNoTopics`, `cfCalls`, `dedupedDocs`, `durationMs`.
 - The mechanism (claim lease, safety-net poller, retry and abandon) is [decisions/0003](../decisions/0003-fcm-dispatch-cloud-function-claim-lease.md).
 - **No topic, no push.** A claimed group whose boards have no push topic (today only `skku-main`, which no tab lists) gets no Cloud Function call. It is recorded as a skip: `pushedAt` is set, so no later claim takes it, `pushSkippedReason` is `"no-topic"`, and `pushAttempts` is not incremented. Count skips with `pushSkippedReason: "no-topic"`, not with `pushedAt`. The response counts them in `skippedNoTopics`.
-- **Push gate.** A notice is claimable once the crawler's live facts job has written `factsAt` (`toClaimFilter` in `src/notices/dispatch/notices-dispatch.query.ts`, [ADR 0024](../decisions/0024-dispatch-gate-on-facts.md)). `factsGate` `ok`, `failed` and `timeout` are all claimable. A notice the job never gated, such as a backfilled one, is never pushed.
+- **Push gate.** A notice is claimable once the crawler's live facts job has written `factsAt` (`toClaimFilter` in `src/notices/dispatch/notices-dispatch.query.ts`). `factsGate` `ok`, `failed` and `timeout` are all claimable. A notice the job never gated, such as a backfilled one, is never pushed.
 - **Claim order.** Each claim takes the newest claimable notice, `date` descending then `_id` descending (`CLAIM_SORT` in `src/notices/dispatch/notices-dispatch.query.ts`), so a backlog larger than `sweepBatchCap` sends the newest notices first.
 
 ## Error codes
@@ -369,6 +369,6 @@ The choices behind the routes above, kept out of the module doc.
 ## Related
 
 - [explanation/notices-architecture.md](../explanation/notices-architecture.md): the design
-- [decisions/0002](../decisions/0002-notices-read-only-ownership.md): read-only ownership
+- Umbrella ADR 0001: read-only ownership
 - [decisions/0003](../decisions/0003-fcm-dispatch-cloud-function-claim-lease.md): the FCM dispatch
 - [how-to/verify-notices-changes.md](../how-to/verify-notices-changes.md): the change checklist

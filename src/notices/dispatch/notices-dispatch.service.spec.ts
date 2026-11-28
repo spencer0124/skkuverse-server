@@ -301,7 +301,7 @@ describe("NoticesDispatchService.sweepPending", () => {
 
     // Assert
     expect(filter.pushedAt).toBeNull();
-    // The push gate is the crawler's factsAt (ADR 0024), in the form of
+    // The push gate is the crawler's factsAt, in the form of
     // dispatch_pending_facts_idx's partialFilterExpression so the planner
     // uses the partial index.
     expect(filter.factsAt).toEqual({ $type: "date" });
@@ -538,7 +538,7 @@ describe("NoticesDispatchService.sweepPending — cross-post grouping", () => {
     );
   }
 
-  // As the crawler links copies (adr-015 decision 24): each points at the earliest copy's `_id`, which need not be
+  // As the crawler links copies, each points at the earliest copy's `_id`, which need not be
   // claimed in this sweep, and a copy without a contentHash points at itself.
   const EARLIEST_COPY = new ObjectId();
 

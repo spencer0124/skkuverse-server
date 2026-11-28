@@ -35,7 +35,7 @@ export interface ScreenScope {
   displayByPlaceId: ReadonlyMap<string, PlaceDisplay>;
 }
 
-// WHY: `maxLines` folds the rest of a block's lines into `foldedCount` (umbrella ADR 0009 D13's "next three").
+// WHY: `maxLines` folds the rest of a block's lines into `foldedCount` (umbrella ADR 0001's "next three").
 export interface BlockSpec {
   label: string;
   numbered: boolean;

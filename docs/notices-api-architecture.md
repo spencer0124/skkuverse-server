@@ -16,7 +16,7 @@ audience: internal
 | --- | --- |
 | Requirements, architecture, design decisions, testing, future work | [explanation/notices-architecture.md](explanation/notices-architecture.md) |
 | Endpoints, error codes, file map | [reference/notices-api.md](reference/notices-api.md) |
-| Read-only ownership, indexes, the cleaning boundary | [decisions/0002-notices-read-only-ownership.md](decisions/0002-notices-read-only-ownership.md) |
+| Read-only ownership, indexes, the cleaning boundary | umbrella ADR 0001 |
 | FCM dispatch | [decisions/0003-fcm-dispatch-cloud-function-claim-lease.md](decisions/0003-fcm-dispatch-cloud-function-claim-lease.md) |
 | Strict config and the pre-deploy dry load | [decisions/0004-strict-config-pre-deploy-dry-load.md](decisions/0004-strict-config-pre-deploy-dry-load.md) |
 | Verification checklist | [how-to/verify-notices-changes.md](how-to/verify-notices-changes.md) |

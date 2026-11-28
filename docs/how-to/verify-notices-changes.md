@@ -41,7 +41,7 @@ With the server running (`npm run dev`):
 ## Index ownership
 
 - Check in MongoDB that the server's read indexes exist: `FORCE_INDEX` and `CLUSTER_INDEX` in `src/notices/list/notices-list.query.ts`. A polling role creates them at boot, and every list query is hinted to `FORCE_INDEX`, so a missing index fails the query.
-- Check that the change leaves the crawler's unique `articleNo_1_sourceId_1` index alone: the server never touches it ([decisions/0002](../decisions/0002-notices-read-only-ownership.md)).
+- Check that the change leaves the crawler's unique `articleNo_1_sourceId_1` index alone: the server never touches it (umbrella ADR 0001).
 
 ## Extra checks for a dispatch change
 

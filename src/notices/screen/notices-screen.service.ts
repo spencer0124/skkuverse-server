@@ -38,7 +38,7 @@ export class NoticesScreenService {
     const displays = placeIds.length > 0 ? await this.describePlaces(notice, placeIds) : [];
     const scope: ScreenScope = { reading, displayByPlaceId: toDisplayByPlaceId(placeIds, displays) };
     return {
-      // CONTRACT(skkuverse-crawler): `firstSeenAt` is written once per copy; a copy stored before it lacks it, and the crawler dates it by its `_id` (skkuverse-crawler/docs/notice-facts/design.md "Storage").
+      // CONTRACT(skkuverse-crawler): `firstSeenAt` is written once per copy; a copy stored before it lacks it, and the crawler dates it by its `_id` (skkuverse/docs/decisions/0001-notice-data-ownership.md).
       header: { firstSeen: toFirstSeen(notice.firstSeenAt ?? notice._id.getTimestamp(), reading), change: toHeaderChange(scope) },
       status: toStatusLine(reading),
       blocks: toScreenBlocks(scope, toBlockOrder(notice.category, reading)),

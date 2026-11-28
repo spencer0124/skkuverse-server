@@ -16,7 +16,7 @@ const EVENT_ON_KINDS: ReadonlySet<string> = new Set(["today", "ongoing", "upcomi
 const OPEN_WINDOW_KINDS: ReadonlySet<string> = new Set(["open", "ongoing"]);
 const PAST_KINDS: ReadonlySet<string> = new Set(["ended", "closed"]);
 const OPEN_CALL_KINDS: ReadonlySet<RowKind> = new Set(["open", "extended"]);
-// WHY: umbrella ADR 0009 D14: an action with no window counts only while the notice itself is open or still ahead.
+// WHY: umbrella ADR 0001: an action with no window counts only while the notice itself is open or still ahead.
 const UNWINDOWED_BAR_KINDS: ReadonlySet<RowKind> = new Set(["open", "extended", "ongoing", "today", "upcoming", "nodate"]);
 // WHY: a wrong signal is worse than none (D9): no bar over a stated closure, cancellation or suspension, or a date the row abstains on.
 const NO_BAR_KINDS: ReadonlySet<RowKind> = new Set(["closed", "ended", "cancelled", "suspended", "abstain"]);
@@ -51,7 +51,7 @@ function toStatusDetail(reading: RowReading, word: string): string {
   return withoutWord(hasFirstCome(reading) ? joinParts(row.trackedLine2, SCREEN_WORDS.firstCome) : row.trackedLine2, word);
 }
 
-// WHY: umbrella ADR 0009 D12 and its 2026-10-28 amendment: a closed sign-up whose event is still on reads closed, and the detail says the event part only.
+// WHY: umbrella ADR 0001 and its 2026-10-28 amendment: a closed sign-up whose event is still on reads closed, and the detail says the event part only.
 function toEventOnDetail({ eventStatus, items }: RowReading): string {
   const event = "item" in eventStatus ? items.find(({ item }) => item === eventStatus.item) : undefined;
   return eventStatus.kind === "ongoing" ? joinParts(SCREEN_WORDS.ongoing, event?.line ?? "") : (event?.line ?? "");
@@ -110,7 +110,7 @@ function toLinkTarget(url: string): ScreenAction | null {
   return toEmailTarget(address, new URLSearchParams(query).get("subject") || null);
 }
 
-// WHY: a contact's value is its quote, words and all, so the target is the number or the address inside it (umbrella ADR 0009 D13: tap to call or email).
+// WHY: a contact's value is its quote, words and all, so the target is the number or the address inside it (umbrella ADR 0001: tap to call or email).
 export function toContactAction({ kind, value }: Contact): ScreenAction | null {
   const target = (kind === "phone" ? PHONE_NUMBER : ADDRESS_IN_TEXT).exec(value.quote)?.[0];
   if (!target) return null;
@@ -118,7 +118,7 @@ export function toContactAction({ kind, value }: Contact): ScreenAction | null {
 }
 
 // CONTRACT(skkuverse-crawler): a place written off campus is stored unresolved with this reason
-// (skkuverse-crawler/py/src/skkuverse_crawler/plugins/facts/record.py); umbrella ADR 0009 opens it in the phone's map app.
+// (skkuverse-crawler/py/src/skkuverse_crawler/plugins/facts/record.py); umbrella ADR 0001 opens it in the phone's map app.
 export function toPlaceAction({ text, reason }: StoredPlace, display: PlaceDisplay | undefined): ScreenAction | null {
   if (display?.mapTarget) return { kind: "map", target: `${MAP_PLACE_KIND}:${display.mapTarget.skkuId}`, space: display.mapTarget.spaceCd };
   return reason === OFF_CAMPUS_REASON && text !== "" ? { kind: "search", target: text } : null;
@@ -208,7 +208,7 @@ export function toItemText({ item, line }: ItemReading): string {
   return isVerbShown ? line : withVerb(line, item.verb);
 }
 
-// WHY: umbrella ADR 0009 D10 shows each fact once: the record repeats a sentence it attaches to two things, and a fact
+// WHY: umbrella ADR 0001 shows each fact once: the record repeats a sentence it attaches to two things, and a fact
 // every track states shows once, untagged, as the notice's own.
 export function toDistinctLines(lines: readonly TaggedLine[]): TaggedLine[] {
   const isSame = (left: TaggedLine, right: TaggedLine): boolean => left.text === right.text && left.sub === right.sub;
@@ -221,7 +221,7 @@ export function toLineSource({ src }: { src: string }): ScreenLine["source"] {
   return src === "title" ? "title" : "body";
 }
 
-// WHY: umbrella ADR 0009 D4's example of a tentative date puts the verb before the tentative word, never after it.
+// WHY: umbrella ADR 0001's example of a tentative date puts the verb before the tentative word, never after it.
 const withVerb = (line: string, verb: string): string =>
   line.endsWith(TENTATIVE_TAIL) ? `${line.slice(0, -TENTATIVE_TAIL.length)} ${verb}${TENTATIVE_TAIL}` : `${line} ${verb}`;
 
@@ -231,7 +231,7 @@ export const isFromPoster = ({ src }: { src: string }): boolean => src.startsWit
 
 export const isPosterOnly = ({ times }: NoticeFacts): boolean => times.length > 0 && times.every((item) => isFromPoster(item.ev));
 
-// WHY: umbrella ADR 0009 D13: a track's fact shows its tag first, as the row writes `[tag] text`, and like the row
+// WHY: umbrella ADR 0001: a track's fact shows its tag first, as the row writes `[tag] text`, and like the row
 // leaves it out when the text (a table label) already names it.
 export const withTag = ({ tag }: { tag?: string }, text: string): string =>
   tag && !text.replaceAll(" ", "").includes(tag.replaceAll(" ", "")) ? `[${tag}] ${text}` : text;

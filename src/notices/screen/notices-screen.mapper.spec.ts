@@ -1,5 +1,5 @@
 /**
- * The blocks and the original of the notice detail screen (umbrella ADR 0009 D13, D15, D16) from one RowReading and the
+ * The blocks and the original of the notice detail screen (umbrella ADR 0001) from one RowReading and the
  * place names building gave: each block's lines, labels, numbering, fold and footer link, a place building names opened
  * on its building's sheet, a place off campus searched by its words, a place building cannot name or the campus map
  * cannot open shown as the quote with no map action, a disputed fact left out, a track's tag before its text, a fact a track
@@ -429,7 +429,7 @@ describe("toScreenBlocks, 이후 일정", () => {
     ]);
   });
 
-  it("puts the verb before 예정 on a tentative date, as umbrella ADR 0009 D4 writes 11/12(목) 발표 예정", () => {
+  it("puts the verb before 예정 on a tentative date, as umbrella ADR 0001 writes 11/12(목) 발표 예정", () => {
     // Arrange
     const tentative = { date: "2026-11-16", yearFilled: false, time: "", tentative: true, fuzzy: false, latest: "" };
     const stored = record(WINDOW, (r) => r.times.push(sessionOn("tm_result", "2026-11-16", { kind: "result", verb: "발표", start: tentative })));

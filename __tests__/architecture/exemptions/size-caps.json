@@ -81,7 +81,7 @@
   },
   "src/notices/row/notices-row.rules.ts": {
     "max": 462,
-    "reason": "ADR 0010 D9, no domain seam: `toFactsRows` turns a page of parsed facts into the list rows of umbrella ADR 0009, and its token table (`TOKEN_PRECEDENCE`), line 2, the abstention and the qualifier's place all read the one `RowStatus` that `toRowStatus` picks from the same row items and their KST days, so no step stands alone; a sibling sub-module meets the row only through a service (sub-modules.test.ts), which would put a Nest provider between pure steps of one computation, and a parent never imports a child, so the status cannot become a parent without a door no production code calls. The Korean words live in notices-row.constants.ts. `toRowReading` reads one notice for the detail screen over the same private scope, status and date text, so it closes over them and no other flow imports them."
+    "reason": "ADR 0010 D9, no domain seam: `toFactsRows` turns a page of parsed facts into the list rows of umbrella ADR 0001, and its token table (`TOKEN_PRECEDENCE`), line 2, the abstention and the qualifier's place all read the one `RowStatus` that `toRowStatus` picks from the same row items and their KST days, so no step stands alone; a sibling sub-module meets the row only through a service (sub-modules.test.ts), which would put a Nest provider between pure steps of one computation, and a parent never imports a child, so the status cannot become a parent without a door no production code calls. The Korean words live in notices-row.constants.ts. `toRowReading` reads one notice for the detail screen over the same private scope, status and date text, so it closes over them and no other flow imports them."
   },
   "src/notices/row/notices-row.types.ts": {
     "max": 68,

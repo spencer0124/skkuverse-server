@@ -6,7 +6,7 @@
  * the clock: a notice with facts gets its row, one with none or with facts the schema refuses gets null, the board
  * name rides only on a multi-source read, and the whole page is rendered at the one instant the clock gave first.
  *
- * On a read of two or more sources, each article is one row across all its pages (umbrella ADR 0009 D8): the
+ * On a read of two or more sources, each article is one row across all its pages (umbrella ADR 0001): the
  * service scans past the page and keeps a row only as its cluster's shown copy, the first in list order, and the
  * fake's member lookup finds the copies an earlier page served. A crawl that moves `crawledAt` between two page
  * reads changes no row. A read of one source serves every copy.
@@ -179,7 +179,7 @@ describe("NoticesListService.listNotices", () => {
     expect(decodeCursor(page.nextCursor).i).toBe(doc(2, "")._id.toHexString());
   });
 
-  it("names the board only on a read of two or more sources, as umbrella ADR 0009 adds it for a tab of several boards", async () => {
+  it("names the board only on a read of two or more sources, as umbrella ADR 0001 adds it for a tab of several boards", async () => {
     // Arrange
     const repository = new FakeNoticesListRepository();
     repository.docs = [doc(1, "2026-10-14", { facts: RECORD })];

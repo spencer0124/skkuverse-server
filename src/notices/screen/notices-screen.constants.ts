@@ -1,10 +1,10 @@
 import type { FactsRow } from "../row/notices-row.types";
 import type { AttachmentRole, BlockKey, BlockSpec, NoticeType, StatusSpec } from "./notices-screen.types";
 
-// WHY: umbrella ADR 0009 D13's block table, in its order: a block the notice type does not lead with follows in it.
+// WHY: umbrella ADR 0001's block table, in its order: a block the notice type does not lead with follows in it.
 export const BLOCK_KEYS = ["whenWhere", "audience", "apply", "commitment", "benefit", "costOfMissing", "laterSteps", "change", "contact"] as const;
 
-// WHY: product copy (.conventions.json productCopy), umbrella ADR 0009 D13's labels, read in Korean in every language (owner, 2026-10-28).
+// WHY: product copy (.conventions.json productCopy), umbrella ADR 0001's labels, read in Korean in every language (owner, 2026-10-28).
 export const BLOCK_SPECS = {
   whenWhere: { label: "언제·어디", numbered: false, footerLink: null, maxLines: 3 },
   audience: { label: "대상", numbered: false, footerLink: null, maxLines: null },
@@ -17,7 +17,7 @@ export const BLOCK_SPECS = {
   contact: { label: "문의", numbered: false, footerLink: null, maxLines: null },
 } as const satisfies Record<BlockKey, BlockSpec>;
 
-// WHY: umbrella ADR 0009 D13: the leading blocks per notice type; facility and service has no board category, so it never applies.
+// WHY: umbrella ADR 0001: the leading blocks per notice type; facility and service has no board category, so it never applies.
 export const LEADING_BLOCKS = {
   academic: ["costOfMissing", "audience", "apply", "whenWhere"],
   scholarship: ["audience", "benefit", "apply", "laterSteps"],
@@ -37,7 +37,7 @@ export const SCREEN_WORDS = {
   date: "날짜", place: "장소", qr: "QR", link: "링크", ongoing: "진행 중", tentative: "예정",
 } as const;
 
-// WHY: product copy, umbrella ADR 0009 D12's fixed words; a status with no word (upcoming, nodate, abstain) gets no line.
+// WHY: product copy, umbrella ADR 0001's fixed words; a status with no word (upcoming, nodate, abstain) gets no line.
 export const STATUS_SPECS: Record<FactsRow["status"], StatusSpec | null> = {
   notYetOpen: { word: "접수 전", tone: "neutral" }, open: { word: "접수 중", tone: "open" }, extended: { word: "연장", tone: "open" },
   closed: { word: "마감됨", tone: "closed" }, today: { word: "오늘", tone: "open" }, ongoing: { word: SCREEN_WORDS.ongoing, tone: "open" },

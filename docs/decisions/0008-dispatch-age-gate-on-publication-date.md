@@ -33,5 +33,5 @@ Measured for notices inserted in September 2026 (n = 313): summary lag (`aiSumma
 
 - The window no longer depends on crawl cadence, so the crawler is free to stop rewriting `crawledAt`, and a summary backlog can no longer swallow a push.
 - A notice published more than 14 days ago never pushes, even if newly discovered. That is the anti-spam rule, now a hard one.
-- The dispatch partial index leads with `date` (`DISPATCH_PENDING_INDEX` in `src/notices/dispatch/notices-dispatch.query.ts`; its gate field and full key are [ADR 0024](0024-dispatch-gate-on-facts.md)). Without it the planner scans the collection on every sweep, as the repository's `EVIDENCE` comment records; an index change ships one deploy ahead of the code that needs it ([ADR 0012](0012-runtime-roles.md), D3).
+- The dispatch partial index leads with `date` (`DISPATCH_PENDING_INDEX` in `src/notices/dispatch/notices-dispatch.query.ts`; its gate field is the crawler's `factsAt`, see umbrella ADR 0001). Without it the planner scans the collection on every sweep, as the repository's `EVIDENCE` comment records; an index change ships one deploy ahead of the code that needs it ([ADR 0012](0012-runtime-roles.md), D3).
 - `scripts/archive/migrate-notices-dispatch-init.js` must not be rerun: its backfill stamps `pushedAt` on every notice without one, and a stamped notice never pushes.

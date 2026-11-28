@@ -12,11 +12,11 @@ const screenAction = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("link"), target: z.string() }),
 ]);
 
-/** WHY: `quote` is the record's evidence sentence, which the app highlights in the original (umbrella ADR 0009 D16). */
+/** WHY: `quote` is the record's evidence sentence, which the app highlights in the original (umbrella ADR 0001). */
 const screenLine = z.object({
   text: z.string(),
   sub: z.string().nullable(),
-  /** WHY: where `quote` was read: the body, the title, or a poster's stored transcription (umbrella ADR 0009 D15). */
+  /** WHY: where `quote` was read: the body, the title, or a poster's stored transcription (umbrella ADR 0001). */
   source: z.enum(["body", "title", "poster"]),
   actions: z.array(screenAction),
   quote: z.string(),
@@ -32,7 +32,7 @@ const screenBlock = z.object({
 
 const headerChange = z.object({ what: z.string(), before: z.string(), after: z.string() });
 
-// WHY: umbrella ADR 0009 D11 to D16 as finished Korean at KST now; the app reads no `facts` and computes no relative word.
+// WHY: umbrella ADR 0001 as finished Korean at KST now; the app reads no `facts` and computes no relative word.
 export const noticeScreen = z.object({
   header: z.object({ firstSeen: z.string(), change: headerChange.nullable() }),
   status: z.object({ word: z.string(), detail: z.string().nullable(), tone: z.enum(["open", "soon", "closed", "stopped", "neutral"]) }).nullable(),

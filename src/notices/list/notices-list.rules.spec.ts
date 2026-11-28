@@ -2,8 +2,8 @@
  * The list's decisions: the v2 list badge (selectRoleBadge: application windows → due → happens → closed →
  * runs, rendered through the v1 brief shape the app already reads), the v1 period pick and the cursor's
  * cross-release decoding (ADR 0007: a legacy {d, c, i} cursor in app memory during a deploy must still decode),
- * and the day group a list item sits under (toListDay: umbrella ADR 0009 D2, by the KST day of its posting date, a week
- * starting on Monday). On a read of several boards, each article is one row (umbrella ADR 0009 D8): selectShownRows keeps
+ * and the day group a list item sits under (toListDay: umbrella ADR 0001, by the KST day of its posting date, a week
+ * starting on Monday). On a read of several boards, each article is one row (umbrella ADR 0001): selectShownRows keeps
  * a scanned row only when it is its cluster's shown copy, the copy crawled last, then the first in list order.
  */
 import type { SummaryDate } from "../notices.document";

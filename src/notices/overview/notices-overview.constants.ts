@@ -1,7 +1,7 @@
 // WHY: ranked results fetched before dedup, leaving room for a cross-post family's copies.
 export const RETRIEVAL_LIMIT = 20;
 
-// EVIDENCE: the ai answers within 20 s including one same-model retry, of a 24 s response budget (ADR 0016, D3), so
+// EVIDENCE: the ai answers within 20 s including one same-model retry, of a 24 s response budget, so
 // retrieval, Atlas's query-time embedding included, gets 1.5 s and the ai call 22 s.
 export const RETRIEVAL_MAX_TIME_MS = 1_500;
 export const AI_TIMEOUT_MS = 22_000;

@@ -34,7 +34,7 @@ export class NoticesDispatchClient {
   }
 
   // WHY: with no summary the body is the row's rough one-liner, but only for facts that landed in time: a failed or
-  // timed-out gate means the crawler does not vouch for them, so the push is title-only (design.md "The live job").
+  // timed-out gate means the crawler does not vouch for them, so the push is title-only.
   private deriveBody(notice: NoticeDoc): string {
     if (notice.factsGate !== "ok") return "";
     return this.legacy.deriveBrief(notice, this.clock.now())?.oneLiner ?? "";

@@ -41,9 +41,8 @@ export function toReleasedUpdate(fields: ReleasedFields): Document {
   return { $set: fields, $inc: { pushAttempts: 1 } };
 }
 
-// WHY: keyed on CLAIM_SORT, so the claim reads the index in order with no sort stage. Prod also holds
-// dispatch_pending_idx, partial on aiSummaryAt, and createIndex cannot change a filter under an existing name
-// (SEE: docs/decisions/0024-dispatch-gate-on-facts.md).
+// WHY: keyed on CLAIM_SORT, so the claim reads the index in order with no sort stage. Its name differs from the
+// old aiSummaryAt index because createIndex cannot change a filter under an existing name.
 export const DISPATCH_PENDING_INDEX = {
   key: CLAIM_SORT,
   options: { name: "dispatch_pending_facts_idx", partialFilterExpression: CLAIMABLE },
