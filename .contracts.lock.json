@@ -10,7 +10,7 @@
         "repo": "umbrella",
         "path": "docs/_template.md",
         "ref": "main",
-        "commit": "093108a9f722dbe6ae469baba0509ec55d22e53c",
+        "commit": "62137dd2f3946903119f60975e98001bdbc61115",
         "sha256": "7097688707123a8ddd9392ee147dba66e74133b8472bae44424923ca4073da94"
       },
       "syncedAt": "2026-10-28T11:24:42Z"
@@ -22,7 +22,7 @@
         "repo": "umbrella",
         "path": "conventions/markdownlint.jsonc",
         "ref": "main",
-        "commit": "093108a9f722dbe6ae469baba0509ec55d22e53c",
+        "commit": "62137dd2f3946903119f60975e98001bdbc61115",
         "sha256": "e9657ea55ddfdca15b1a7a3e81be94c8d4845fd6da452f6d5689f12dabb865a5"
       },
       "syncedAt": "2026-08-15T09:33:07Z"
@@ -34,7 +34,7 @@
         "repo": "umbrella",
         "path": "conventions/render_env.py",
         "ref": "main",
-        "commit": "093108a9f722dbe6ae469baba0509ec55d22e53c",
+        "commit": "62137dd2f3946903119f60975e98001bdbc61115",
         "sha256": "3ea2a2038d3a6dfbdd96ff736b1a7b9bab51e081cb18e8a4bf081a6e9f3ea75e"
       },
       "syncedAt": "2026-10-05T02:49:27Z"
@@ -46,7 +46,7 @@
         "repo": "crawler",
         "path": "py/generated/server-categories.json",
         "ref": "main",
-        "commit": "2708cc037fa1bc5ad10fb0f150eb7e339f470f79",
+        "commit": "64d1efb239ad1d33f2735c07a67514074c250222",
         "sha256": "36e26285167b79517800f6136a1fc729445e6a2795747c4bac7fcb92b7513ce2"
       },
       "syncedAt": "2026-08-04T10:48:30Z"
@@ -58,7 +58,7 @@
         "repo": "crawler",
         "path": "py/generated/server-exclude-reasons.json",
         "ref": "main",
-        "commit": "2708cc037fa1bc5ad10fb0f150eb7e339f470f79",
+        "commit": "64d1efb239ad1d33f2735c07a67514074c250222",
         "sha256": "33d092f8c2f0d13f585a6f24660f2fd0bde38893e3a35e6c72ef277f6ec14f8c"
       },
       "syncedAt": "2026-08-04T10:48:30Z"
@@ -70,7 +70,7 @@
         "repo": "crawler",
         "path": "docs/notice-schedule/notice-schedule.schema.json",
         "ref": "main",
-        "commit": "2708cc037fa1bc5ad10fb0f150eb7e339f470f79",
+        "commit": "64d1efb239ad1d33f2735c07a67514074c250222",
         "sha256": "200017f5656f59d4e5f8e0a9be3b10a05318d06e88b2c5465368c68050848267"
       },
       "syncedAt": "2026-11-27T07:38:02Z"
@@ -82,7 +82,7 @@
         "repo": "crawler",
         "path": "py/generated/server-sources.json",
         "ref": "main",
-        "commit": "2708cc037fa1bc5ad10fb0f150eb7e339f470f79",
+        "commit": "64d1efb239ad1d33f2735c07a67514074c250222",
         "sha256": "c18defa82ae4615ce66e15bc80c2833c9804d1d7bed37a9afa5bbbcd7b49100d"
       },
       "syncedAt": "2026-10-16T05:00:32Z"
@@ -94,22 +94,22 @@
         "repo": "umbrella",
         "path": "exported/lint_conventions.py",
         "ref": "main",
-        "commit": "093108a9f722dbe6ae469baba0509ec55d22e53c",
+        "commit": "62137dd2f3946903119f60975e98001bdbc61115",
         "sha256": "d4a90b8ea4169d369ec96747f81f4c782fccc2248ebf63f618df53e091f14ab3"
       },
       "syncedAt": "2026-10-27T00:32:58Z"
     },
     "tooling.server-manifest": {
       "path": ".github/contract-tools/contracts/manifest.json",
-      "sha256": "a1445341dbf256ca9755e8271d0b517b2bae7751d4fd8e48620db19b7d33496f",
+      "sha256": "d23c3dec08e4841e248e458c3e9b43b4c405ded76100c23b28bef352da0a5655",
       "producer": {
         "repo": "umbrella",
         "path": "contracts/manifest.json",
         "ref": "main",
-        "commit": "093108a9f722dbe6ae469baba0509ec55d22e53c",
-        "sha256": "96c71243c379eff3ef3e95d20e65f1eb0cdc44867dbd62a0c176005e2d7dcd0f"
+        "commit": "62137dd2f3946903119f60975e98001bdbc61115",
+        "sha256": "6ca155cdbe364379a69cb7870533431c8bd121d973170b96e42fa0a3f34137c4"
       },
-      "syncedAt": "2026-11-28T08:19:24Z"
+      "syncedAt": "2026-11-28T11:08:23Z"
     },
     "tooling.sync-contracts": {
       "path": ".github/contract-tools/exported/sync_contracts.py",
@@ -118,7 +118,7 @@
         "repo": "umbrella",
         "path": "exported/sync_contracts.py",
         "ref": "main",
-        "commit": "093108a9f722dbe6ae469baba0509ec55d22e53c",
+        "commit": "62137dd2f3946903119f60975e98001bdbc61115",
         "sha256": "0d81d218951e16e661962bb0d492599d8d01fe61034bdbf649625a1734a11190"
       },
       "syncedAt": "2026-10-27T08:59:09Z"
