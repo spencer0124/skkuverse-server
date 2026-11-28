@@ -213,7 +213,7 @@ describe("decodeCursor — every stored date shape", () => {
     expect(decoded).toEqual({ d: stored, c: ISO, i: OID });
   });
 
-  it.each(["", "2026-07-21T11:15", "2026-07-21 11:15:00", "2026-07-21 1:15", "2026-7-21", "2026-07-21 "])(
+  it.each(["", "2026-07", "2026-07 11:15", "2026-07-21T11:15", "2026-07-21 11:15:00", "2026-07-21 1:15", "2026-7-21", "2026-07-21 "])(
     "rejects %j, a shape the crawler never stores",
     (day) => {
       // Arrange
