@@ -183,15 +183,16 @@ describe("GET /v2/notices/source/:sourceId", () => {
   });
 
   it.each([
-    ["an unknown source", "/v2/notices/source/nope", "INVALID_SOURCE_ID"],
-    ["a malformed cursor", "/v2/notices/source/skku-notice02?cursor=!!!", "INVALID_CURSOR"],
-  ])("answers %s with 400 and its code", async (_case, url, code) => {
+    ["an unknown source", "/v2/notices/source/nope", "INVALID_SOURCE_ID", "unknown sourceId: nope"],
+    ["a malformed cursor", "/v2/notices/source/skku-notice02?cursor=!!!", "INVALID_CURSOR", "cursor is malformed"],
+  ])("answers %s with 400, its code and its message", async (_case, url, code, message) => {
     // Act
     const res = await request(app.getHttpServer()).get(url);
 
     // Assert
     expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe(code);
+    expect(res.headers["content-type"]).toMatch(/^application\/json/);
+    expect(res.body).toEqual({ error: { code, message } });
   });
 
   it("is the list, not the detail of a notice numbered `skku-notice02`", async () => {
@@ -223,17 +224,18 @@ describe("GET /v2/notices?sourceIds=", () => {
   });
 
   it.each([
-    ["no sourceIds", "/v2/notices", "INVALID_PARAMS"],
-    ["a repeated sourceIds", "/v2/notices?sourceIds=skku-notice02&sourceIds=skku-notice06", "INVALID_PARAMS"],
-    ["an unknown source", "/v2/notices?sourceIds=skku-notice02,nope", "INVALID_SOURCE_ID"],
-    ["a malformed cursor", "/v2/notices?sourceIds=skku-notice02&cursor=!!!", "INVALID_CURSOR"],
-  ])("answers %s with 400 and its code", async (_case, url, code) => {
+    ["no sourceIds", "/v2/notices", "INVALID_PARAMS", "sourceIds: 1-20 comma-separated source IDs required"],
+    ["a repeated sourceIds", "/v2/notices?sourceIds=skku-notice02&sourceIds=skku-notice06", "INVALID_PARAMS", "sourceIds: 1-20 comma-separated source IDs required"],
+    ["an unknown source", "/v2/notices?sourceIds=skku-notice02,nope", "INVALID_SOURCE_ID", "unknown sourceId: nope"],
+    ["a malformed cursor", "/v2/notices?sourceIds=skku-notice02&cursor=!!!", "INVALID_CURSOR", "cursor is malformed"],
+  ])("answers %s with 400, its code and its message", async (_case, url, code, message) => {
     // Act
     const res = await request(app.getHttpServer()).get(url);
 
     // Assert
     expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe(code);
+    expect(res.headers["content-type"]).toMatch(/^application\/json/);
+    expect(res.body).toEqual({ error: { code, message } });
   });
 });
 
@@ -322,10 +324,10 @@ describe("GET /v2/notices/:sourceId/:articleNo", () => {
   });
 
   it.each([
-    ["no such notice", "/v2/notices/skku-notice02/9999", 404, "NOT_FOUND"],
-    ["an unknown source", "/v2/notices/nope/1001", 400, "INVALID_SOURCE_ID"],
-    ["a non-numeric article", "/v2/notices/skku-notice02/abc", 400, "INVALID_PARAMS"],
-  ])("answers %s with %i and its code", async (_case, url, status, code) => {
+    ["no such notice", "/v2/notices/skku-notice02/9999", 404, "NOT_FOUND", "notice not found"],
+    ["an unknown source", "/v2/notices/nope/1001", 400, "INVALID_SOURCE_ID", "unknown sourceId: nope"],
+    ["a non-numeric article", "/v2/notices/skku-notice02/abc", 400, "INVALID_PARAMS", "articleNo must be numeric"],
+  ])("answers %s with %i, its code and its message", async (_case, url, status, code, message) => {
     // Arrange
     detailRepository.docs = [notice(1)];
 
@@ -334,7 +336,8 @@ describe("GET /v2/notices/:sourceId/:articleNo", () => {
 
     // Assert
     expect(res.status).toBe(status);
-    expect(res.body.error.code).toBe(code);
+    expect(res.headers["content-type"]).toMatch(/^application\/json/);
+    expect(res.body).toEqual({ error: { code, message } });
   });
 
   it("answers a soft-deleted notice 404", async () => {
@@ -415,7 +418,7 @@ describe("the perimeter on /v2/notices", () => {
     // Assert
     expect(anonymous.status).toBe(200);
     expect(rejected.status).toBe(401);
-    expect(rejected.body.error.code).toBe("AUTH_INVALID");
+    expect(rejected.body).toEqual({ error: { code: "AUTH_INVALID", message: "Invalid auth token" } });
     expect(signedIn.status).toBe(200);
     expect(rateLimits.counts.get("notices")).toBe((countedAfterAnonymous ?? 0) + 1);
     expect(rateLimits.principals.at(-1)).toEqual({ limitClass: "notices", principal: { kind: "user", uid: "uid-good", signInProvider: "anonymous" } });
@@ -431,7 +434,7 @@ describe("the perimeter on /v2/notices", () => {
     // Assert
     expect(counted).toMatchObject({ notices: 1, "notices-overview": 0 });
     expect(refused.status).toBe(429);
-    expect(refused.body.error.code).toBe("RATE_LIMIT");
+    expect(refused.body).toEqual({ error: { code: "RATE_LIMIT", message: "Too many requests" } });
   });
 
   it.each(ROUTES)("answers CORS for a trusted origin on %s", async (url) => {
