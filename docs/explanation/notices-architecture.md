@@ -17,7 +17,7 @@ The crawler owns the `notices` collection: it writes every document, and skkuver
 
 | System | Quirk tag | Gives | Enters at |
 | --- | --- | --- | --- |
-| skkuverse-crawler | `skkuverse-crawler` | The notice documents with their `schedule`, the unique article index, the tab files and the cycle-end ping | `NoticeDoc`, `NoticesScheduleService`, `noticesConfig`, `NoticesDispatchController` |
+| skkuverse-crawler | `skkuverse-crawler` | The notice documents with their `schedule`, the unique article index, the tab files and the ping after a cycle that stored a new notice | `NoticeDoc`, `NoticesScheduleService`, `noticesConfig`, `NoticesDispatchController` |
 | skkuverse-ai | `skkuverse-ai` | The summary fields, through the crawler | `selectRoleBadge` |
 | MongoDB Atlas | `atlas` | The list and detail reads and the atomic dispatch claim | `NoticesListRepository`, `NoticesDetailRepository`, `NoticesDispatchRepository` |
 | SKKU department sites | `skku`, `gnuboard` | Attachment files, some behind a board session or a hotlink check | `NoticesAttachmentClient` |

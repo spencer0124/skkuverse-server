@@ -239,7 +239,7 @@ A stub kept for the released app, which asks for an AI answer card above a searc
 
 ## POST /internal/notices/dispatch-pending
 
-The internal route the crawler calls at the end of each crawl cycle, not callable by clients: `INTERNAL_AUTHORIZER` authorizes it under the `notices.dispatch` scope ([ADR 0023](../decisions/0023-perimeter-ports.md)).
+The internal route the crawler calls after a crawl cycle that stored a new notice, not callable by clients: `INTERNAL_AUTHORIZER` authorizes it under the `notices.dispatch` scope ([ADR 0023](../decisions/0023-perimeter-ports.md)).
 
 - **What it does:** sweeps the pending notices, claims each under a lease and fans out through the FCM Cloud Function. A sweep already running answers `status: "in-progress"`.
 - **Response:** `SweepSummary` (`src/notices/dispatch/notices-dispatch.wire.ts`): `status`, `source`, `processed`, `sent`, `failed`, `skippedNoTopics`, `cfCalls`, `dedupedDocs`, `durationMs`.

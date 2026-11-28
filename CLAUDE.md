@@ -108,7 +108,7 @@ Logic: `dbNameFor()` and `apiUrl()` in `src/infra/required-env.ts`. Tests run un
 Sibling repositories:
 
 - `skkuverse-app` — React Native client; calls this API with a Firebase `Bearer <idToken>`.
-- `skkuverse-crawler` — owns writes to the `notices` collection (this server only reads it) and calls `POST /internal/notices/dispatch-pending` at the end of each cycle to trigger FCM dispatch.
+- `skkuverse-crawler` — owns writes to the `notices` collection (this server only reads it) and calls `POST /internal/notices/dispatch-pending` after a crawl cycle that stored a new notice, to trigger FCM dispatch.
 - `skkuverse-ai` — summarizes notices for the crawler; this server does not call it.
 - `skkuverse-web` (`apps/webview`), `skkuverse-mini` (mini apps) — web clients whose origins live in `src/infra/origins.ts`.
 - `skkuverse` — umbrella repo: cross-repo contracts and shared conventions.
