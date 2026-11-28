@@ -1,8 +1,8 @@
 /**
  * In-memory NoticesDispatchRepository over `notices`, with the real claim's predicates (pinned in
  * notices-dispatch.repository.spec.ts and, over a real mongod, notices-characterization.routes.test.ts): not
- * pushed, gated by the crawler's live facts job, on or after the window's date floor, under the attempt cap,
- * not deleted, and a lease that is free or expired, newest first by (date, _id). A claim stamps `dispatchClaimedAt` on the stored notice, as
+ * pushed, on or after the window's date floor, under the attempt cap, not deleted, and a lease that is free or
+ * expired, newest first by (date, _id). A claim stamps `dispatchClaimedAt` on the stored notice, as
  * the real `$set` does, and every record write is kept in `records` as the fields it would `$set` and applied to
  * the stored notice, with one attempt counted for a push or a release, none for a skip.
  */
@@ -54,7 +54,6 @@ export class FakeNoticesDispatchRepository implements PublicOf<NoticesDispatchRe
     const claimedAt = notice.dispatchClaimedAt;
     return (
       notice.pushedAt == null &&
-      notice.factsAt instanceof Date &&
       notice.date >= window.dateFloor &&
       (notice.pushAttempts ?? 0) < window.maxAttempts &&
       notice.isDeleted !== true &&

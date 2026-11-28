@@ -5,7 +5,7 @@
  */
 const findOneAndUpdate = jest.fn((..._args: unknown[]) => Promise.resolve(null));
 const updateOne = jest.fn((..._args: unknown[]) => Promise.resolve({ acknowledged: true }));
-const createIndex = jest.fn((..._args: unknown[]) => Promise.resolve("dispatch_pending_facts_idx"));
+const createIndex = jest.fn((..._args: unknown[]) => Promise.resolve("dispatch_pending_idx_v3"));
 
 jest.mock("../../infra/db", () => ({
   getClient: () => ({ db: () => ({ collection: () => ({ findOneAndUpdate, updateOne, createIndex }) }) }),
@@ -22,7 +22,7 @@ beforeEach(() => {
 });
 
 describe("NoticesDispatchRepository.claimNextPending", () => {
-  it("claims the newest unpushed, facts-gated, recent, undeleted notice under its attempt cap whose lease is free or expired", async () => {
+  it("claims the newest unpushed, recent, undeleted notice under its attempt cap whose lease is free or expired, with no gate on the crawler's other stages", async () => {
     // Act
     await new NoticesDispatchRepository().claimNextPending({ dateFloor: "2026-10-06", leaseExpiredBefore: LEASE, maxAttempts: 5 }, CLAIMED_AT);
 
@@ -30,7 +30,6 @@ describe("NoticesDispatchRepository.claimNextPending", () => {
     expect(findOneAndUpdate.mock.calls[0]).toEqual([
       {
         pushedAt: null,
-        factsAt: { $type: "date" },
         date: { $gte: "2026-10-06" },
         pushAttempts: { $not: { $gte: 5 } },
         isDeleted: { $ne: true },
@@ -82,13 +81,13 @@ describe("NoticesDispatchRepository.recordSkipped", () => {
 });
 
 describe("NoticesDispatchRepository.onModuleInit", () => {
-  it("ensures one index, dispatch_pending_facts_idx, on the claim's sort and partial on the notices the live facts job has gated", async () => {
+  it("ensures one index, dispatch_pending_idx_v3, on the claim's sort and partial on the unpushed notices", async () => {
     // Act
     await new NoticesDispatchRepository().onModuleInit();
 
     // Assert
     expect(createIndex.mock.calls).toEqual([
-      [{ date: -1, _id: -1 }, { name: "dispatch_pending_facts_idx", partialFilterExpression: { pushedAt: null, factsAt: { $type: "date" } } }],
+      [{ date: -1, _id: -1 }, { name: "dispatch_pending_idx_v3", partialFilterExpression: { pushedAt: null } }],
     ]);
     // toEqual ignores key order, and a swapped key would plan a sort stage.
     expect(Object.keys(createIndex.mock.calls[0]?.[0] as object)).toEqual(["date", "_id"]);
