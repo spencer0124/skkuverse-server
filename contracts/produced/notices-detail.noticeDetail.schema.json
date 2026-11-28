@@ -36,9 +36,7 @@
       "type": "string"
     },
     "views": {
-      "type": "number",
-      "deprecated": true,
-      "description": "Deprecated: kept for released app versions; removed at the forced update."
+      "type": "number"
     },
     "contentMarkdown": {
       "type": [
