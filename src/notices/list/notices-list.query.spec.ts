@@ -42,24 +42,24 @@ describe("toCursorFilter", () => {
 describe("toNoticeListFilter", () => {
   const START = "2026-01-01";
 
-  it("matches a search word in the title, the stored one-liner or the facts' short title", () => {
+  it("matches a search word in the title or the stored one-liner, and in no other field", () => {
     // Act
     const filter = toNoticeListFilter("skku-notice02", { limit: 20, cursor: null, q: "장학" }, START);
 
     // Assert
     const pattern = { $regex: "장학", $options: "i" };
     expect(filter.$and).toContainEqual({
-      $or: [{ title: pattern }, { summaryOneLiner: pattern }, { "facts.shortTitle.text": pattern }, { "facts.shortTitle.compact": pattern }],
+      $or: [{ title: pattern }, { summaryOneLiner: pattern }],
     });
   });
 
-  it("reads a notice with facts and no summary under any type, which the service then narrows to its derived type", () => {
+  it("reads a type from the stored summary type alone, with no other notice let in", () => {
     // Act
     const filter = toNoticeListFilter("skku-notice02", { limit: 20, cursor: null, type: "event" }, START);
 
     // Assert
     expect(filter.summaryType).toBeUndefined();
-    expect(filter.$and).toContainEqual({ $or: [{ summaryType: "event" }, { summaryAt: null, facts: { $type: "object" } }] });
+    expect(filter.$and).toEqual([{ date: { $gte: START } }, { summaryType: "event" }]);
   });
 
   it("adds no type clause when the read names no type", () => {

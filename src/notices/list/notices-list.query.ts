@@ -15,11 +15,7 @@ export const FORCE_INDEX = { sourceId: 1, date: -1, _id: -1 } as const;
 // (2.3 MB), mostly copies on skku-main and skku-notice02 to 07, which the read leaves out.
 export const CLUSTER_INDEX = { dupOf: 1, sourceId: 1, _id: 1 } as const;
 
-// WHY: a notice with facts and no summary has the type its row derives, which no stored field holds, so a read for a type
-// takes it too and the service keeps the ones whose derived type matches.
-const DERIVED_SUMMARY_FILTER: Document = { summaryAt: null, facts: { $type: "object" } };
-
-const SEARCH_FIELDS = ["title", "summaryOneLiner", "facts.shortTitle.text", "facts.shortTitle.compact"] as const;
+const SEARCH_FIELDS = ["title", "summaryOneLiner"] as const;
 
 export const LIST_SORT = { date: -1, _id: -1 } as const;
 
@@ -47,8 +43,6 @@ export const LIST_PROJECTION = {
   summaryVersion: 1,
   summaryApplication: 1,
   summaryDates: 1,
-  facts: 1,
-  factsHistory: 1,
   dupOf: 1,
 } as const satisfies Record<keyof NoticeListRow, 1>;
 
@@ -73,7 +67,7 @@ export function toNoticeListFilter(scope: NoticeScope, query: NoticeListQuery, s
     isDeleted: { $ne: true },
   };
   const clauses: Document[] = [{ date: { $gte: serviceStartDate } }];
-  if (query.type) clauses.push({ $or: [{ summaryType: query.type }, DERIVED_SUMMARY_FILTER] });
+  if (query.type) clauses.push({ summaryType: query.type });
   if (query.cursor) clauses.push(toCursorFilter(query.cursor));
   if (query.q) {
     const pattern = escapeRegex(query.q);

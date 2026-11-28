@@ -72,8 +72,8 @@
     "reason": "ADR 0010 D9, no domain seam: `noticeFacts` mirrors the one versioned record the crawler writes and the server parses as a unit, each of its sections checked against the same vendored file by `__tests__/contracts/notice-facts.test.ts`, so a split would leave half a record in each sub-module, and a sibling never imports another sub-module's schema (sub-modules.test.ts); `factsSnapshot`, an earlier version of that record the crawler stores beside it, is read through the same `NoticesFactsService`."
   },
   "src/notices/list/notices-list.rules.ts": {
-    "max": 210,
-    "reason": "ADR 0010 D9, no domain seam: the list badge is one priority chain a list item is cut from, the v1 period pick and the v2 role badge feeding one brief, and the cursor decode beside it, with `toListDay`, the one KST day group a served item sits under, and `selectShownRows`, which keeps a scanned row of several boards only as its cluster's shown copy over the list's own scan and filter; none is a flow of its own, so a sub-module would hold rules and nothing else, and the badge alone exceeds the rules cap."
+    "max": 199,
+    "reason": "ADR 0010 D9, no domain seam: the list badge is one priority chain a list item is cut from, the v1 period pick and the v2 role badge feeding one brief, and the cursor decode beside it, with `selectShownRows`, which keeps a scanned row of several boards only as its cluster's shown copy over the list's own scan and filter; none is a flow of its own, so a sub-module would hold rules and nothing else, and the badge alone exceeds the rules cap."
   },
   "src/notices/notices.wire.ts": {
     "max": 65,

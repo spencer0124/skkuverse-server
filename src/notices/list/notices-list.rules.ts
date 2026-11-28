@@ -3,10 +3,10 @@ import type { NoticeDoc, SummaryPeriod } from "../notices.document";
 import { KST_TIME_ZONE } from "../../shared/time-zone.constants";
 import { clusterKeyOf } from "../notices.rules";
 import type { SummaryType } from "../notices.types";
-import { OPEN_ENDED_DAYS, POSTING_DAY_LENGTH } from "./notices-list.constants";
+import { OPEN_ENDED_DAYS } from "./notices-list.constants";
 import { NoticesListCursorError } from "./notices-list.error";
 import type { ClusterMember } from "./notices-list.document";
-import type { BriefDate, BriefDates, BriefEnd, CursorPayload, ListDay, NoticeScope } from "./notices-list.types";
+import type { BriefDate, BriefDates, BriefEnd, CursorPayload, NoticeScope } from "./notices-list.types";
 
 interface Span {
   start: moment.Moment | null;
@@ -215,19 +215,7 @@ export function selectRoleBadge(application: unknown, dates: unknown, now: Date)
   return rangeBadge(spans, nowMs) ?? { type: "informational", startAt: null, endAt: null };
 }
 
-// WHY: umbrella ADR 0001 (owner, 2026-10-28): the list's sort key, the posting date as a KST calendar day, sets the
-// header, because a crawler batch of old posts must not read as today. A week starts on Monday, so this-week is
-// empty on Monday and Tuesday. A date that is no calendar day sits under earlier.
-export function toListDay(postedDate: string, now: Date): ListDay {
-  const today = moment(now).tz(KST_TIME_ZONE).startOf("day");
-  const posted = moment.tz(postedDate.slice(0, POSTING_DAY_LENGTH), "YYYY-MM-DD", true, KST_TIME_ZONE);
-  if (!posted.isValid()) return "earlier";
-  if (!posted.isBefore(today)) return "today";
-  if (!posted.isBefore(today.clone().subtract(1, "day"))) return "yesterday";
-  return posted.isBefore(today.clone().startOf("isoWeek")) ? "earlier" : "thisWeek";
-}
-
-// WHY: umbrella ADR 0001 names the board and lists each article once only in a tab of several boards.
+// WHY: umbrella ADR 0001 lists each article once only in a tab of several boards.
 export function hasSeveralSources(scope: NoticeScope): boolean {
   return typeof scope !== "string" && new Set(scope).size > 1;
 }

@@ -285,7 +285,6 @@ describe("GET /notices/source/:sourceId over real documents", () => {
           startAt: null,
           endAt: { date: "2026-11-16", time: null, label: "제출기한" },
         },
-        row: null,
       },
     ]);
   });

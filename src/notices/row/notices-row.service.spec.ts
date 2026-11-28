@@ -1,11 +1,7 @@
 /**
- * NoticesRowService.renderRows: the door the list flow hands a page of stored notices to. It parses each notice's facts
- * through NoticesFactsService, renders every row at the one `now` the caller's Clock gave, and pairs each notice with its
- * row, or with null when the notice has no facts or facts the schema refuses. The words are notices-row.rules.spec.ts's.
- *
- * NoticesRowService.readNotice: the door the detail flow reads one notice through. It parses the same facts and history
- * the same way, and reads the notice at the caller's moment as one RowReading whose row is the row renderRows gives, or
- * null when the notice has no facts or facts the schema refuses.
+ * NoticesRowService.readNotice: the door the detail flow reads one notice through. It parses the notice's facts and
+ * history through NoticesFactsService and reads the notice at the caller's moment as one RowReading, or null when the
+ * notice has no facts or facts the schema refuses. The words are notices-row.rules.spec.ts's.
  *
  * src/infra/logger.ts is mocked: the refused record logs `notices.facts.unparsed`.
  */
@@ -26,60 +22,15 @@ const FIXED_CLOCK: Clock = { now: () => new Date("2026-10-28T03:00:00Z") };
 
 const notice = (facts: unknown): RowNotice => ({ _id: new ObjectId(), title: "2026학년도 장학금 신청 안내", facts, factsHistory: [] });
 
-describe("NoticesRowService.renderRows", () => {
-  const service = new NoticesRowService(new NoticesFactsService(FIXED_CLOCK));
-
-  it.each([
-    ["23:59 KST, the day before the deadline", "2026-10-25T14:59:00Z", "내일 마감"],
-    ["00:00 KST, the deadline day", "2026-10-25T15:00:00Z", "오늘"],
-  ])("renders the page at the caller's moment: %s", (_label, instant, token) => {
-    // Act
-    const rendered = service.renderRows([notice(RECORD)], new Date(instant));
-
-    // Assert
-    expect(rendered.map(({ row }) => row?.token?.text)).toEqual([token]);
-  });
-
-  it("pairs each notice with its row, and with null when it has no facts or facts the schema refuses", () => {
-    // Arrange
-    const notices = [notice(RECORD), notice(undefined), notice({ ...RECORD, v: 2 })];
-
-    // Act
-    const rendered = service.renderRows(notices, new Date("2026-10-25T03:00:00Z"));
-
-    // Assert
-    expect(rendered.map(({ notice: paired }) => paired)).toEqual(notices);
-    expect(rendered.map(({ row }) => row?.line2 ?? null)).toEqual(["내일 마감", null, null]);
-  });
-
-  it("renders the row of a notice whose stored history holds a snapshot the schema refuses, as if it were not there", () => {
-    // Arrange
-    const withoutTimes = { extractedAt: "2026-10-20T03:00:00Z", inputHash: "h1", status: ["closed"] };
-    const clean = notice(RECORD);
-    const corrupt = { ...notice(RECORD), factsHistory: [withoutTimes, "garbage", null] };
-
-    // Act
-    const [cleanRendered, corruptRendered] = [clean, corrupt].map((stored) => service.renderRows([stored], new Date("2026-10-25T03:00:00Z"))[0]);
-
-    // Assert
-    expect(corruptRendered?.row).toEqual(cleanRendered?.row);
-    expect(corruptRendered?.row?.token?.text).toBe("내일 마감");
-  });
-});
-
 describe("NoticesRowService.readNotice", () => {
   const service = new NoticesRowService(new NoticesFactsService(FIXED_CLOCK));
   const OPEN_DAY = new Date("2026-10-25T03:00:00Z");
 
-  it("reads the row renderRows gives the same notice at the same moment", () => {
-    // Arrange
-    const stored = notice(RECORD);
-
+  it("reads the row of a notice with facts at the caller's moment", () => {
     // Act
-    const reading = service.readNotice(stored, OPEN_DAY);
+    const reading = service.readNotice(notice(RECORD), OPEN_DAY);
 
     // Assert
-    expect(reading?.row).toEqual(service.renderRows([stored], OPEN_DAY)[0]?.row);
     expect(reading?.row.line2).toBe("내일 마감");
   });
 

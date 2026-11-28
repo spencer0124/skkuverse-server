@@ -61,11 +61,6 @@ export interface FactsRow {
   itemId: string | null;
 }
 
-export interface RenderedNotice<T extends RowNotice> {
-  notice: T;
-  row: FactsRow | null;
-}
-
 export interface ItemReading {
   item: RowItem;
   line: string;

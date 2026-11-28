@@ -1,5 +1,5 @@
 {
-  "_about": "GET /notices/source/skku-notice06?limit=50&type=action_required and GET /notices?sourceIds=… captured from production 2026-10-14 (stage 11 shape snapshot); public notices, trimmed to an action_required badge with a time, an informational range and, where the capture had one, an unsummarized notice; `row: null` added by hand to each item, because the capture predates the notice facts and production served no row",
+  "_about": "GET /notices/source/skku-notice06?limit=50&type=action_required and GET /notices?sourceIds=… captured from production 2026-10-14 (stage 11 shape snapshot); public notices, trimmed to an action_required badge with a time, an informational range and, where the capture had one, an unsummarized notice",
   "data": {
     "notices": [
       {
@@ -28,8 +28,7 @@
             "time": "18:00",
             "label": "공고 및 서류 접수"
           }
-        },
-        "row": null
+        }
       },
       {
         "id": "6acf2f809cb01d9a98eb3c7b",
@@ -57,8 +56,7 @@
             "time": null,
             "label": "신청기간"
           }
-        },
-        "row": null
+        }
       }
     ],
     "nextCursor": "eyJkIjoiMjAyNi0wOS0zMCIsImMiOiIyMDI2LTEwLTEyVDA1OjEwOjE2LjIwOFoiLCJpIjoiNmFiY2MxOGFiMGMyN2QzOTkwYmI4M2NiIn0",

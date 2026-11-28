@@ -65,12 +65,8 @@ export class FakeNoticesListRepository implements PublicOf<NoticesListRepository
     const sources = typeof scope === "string" ? [scope] : scope;
     return this.docs
       .filter((doc) => sources.includes(doc.sourceId) && doc.isDeleted !== true && doc.date >= config.notices.serviceStartDate)
-      .filter((doc) => !query.type || doc.summaryType === query.type || this.isDerivedSummary(doc))
+      .filter((doc) => !query.type || doc.summaryType === query.type)
       .filter((doc) => !query.q || this.matchesSearch(doc, query.q));
-  }
-
-  private isDerivedSummary(doc: NoticeDoc): boolean {
-    return !doc.summaryAt && typeof doc.facts === "object" && doc.facts !== null;
   }
 
   private isAfterCursor(doc: NoticeDoc, date: string, id: string): boolean {
@@ -79,7 +75,6 @@ export class FakeNoticesListRepository implements PublicOf<NoticesListRepository
 
   private matchesSearch(doc: NoticeDoc, searchText: string): boolean {
     const needle = searchText.toLowerCase();
-    const shortTitle = (doc.facts as { shortTitle?: { text?: unknown; compact?: unknown } } | null | undefined)?.shortTitle;
-    return [doc.title, doc.summaryOneLiner, shortTitle?.text, shortTitle?.compact].some((text) => typeof text === "string" && text.toLowerCase().includes(needle));
+    return [doc.title, doc.summaryOneLiner].some((text) => typeof text === "string" && text.toLowerCase().includes(needle));
   }
 }

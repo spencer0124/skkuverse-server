@@ -78,7 +78,7 @@ The tab layout the app's notices screen renders, built from `categories.json` an
 
 ## GET /notices/source/:sourceId
 
-Query: `cursor` (base64url), `limit` (clamped to 1–50; unreadable means 20), `type` (optional: `action_required | event | informational`), `q` (optional search text, matched against the title, the summary one-liner and the facts' short title; one that is empty, over 100 code points or holds a control character is dropped, never an error).
+Query: `cursor` (base64url), `limit` (clamped to 1–50; unreadable means 20), `type` (optional: `action_required | event | informational`), `q` (optional search text, matched against the title and the summary one-liner; one that is empty, over 100 code points or holds a control character is dropped, never an error).
 
 ```jsonc
 {
@@ -104,8 +104,7 @@ Query: `cursor` (base64url), `limit` (clamped to 1–50; unreadable means 20), `
           "type": "action_required",
           "startAt": null,
           "endAt": { "date": "2026-04-09", "time": null, "label": null }
-        },
-        "row": null
+        }
       }
     ],
     "nextCursor": "eyJkIjoi...",
@@ -118,22 +117,8 @@ Query: `cursor` (base64url), `limit` (clamped to 1–50; unreadable means 20), `
 - **`startAt` and `endAt` are derived at request time:**
   - A v1 notice (no `summaryVersion`): `selectEffectivePeriod`. For `action_required`, the earliest deadline still ahead in `summaryPeriods` (a timed same-day slot is no deadline), or the latest one when all have passed; for any other type, `periods[0]`.
   - A v2 notice (`summaryVersion >= 2` with `summaryDates`): `selectRoleBadge`. It takes the first that applies: an application window (`summaryApplication.windows`), the next `due`, the next `happens` event, all windows and dues passed (closed), a multi-day `runs` range. It ignores the stored `summaryType` and sets `type` to fit what it picked (a window not yet open reads as an `informational` range). Source: skkuverse-ai `openspec/changes/refine-notice-summary-v2` design D11.
-- **Derived `summary`.** A notice with facts and no stored summary (`summaryAt` unset) gets a rough `summary` from its row so an installed app still shows a one-liner and a D-day: `oneLiner` is line 2 of the row, then its qualifier in full (the whole text, never the short form the row's 26 characters may take), led by the token word for a cancelled, stopped, postponed, extended or changed notice; `endAt` is the shown window's end; `type` is `action_required` for a window, `event` for a session and `informational` otherwise. A notice that carries a stored summary is served as before. `type=` and `q=` match a derived notice by its derived type and by `facts.shortTitle`; a typed page can hold fewer than `limit` notices, and `hasMore` and `nextCursor` still follow the read.
-- **`row` (the facts row).** Next to `summary`, an item carries `row`: finished Korean text from the crawler's `facts` record, rendered at the request's KST now (umbrella ADR 0001). It is `null` when the notice has no facts or its facts fail the record schema, and the item then reads as before. `summary` and every other field are unchanged. The fields follow the app sketch's `SketchRow`, and a part the notice lacks is `null`, not left out:
-
-  | Field | Meaning |
-  | --- | --- |
-  | `token` | `{ text, tone }`, the one status word that leads line 1 (취소, 오늘, 내일 마감, 마감, 중단, 연기, 연장, 변경), or `null` |
-  | `title` | Line 1, the short title. When the record's short title is unusable, the original title, which over 20 characters drops its bracket groups (one naming a restricted audience stays) and keeps its whole words with `…` |
-  | `when` | Line 2, when and what to do (the facts row's `line2`), with no track tag; a thing's name stays in brackets |
-  | `urgent` | `true` only for a deadline today or tomorrow |
-  | `dateMark` | `"warning"` when the date is shown as written, `"abstain"` when the date could not be read, else `null` |
-  | `qualifier` | The one fact that matters most, at the end of line 2 after ` · `, whitespace collapsed, or `null`. A fact the crawler read from a table reads `label · quote`, and the 26 characters count that whole text. When `when`, ` · ` and the whole text would pass 26 characters, the crawler's short form of it (`compact`, under the same `label`; for a place its own `compact`) shows if that fits, and a short form never shows without its `label`. It is `null` when no form fits, or when no rule applies, and the count of conditions and the online word have no short form |
-  | `board` | The source's display name on `GET /notices` with two or more `sourceIds`, `null` on one source and on `GET /notices/source/:sourceId` |
-  | `dimmed` | `true` for a closed, ended, cancelled or staff-only notice |
-  | `day` | `today`, `yesterday`, `thisWeek` or `earlier`, by the notice's posting date `date`, the list's sort key, read as a KST calendar day (the first ten characters, so a stored minute is ignored); a week starts on Monday. A posting date after today reads `today`, and one that is no calendar day reads `earlier`. The list order is unchanged, so each group is contiguous |
-
-  The text is Korean for every `Accept-Language`. The facts row's `status` and `itemId` stay on the server.
+- **`summary` is the stored one.** An item serves the summary fields the crawler stores, and `summary` is `null` for a notice with none (`summaryAt` unset). Nothing the crawler writes after the first save is read.
+- **`type` filters on the stored `summaryType`.** A notice with no stored summary is in no typed list. The read itself applies the filter, so a typed page holds `limit` notices while more match, and `hasMore` and `nextCursor` follow the last notice served.
 - **A cursor ignores the filter.** It pages on `(date, _id)`, so a cursor read under another `type` is accepted and may skip rows; the app resets the list when the filter changes.
 - **The cursor payload is `{d, c, i}`.** `c` (the old `crawledAt`) is still sent and accepted but never read, so a rollback can decode it. Clients treat the cursor as an opaque string. Background: [decisions/0007-notice-ordering-key.md](../decisions/0007-notice-ordering-key.md).
 
@@ -142,7 +127,7 @@ Query: `cursor` (base64url), `limit` (clamped to 1–50; unreadable means 20), `
 `?sourceIds=a,b,c` with the same `limit`, `type`, `cursor` and `q` as above. The ids go in one `sourceIds`, comma-separated; a repeated `sourceIds` key is `400 INVALID_PARAMS`, as on `GET /notices/overview`. The named sources are merged into one list, newest first. `src/notices/list/notices-list.schema.ts` and `src/notices/list/notices-list.wire.ts` are the source of truth for the parameters and the response shape.
 
 - **Each article once.** When `sourceIds` names two or more distinct sources, an article posted on several of them is one row (umbrella ADR 0001). Copies are the notices with the same `dupOf`, which the crawler writes; a notice without `dupOf` is an article of its own. Copies on one source collapse too.
-- **The copy served.** The row is the first copy in list order: the latest `date`, then the highest `id`. It keeps its own `id`, `sourceId`, `articleNo` and `row.board`, and sits at that copy's place in the list. A copy is hidden only when another copy in the read sorts before it, and the crawler never moves either key, so a refresh of `crawledAt` or `views` between two page reads changes no row.
+- **The copy served.** The row is the first copy in list order: the latest `date`, then the highest `id`. It keeps its own `id`, `sourceId` and `articleNo`, and sits at that copy's place in the list. A copy is hidden only when another copy in the read sorts before it, and the crawler never moves either key, so a refresh of `crawledAt` or `views` between two page reads changes no row.
 - **Paging.** `limit`, `hasMore` and `nextCursor` count served rows. The cursor is the last row served, so an article never appears on two pages. A page can hold fewer than `limit` rows while `hasMore` is `true`, when a long run of copies uses up its scans; only `hasMore` says the list ended.
 - **One source.** `GET /notices/source/:sourceId`, or a `sourceIds` that names one source, serves every copy.
 

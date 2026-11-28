@@ -2,11 +2,9 @@ import type { SummaryPeriod } from "../notices.document";
 import { textOrNull } from "../notices.mapper";
 import type { NoticeListRow } from "./notices-list.document";
 import { normalizeSummaryType } from "../notices.rules";
-import type { DerivedBrief } from "../legacy/notices-legacy.types";
-import type { FactsRow } from "../row/notices-row.types";
-import { isV2Summary, selectEffectivePeriod, selectRoleBadge, toListDay } from "./notices-list.rules";
-import type { CursorPayload, ItemRowOptions, NoticePage } from "./notices-list.types";
-import type { NoticeItemRow, NoticeListItem, NoticeSummaryBrief } from "./notices-list.wire";
+import { isV2Summary, selectEffectivePeriod, selectRoleBadge } from "./notices-list.rules";
+import type { CursorPayload, NoticePage } from "./notices-list.types";
+import type { NoticeListItem, NoticeSummaryBrief } from "./notices-list.wire";
 
 export function encodeCursor(cursor: CursorPayload): string {
   return Buffer.from(JSON.stringify({ d: cursor.d, c: cursor.c, i: cursor.i }), "utf8").toString("base64url");
@@ -43,21 +41,7 @@ export function toSummaryBrief(doc: NoticeListRow, now: Date): NoticeSummaryBrie
   return { oneLiner, type, ...toPeriodBrief(selected) };
 }
 
-export function toItemRow(row: FactsRow, doc: NoticeListRow, options: ItemRowOptions): NoticeItemRow {
-  return {
-    token: row.token,
-    title: row.title,
-    when: row.line2,
-    urgent: row.urgent,
-    dateMark: row.dateMark,
-    qualifier: row.qualifier,
-    board: options.boardNameById?.get(doc.sourceId) ?? null,
-    dimmed: row.dimmed,
-    day: toListDay(doc.date, options.now),
-  };
-}
-
-export function toListItem(doc: NoticeListRow, now: Date, row: NoticeItemRow | null): NoticeListItem {
+export function toListItem(doc: NoticeListRow, now: Date): NoticeListItem {
   return {
     id: doc._id.toHexString(),
     sourceId: doc.sourceId,
@@ -73,11 +57,5 @@ export function toListItem(doc: NoticeListRow, now: Date, row: NoticeItemRow | n
     hasAttachments: Array.isArray(doc.attachments) && doc.attachments.length > 0,
     isEdited: (doc.editCount || 0) > 0,
     summary: toSummaryBrief(doc, now),
-    row,
   };
-}
-
-// WHY: a stored summary wins; the derived brief fills only the item that has none.
-export function withDerivedBrief(item: NoticeListItem, derived: DerivedBrief | null): NoticeListItem {
-  return item.summary ? item : { ...item, summary: derived };
 }

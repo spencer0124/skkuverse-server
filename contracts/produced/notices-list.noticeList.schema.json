@@ -149,108 +149,6 @@
                 "type": "null"
               }
             ]
-          },
-          "row": {
-            "anyOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "token": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "text": {
-                            "type": "string"
-                          },
-                          "tone": {
-                            "type": "string",
-                            "enum": [
-                              "urgent",
-                              "today",
-                              "cancelled",
-                              "closed",
-                              "stopped",
-                              "postponed",
-                              "extended",
-                              "changed"
-                            ]
-                          }
-                        },
-                        "required": [
-                          "text",
-                          "tone"
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "title": {
-                    "type": "string"
-                  },
-                  "when": {
-                    "type": "string"
-                  },
-                  "urgent": {
-                    "type": "boolean"
-                  },
-                  "dateMark": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "enum": [
-                          "warning",
-                          "abstain"
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "qualifier": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "board": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "dimmed": {
-                    "type": "boolean"
-                  },
-                  "day": {
-                    "type": "string",
-                    "enum": [
-                      "today",
-                      "yesterday",
-                      "thisWeek",
-                      "earlier"
-                    ]
-                  }
-                },
-                "required": [
-                  "token",
-                  "title",
-                  "when",
-                  "urgent",
-                  "dateMark",
-                  "qualifier",
-                  "board",
-                  "dimmed",
-                  "day"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ]
           }
         },
         "required": [
@@ -267,8 +165,7 @@
           "hasContent",
           "hasAttachments",
           "isEdited",
-          "summary",
-          "row"
+          "summary"
         ]
       }
     },
