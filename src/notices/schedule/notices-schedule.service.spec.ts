@@ -2,10 +2,10 @@
  * NoticesScheduleService over building's in-memory place repositories: the one door a stored `schedule` reaches a flow
  * through.
  *
- * describeSchedule serves the items with each stored place id named by building, and null for a notice with no
- * schedule, an empty one, or one the schema refuses; a refused one logs `notices.schedule.unparsed` with the notice id,
- * at most once a minute per notice on the Clock. When building cannot be read, every place keeps its words and the
- * schedule still serves.
+ * describeSchedule serves the items in timeline order with their occurrences, each stored place id of an item or a
+ * part named by building, and null for a notice with no schedule, an empty one, or one the schema refuses (a v1
+ * schedule included); a refused one logs `notices.schedule.unparsed` with the notice id, at most once a minute per
+ * notice on the Clock. When building cannot be read, every place keeps its words and the schedule still serves.
  *
  * src/infra/logger.ts is mocked.
  */
@@ -29,7 +29,7 @@ import { NOTICES_SCHEDULE_LOG_INTERVAL_MS } from "./notices-schedule.constants";
 import { NoticesScheduleService } from "./notices-schedule.service";
 
 const FIXTURE = path.join(__dirname, "../../../__tests__/nest/notices/fixtures/notice-schedule.stored.json");
-const SCHEDULE = (JSON.parse(fs.readFileSync(FIXTURE, "utf8")) as { schedule: { version: string; items: Array<Record<string, unknown>> } }).schedule;
+const SCHEDULE = (JSON.parse(fs.readFileSync(FIXTURE, "utf8")) as { schedule: { version: string; items: Array<Record<string, unknown>>; run: Record<string, unknown> } }).schedule;
 
 const NOTICE_ID = new ObjectId("6a5ed9e520097db8672d2097");
 const START = new Date("2026-11-22T03:00:00.000Z");
@@ -51,25 +51,28 @@ beforeEach(() => {
 });
 
 describe("NoticesScheduleService.describeSchedule", () => {
-  it("serves every stored item, a place building knows by its name and building sheet, and logs nothing", async () => {
+  it("serves every stored item in timeline order, a place building knows by its name and building sheet, and logs nothing", async () => {
     // Act
     const items = await service.describeSchedule(notice(SCHEDULE));
 
     // Assert
-    expect(items?.map((item) => item.id)).toEqual(["D1", "D3", "D5", "D7"]);
+    expect(items?.map((item) => item.id)).toEqual(["1a2b3c4d", "6f708192", "2b3c4d5e", "708192a3", "5e6f7081"]);
     expect(items?.map((item) => item.place ?? null)).toEqual([
       null,
-      { text: "경영관 33B101호", name: "경영관 33B101", mapTarget: { skkuId: 12, spaceCd: "33B101" } },
-      { text: "온라인 (Zoom)", name: null, mapTarget: null },
       null,
+      { text: "경영관 33B101호", name: "경영관 33B101", mapTarget: { skkuId: 12, spaceCd: "33B101" } },
+      null,
+      { text: "온라인 (Zoom)", name: null, mapTarget: null },
     ]);
+    expect(items?.[2]?.parts?.map((part) => part.place ?? null)).toEqual([null, { text: "경영관", name: "경영관 33", mapTarget: { skkuId: 12, spaceCd: null } }]);
+    expect(items?.[4]?.occurrences.map((occurrence) => occurrence.start?.date)).toEqual(["2026-11-04", "2026-11-11", "2026-11-18", "2026-12-02", "2026-12-09", "2026-12-16"]);
     expect(mockLogger.warn).not.toHaveBeenCalled();
   });
 
   it.each([
     ["no schedule", undefined],
     ["a null schedule", null],
-    ["an empty schedule", { version: "v", items: [] }],
+    ["an empty schedule", { ...SCHEDULE, items: [] }],
   ])("serves null for %s, and logs nothing", async (_case, schedule) => {
     // Act & Assert
     await expect(service.describeSchedule(notice(schedule))).resolves.toBeNull();
@@ -94,6 +97,18 @@ describe("NoticesScheduleService.describeSchedule", () => {
     expect(mockLogger.warn.mock.calls[1]![0]).toMatchObject({ suppressed: 1 });
   });
 
+  it("serves null for a schedule stored in the v1 shape, and logs it", async () => {
+    // Arrange
+    const v1 = { version: "schedule-1", items: [{ id: "D1", title: "설명회", start: { date: "2026-11-10" }, except: [], slots: [], status: "scheduled" }] };
+
+    // Act
+    const items = await service.describeSchedule(notice(v1));
+
+    // Assert
+    expect(items).toBeNull();
+    expect(logText(mockLogger.warn.mock.calls[0])).toContain("notices.schedule.unparsed");
+  });
+
   it("keeps every place's words when building cannot be read, and logs it", async () => {
     // Arrange
     buildings.failWith = new Error("mongo down");
@@ -102,7 +117,7 @@ describe("NoticesScheduleService.describeSchedule", () => {
     const items = await service.describeSchedule(notice(SCHEDULE));
 
     // Assert
-    expect(items?.[1]?.place).toEqual({ text: "경영관 33B101호", name: null, mapTarget: null });
+    expect(items?.[2]?.place).toEqual({ text: "경영관 33B101호", name: null, mapTarget: null });
     expect(logText(mockLogger.warn.mock.calls[0])).toContain("notices.schedule.places_unavailable");
   });
 });

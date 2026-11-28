@@ -1,10 +1,9 @@
-import type { DerivedBrief } from "../legacy/notices-legacy.types";
 import type { NoticeEdit } from "../notices.document";
-import type { NoticeScreen } from "../notices.wire";
+import type { NoticeScheduleItem } from "../notices.wire";
 import { textOrNull } from "../notices.mapper";
 import type { NoticeDetailRow } from "./notices-detail.document";
 import { normalizeSummaryType } from "../notices.rules";
-import type { NoticeBrief, NoticeDetail, NoticeScheduleItem, NoticeSummaryFull } from "./notices-detail.wire";
+import type { NoticeDetail, NoticeSummaryFull } from "./notices-detail.wire";
 
 // WHY: what JSON.stringify writes for the value, so the wire's string type holds a Date and a stored string alike.
 const toJsonTime = (value: Date | string): string => (value instanceof Date ? value.toISOString() : value);
@@ -23,11 +22,6 @@ export function toSummaryFull(doc: NoticeDetailRow): NoticeSummaryFull | null {
   };
 }
 
-// WHY: no text, periods or places: the facts hold none of them in the shape the card reads, and an empty card hides.
-function toDerivedSummary(doc: NoticeDetailRow, derived: DerivedBrief): NoticeSummaryFull {
-  return { text: null, oneLiner: derived.oneLiner, type: derived.type, periods: [], locations: [], details: null, model: null, generatedAt: toJsonTime(doc.crawledAt) };
-}
-
 function toAttachments(doc: NoticeDetailRow): NoticeDetail["attachments"] {
   return (doc.attachments || []).map((a) => ({ name: a.name, url: a.url, ...(a.referer ? { referer: a.referer } : {}) }));
 }
@@ -40,13 +34,7 @@ function toEditInfo(doc: NoticeDetailRow): NoticeDetail["editInfo"] {
   return (doc.editCount || 0) > 0 ? { count: doc.editCount, history: (doc.editHistory || []).map(toJsonEdit) } : null;
 }
 
-function toSummaryOrDerived(doc: NoticeDetailRow, derived: DerivedBrief | null): NoticeSummaryFull | null {
-  return toSummaryFull(doc) ?? (derived && toDerivedSummary(doc, derived));
-}
-
-interface DetailParts { derived?: DerivedBrief | null; schedule?: NoticeScheduleItem[] | null; brief?: NoticeBrief | null }
-
-export function toDetailItem(doc: NoticeDetailRow, screen: NoticeScreen | null, { derived = null, schedule = null, brief = null }: DetailParts = {}): NoticeDetail {
+export function toDetailItem(doc: NoticeDetailRow, schedule: NoticeScheduleItem[] | null): NoticeDetail {
   return {
     id: doc._id.toHexString(),
     sourceId: doc.sourceId,
@@ -63,9 +51,7 @@ export function toDetailItem(doc: NoticeDetailRow, screen: NoticeScreen | null, 
     lastModified: doc.lastModified ? toJsonTime(doc.lastModified) : null,
     crawledAt: toJsonTime(doc.crawledAt),
     editInfo: toEditInfo(doc),
-    summary: toSummaryOrDerived(doc, derived),
-    screen,
+    summary: toSummaryFull(doc),
     schedule,
-    brief,
   };
 }

@@ -65,13 +65,11 @@ function notice(overrides: Record<string, unknown> = {}): Document {
   return doc;
 }
 
-/** As the crawler leaves a notice its live facts job has gated: never claimed, so no push fields at all. */
+/** As the crawler leaves a notice it has just stored: never claimed, so no push fields at all. */
 function unpushed(overrides: Record<string, unknown> = {}): Document {
   return notice({
     date: "2026-10-19",
     aiSummaryAt: new Date("2026-10-19T15:00:00Z"),
-    factsAt: new Date("2026-10-19T14:40:00Z"),
-    factsGate: "ok",
     pushedAt: undefined,
     pushAttempts: undefined,
     pushError: undefined,
@@ -287,7 +285,6 @@ describe("GET /notices/source/:sourceId over real documents", () => {
           startAt: null,
           endAt: { date: "2026-11-16", time: null, label: "제출기한" },
         },
-        row: null,
       },
     ]);
   });
@@ -535,9 +532,7 @@ describe("GET /notices/:sourceId/:articleNo over real documents", () => {
         model: "claude-sonnet-5-5",
         generatedAt: "2026-10-09T03:59:37.024Z",
       },
-      screen: null,
       schedule: null,
-      brief: null,
     });
   });
 
@@ -590,8 +585,8 @@ describe("POST /internal/notices/dispatch-pending over real documents", () => {
         type: "notice",
         noticeId: oid(n).toHexString(),
         topics: ["dept:bio-undergrad"],
-        title_ko: "2025학년도 2학기 학생성공 창의장학생·정용지 창의장학생 신청 안내/~11월 1…",
-        body_ko: "자연과학대학 2명씩 선발, 학과 사무실 이메일로 서류 제출",
+        title_ko: "📢 생명과학과(학부)",
+        body_ko: "2025학년도 2학기 학생성공 창의장학생·정용지 창의장학생 신청 안내/~11월 1…",
         title_en: null,
         body_en: null,
         sourceId: "bio-undergrad",
@@ -604,8 +599,6 @@ describe("POST /internal/notices/dispatch-pending over real documents", () => {
   });
 
   it.each([
-    ["no push gate yet, though summarized", { factsAt: undefined, factsGate: undefined }],
-    ["a null push gate time", { factsAt: null }],
     ["already pushed", { pushedAt: new Date("2026-10-19T16:00:00Z"), pushAttempts: 1 }],
     ["pushedAt at the epoch, as the crawler's suppression stamps it", { pushedAt: EPOCH, pushAttempts: 0 }],
     ["five failed attempts", { pushAttempts: 5 }],
@@ -632,9 +625,9 @@ describe("POST /internal/notices/dispatch-pending over real documents", () => {
     ["a date in the future", { date: "2026-10-30" }],
     ["a lease taken one millisecond past claimLeaseMs", { dispatchClaimedAt: new Date(NOW.getTime() - 300_001) }],
     ["no isDeleted field", { isDeleted: undefined }],
-    ["a push gate and no ai summary", { aiSummaryAt: undefined, summaryAt: undefined, summary: undefined, summaryOneLiner: undefined }],
-    ["a push gate written on a timeout", { factsGate: "timeout" }],
-    ["a push gate written on the third failure", { factsGate: "failed" }],
+    ["no ai summary", { aiSummaryAt: undefined, summaryAt: undefined, summary: undefined, summaryOneLiner: undefined }],
+    ["no facts stage written yet", { factsAt: undefined, factsGate: undefined }],
+    ["a null facts time and a gate written on a timeout", { factsAt: null, factsGate: "timeout" }],
   ])("claims and pushes a notice with %s", async (_case, overrides) => {
     // Arrange
     const doc = unpushed(overrides);
@@ -647,6 +640,19 @@ describe("POST /internal/notices/dispatch-pending over real documents", () => {
     expect(res.body.data).toMatchObject({ processed: 1, sent: 1, cfCalls: 1 });
     expect(cf.calls.map((c) => c.payload.noticeId)).toEqual([doc._id.toHexString()]);
     expect(await stored(doc._id)).toMatchObject({ pushedAt: NOW, dispatchClaimedAt: null });
+  });
+
+  it("pushes a notice with no summary under a non-empty title and body, as the function requires, and never model text", async () => {
+    // Arrange
+    const doc = unpushed({ title: "수강신청 안내", summaryAt: undefined, aiSummaryAt: undefined, summary: undefined, summaryOneLiner: "모델이 쓴 한 줄", sourceId: "skku-notice02" });
+    await notices.insertOne(doc);
+
+    // Act
+    const res = await ping();
+
+    // Assert
+    expect(res.body.data).toMatchObject({ processed: 1, sent: 1, failed: 0 });
+    expect(cf.calls.map((c) => [c.payload.title_ko, c.payload.body_ko])).toEqual([["📢 학사", "수강신청 안내"]]);
   });
 
   it("merges a cross-posted article into one push to the union of its topics, linking the lowest board with a topic", async () => {
@@ -664,8 +670,8 @@ describe("POST /internal/notices/dispatch-pending over real documents", () => {
 
     // Assert
     expect(res.body.data).toMatchObject({ processed: 4, sent: 4, failed: 0, cfCalls: 2, dedupedDocs: 2 });
-    const merged = cf.calls.find((c) => c.payload.title_ko === shared.title)!.payload;
-    expect(merged).toMatchObject({ noticeId: oid(13).toHexString(), sourceId: "skku-notice02", articleNo: "136023" });
+    const merged = cf.calls.find((c) => c.payload.body_ko === shared.title)!.payload;
+    expect(merged).toMatchObject({ noticeId: oid(13).toHexString(), sourceId: "skku-notice02", articleNo: "136023", title_ko: "📢 학사" });
     expect([...(merged.topics as string[])].sort()).toEqual(["category:academic", "general:skku-notice03"]);
     expect(await notices.countDocuments({ pushedAt: NOW, pushAttempts: 1 })).toBe(4);
   });
@@ -763,18 +769,19 @@ describe("POST /internal/notices/dispatch-pending over real documents", () => {
 });
 
 describe("the poller boot's dispatch index over a real mongod", () => {
-  it("holds dispatch_pending_facts_idx on (date, _id), partial on the unpushed notices the live facts job has gated", async () => {
+  it("holds dispatch_pending_idx_v3 on (date, _id), partial on the unpushed notices, and no longer creates the facts-gated one", async () => {
     // Act
-    const index = await indexNamed("dispatch_pending_facts_idx");
+    const index = await indexNamed("dispatch_pending_idx_v3");
 
     // Assert
-    expect(index).toMatchObject({ key: { date: -1, _id: -1 }, partialFilterExpression: { pushedAt: null, factsAt: { $type: "date" } } });
+    expect(index).toMatchObject({ key: { date: -1, _id: -1 }, partialFilterExpression: { pushedAt: null } });
+    expect((await notices.indexes()).map((candidate) => candidate.name)).not.toContain("dispatch_pending_facts_idx");
   });
 
-  it("plans the claim on dispatch_pending_facts_idx, read in the claim's order with no sort stage", async () => {
+  it("plans the claim on dispatch_pending_idx_v3, read in the claim's order with no sort stage", async () => {
     // Arrange
-    await notices.insertMany([unpushed({ articleNo: 1 }), unpushed({ articleNo: 2, factsAt: undefined })]);
-    await indexNamed("dispatch_pending_facts_idx");
+    await notices.insertMany([unpushed({ articleNo: 1 }), unpushed({ articleNo: 2 })]);
+    await indexNamed("dispatch_pending_idx_v3");
     const window = { dateFloor: "2026-10-06", leaseExpiredBefore: new Date(NOW.getTime() - 300_000), maxAttempts: 5 };
 
     // Act
@@ -785,7 +792,7 @@ describe("the poller boot's dispatch index over a real mongod", () => {
 
     // Assert
     const stages = planStages(explained.queryPlanner.winningPlan);
-    expect(stages.filter((stage) => stage.stage === "IXSCAN").map((stage) => stage.indexName)).toEqual(["dispatch_pending_facts_idx"]);
+    expect(stages.filter((stage) => stage.stage === "IXSCAN").map((stage) => stage.indexName)).toEqual(["dispatch_pending_idx_v3"]);
     expect(stages.map((stage) => stage.stage)).not.toContain("SORT");
   });
 });

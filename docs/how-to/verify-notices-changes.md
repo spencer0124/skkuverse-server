@@ -24,7 +24,7 @@ npm run lint        # ESLint, then markdownlint
 npm test            # Jest, the notices suites included
 ```
 
-- The specs sit next to each flow under `src/notices/` (`tabs/`, `list/`, `detail/`, `overview/`, `attachment/`, `dispatch/`, `facts/`, `row/`, `screen/`, `legacy/`), the route tests in `__tests__/nest/notices/`. They pin the cursor round-trip for every stored date shape, `NoticesListCursorError` and the sampled production documents (`notices-documents.routes.test.ts`).
+- The specs sit next to each flow under `src/notices/` (`tabs/`, `list/`, `detail/`, `overview/`, `attachment/`, `dispatch/`, `schedule/`), the route tests in `__tests__/nest/notices/`. They pin the cursor round-trip for every stored date shape, `NoticesListCursorError` and the sampled production documents (`notices-documents.routes.test.ts`).
 - `jest.config.js` holds the coverage thresholds.
 
 ## Runtime smoke test (against the development database)
@@ -41,7 +41,7 @@ With the server running (`npm run dev`):
 ## Index ownership
 
 - Check in MongoDB that the server's read indexes exist: `FORCE_INDEX` and `CLUSTER_INDEX` in `src/notices/list/notices-list.query.ts`. A polling role creates them at boot, and every list query is hinted to `FORCE_INDEX`, so a missing index fails the query.
-- Check that the change leaves the crawler's unique `articleNo_1_sourceId_1` index alone: the server never touches it ([decisions/0002](../decisions/0002-notices-read-only-ownership.md)).
+- Check that the change leaves the crawler's unique `articleNo_1_sourceId_1` index alone: the server never touches it (umbrella ADR 0001).
 
 ## Extra checks for a dispatch change
 

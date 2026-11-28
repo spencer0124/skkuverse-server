@@ -66,25 +66,9 @@
       ]
     },
     {
-      "id": "notices.facts",
-      "kind": "file",
-      "status": "active",
-      "producer": {
-        "repo": "crawler",
-        "path": "docs/notice-facts/notice-facts.schema.json"
-      },
-      "consumers": [
-        {
-          "repo": "server",
-          "path": "contracts/consumed/notice-facts.schema.json",
-          "mode": "copy"
-        }
-      ]
-    },
-    {
       "id": "notices.schedule",
       "kind": "file",
-      "status": "planned",
+      "status": "active",
       "producer": {
         "repo": "crawler",
         "path": "docs/notice-schedule/notice-schedule.schema.json"

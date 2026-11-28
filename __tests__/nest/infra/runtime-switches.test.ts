@@ -1,6 +1,5 @@
 /**
- * PUSH_DELIVERY / CACHE / SHUTTLE_ETA / SUBWAY / REGIONAL_BUS / GBIS /
- * NOTICE_OVERVIEW
+ * PUSH_DELIVERY / CACHE / SHUTTLE_ETA / SUBWAY / REGIONAL_BUS / GBIS
  * (src/infra/runtime-switches.ts).
  *
  * Two halves. The resolver table pins what each mode defaults to and which
@@ -9,12 +8,8 @@
  * one (production must run on the defaults), and local verify — which runs the
  * production image on a laptop holding the real Cloud Function URL — always
  * suppresses push, the directions calls, the subway pollers, the regional
- * bus pollers and the GBIS seat pollers, and its api
- * replicas never call the ai for a notice overview.
- *
- * NOTICE_OVERVIEW is the one switch production defaults off: every overview
- * spends an LLM call, and production serves none until the route has a cost
- * guard, so production turns it back on by its default, not by its compose file.
+ * bus pollers and the GBIS seat pollers. NOTICE_OVERVIEW is no switch: the
+ * route answers a fixed stub, and an environment that still sets it is read by nothing.
  *
  * RATE_LIMIT is no switch (ADR 0023): the perimeter mode chooses the limiter, and every implementation limits.
  */
@@ -40,7 +35,7 @@ describe("runtimeMode", () => {
 });
 
 describe("resolveRuntimeSwitches defaults", () => {
-  it("production keeps every side effect and cache on, and serves no notice overview", () => {
+  it("production keeps every side effect and cache on", () => {
     // Act & Assert
     expect(resolveRuntimeSwitches({}, "production")).toEqual({
       switches: {
@@ -50,13 +45,12 @@ describe("resolveRuntimeSwitches defaults", () => {
         subwayEnabled: true,
         regionalBusEnabled: true,
         gbisEnabled: true,
-        noticeOverviewEnabled: false,
       },
       errors: [],
     });
   });
 
-  it("development turns every outbound side effect and the caches off, and keeps the notice overview on", () => {
+  it("development turns every outbound side effect and the caches off", () => {
     // Act & Assert
     expect(resolveRuntimeSwitches({}, "development")).toEqual({
       switches: {
@@ -66,7 +60,6 @@ describe("resolveRuntimeSwitches defaults", () => {
         subwayEnabled: false,
         regionalBusEnabled: false,
         gbisEnabled: false,
-        noticeOverviewEnabled: true,
       },
       errors: [],
     });
@@ -152,14 +145,11 @@ describe("resolveRuntimeSwitches overrides", () => {
     expect(prod).toEqual({ switches: expect.objectContaining({ gbisEnabled: false }), errors: [] });
   });
 
-  it("production may turn the notice overview on, and development may turn it off", () => {
-    // Act
-    const prod = resolveRuntimeSwitches({ NOTICE_OVERVIEW: "on" }, "production");
-    const dev = resolveRuntimeSwitches({ NOTICE_OVERVIEW: "off" }, "development");
-
-    // Assert
-    expect(prod).toEqual({ switches: expect.objectContaining({ noticeOverviewEnabled: true }), errors: [] });
-    expect(dev).toEqual({ switches: expect.objectContaining({ noticeOverviewEnabled: false }), errors: [] });
+  it.each(["on", "off", "true", ""])("reads no NOTICE_OVERVIEW=%j, in any mode: nothing is reported and nothing changes", (value) => {
+    // Act & Assert
+    for (const mode of ["production", "development", "test"] as const) {
+      expect(resolveRuntimeSwitches({ NOTICE_OVERVIEW: value }, mode)).toEqual(resolveRuntimeSwitches({}, mode));
+    }
   });
 
   it("refuses PUSH_DELIVERY=live in development, and stays suppressed", () => {
@@ -197,7 +187,6 @@ describe("resolveRuntimeSwitches overrides", () => {
     ["SUBWAY", "yes"],
     ["REGIONAL_BUS", "true"],
     ["GBIS", "yes"],
-    ["NOTICE_OVERVIEW", "true"],
   ])("reports %s=%s instead of coercing it", (name, value) => {
     // Act & Assert
     for (const mode of ["production", "development", "test"] as const) {
@@ -303,11 +292,6 @@ describe("where the switches may be set", () => {
     ])("%s run no GBIS seat poller", (_label, env) => {
       // Assert
       expect(env).toMatch(/- GBIS=off\n/);
-    });
-
-    it("the api replicas call no ai for a notice overview", () => {
-      // Assert
-      expect(apiEnv).toMatch(/- NOTICE_OVERVIEW=off\n/);
     });
   });
 });

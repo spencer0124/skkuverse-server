@@ -1,6 +1,5 @@
 import type { NoticeListRow, ScannedRow } from "./notices-list.document";
 import type { SummaryType } from "../notices.types";
-import type { LIST_DAYS } from "./notices-list.constants";
 
 export interface CursorPayload {
   d: string;
@@ -10,14 +9,6 @@ export interface CursorPayload {
 }
 
 export type NoticeScope = string | readonly string[];
-
-export type ListDay = (typeof LIST_DAYS)[number];
-
-export interface ItemRowOptions {
-  now: Date;
-  /** WHY: set on a read of two or more sources only: a list of one board does not name it. */
-  boardNameById: ReadonlyMap<string, string> | null;
-}
 
 export interface NoticeListQuery {
   limit: number;

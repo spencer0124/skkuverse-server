@@ -1,7 +1,10 @@
 import moment from "moment-timezone";
 import { KST_TIME_ZONE } from "../../shared/time-zone.constants";
 import type { NoticeDoc } from "../notices.document";
-import type { ClaimWindow, DispatchPolicy, PushedFields, ReleasedFields, SkippedFields } from "./notices-dispatch.types";
+import { clusterKeyOf } from "../notices.rules";
+import type { CategoryConfig } from "../notices.types";
+import { DEPARTMENT_CATEGORY_ID, PUSH_TITLE_MARK } from "./notices-dispatch.constants";
+import type { ClaimWindow, DispatchPolicy, PushedFields, PushTabs, PushText, ReleasedFields, SkippedFields } from "./notices-dispatch.types";
 
 // WHY: a push error is kept for a person to read: 500 characters hold the Cloud Function's status and message.
 const MAX_PUSH_ERROR_LENGTH = 500;
@@ -41,4 +44,33 @@ export function selectRepresentative<T extends Pick<NoticeDoc, "sourceId">>(memb
   const representative = [...members].sort((a, b) => String(a.sourceId).localeCompare(String(b.sourceId))).find(hasTopic) ?? members[0];
   if (representative === undefined) throw new Error("a push group has no members");
   return representative;
+}
+
+const hasSource = (category: CategoryConfig, sourceId: string): boolean =>
+  category.tabMode === "fixed" ? category.sourceId === sourceId : category.sourceIds.includes(sourceId);
+
+// WHY: a department board is named by its department; any other source by its tab. A source no tab or more than one tab
+// holds has no clean tab name, so it keeps its own name.
+function toPushName(sourceId: string, { categories, sourceById }: PushTabs): string {
+  const source = sourceById.get(sourceId);
+  if (source === undefined) throw new Error(`push title: unknown source ${sourceId}`);
+  const tabs = categories.filter((category) => hasSource(category, sourceId));
+  const [tab] = tabs;
+  if (tabs.length !== 1 || tab === undefined || tab.id === DEPARTMENT_CATEGORY_ID) return source.name;
+  return tab.label.ko;
+}
+
+/**
+ * QUIRK(push-function): answers 400 to an empty `title_ko` or `body_ko`, so the text is built non-empty or the send is
+ * refused. WHY: umbrella ADR 0012 D1: the megaphone and the tab's name over the notice's original title, no model text.
+ */
+export function toPushText(notice: Pick<NoticeDoc, "sourceId" | "title">, tabs: PushTabs): PushText {
+  if (notice.title.trim() === "") throw new Error("push body: the notice has no title");
+  return { title: `${PUSH_TITLE_MARK} ${toPushName(notice.sourceId, tabs)}`, body: notice.title };
+}
+
+export function groupByClusterKey<T extends Pick<NoticeDoc, "_id" | "dupOf">>(notices: readonly T[]): T[][] {
+  const groups = new Map<string, T[]>();
+  for (const notice of notices) groups.set(clusterKeyOf(notice), [...(groups.get(clusterKeyOf(notice)) ?? []), notice]);
+  return [...groups.values()];
 }

@@ -58,14 +58,12 @@ describe("NoticesListRepository.listNotices", () => {
       isDeleted: { $ne: true },
       $and: [
         { date: { $gte: START } },
-        { $or: [{ summaryType: "event" }, { summaryAt: null, facts: { $type: "object" } }] },
+        { summaryType: "event" },
         { $or: [{ date: { $lt: "2026-04-01" } }, { date: "2026-04-01", _id: { $lt: new ObjectId(cursor.i) } }] },
         {
           $or: [
             { title: { $regex: "a\\.b", $options: "i" } },
             { summaryOneLiner: { $regex: "a\\.b", $options: "i" } },
-            { "facts.shortTitle.text": { $regex: "a\\.b", $options: "i" } },
-            { "facts.shortTitle.compact": { $regex: "a\\.b", $options: "i" } },
           ],
         },
       ],
@@ -80,15 +78,15 @@ describe("NoticesListRepository.listNotices", () => {
   });
 });
 
-describe("NoticesListRepository.listNotices projection for the row", () => {
-  it("loads the facts and their history the row is rendered from, and no first-seen instant: the day group reads the posting date", async () => {
+describe("NoticesListRepository.listNotices projection", () => {
+  it("loads the stored summary fields and none of the crawler's later stages: no facts, no first-seen instant", async () => {
     // Act
     await new NoticesListRepository().listNotices("skku-notice02", { limit: 20, cursor: null });
 
     // Assert
     const options = find.mock.calls[0]?.[1] as { projection: Record<string, number> };
-    expect(options.projection).toMatchObject({ facts: 1, factsHistory: 1, date: 1 });
-    expect(Object.keys(options.projection).filter((key) => ["factsAt", "factsGate", "groupId", "firstSeenAt"].includes(key))).toEqual([]);
+    expect(options.projection).toMatchObject({ summaryOneLiner: 1, summaryType: 1, summaryAt: 1, date: 1 });
+    expect(Object.keys(options.projection).filter((key) => ["facts", "factsHistory", "factsAt", "factsGate", "groupId", "firstSeenAt"].includes(key))).toEqual([]);
   });
 });
 
@@ -147,13 +145,11 @@ describe("NoticesListRepository.listClusterMembers", () => {
         isDeleted: { $ne: true },
         $and: [
           { date: { $gte: START } },
-          { $or: [{ summaryType: "event" }, { summaryAt: null, facts: { $type: "object" } }] },
+          { summaryType: "event" },
           {
             $or: [
               { title: { $regex: "x", $options: "i" } },
               { summaryOneLiner: { $regex: "x", $options: "i" } },
-              { "facts.shortTitle.text": { $regex: "x", $options: "i" } },
-              { "facts.shortTitle.compact": { $regex: "x", $options: "i" } },
             ],
           },
           { $or: [{ date: { $gt: "2026-04-01" } }, { date: "2026-04-01", _id: { $gte: new ObjectId(cursor.i) } }] },

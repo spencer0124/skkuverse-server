@@ -1,32 +1,90 @@
 {
-  "_about": "Hand-written 2026-11-22: a notice `schedule` in the shape of umbrella docs/decisions/0012-notice-brief-and-add-ons.md D4, items as skkuverse-ai's schedule stage assembles them (app/schedule/assemble.py) plus the crawler's place fields. Synthetic because the crawler stores no schedule yet; replace it with a captured one when it does.",
+  "_about": "Hand-written 2026-11-27: a notice `schedule` in the v2 stored shape of the crawler's schema (contracts/consumed/notice-schedule.schema.json), items as skkuverse-ai's schedule stage assembles them (app/schedule/assemble.py) plus the crawler's ids and place fields, in the crawler's order (by start, else end). Synthetic because no crawler run has stored a v2 schedule yet: a weekly series with a skipped day, an end-only deadline at 24:00, a span with a partial-day gap, an event with an extra occurrence and two parts, and a month-part date.",
   "schedule": {
-    "version": "schedule-v3.3",
+    "version": "schedule-v4.2",
+    "key": "9f1c2a7be03d44a1c6e2",
+    "groupId": "3e9d0c5a17b2f846",
     "items": [
-      { "id": "D1", "title": "참가 신청", "start": { "date": "2026-11-02" }, "end": { "date": "2026-11-06" }, "except": [], "slots": [], "status": "scheduled" },
       {
-        "id": "D3",
-        "title": "진로 설명회",
-        "start": { "date": "2026-11-10", "time": "14:00" },
-        "end": { "date": "2026-11-10", "time": "16:00" },
-        "except": [],
-        "slots": [{ "start": { "date": "2026-11-10", "time": "14:00" }, "end": { "date": "2026-11-10", "time": "15:00" }, "text": "14:00 1부 학과 소개" }],
-        "status": "tentative",
-        "quote": "일정은 변동될 수 있음",
-        "place": { "text": "경영관 33B101호", "id": "space:hssc:33B101", "campus": "hssc" }
-      },
-      {
-        "id": "D5",
+        "id": "5e6f7081",
         "title": "스터디",
+        "status": "scheduled",
         "start": { "date": "2026-11-04", "time": "19:00" },
         "end": { "date": "2026-11-04", "time": "21:00" },
-        "repeat": { "freq": "weekly", "byDay": ["WE"], "until": "2026-12-16" },
-        "except": ["2026-11-25"],
-        "slots": [],
-        "status": "scheduled",
-        "place": { "text": "온라인 (Zoom)", "reason": "online" }
+        "rrule": { "freq": "weekly", "byDay": ["WE"], "until": "2026-12-16" },
+        "exdate": ["2026-11-25"],
+        "place": { "text": "온라인 (Zoom)", "reason": "online" },
+        "evidence": [{ "text": "매주 수요일 19:00~21:00 (11/25 휴강)", "from": "body", "for": "when", "begin": 88, "end": 112 }]
       },
-      { "id": "D7", "title": "결과 발표", "start": { "date": "2026-12-01" }, "precision": "month", "except": [], "slots": [], "status": "scheduled" }
-    ]
+      {
+        "id": "1a2b3c4d",
+        "title": "참가 신청 마감",
+        "status": "scheduled",
+        "end": { "date": "2026-11-06", "time": "24:00" },
+        "evidence": [{ "text": "11/6(금) 자정까지", "from": "body", "for": "when", "begin": 40, "end": 51 }]
+      },
+      {
+        "id": "6f708192",
+        "title": "수강신청 시스템 운영",
+        "status": "scheduled",
+        "start": { "date": "2026-11-09", "time": "09:00" },
+        "end": { "date": "2026-11-13", "time": "18:00" },
+        "gaps": [{ "start": { "date": "2026-11-11", "time": "12:00" }, "end": { "date": "2026-11-11", "time": "13:00" } }],
+        "evidence": [{ "text": "11/9(월) 09:00 ~ 11/13(금) 18:00", "from": "poster:1", "for": "when" }]
+      },
+      {
+        "id": "2b3c4d5e",
+        "title": "진로 설명회",
+        "status": "tentative",
+        "start": { "date": "2026-11-10", "time": "14:00" },
+        "end": { "date": "2026-11-10", "time": "16:00" },
+        "rdate": [{ "start": { "date": "2026-11-17", "time": "14:00" }, "end": { "date": "2026-11-17", "time": "16:00" } }],
+        "parts": [
+          {
+            "id": "3c4d5e6f",
+            "title": "1부 학과 소개",
+            "status": "tentative",
+            "start": { "date": "2026-11-10", "time": "14:00" },
+            "end": { "date": "2026-11-10", "time": "15:00" },
+            "evidence": [{ "text": "14:00 1부 학과 소개", "from": "body", "for": "when", "begin": 140, "end": 154 }]
+          },
+          {
+            "id": "4d5e6f70",
+            "title": "2부 질의응답",
+            "status": "tentative",
+            "start": { "date": "2026-11-10", "time": "15:00" },
+            "end": { "date": "2026-11-10", "time": "16:00" },
+            "place": { "text": "경영관", "id": "building:hssc:133", "campus": "hssc" },
+            "evidence": [{ "text": "15:00 2부 질의응답", "from": "body", "for": "when", "begin": 155, "end": 168 }]
+          }
+        ],
+        "place": { "text": "경영관 33B101호", "id": "space:hssc:33B101", "campus": "hssc" },
+        "evidence": [
+          { "text": "11/10(화) 14:00~16:00", "from": "body", "for": "when", "begin": 120, "end": 138 },
+          { "text": "일정은 변동될 수 있음", "from": "body", "for": "status", "begin": 170, "end": 182 }
+        ]
+      },
+      {
+        "id": "708192a3",
+        "title": "결과 발표",
+        "status": "scheduled",
+        "start": { "date": "2026-12-01", "latest": "2026-12-10" },
+        "evidence": [{ "text": "12월 초", "from": "body", "for": "when", "begin": 200, "end": 205 }]
+      }
+    ],
+    "run": {
+      "usd": 0.0123,
+      "ms": 8421,
+      "model": "claude-sonnet-4-5",
+      "prompt": "schedule-v4.2",
+      "repaired": false,
+      "warnings": [],
+      "unplaced": [],
+      "missed": [],
+      "decided": {},
+      "missing": [],
+      "failures": 0,
+      "nextTry": null
+    }
   }
 }

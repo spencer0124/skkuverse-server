@@ -23,11 +23,10 @@ A maintainer's local server holds credentials that reach real people. So `NODE_E
 | `SUBWAY` | `off` | `on` | No Seoul subway API call or train-map crawl: the subway pollers do not run. The API key's daily quota is limited. Production may set it `off`. |
 | `REGIONAL_BUS` | `off` | `on` | No TOPIS call for the regional routes (7800): neither its realtime poller (`jongro-7800`) nor its daily line sync (`jongro-path-7800`) runs. On a database where no 7800 poller ever stored its stations (a laptop's `_dev`), `/bus/live/gyeonggi7800` answers `503 JONGRO_REGISTRY_UNAVAILABLE` and logs `bus.jongro.registry_missing` at most every 30 s; where they are stored, it answers `noData`, as for a stopped poller. The key's daily quota is limited. Production may set it `off`. |
 | `GBIS` | `off` | `on` | No GBIS call for 7800's seats: its seat poller (`gbis-seats-7800`) does not run, so `/bus/live/gyeonggi7800` serves every `vehicle.seatsLeft` as `null` once the stored answer is 200 s old. The key's GBIS quota is limited. Production may set it `off`. |
-| `NOTICE_OVERVIEW` | `on` | `off` | No skkuverse-ai call for a search overview: `GET /notices/overview` answers `data.overview: null` with `meta.reason: "unavailable"` before it retrieves, so the app hides the card. The reverse of the others: production defaults it `off`, and development keeps the feature working. Tests turn it on in `jest.setup.ts`. |
 
 No switch turns the rate limit off: the perimeter mode chooses the limiter. `local-dev` limits each IP to `LOCAL_DEV_REQUESTS_PER_MINUTE` in each rate-limit class (`general`, `notices`, `notices-overview`; `src/perimeter/local-dev/rate-limit-policy.ts`), and every simulator request comes from one loopback address, so a burst past that answers 429 the way a deployed server does.
 
-`CACHE=off` leaves two caches on. The AI overview cache saves an LLM call per request; its key changes when the crawler rewrites a notice's `contentHash`, but a hand edit of a body or `summary*` field in `_dev` stays cached for 30 minutes (restart to drop it). The 5-second `bus_cache` read cache is shorter than the app's poll interval.
+`CACHE=off` leaves one cache on: the 5-second `bus_cache` read cache, which is shorter than the app's poll interval.
 
 CORS follows `PERIMETER_MODE`, not `NODE_ENV`. Under `local-dev`, what `npm run dev` sets, only loopback origins (`http://localhost:*`, `http://127.0.0.1:*`) are trusted, for a web dev server on the same machine. Under `overlay`, the origins production trusts are. The native app is not subject to CORS.
 
@@ -90,7 +89,6 @@ The switches cover what the server sends out. With the maintainers' development 
 - **Databases.** The `_dev` databases hold real shared data. Never load-test against them. `NODE_ENV=production` with the dev `.env` resolves production database names. To run the production image locally, use `npm run verify:serve`, which overrides them.
 - **Upstream quotas.** The local bus pollers use a metered service key whose daily quota per operation every caller of the key shares ([bus architecture](../explanation/bus-architecture.md#invariants)). Stop them when you are done.
 - **Web pages.** Webview and mini-app pages inside the app load from their production hosts and call the production API, even when native screens use the local server.
-- **`GET /notices/overview`.** It calls skkuverse-ai at `AI_API_URL`, a loopback address in the dev config. Without a local skkuverse-ai the overview answers "unavailable".
 
 Sentry is off locally, so a local run does not reproduce what the Sentry SDK changes on the wire, such as the trace headers the data.go.kr gateway refuses ([holidays architecture](../explanation/calendar-architecture.md)); `__tests__/nest/infra/sentry.test.ts` pins those instead.
 

@@ -1,0 +1,121 @@
+{
+  "_about": "Synthetic: one schedule item the detail serves for the hand-written v2 stored schedule in __tests__/nest/notices/fixtures/notice-schedule.stored.json (notices-schedule.routes.test.ts): an event with an extra occurrence and two parts, its places named by building; no crawler run has stored a v2 schedule yet",
+  "data": {
+    "id": "2b3c4d5e",
+    "title": "진로 설명회",
+    "status": "tentative",
+    "start": {
+      "date": "2026-11-10",
+      "time": "14:00"
+    },
+    "end": {
+      "date": "2026-11-10",
+      "time": "16:00"
+    },
+    "rdate": [
+      {
+        "start": {
+          "date": "2026-11-17",
+          "time": "14:00"
+        },
+        "end": {
+          "date": "2026-11-17",
+          "time": "16:00"
+        }
+      }
+    ],
+    "place": {
+      "text": "경영관 33B101호",
+      "name": "경영관 33B101",
+      "mapTarget": {
+        "skkuId": 12,
+        "spaceCd": "33B101"
+      }
+    },
+    "occurrences": [
+      {
+        "start": {
+          "date": "2026-11-10",
+          "time": "14:00"
+        },
+        "end": {
+          "date": "2026-11-10",
+          "time": "16:00"
+        }
+      },
+      {
+        "start": {
+          "date": "2026-11-17",
+          "time": "14:00"
+        },
+        "end": {
+          "date": "2026-11-17",
+          "time": "16:00"
+        }
+      }
+    ],
+    "omittedCount": 0,
+    "parts": [
+      {
+        "id": "3c4d5e6f",
+        "title": "1부 학과 소개",
+        "status": "tentative",
+        "start": {
+          "date": "2026-11-10",
+          "time": "14:00"
+        },
+        "end": {
+          "date": "2026-11-10",
+          "time": "15:00"
+        },
+        "occurrences": [
+          {
+            "start": {
+              "date": "2026-11-10",
+              "time": "14:00"
+            },
+            "end": {
+              "date": "2026-11-10",
+              "time": "15:00"
+            }
+          }
+        ],
+        "omittedCount": 0
+      },
+      {
+        "id": "4d5e6f70",
+        "title": "2부 질의응답",
+        "status": "tentative",
+        "start": {
+          "date": "2026-11-10",
+          "time": "15:00"
+        },
+        "end": {
+          "date": "2026-11-10",
+          "time": "16:00"
+        },
+        "place": {
+          "text": "경영관",
+          "name": "경영관 33",
+          "mapTarget": {
+            "skkuId": 12,
+            "spaceCd": null
+          }
+        },
+        "occurrences": [
+          {
+            "start": {
+              "date": "2026-11-10",
+              "time": "15:00"
+            },
+            "end": {
+              "date": "2026-11-10",
+              "time": "16:00"
+            }
+          }
+        ],
+        "omittedCount": 0
+      }
+    ]
+  }
+}

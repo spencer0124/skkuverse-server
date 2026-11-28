@@ -55,10 +55,7 @@ jest.mock("../../infra/db", () => ({
 // stubbed src/infra/db.ts.
 import type { Clock } from "../../infra/clock";
 import config from "../../infra/config";
-import { NoticesFactsService } from "../facts/notices-facts.service";
-import { NoticesLegacyService } from "../legacy/notices-legacy.service";
 import type { NoticeDoc } from "../notices.document";
-import { NoticesRowService } from "../row/notices-row.service";
 import { NoticesDispatchClient } from "./notices-dispatch.client";
 import { NoticesDispatchRepository } from "./notices-dispatch.repository";
 import { NoticesDispatchService } from "./notices-dispatch.service";
@@ -78,8 +75,6 @@ function makeNotice(extra: Partial<NoticeDoc> = {}): NoticeDoc {
     summaryOneLiner: "한 줄 요약",
     category: "academic",
     aiSummaryAt: new Date("2026-05-04T01:00:00Z"),
-    factsAt: new Date("2026-05-04T00:40:00Z"),
-    factsGate: "ok",
     pushedAt: null,
     pushAttempts: 0,
     pushError: null,
@@ -103,7 +98,7 @@ beforeEach(() => {
   jest.setSystemTime(FIXED_NOW);
   global.fetch = jest.fn() as unknown as typeof fetch;
   // A fresh service instance per test resets the private sweepInFlight flag.
-  service = new NoticesDispatchService(new NoticesDispatchRepository(), new NoticesDispatchClient(new NoticesLegacyService(new NoticesRowService(new NoticesFactsService(clock))), clock), clock);
+  service = new NoticesDispatchService(new NoticesDispatchRepository(), new NoticesDispatchClient(), clock);
 });
 
 afterEach(() => {
@@ -157,8 +152,8 @@ describe("NoticesDispatchService.dispatchGroup", () => {
     expect(sent.type).toBe("notice");
     expect(sent.noticeId).toBe(String(notice._id));
     expect(sent.topics).toEqual(expect.arrayContaining(["category:academic"]));
-    expect(sent.title_ko).toBe(notice.title);
-    expect(sent.body_ko).toBe(notice.summaryOneLiner);
+    expect(sent.title_ko).toBe("📢 학사");
+    expect(sent.body_ko).toBe(notice.title);
     expect(sent.title_en).toBeNull();
     expect(sent.body_en).toBeNull();
     expect(sent.sourceId).toBe(notice.sourceId);
@@ -291,7 +286,7 @@ describe("NoticesDispatchService.sweepPending", () => {
     expect(summary.failed).toBe(1);
   });
 
-  it("submits the configured filter to findOneAndUpdate (gate fields)", async () => {
+  it("submits the configured filter to findOneAndUpdate (gate fields), with no condition on the crawler's other stages", async () => {
     // Arrange
     mockCollection.findOneAndUpdate.mockResolvedValue(null);
     await service.sweepPending("test");
@@ -301,10 +296,8 @@ describe("NoticesDispatchService.sweepPending", () => {
 
     // Assert
     expect(filter.pushedAt).toBeNull();
-    // The push gate is the crawler's factsAt (ADR 0024), in the form of
-    // dispatch_pending_facts_idx's partialFilterExpression so the planner
-    // uses the partial index.
-    expect(filter.factsAt).toEqual({ $type: "date" });
+    // A notice is claimable as soon as it is stored: no stage of the crawler gates the push.
+    expect(filter.factsAt).toBeUndefined();
     expect(filter.aiSummaryAt).toBeUndefined();
     // Age gate is the notice's own publication date (immutable), not any
     // crawl timestamp — a crawl stamp the crawler rewrites cannot answer
@@ -538,7 +531,7 @@ describe("NoticesDispatchService.sweepPending — cross-post grouping", () => {
     );
   }
 
-  // As the crawler links copies (adr-015 decision 24): each points at the earliest copy's `_id`, which need not be
+  // As the crawler links copies, each points at the earliest copy's `_id`, which need not be
   // claimed in this sweep, and a copy without a contentHash points at itself.
   const EARLIEST_COPY = new ObjectId();
 

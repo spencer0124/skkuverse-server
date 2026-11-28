@@ -1,4 +1,5 @@
 import type { FcmResponse } from "../../infra/fcm";
+import type { CategoryConfig, SourceConfig } from "../notices.types";
 
 export interface DispatchPolicy {
   maxAgeDays: number;
@@ -42,4 +43,14 @@ export interface DispatchPing {
   source?: string;
   cycleId?: string;
   crawledAt?: string;
+}
+
+export interface PushTabs {
+  categories: readonly CategoryConfig[];
+  sourceById: ReadonlyMap<string, SourceConfig>;
+}
+
+export interface PushText {
+  title: string;
+  body: string;
 }

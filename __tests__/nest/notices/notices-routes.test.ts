@@ -15,7 +15,6 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
 import { ObjectId } from "mongodb";
 import { BuildingRepository } from "../../../src/building/building.repository";
-import type { BuildNo, SpaceCd } from "../../../src/building/building.types";
 import { BuildingPlaceRepository } from "../../../src/building/place/building-place.repository";
 import { Clock } from "../../../src/infra/clock";
 import { NoticesAttachmentModule } from "../../../src/notices/attachment/notices-attachment.module";
@@ -32,14 +31,12 @@ import { NoticesTabsModule } from "../../../src/notices/tabs/notices-tabs.module
 import { noticeTabs } from "../../../src/notices/tabs/notices-tabs.wire";
 import { RequestAuthenticator } from "../../../src/perimeter/perimeter.ports";
 import { FakeRequestAuthenticator } from "../../helpers/fakes/perimeter/request-authenticator.fake";
-import { storedBuilding } from "../../helpers/building/buildings";
 import { expectWire } from "../../helpers/contracts/expect-wire";
 import { FakeBuildingPlaceRepository } from "../../helpers/fakes/building/building-place.repository.fake";
 import { FakeBuildingRepository } from "../../helpers/fakes/building/building.repository.fake";
 import { FakeNoticesDetailRepository } from "../../helpers/fakes/notices/notices-detail.repository.fake";
 import { FakeNoticesListRepository } from "../../helpers/fakes/notices/notices-list.repository.fake";
 import { buildTestApp } from "../../helpers/nest/build-test-app";
-import { actionOf, contactOf, evidenceOf, goldenRecord, linkOf, type RawRecord } from "../../helpers/notices/facts-records";
 
 const NOW = new Date("2026-04-11T03:00:00.000Z");
 const fakeClock: Clock = { now: () => NOW };
@@ -566,18 +563,7 @@ describe("GET /notices — paging across stored date shapes", () => {
   });
 });
 
-describe("GET /notices — the facts row on a list item", () => {
-  const ROW_CASE = path.join(__dirname, "fixtures/facts-rows/a_deadline_tomorrow_reads_as_one_while_the_window_is_open.json");
-  const RECORD = (JSON.parse(fs.readFileSync(ROW_CASE, "utf8")) as { record: { times: Array<{ start: { date: string }; end: { date: string } }> } }).record;
-
-  // The captured record's window ends 2026-10-26; shifted so that it ends the day after the fixed clock (2026-04-11 KST).
-  const factsEndingTomorrow = (): unknown => {
-    const facts = structuredClone(RECORD);
-    facts.times[0]!.start.date = "2026-04-05";
-    facts.times[0]!.end.date = "2026-04-12";
-    return facts;
-  };
-
+describe("GET /notices — the summary on a list item", () => {
   const summaryFields = {
     summaryAt: new Date("2026-04-10T06:00:00.000Z"),
     summaryType: "action_required",
@@ -585,18 +571,12 @@ describe("GET /notices — the facts row on a list item", () => {
     summaryPeriods: [{ label: "신청", startDate: "2026-04-05", startTime: null, endDate: "2026-04-12", endTime: "18:00" }],
   };
 
-  const withFacts = (): NoticeDoc =>
-    rawDoc({
-      _id: new ObjectId("66a1b2c3d4e5f6a7b8c9d201"),
-      articleNo: 201,
-      facts: factsEndingTomorrow(),
-      ...summaryFields,
-    });
-  const withoutFacts = (): NoticeDoc => rawDoc({ _id: new ObjectId("66a1b2c3d4e5f6a7b8c9d202"), articleNo: 202, date: "2026-04-09", ...summaryFields });
+  const summarized = (): NoticeDoc => rawDoc({ _id: new ObjectId("66a1b2c3d4e5f6a7b8c9d201"), articleNo: 201, ...summaryFields });
+  const unsummarized = (): NoticeDoc => rawDoc({ _id: new ObjectId("66a1b2c3d4e5f6a7b8c9d202"), articleNo: 202, date: "2026-04-09", facts: { v: 1 } });
 
-  it("serves `row` as finished Korean text next to a `summary` that is the one it was without facts", async () => {
+  it("serves the summary a notice stores, null for one with none even when the crawler stored facts, and no row", async () => {
     // Arrange
-    listRepository.docs = [withFacts(), withoutFacts()];
+    listRepository.docs = [summarized(), unsummarized()];
 
     // Act
     const res = await request(httpServer).get("/notices/source/skku-main");
@@ -604,66 +584,29 @@ describe("GET /notices — the facts row on a list item", () => {
 
     // Assert
     expect(res.status).toBe(200);
-    expect(served.row).toEqual({
-      token: { text: "내일 마감", tone: "urgent" },
-      title: "장학금",
-      when: "내일 마감",
-      urgent: true,
-      dateMark: null,
-      qualifier: null,
-      board: null,
-      dimmed: false,
-      day: "yesterday",
-    });
-    expect(plain.row).toBeNull();
-    expect(served.summary).toEqual(plain.summary);
     expect(served.summary).toEqual({
       oneLiner: "한 줄",
       type: "action_required",
       startAt: { date: "2026-04-05", time: null },
       endAt: { date: "2026-04-12", time: "18:00", label: "신청" },
     });
+    expect(plain.summary).toBeNull();
+    expect(Object.keys(served)).not.toContain("row");
+    expect(Object.keys(plain)).not.toContain("row");
     expectWire(noticeList, res.body.data);
   });
 
-  it("adds the board name on the multi-source list, and on it only", async () => {
+  it("serves the same items on the multi-source list, with no board name", async () => {
     // Arrange
-    listRepository.docs = [withFacts()];
+    listRepository.docs = [summarized()];
 
     // Act
-    const single = await request(httpServer).get("/notices/source/skku-main");
-    const multi = await request(httpServer).get("/notices?sourceIds=skku-main,cse-undergrad");
-
-    // Assert
-    expect(single.body.data.notices[0].row.board).toBeNull();
-    expect(multi.body.data.notices[0].row.board).toBe("학부통합(학사)");
-    expectWire(noticeList, multi.body.data);
-  });
-
-  it("names no board on a multi-source list of one source", async () => {
-    // Arrange
-    listRepository.docs = [withFacts()];
-
-    // Act
-    const res = await request(httpServer).get("/notices?sourceIds=skku-main");
+    const res = await request(httpServer).get("/notices?sourceIds=skku-main,cse-undergrad");
 
     // Assert
     expect(res.status).toBe(200);
-    expect(res.body.data.notices[0].row.board).toBeNull();
+    expect(Object.keys(res.body.data.notices[0])).not.toContain("row");
     expectWire(noticeList, res.body.data);
-  });
-
-  it("serves the Korean row in every language", async () => {
-    // Arrange
-    listRepository.docs = [withFacts()];
-
-    // Act
-    const [ko, en, zh] = await Promise.all(["ko", "en", "zh"].map((lang) => request(httpServer).get("/notices/source/skku-main").set("Accept-Language", lang)));
-
-    // Assert
-    expect(en.body.data.notices[0].row).toEqual(ko.body.data.notices[0].row);
-    expect(zh.body.data.notices[0].row.when).toBe("내일 마감");
-    expect(en.body.meta.lang).toBe("en");
   });
 });
 
@@ -1129,126 +1072,28 @@ describe("notices bodies", () => {
   });
 });
 
-describe("GET /notices/:sourceId/:articleNo — the screen", () => {
-  const MAIN_THING = "th_441ff75112a0";
-  const text = (ko: string) => ({ ko, en: "" });
-  const place = (id: string, placeText: string): RawRecord => ({ text: placeText, id, campus: id === "unresolved" ? null : "hssc", reason: id === "unresolved" ? "unknown" : null });
-
-  // The captured window ends 2026-10-26; shifted so that it ends the day after the fixed clock (2026-04-11 KST).
-  const facts = (): RawRecord => {
-    const stored = goldenRecord("a_deadline_tomorrow_reads_as_one_while_the_window_is_open");
-    stored.times[0].start.date = "2026-04-05";
-    stored.times[0].end.date = "2026-04-12";
-    const [session] = goldenRecord("the_place_qualifier_comes_from_the_item_the_row_shows__2").times as RawRecord[];
-    stored.times.push({ ...session, id: "tm_session", start: { ...session!.start, date: "2026-04-20" }, where: { ...session!.where, places: [place("space:hssc:33B101", "경영관 33101호"), place("unresolved", "서울캠 어딘가")] } });
-    stored.audience.conditions.push({ ev: evidenceOf("3학년 이상"), type: "year", polarity: "include", strength: "required", thing: MAIN_THING, scope: "", restricts: true, narrows: true, appliesTo: [], tag: "", tagBy: "" });
-    stored.benefits.push({ ev: evidenceOf("월 50만원"), thing: MAIN_THING, earnedBy: "selected", amount: null, isDraw: false, track: "", appliesTo: [], tag: "", tagBy: "" });
-    stored.sources.links.push(linkOf("K1", "https://forms.example.com/apply"));
-    stored.actions.push(actionOf());
-    stored.contacts.push(contactOf({ who: "학과 사무실" }));
-    return stored;
-  };
-
+describe("GET /notices/:sourceId/:articleNo — the summary, with no screen and no brief", () => {
   const detailDoc = (extra: Record<string, unknown> = {}): NoticeDoc =>
-    rawDoc({ _id: new ObjectId("66a1b2c3d4e5f6a7b8c9d301"), articleNo: 301, cleanMarkdown: "**본문**", firstSeenAt: new Date("2026-04-10T03:00:00.000Z"), ...extra });
+    rawDoc({ _id: new ObjectId("66a1b2c3d4e5f6a7b8c9d301"), articleNo: 301, cleanMarkdown: "**본문**", ...extra });
 
-  beforeEach(() => {
-    buildingRepository.buildings = [storedBuilding({ _id: 12, buildNo: "133", campus: "hssc", name: text("경영관") })];
-    placeRepository.spaces = [{ spaceCd: "33B101" as SpaceCd, buildNo: "133" as BuildNo, campus: "hssc", floor: text("지하1층"), name: text("계단강의실"), buildingName: text("경영관"), conspaceCd: null }];
-  });
-
-  it("serves `screen` beside every field the detail served before, null when the notice has no facts", async () => {
-    // Arrange
-    detailRepository.docs = [detailDoc()];
-    const plain = await request(httpServer).get("/notices/skku-main/301");
-    detailRepository.docs = [detailDoc({ facts: facts() })];
-
-    // Act
-    const served = await request(httpServer).get("/notices/skku-main/301");
-    const { screen, summary, ...fields } = served.body.data;
-
-    // Assert
-    expect(plain.body.data.screen).toBeNull();
-    expect(screen).not.toBeNull();
-    expect(fields).toEqual({ ...plain.body.data, screen: undefined, summary: undefined });
-    expect(summary).not.toBeNull();
-    expectWire(noticeDetail, plain.body.data);
-    expectWire(noticeDetail, served.body.data);
-  });
-
-  it("derives the summary a shipped app reads from the facts of a notice with none, and serves a stored one as it is", async () => {
+  it("serves the summary a notice stores, null for one with none even when the crawler stored facts and a brief, and neither of those", async () => {
     // Arrange
     const stored = { summaryAt: new Date("2026-04-10T04:00:00Z"), summaryOneLiner: "한 줄", summaryType: "event" };
-    detailRepository.docs = [detailDoc({ facts: facts() }), detailDoc({ facts: facts(), articleNo: 302, ...stored })];
+    detailRepository.docs = [detailDoc({ facts: { v: 1 }, brief: { questionKey: "recruit" } }), detailDoc({ articleNo: 302, ...stored })];
 
     // Act
-    const derived = await request(httpServer).get("/notices/skku-main/301");
+    const none = await request(httpServer).get("/notices/skku-main/301");
     const kept = await request(httpServer).get("/notices/skku-main/302");
 
     // Assert
-    expect(derived.body.data.summary).toMatchObject({ text: null, type: "action_required", periods: [], model: null });
-    expect(derived.body.data.summary.oneLiner).toEqual(expect.any(String));
+    expect(none.status).toBe(200);
+    expect(none.body.data.summary).toBeNull();
     expect(kept.body.data.summary).toMatchObject({ oneLiner: "한 줄", type: "event" });
-    expectWire(noticeDetail, derived.body.data);
+    for (const res of [none, kept]) {
+      expect(Object.keys(res.body.data)).not.toEqual(expect.arrayContaining(["screen"]));
+      expect(Object.keys(res.body.data)).not.toEqual(expect.arrayContaining(["brief"]));
+    }
+    expectWire(noticeDetail, none.body.data);
     expectWire(noticeDetail, kept.body.data);
-  });
-
-  it("serves the blocks of an event in the ADR order with none empty, each filled from the record", async () => {
-    // Arrange
-    detailRepository.docs = [detailDoc({ category: "행사/세미나", facts: facts() })];
-
-    // Act
-    const res = await request(httpServer).get("/notices/skku-main/301");
-    const blocks = res.body.data.screen?.blocks ?? [];
-
-    // Assert
-    expect(res.status).toBe(200);
-    expect(blocks.map((block: { label: string }) => block.label)).toEqual(["언제·어디", "대상", "혜택", "신청", "문의"]);
-    expect(blocks.filter((block: { lines: unknown[] }) => block.lines.length === 0)).toEqual([]);
-    expectWire(noticeDetail, res.body.data);
-  });
-
-  it("leads a scholarship with its audience and benefit, as the board category says", async () => {
-    // Arrange
-    detailRepository.docs = [detailDoc({ category: "장학", facts: facts() })];
-
-    // Act
-    const res = await request(httpServer).get("/notices/skku-main/301");
-
-    // Assert
-    expect((res.body.data.screen?.blocks ?? []).map((block: { label: string }) => block.label)).toEqual(["대상", "혜택", "신청", "언제·어디", "문의"]);
-    expectWire(noticeDetail, res.body.data);
-  });
-
-  it("names a place through building's index with a map action, and shows the quote of one it cannot name with none", async () => {
-    // Arrange
-    detailRepository.docs = [detailDoc({ category: "행사/세미나", facts: facts() })];
-
-    // Act
-    const res = await request(httpServer).get("/notices/skku-main/301");
-    const [line] = res.body.data.screen?.blocks[0]?.lines ?? [];
-
-    // Assert
-    expect(line).toMatchObject({ sub: "경영관 33B101 · 서울캠 어딘가", actions: [{ kind: "map", target: "skku_building:12", space: "33B101" }] });
-    expect(line?.actions).toHaveLength(1);
-    expectWire(noticeDetail, res.body.data);
-  });
-
-  it("serves the status, the pinned action and the first-seen day at the fixed clock's KST moment", async () => {
-    // Arrange
-    detailRepository.docs = [detailDoc({ facts: facts() })];
-
-    // Act
-    const res = await request(httpServer).get("/notices/skku-main/301");
-
-    // Assert
-    expect(res.body.data.screen).toMatchObject({
-      header: { firstSeen: "어제 처음 올라옴", change: null },
-      status: { word: "접수 중", tone: "soon", detail: "내일 마감" },
-      action: { label: "신청하기", kind: "link", target: "https://forms.example.com/apply" },
-      collapsed: null,
-      staffOnly: false,
-    });
-    expectWire(noticeDetail, res.body.data);
   });
 });

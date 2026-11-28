@@ -3,11 +3,10 @@ import { Clock } from "../../infra/clock";
 import config from "../../infra/config";
 import logger from "../../infra/logger";
 import type { NoticeDoc } from "../notices.document";
-import { groupByClusterKey } from "../notices.rules";
 import { buildTopics, TOPIC_CAP } from "../notices.topics";
 import { NoticesDispatchClient } from "./notices-dispatch.client";
 import { NoticesDispatchRepository } from "./notices-dispatch.repository";
-import { selectRepresentative, toClaimWindow, toPushedFields, toReleasedFields, toSkippedFields } from "./notices-dispatch.rules";
+import { groupByClusterKey, selectRepresentative, toClaimWindow, toPushedFields, toReleasedFields, toSkippedFields } from "./notices-dispatch.rules";
 import type { DispatchOutcome, DispatchPolicy } from "./notices-dispatch.types";
 import type { SweepSummary } from "./notices-dispatch.wire";
 

@@ -89,14 +89,6 @@ const config = {
       return roleScoped("NOTICES_SERVICE_START_DATE");
     },
 
-    // CONTRACT(skkuverse-ai): skkuverse-ai/docs/notice-overview-api.md owns this API.
-    overview: {
-      enabled: switches.noticeOverviewEnabled,
-      get aiApiUrl(): string {
-        return roleScoped("AI_API_URL");
-      },
-    },
-
     dispatch: {
       get internalToken(): string {
         return roleScoped("INTERNAL_DISPATCH_TOKEN");
@@ -287,7 +279,6 @@ const config = {
     subway: string;
     regionalBus: string;
     gbis: string;
-    noticeOverview: string;
   } {
     return {
       push: switches.pushDelivery,
@@ -296,7 +287,6 @@ const config = {
       subway: switches.subwayEnabled ? "on" : "off",
       regionalBus: switches.regionalBusEnabled ? "on" : "off",
       gbis: switches.gbisEnabled ? "on" : "off",
-      noticeOverview: switches.noticeOverviewEnabled ? "on" : "off",
     };
   },
 };

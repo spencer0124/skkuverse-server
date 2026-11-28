@@ -2,8 +2,8 @@ import type { Document } from "mongodb";
 import type { ClaimWindow, PushedFields, ReleasedFields, SkippedFields } from "./notices-dispatch.types";
 
 // QUIRK(atlas): the claim filter and DISPATCH_PENDING_INDEX's partial filter share this, so the planner can use the
-// index; `$type: "date"`, not `$ne: null`, because a partial filter takes no `$ne`.
-const CLAIMABLE = { pushedAt: null, factsAt: { $type: "date" } } as const;
+// index; an equality on null, not `$ne: null`, because a partial filter takes no `$ne`.
+const CLAIMABLE = { pushedAt: null } as const;
 
 // WHY: `$not: { $gte }`, not `$lt`, so a fresh notice with no pushAttempts field matches too: `$lt` is false
 // against a missing field.
@@ -41,10 +41,9 @@ export function toReleasedUpdate(fields: ReleasedFields): Document {
   return { $set: fields, $inc: { pushAttempts: 1 } };
 }
 
-// WHY: keyed on CLAIM_SORT, so the claim reads the index in order with no sort stage. Prod also holds
-// dispatch_pending_idx, partial on aiSummaryAt, and createIndex cannot change a filter under an existing name
-// (SEE: docs/decisions/0024-dispatch-gate-on-facts.md).
+// WHY: keyed on CLAIM_SORT, so the claim reads the index in order with no sort stage. A name keeps the filter it was
+// created with (createIndex cannot change it), so a changed filter takes a new name.
 export const DISPATCH_PENDING_INDEX = {
   key: CLAIM_SORT,
-  options: { name: "dispatch_pending_facts_idx", partialFilterExpression: CLAIMABLE },
+  options: { name: "dispatch_pending_idx_v3", partialFilterExpression: CLAIMABLE },
 } as const;
