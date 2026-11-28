@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SUMMARY_TYPES } from "../notices.constants";
+import { LEGACY_FIELD_META, SUMMARY_TYPES } from "../notices.constants";
 
 const briefDate = z.object({ date: z.string().nullable(), time: z.string().nullable() });
 
@@ -20,12 +20,12 @@ const noticeListItem = z.object({
   author: z.string().nullable(),
   department: z.string().nullable(),
   date: z.string(),
-  views: z.number(),
+  views: z.number().meta(LEGACY_FIELD_META),
   sourceUrl: z.string(),
   hasContent: z.boolean(),
   hasAttachments: z.boolean(),
   isEdited: z.boolean(),
-  summary: noticeSummaryBrief.nullable(),
+  summary: noticeSummaryBrief.nullable().meta(LEGACY_FIELD_META),
 });
 
 export const noticeList = z.object({
