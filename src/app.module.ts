@@ -67,6 +67,9 @@ import { NoticesOverviewModule } from "./notices/overview/notices-overview.modul
 import { NoticesAttachmentModule } from "./notices/attachment/notices-attachment.module";
 import { NoticesDetailModule } from "./notices/detail/notices-detail.module";
 import { NoticesDispatchModule } from "./notices/dispatch/notices-dispatch.module";
+import { NoticesV2Module } from "./notices/v2/notices-v2.module";
+import { NoticesV2ListModule } from "./notices/v2/list/notices-v2-list.module";
+import { NoticesV2DetailModule } from "./notices/v2/detail/notices-v2-detail.module";
 import { MiniappsModule } from "./miniapps/miniapps.module";
 import { MiniappsSenderModule } from "./miniapps/sender/miniapps-sender.module";
 import { MiniappsNotificationsModule } from "./miniapps/notifications/miniapps-notifications.module";
@@ -174,6 +177,10 @@ import { JourneyRoutesModule } from "./journey/routes/journey-routes.module";
     // WHY: last of the /notices routes: /notices/:sourceId/:articleNo would catch every two-segment path above.
     NoticesDetailModule,
     NoticesDispatchModule,
+    // WHY: after the released /notices routes, whose modules these import, and the list before the detail: /v2/notices/:sourceId/:articleNo would catch /v2/notices/source/:sourceId.
+    NoticesV2Module,
+    NoticesV2ListModule,
+    NoticesV2DetailModule,
     MiniappsModule,
     MiniappsSenderModule,
     MiniappsNotificationsModule,

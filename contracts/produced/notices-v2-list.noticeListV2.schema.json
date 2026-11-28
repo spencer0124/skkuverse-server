@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "notices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "articleNo": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "department": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "date": {
+            "type": "string"
+          },
+          "views": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "sourceId",
+          "articleNo",
+          "title",
+          "department",
+          "date",
+          "views"
+        ]
+      }
+    },
+    "nextCursor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "hasMore": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "notices",
+    "nextCursor",
+    "hasMore"
+  ]
+}

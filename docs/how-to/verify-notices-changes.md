@@ -24,7 +24,7 @@ npm run lint        # ESLint, then markdownlint
 npm test            # Jest, the notices suites included
 ```
 
-- The specs sit next to each flow under `src/notices/` (`tabs/`, `list/`, `detail/`, `overview/`, `attachment/`, `dispatch/`, `schedule/`), the route tests in `__tests__/nest/notices/`. They pin the cursor round-trip for every stored date shape, `NoticesListCursorError` and the sampled production documents (`notices-documents.routes.test.ts`).
+- The specs sit next to each flow under `src/notices/` (`tabs/`, `list/`, `detail/`, `overview/`, `attachment/`, `dispatch/`, `schedule/`, `v2/list/`, `v2/detail/`), the route tests in `__tests__/nest/notices/`. They pin the cursor round-trip for every stored date shape, `NoticesCursorError` and the sampled production documents (`notices-documents.routes.test.ts`).
 - `jest.config.js` holds the coverage thresholds.
 
 ## Runtime smoke test (against the development database)
@@ -37,6 +37,7 @@ With the server running (`npm run dev`):
 4. `GET /notices/<sourceId>/<articleNo>`: `contentMarkdown` is there, and `content`, `contentText` and `cleanHtml` are not.
 5. Error paths: an unknown `articleNo` is 404; an unknown `sourceId` is 400 `INVALID_SOURCE_ID`, with no database call; an unknown `type` is 400; a broken `cursor` is 400 `INVALID_CURSOR`; a repeated `sourceIds` key is 400 `INVALID_PARAMS`.
 6. A repeat request with `If-None-Match` set to the returned `ETag` answers 304.
+7. The `v2` routes, `GET /v2/notices/source/<sourceId>?limit=2`, `GET /v2/notices?sourceIds=<a>,<b>` and `GET /v2/notices/<sourceId>/<articleNo>`, answer the same notices with only the fields in the reference: no `summary` and no `id`, and `views` present. A bad token is 401 and an unknown `sourceId` is 400 `INVALID_SOURCE_ID`, as on `/notices`.
 
 ## Index ownership
 

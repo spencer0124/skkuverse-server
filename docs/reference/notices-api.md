@@ -9,7 +9,7 @@ audience: internal
 
 # Notices API Contract
 
-> The request and response contracts of the read-only `/notices/*` routes and the `/internal/notices/*` dispatch trigger. The design is in [explanation/notices-architecture.md](../explanation/notices-architecture.md), the FCM dispatch decision in [decisions/0003](../decisions/0003-fcm-dispatch-cloud-function-claim-lease.md).
+> The request and response contracts of the read-only `/notices/*` and `/v2/notices/*` routes and the `/internal/notices/*` dispatch trigger. The design is in [explanation/notices-architecture.md](../explanation/notices-architecture.md), the FCM dispatch decision in [decisions/0003](../decisions/0003-fcm-dispatch-cloud-function-claim-lease.md).
 
 > [!NOTE]
 > Every route except `GET /notices/proxy/attachment` and `GET /notices/:sourceId/:articleNo/schedule.ics` answers in the server's common `{ meta, data }` envelope (`src/http/response.interceptor.ts`). The attachment proxy streams the file body itself, and the calendar export is an iCalendar file.
@@ -25,16 +25,19 @@ audience: internal
 | GET | `/notices/:sourceId/:articleNo` | optional | One notice's detail |
 | GET | `/notices/:sourceId/:articleNo/schedule.ics` | optional | One notice's schedule as an iCalendar file |
 | GET | `/notices/overview` | optional | Deprecated: a stub, a null overview for every valid search (`?q=&sourceIds=`) |
+| GET | `/v2/notices/source/:sourceId` | optional | One source's notices, cursor-paged, as the next app version reads them |
+| GET | `/v2/notices` | optional | Several sources merged into one list, each article once (`?sourceIds=`), in the same shape |
+| GET | `/v2/notices/:sourceId/:articleNo` | optional | One notice's detail as the next app version reads it |
 | POST | `/internal/notices/dispatch-pending` | internal | The crawler's ping that starts an FCM dispatch sweep |
 
-The controllers are the source of truth for the routes: one per flow under `src/notices/` (`tabs/`, `list/`, `detail/`, `overview/`, `attachment/`, `dispatch/`), each `notices-<flow>.controller.ts`; the dispatch one is `@Controller("internal/notices")`.
+The controllers are the source of truth for the routes: one per flow under `src/notices/` (`tabs/`, `list/`, `detail/`, `overview/`, `attachment/`, `dispatch/`, `v2/list/`, `v2/detail/`), each `notices-<flow>.controller.ts`; the dispatch one is `@Controller("internal/notices")` and the two `v2` ones `@Controller("v2/notices")`.
 
 ## Common rules
 
-- **Authentication:** optional on `/notices`. A request without a bearer token passes; one with a token is verified, and only a rejected token answers 401 `AUTH_INVALID`. `src/http/request-authentication.middleware.ts` asks `REQUEST_AUTHENTICATOR` (ADR 0023) and sets `req.principal`, bound on `/notices` before the rate limit (the design notes say why). `/internal/notices` is authorized by `INTERNAL_AUTHORIZER` instead, under the `notices.dispatch` scope (its section below).
-- **Rate limit:** `/notices` is limited by the `notices` rate-limit class, which `RATE_LIMIT_POLICY` decides ([ADR 0023](../decisions/0023-perimeter-ports.md)). A refused request answers 429 `RATE_LIMIT` with `Retry-After`, and may carry `RateLimit-*` headers. The limits and how requests are counted belong to the production implementation, outside this repository's contract.
+- **Authentication:** optional on `/notices` and `/v2/notices`. A request without a bearer token passes; one with a token is verified, and only a rejected token answers 401 `AUTH_INVALID`. `src/http/request-authentication.middleware.ts` asks `REQUEST_AUTHENTICATOR` (ADR 0023) and sets `req.principal`, bound on `/notices` and `/v2/notices` before the rate limit (the design notes say why). `/internal/notices` is authorized by `INTERNAL_AUTHORIZER` instead, under the `notices.dispatch` scope (its section below).
+- **Rate limit:** `/notices` and `/v2/notices` are limited by the `notices` rate-limit class, which `RATE_LIMIT_POLICY` decides ([ADR 0023](../decisions/0023-perimeter-ports.md)). A refused request answers 429 `RATE_LIMIT` with `Retry-After`, and may carry `RateLimit-*` headers. The limits and how requests are counted belong to the production implementation, outside this repository's contract.
 - **Language:** `Accept-Language` picks the language of `label` and the other localized copy (`ko` or `en`; `zh` falls back to `en`).
-- **Deprecated:** a field or route marked deprecated is kept for released app versions and removed at the forced update (umbrella ADR 0012, D8): `summary` and `views` on the list item and on the detail, the list's `type` parameter and `GET /notices/overview`. The values do not change. `contracts/produced/` carries `"deprecated": true` and the sentence above on each field of a wire (the detail's and the list item's `summary` and `views`, and the overview's `data` and `meta`). The `type` parameter has no wire schema, so this document is where it is marked, and the overview route also answers a `Deprecation` header.
+- **Deprecated:** a field or route marked deprecated is kept for released app versions and removed at the forced update (umbrella ADR 0012, D8): `summary` on the list item and on the detail, the list's `type` parameter and `GET /notices/overview`. The values do not change. `contracts/produced/` carries `"deprecated": true` and the sentence above on each field of a wire (the detail's and the list item's `summary`, and the overview's `data` and `meta`). `views` is not deprecated: both generations of routes serve it. The `type` parameter has no wire schema, so this document is where it is marked, and the overview route also answers a `Deprecation` header.
 
 ## GET /notices/tabs
 
@@ -115,7 +118,7 @@ Query: `cursor` (base64url), `limit` (clamped to 1–50; unreadable means 20), `
 ```
 
 - **The list summary is brief:** `oneLiner`, `type`, `startAt`, `endAt`. The full summary is served only on the detail. The app's `formatDeadlineBadge` draws the badge by `type`. Deprecated: kept for released app versions; removed at the forced update.
-- **`views` is the board's view count.** Deprecated: kept for released app versions; removed at the forced update.
+- **`views` is the board's view count** as of the last crawl.
 - **`startAt` and `endAt` are derived at request time:**
   - A v1 notice (no `summaryVersion`): `selectEffectivePeriod`. For `action_required`, the earliest deadline still ahead in `summaryPeriods` (a timed same-day slot is no deadline), or the latest one when all have passed; for any other type, `periods[0]`.
   - A v2 notice (`summaryVersion >= 2` with `summaryDates`): `selectRoleBadge`. It takes the first that applies: an application window (`summaryApplication.windows`), the next `due`, the next `happens` event, all windows and dues passed (closed), a multi-day `runs` range. It ignores the stored `summaryType` and sets `type` to fit what it picked (a window not yet open reads as an `informational` range). Source: skkuverse-ai `openspec/changes/refine-notice-summary-v2` design D11.
@@ -189,7 +192,7 @@ Outbound policy (`OUTBOUND_POLICY`, purpose `notice-attachment`, [ADR 0023](../d
 ```
 
 - **One body field, `contentMarkdown`.** `content`, `contentText` and `cleanHtml` are not served. When `contentMarkdown` is `null` (never an empty string), the client opens `sourceUrl` instead.
-- **The full summary** is `oneLiner` and `type`, as in the list, plus `text`, `periods`, `locations`, `details`, `model` and `generatedAt`; it has no `startAt` or `endAt`. It is `null` for a notice with no stored summary (`summaryAt` unset). Deprecated: kept for released app versions; removed at the forced update. The same goes for `views`. Of what the crawler writes after the first save, the detail reads the `schedule`, `brief`, `audience` and `refs` and nothing else.
+- **The full summary** is `oneLiner` and `type`, as in the list, plus `text`, `periods`, `locations`, `details`, `model` and `generatedAt`; it has no `startAt` or `endAt`. It is `null` for a notice with no stored summary (`summaryAt` unset). Deprecated: kept for released app versions; removed at the forced update. Of what the crawler writes after the first save, the detail reads the `schedule`, `brief`, `audience` and `refs` and nothing else.
 - **`brief`, `audience` and `refs` (the blocks).** Each is read from the stored notice as the crawler writes it (umbrella ADR 0012, D7), parsed at the read, and served as content only: what a stage keeps as evidence (a bullet's quotes, the title's question, the audience quotes, the run record) and any field a later stage adds never reach the response. A block is `null` when the notice stores none, an empty one or one that fails its schema, so a client tests one thing; a failing one logs `notices.block.unparsed`. No block filters the notice out of a list or a detail.
 
   | Block | Served | Null when |
@@ -265,6 +268,106 @@ Deprecated: kept for released app versions; removed at the forced update. A stub
 
 **Client obligations**: hide the card when `data.overview` is `null`, including on `429`.
 
+## v2 routes: `/v2/notices`
+
+The routes of the next app version. They read the same stored notices as the released routes and serve the fields the app reads and nothing else: no `summary`, `id`, `category`, `author`, hash, edit history or stored evidence, and no `type` filter. Each answers in the common `{ meta, data }` envelope with `data` as below. Authentication, the rate limit, CORS and caching are those of `/notices`: a request without a bearer token passes, a rejected token answers `401 AUTH_INVALID`, the `notices` rate-limit class counts every request once, and neither route sets `Cache-Control`. The tab layout stays at `GET /notices/tabs` and the attachment proxy at `GET /notices/proxy/attachment`. There is no overview and no `schedule.ics` under `/v2/notices`.
+
+**List** (`GET /v2/notices/source/:sourceId` for one source, `GET /v2/notices?sourceIds=a,b` for several, one to twenty ids in one comma-joined `sourceIds`):
+
+| Query | Rule |
+| --- | --- |
+| `limit` | Read with `parseInt` and clamped to 1 to 50; unreadable means 20 |
+| `cursor` | The `nextCursor` of the previous page, opaque; a cursor of the released list is read too. A malformed one is `400 INVALID_CURSOR` |
+| `q` | Optional search text, matched against the title and the notice's stored one-line summary; one that is empty, over 100 code points or holds a control character is dropped, never an error |
+
+Any other query key, `type` included, is ignored. Paging, the one-row-per-article rule of a read of several sources, and the order are those of `GET /notices` above.
+
+```jsonc
+{
+  "meta": { "lang": "ko" },
+  "data": {
+    "notices": [
+      {
+        "sourceId": "skku-notice06",
+        "articleNo": 140562,
+        "title": "2027년도 두산연강재단 장학생 선발 안내",
+        "department": "성균관대_통합(장학)",
+        "date": "2026-10-14",
+        "views": 2723
+      }
+    ],
+    "nextCursor": "eyJkIjoi...",
+    "hasMore": true
+  }
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `sourceId`, `articleNo` | The notice's identity: its board and its number there. Key a row on both, and open the detail with them |
+| `title` | The notice's title |
+| `department` | The board's own name for the department that posted it; `null` when the crawler stored none. The app names a board by its tab, and falls back to this |
+| `date` | The posting day, `YYYY-MM-DD`; a board crawled before 2026-08-06 may append a space and `HH:mm`, so read the first ten characters |
+| `views` | The board's own view count as of the last crawl, `0` when the crawler stored none |
+| `nextCursor`, `hasMore` | The next page's cursor, `null` on the last page, and whether there is a next page |
+
+**Detail** (`GET /v2/notices/:sourceId/:articleNo`): `404 NOT_FOUND` for a missing notice or one the crawler marked `isDeleted`, `400 INVALID_SOURCE_ID` for a source `sources.json` does not hold, `400 INVALID_PARAMS` for a non-numeric `articleNo`. The response carries Express's default weak `ETag`, and a matching `If-None-Match` answers 304.
+
+```jsonc
+{
+  "meta": { "lang": "ko" },
+  "data": {
+    "sourceId": "skku-notice02",
+    "articleNo": 140482,
+    "title": "[인공지능혁신융합대학사업] 2026학년도 ... 수강 안내 (상시 업데이트)",
+    "department": "성균관대_통합(학사)",
+    "date": "2026-10-14",
+    "views": 4685,
+    "sourceUrl": "https://www.skku.edu/skku/campus/skk_comm/notice02.do?mode=view&articleNo=140482",
+    "isEdited": true,
+    "contentMarkdown": "인공지능혁신융합대학사업의 협력교와 ...",
+    "attachments": [{ "name": "....Zip", "url": "https://www.skku.edu/...&attachNo=118217" }],
+    "schedule": null,
+    "brief": { "language": "ko", "bullets": [{ "text": "..." }], "version": "brief-2" },
+    "audience": { "level": { "include": ["grad"] }, "status": { "include": ["enrolled"], "exclude": [] }, "version": "audience-1" },
+    "refs": { "links": [{ "url": "...", "domain": "..." }], "phones": [{ "value": "02-740-1722" }], "emails": [], "version": "refs-2" }
+  }
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `sourceId`, `articleNo`, `title`, `department`, `date`, `views` | As on the list item |
+| `sourceUrl` | The notice's page on its board: what the app opens when there is no body, and the referer it gives the attachment proxy |
+| `isEdited` | `true` once the crawler has seen the notice's content change after its first save. The edit count and history are not served |
+| `contentMarkdown` | The body as Markdown, `null` when the crawler could not fetch it (the app then opens `sourceUrl`) |
+| `attachments` | `{ name, url }` in page order, `[]` when there are none. The proxy's referer is the notice's `sourceUrl` |
+| `schedule`, `brief`, `audience`, `refs` | The timeline and the three blocks exactly as `GET /notices/:sourceId/:articleNo` serves them, each `null` when the notice stores none, an empty one or one that fails its schema |
+
+## What goes when the released routes go
+
+The `v2` files import no wire, controller or mapper of the released routes, and nothing in them changes when these go. Whole files:
+
+| What | Files |
+| --- | --- |
+| The overview stub | `src/notices/overview/`, `src/http/notices-overview-rate-limit.middleware.ts`, its binding in `src/notices/notices.module.ts`, the `notices-overview` entry of `RATE_LIMIT_CLASSES` in `src/perimeter/perimeter.ports.ts`, `NoticesOverviewModule` in `src/app.module.ts`, `contracts/produced/notices-overview.*` |
+| The released list | `src/notices/list/notices-list.controller.ts`, `notices-list.wire.ts`, `notices-list.schema.ts` with their specs, `contracts/produced/notices-list.*` |
+| The released detail | `src/notices/detail/notices-detail.controller.ts`, `notices-detail.wire.ts`, `notices-detail.mapper.ts`, `notices-detail.schema.ts` with their specs, `contracts/produced/notices-detail.*` |
+| Their tests | `__tests__/contracts/notices-deprecated-fields.test.ts`, the released-route cases of `__tests__/nest/notices/` |
+
+Edits in files that stay:
+
+| File | Delete |
+| --- | --- |
+| `list/notices-list.service.ts` | `listNotices` and the `Clock`; `listNoticePage` stays |
+| `list/notices-list.mapper.ts` | `toListItem`, `toSummaryBrief`, `toPeriodBrief` |
+| `list/notices-list.rules.ts` | `selectEffectivePeriod`, `isV2Summary`, `selectRoleBadge` and the helpers only they call |
+| `list/notices-list.query.ts`, `.types.ts`, `.document.ts`, `.constants.ts` | The `type` clause and `NoticeListQuery.type`, `summaryOneLiner` in `SEARCH_FIELDS`, the `summary*` fields of the row and of `LIST_PROJECTION`, `BriefDate`, `BriefEnd`, `BriefDates`, `TYPE_MESSAGE`, `OPEN_ENDED_DAYS` |
+| `detail/notices-detail.service.ts`, `.query.ts`, `.document.ts` | `findNotice`; the `summary*`, `category`, `author`, `lastModified`, `crawledAt` and `editHistory` fields of the row and of `DETAIL_PROJECTION` |
+| `notices.constants.ts`, `notices.rules.ts`, `notices.types.ts`, `notices.document.ts` | `SUMMARY_TYPES`, `LEGACY_FIELD_META`, `isSummaryType`, `normalizeSummaryType`, `SummaryType` and the stored summary types |
+
+`GET /notices/:sourceId/:articleNo/schedule.ics` (`detail/notices-detail.controller.ts`, `exportCalendar` and `notices-detail.rules.ts`) has no `v2` counterpart, because the app does not call it. Decide before the drop: delete it with the released routes, or add `GET /v2/notices/:sourceId/:articleNo/schedule.ics` first and keep `exportCalendar`, `dupOf` in the detail projection and the rules.
+
 ## POST /internal/notices/dispatch-pending
 
 The internal route the crawler calls after a crawl cycle that stored a new notice, not callable by clients: `INTERNAL_AUTHORIZER` authorizes it under the `notices.dispatch` scope ([ADR 0023](../decisions/0023-perimeter-ports.md)).
@@ -282,7 +385,7 @@ The internal route the crawler calls after a crawl cycle that stored a new notic
 | HTTP | code | When |
 | --- | --- | --- |
 | 400 | `INVALID_SOURCE_ID` | A `sourceId` that `sources.json` does not hold |
-| 400 | `INVALID_PARAMS` | A non-numeric `articleNo`, an unknown `type`, a missing or repeated `sourceIds` or one naming more than `MAX_SOURCE_IDS`, a bad overview `q`, a missing or malformed attachment `url`, a disallowed attachment `referer` |
+| 400 | `INVALID_PARAMS` | A non-numeric `articleNo`, an unknown `type` on a released list route, a missing or repeated `sourceIds` or one naming more than `MAX_SOURCE_IDS`, a bad overview `q`, a missing or malformed attachment `url`, a disallowed attachment `referer` |
 | 400 | `INVALID_CURSOR` | A cursor that fails base64url decoding, JSON parsing or its shape check |
 | 401 | `AUTH_INVALID` | A bearer token that fails verification (no token is not a 401) |
 | 403 | `FORBIDDEN` | An attachment `url` or redirect hop the outbound policy refuses |
@@ -301,6 +404,10 @@ The code is the source of truth for file names; `docs/explanation/notices-archit
 | `GET /notices/tabs` | `tabs/` |
 | `GET /notices/source/:sourceId`, `GET /notices`: reads, index, projection, cursor, list item, badge | `list/` |
 | `GET /notices/:sourceId/:articleNo` and its `schedule.ics` | `detail/` |
+| `GET /v2/notices/source/:sourceId` and `GET /v2/notices`: the item, its input and the page, read through `NoticesListService` | `v2/list/` |
+| `GET /v2/notices/:sourceId/:articleNo`: the detail, read through `NoticesDetailService` | `v2/detail/` |
+| The `/v2/notices` authentication and limiter binding | `v2/notices-v2.module.ts` |
+| The cursor, limit and search text both list generations parse | `notices.rules.ts` (`decodeCursor`), `notices.schema.ts` (`listLimit`, `listCursor`, `listSearchText`) |
 | The detail's `schedule`: the stored schedule parsed, its occurrences expanded and its places named | `schedule/`, and the published shape in `notices.wire.ts` |
 | `GET /notices/overview`: the stub answer and its query check | `overview/` |
 | `GET /notices/proxy/attachment` | `attachment/`, with the outbound policy behind `OUTBOUND_POLICY` (`src/perimeter/perimeter.ports.ts`) |

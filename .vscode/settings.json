@@ -12,6 +12,7 @@
     "map.module.ts": "map.*, *.json",
     "miniapps.module.ts": "miniapps.*, *.json",
     "notices.module.ts": "notices.*, *.json",
+    "notices-v2.module.ts": "notices-v2.*, *.json",
     "ui.module.ts": "ui.*, *.json",
     "ui-transit.module.ts": "ui-transit.*, *.json",
     "subway.module.ts": "subway.*, *.json",
