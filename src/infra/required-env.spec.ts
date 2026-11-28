@@ -233,7 +233,7 @@ describe("listMissingRequired checks only the values the role needs", () => {
     expect(missingIn(role, "TMAP_APP_KEY")).toEqual(missing);
   });
 
-  // WHY: the overview route answers a fixed stub, so no role reads the ai's address; the secret store drops it one release later.
+  // WHY: the overview route answers a fixed stub, so no role reads the ai's address.
   it.each(["api", "combined", "poller"])("without AI_API_URL, ROLE=%s misses nothing", (role) => {
     // Act & Assert
     expect(missingIn(role, "AI_API_URL")).toEqual([]);
