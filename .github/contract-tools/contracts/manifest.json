@@ -82,25 +82,6 @@
       ]
     },
     {
-      "id": "search.config",
-      "kind": "file",
-      "status": "planned",
-      "producer": {
-        "repo": "crawler",
-        "path": "search.json"
-      },
-      "consumers": [
-        {
-          "repo": "server",
-          "path": "src/notices/search.json",
-          "mode": "copy",
-          "requires": [
-            "server-build-asset"
-          ]
-        }
-      ]
-    },
-    {
       "id": "conventions.markdownlint",
       "kind": "file",
       "status": "active",
