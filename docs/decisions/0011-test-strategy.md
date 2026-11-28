@@ -3,7 +3,7 @@ title: Test Strategy — Levels, Doubles and the Guards That Keep Tests Honest
 type: adr
 status: accepted
 owner: spencer0124
-last-updated: 2026-11-19
+last-updated: 2026-11-28
 audience: internal
 ---
 
@@ -66,7 +66,7 @@ Rejected: keeping per-module copies of the pipeline and comparing them with `src
 
 - A real `mongod` (`mongodb-memory-server`, `__tests__/helpers/mongod.ts`, its version pinned to the one Atlas runs) runs the characterization and dataset tests. Adopted by the owner on 2026-10-15 on the pilot's numbers: about 1.3 s per file, the full suite within noise, ten consecutive green runs; a CI cache miss adds a ~100 MB download.
 - Repository specs stay fake-backed. What their queries match in a real `mongod` is a test under `__tests__/nest/`: the notices list, detail and dispatch claim in `notices-characterization.routes.test.ts`, the shuttle pattern and override reads in `schedule-characterization.routes.test.ts`, and the mini-app notification Idempotency-Key claim in `miniapps-notifications-claim.test.ts`.
-- A repository spec pins the exact filter object. `$search` and vector queries stay filter-pinned, because `mongod` does not run Atlas Search.
+- A repository spec pins the exact filter object.
 - A characterization route test for a module about to move seeds documents, overrides no repository or service and asserts HTTP responses only. A failure during the move is a regression to report, never a reason to edit the test.
 
 ### D7. Contracts and fixtures

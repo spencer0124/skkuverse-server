@@ -17,7 +17,7 @@ export interface CachedLoaderOptions<T> {
   load: () => Promise<T>;
   staleWindowMs?: number;
   serveStale?: StaleServing;
-  // WHY: for a load that costs more than staleness does on a laptop (an LLM call, a production fetch).
+  // WHY: for a load that costs more than staleness does on a laptop (a production fetch).
   keepWhenCacheOff?: boolean;
 }
 

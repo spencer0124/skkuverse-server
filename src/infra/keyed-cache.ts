@@ -40,7 +40,7 @@ export class KeyedCache<T> {
     return this.entries.size;
   }
 
-  // WHY: kept under CACHE=off: a keyed entry stands for a load that costs more than staleness does (an LLM call),
+  // WHY: kept under CACHE=off: a keyed entry stands for a load that costs more than staleness does,
   // and its key already names everything the value depends on.
   private replace(key: string, load: () => Promise<T>): Entry<T> {
     this.entries.delete(key);

@@ -42,7 +42,7 @@ describe("KeyedCache", () => {
 
 describe("KeyedCache.get with CACHE=off", () => {
   // Every other createCachedLoader passes through under CACHE=off; this one is
-  // exempt, because each miss is an LLM call.
+  // exempt, because a keyed load costs more than staleness does.
   const config = require("./config");
   afterEach(() => {
     config.cache.enabled = true;
