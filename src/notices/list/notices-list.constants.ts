@@ -1,7 +1,3 @@
-export const DEFAULT_LIMIT = 20;
-
-export const MAX_LIMIT = 50;
-
 // EVIDENCE: on _dev (2026-10-29) 36% of the 8-board tab's rows are shown copies; at 2, 64 of its 94 pages (limit 20)
 // needed 2 or 3 scans. Its deepest page spans 236 rows for 50 served (limit 50), so at 5 every page of the general,
 // department and 8-board tabs, with or without `q`, fills from one scan, measured over every page of each.
@@ -12,8 +8,6 @@ export const CLUSTER_SCAN_FACTOR = 5;
 export const MAX_SCANS_PER_PAGE = 3;
 
 export const TYPE_MESSAGE = "type must be one of: action_required, event, informational";
-
-export const CURSOR_MESSAGE = "cursor is malformed";
 
 // WHY: an open-ended application window keeps its badge-less slot this long after it opens.
 export const OPEN_ENDED_DAYS = 30;

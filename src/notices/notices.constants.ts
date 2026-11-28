@@ -6,6 +6,12 @@ export const MAX_SOURCE_IDS = 20;
 
 export const MAX_QUERY_CODEPOINTS = 100;
 
+export const DEFAULT_LIST_LIMIT = 20;
+
+export const MAX_LIST_LIMIT = 50;
+
+export const CURSOR_MESSAGE = "cursor is malformed";
+
 // SEE: docs/explanation/notices-architecture.md ("Glossary"): the schedule item's enums, which the stored schedule and its wire share.
 export const SCHEDULE_STATUSES = ["scheduled", "tentative", "rescheduled", "cancelled", "suspended"] as const;
 export const SCHEDULE_FREQUENCIES = ["weekly", "daily"] as const;

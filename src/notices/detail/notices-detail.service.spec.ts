@@ -127,3 +127,20 @@ describe("NoticesDetailService.exportCalendar", () => {
     expect(exported.map((calendar) => calendar?.match(/^SUMMARY:.*$/m)?.[0] ?? null)).toEqual(["SUMMARY:설명회", null, null]);
   });
 });
+
+describe("NoticesDetailService.findNoticeParts", () => {
+  it("returns the stored row with its schedule and blocks, and null for a missing or soft-deleted notice", async () => {
+    // Arrange
+    const brief = { language: "ko", bullets: [{ text: "요약" }], version: "brief-2" };
+    repository.docs = [doc({ articleNo: 1, schedule: storedSchedule, brief }), doc({ articleNo: 2, isDeleted: true })];
+
+    // Act
+    const [stored, deleted, missing] = await Promise.all([1, 2, 3].map((articleNo) => service.findNoticeParts("skku-notice02", articleNo)));
+
+    // Assert
+    expect(stored?.doc.articleNo).toBe(1);
+    expect(stored?.schedule?.map((item) => item.id)).toEqual(["D1"]);
+    expect(stored?.blocks).toEqual({ brief, audience: null, refs: null });
+    expect([deleted, missing]).toEqual([null, null]);
+  });
+});

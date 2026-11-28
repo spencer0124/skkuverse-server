@@ -5,7 +5,7 @@
  */
 import fs from "fs";
 import path from "path";
-import { categoriesFile, excludeReasonsFile, sourcesFile } from "./notices.schema";
+import { categoriesFile, excludeReasonsFile, listCursor, listLimit, listSearchText, sourcesFile } from "./notices.schema";
 
 const read = (name: string): unknown => JSON.parse(fs.readFileSync(path.join(__dirname, name), "utf8"));
 const SOURCE = { id: "a", name: "A", campus: "hssc", college: null, crawlAvailable: true, excludeReason: null };
@@ -65,5 +65,46 @@ describe("excludeReasonsFile", () => {
     // Act & Assert
     expect(excludeReasonsFile.safeParse(read("exclude-reasons.json")).success).toBe(true);
     expect(excludeReasonsFile.safeParse([]).error?.issues[0]?.message).toBe("exclude-reasons.json must be a JSON object (key → label map)");
+  });
+});
+
+describe("listLimit", () => {
+  it.each([
+    [undefined, 20],
+    ["0", 1],
+    ["50", 50],
+    ["51", 50],
+    ["12abc", 12],
+    ["abc", 20],
+  ])("reads %j as %j", (raw, limit) => {
+    // Act & Assert
+    expect(listLimit.parse(raw)).toBe(limit);
+  });
+});
+
+describe("listCursor", () => {
+  const OID = "66a1b2c3d4e5f6a7b8c9d0e1";
+  const mint = (payload: unknown): string => Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+
+  it("reads an absent or empty cursor as none and a minted one as its payload", () => {
+    // Act & Assert
+    expect([listCursor.parse(undefined), listCursor.parse("")]).toEqual([null, null]);
+    expect(listCursor.parse(mint({ d: "2026-04-01", i: OID }))).toEqual({ d: "2026-04-01", i: OID });
+  });
+
+  it("names a malformed cursor with the message the routes answer INVALID_CURSOR with", () => {
+    // Act
+    const issue = listCursor.safeParse("!!!").error?.issues[0];
+
+    // Assert
+    expect(issue?.message).toBe("cursor is malformed");
+  });
+});
+
+describe("listSearchText", () => {
+  it("trims the search text and drops one that is empty, over-long or not text", () => {
+    // Act & Assert
+    expect(listSearchText.parse("  장학  ")).toBe("장학");
+    expect([listSearchText.parse("   "), listSearchText.parse("x".repeat(101)), listSearchText.parse(["a"]), listSearchText.parse(undefined)]).toEqual([undefined, undefined, undefined, undefined]);
   });
 });

@@ -1,9 +1,10 @@
 import type { SummaryPeriod } from "../notices.document";
+import type { CursorPayload } from "../notices.types";
 import { textOrNull } from "../notices.mapper";
 import type { NoticeListRow } from "./notices-list.document";
 import { normalizeSummaryType } from "../notices.rules";
 import { isV2Summary, selectEffectivePeriod, selectRoleBadge } from "./notices-list.rules";
-import type { CursorPayload, NoticePage } from "./notices-list.types";
+import type { NoticePage } from "./notices-list.types";
 import type { NoticeListItem, NoticeSummaryBrief } from "./notices-list.wire";
 
 export function encodeCursor(cursor: CursorPayload): string {

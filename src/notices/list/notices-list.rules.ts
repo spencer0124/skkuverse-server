@@ -4,9 +4,8 @@ import { KST_TIME_ZONE } from "../../shared/time-zone.constants";
 import { clusterKeyOf } from "../notices.rules";
 import type { SummaryType } from "../notices.types";
 import { OPEN_ENDED_DAYS } from "./notices-list.constants";
-import { NoticesListCursorError } from "./notices-list.error";
 import type { ClusterMember } from "./notices-list.document";
-import type { BriefDate, BriefDates, BriefEnd, CursorPayload, NoticeScope } from "./notices-list.types";
+import type { BriefDate, BriefDates, BriefEnd, NoticeScope } from "./notices-list.types";
 
 interface Span {
   start: moment.Moment | null;
@@ -20,34 +19,6 @@ interface DateSpan extends Span {
 
 interface WindowSpan extends Span {
   openEnded: boolean;
-}
-
-// QUIRK(skkuverse-crawler): boards crawled before 2026-08-06 store `date` with a minute; a cursor carries it as stored.
-const STORED_DATE_RE = /^\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?$/;
-const OID_RE = /^[0-9a-fA-F]{24}$/;
-
-function parseCursorJson(str: unknown): unknown {
-  if (typeof str !== "string" || str.length === 0) throw new NoticesListCursorError("cursor must be a non-empty string");
-  try {
-    return JSON.parse(Buffer.from(str, "base64url").toString("utf8"));
-  } catch {
-    throw new NoticesListCursorError("cursor is not valid JSON");
-  }
-}
-
-const isMatch = (value: unknown, pattern: RegExp): value is string => typeof value === "string" && pattern.test(value);
-
-const isIsoTime = (value: unknown): value is string => typeof value === "string" && !Number.isNaN(Date.parse(value));
-
-// WHY: `c` is unread but validated when present: a malformed one still means a corrupt cursor (ADR 0007).
-export function decodeCursor(str: unknown): CursorPayload {
-  const parsed = parseCursorJson(str);
-  if (!parsed || typeof parsed !== "object") throw new NoticesListCursorError("cursor is not an object");
-  const { d: day, c: crawledAt, i: id } = parsed as Partial<CursorPayload>;
-  if (!isMatch(day, STORED_DATE_RE)) throw new NoticesListCursorError("cursor.d must be YYYY-MM-DD or YYYY-MM-DD HH:mm");
-  if (crawledAt !== undefined && !isIsoTime(crawledAt)) throw new NoticesListCursorError("cursor.c must be a parseable ISO datetime");
-  if (!isMatch(id, OID_RE)) throw new NoticesListCursorError("cursor.i must be a 24-hex ObjectId");
-  return crawledAt === undefined ? { d: day, i: id } : { d: day, c: crawledAt, i: id };
 }
 
 function periodEndEpochMs(period: SummaryPeriod): number {

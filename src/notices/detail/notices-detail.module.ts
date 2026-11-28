@@ -11,5 +11,6 @@ import { NoticesDetailService } from "./notices-detail.service";
   imports: [NoticesModule, NoticesBlocksModule, NoticesScheduleModule],
   controllers: [NoticesDetailController],
   providers: [NoticesDetailService, NoticesDetailRepository, Clock],
+  exports: [NoticesDetailService],
 })
 export class NoticesDetailModule {}

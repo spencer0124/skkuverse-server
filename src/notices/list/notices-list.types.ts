@@ -1,12 +1,5 @@
 import type { NoticeListRow, ScannedRow } from "./notices-list.document";
-import type { SummaryType } from "../notices.types";
-
-export interface CursorPayload {
-  d: string;
-  // WHY: still emitted and accepted, never read: a cursor minted here stays decodable by the release before (ADR 0007).
-  c?: string;
-  i: string;
-}
+import type { CursorPayload, SummaryType } from "../notices.types";
 
 export type NoticeScope = string | readonly string[];
 

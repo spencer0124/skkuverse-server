@@ -6,14 +6,10 @@
  * a scanned row only when it is its cluster's shown copy, the copy crawled last, then the first in list order.
  */
 import type { SummaryDate } from "../notices.document";
-import { encodeCursor } from "./notices-list.mapper";
-import { NoticesListCursorError } from "./notices-list.error";
 import { ObjectId } from "mongodb";
-import { decodeCursor, hasSeveralSources, isV2Summary, selectEffectivePeriod, selectRoleBadge, selectShownRows } from "./notices-list.rules";
+import { hasSeveralSources, isV2Summary, selectEffectivePeriod, selectRoleBadge, selectShownRows } from "./notices-list.rules";
 
 const NOW = new Date("2026-10-09T12:00:00+09:00");
-const OID = "66a1b2c3d4e5f6a7b8c9d0e1";
-const ISO = "2026-04-01T00:00:00.000Z";
 
 function date(
   role: string,
@@ -376,66 +372,6 @@ describe("selectRoleBadge — runs and nothing", () => {
 });
 
 
-
-describe("decodeCursor — cross-release compatibility", () => {
-  it("accepts a legacy {d, c, i} cursor and preserves c", () => {
-    // Act
-    // Minted by the previous release; in flight in app memory during deploy.
-    const legacy = encodeCursor({ d: "2026-04-01", c: ISO, i: OID });
-
-    // Assert
-    expect(decodeCursor(legacy)).toEqual({ d: "2026-04-01", c: ISO, i: OID });
-  });
-
-  it("accepts a {d, i} cursor with no c at all", () => {
-    // Act
-    // The shape this code emits once `c` is retired (a later release).
-    const slim = Buffer.from(
-      JSON.stringify({ d: "2026-04-01", i: OID }),
-      "utf8",
-    ).toString("base64url");
-
-    // Assert
-    expect(decodeCursor(slim)).toEqual({ d: "2026-04-01", i: OID });
-  });
-
-  it("still rejects a malformed c — absent is fine, garbage is not", () => {
-    // Act
-    const bad = Buffer.from(
-      JSON.stringify({ d: "2026-04-01", c: "not-a-date", i: OID }),
-      "utf8",
-    ).toString("base64url");
-
-    // Assert
-    expect(() => decodeCursor(bad)).toThrow(NoticesListCursorError);
-  });
-});
-
-describe("decodeCursor — every stored date shape", () => {
-  // EVIDENCE: prod notices store `date` as YYYY-MM-DD (10,177 docs) and, for boards crawled before 2026-08-06,
-  // as YYYY-MM-DD HH:mm (868 docs, sscience-undergrad, liberalarts-undergrad, …); sampled 2026-10-15.
-  it.each(["2026-08-05", "2026-07-21 11:15", "2026-03-09 00:00"])("round-trips a cursor minted on %s", (stored) => {
-    // Arrange
-    const minted = encodeCursor({ d: stored, c: ISO, i: OID });
-
-    // Act
-    const decoded = decodeCursor(minted);
-
-    // Assert
-    expect(decoded).toEqual({ d: stored, c: ISO, i: OID });
-  });
-
-  it.each(["", "2026-07-21T11:15", "2026-07-21 11:15:00", "2026-07-21 1:15", "2026-7-21", "2026-07-21 "])(
-    "rejects %j, a shape the crawler never stores",
-    (day) => {
-      // Arrange
-      const cursor = Buffer.from(JSON.stringify({ d: day, i: OID }), "utf8").toString("base64url");
-
-      // Act & Assert
-      expect(() => decodeCursor(cursor)).toThrow(NoticesListCursorError);
-    },
-  );
-});
 
 describe("selectEffectivePeriod", () => {
   const NOW_V1 = new Date("2026-10-09T12:00:00+09:00");

@@ -1,20 +1,27 @@
 /**
  * The root's shared decisions: the cluster key that makes the copies of one article one push and one list row, the
- * summary type, the search text, the source-id list and the cross-references of the committed tab files.
+ * summary type, the cursor's cross-release decoding (ADR 0007), the search text, the source-id list and the
+ * cross-references of the committed tab files.
  */
 
 import { ObjectId } from "mongodb";
 import { AppError } from "../http/app.error";
+import { NoticesCursorError } from "./notices.error";
 import {
   categoryReferenceProblems,
   clusterKeyOf,
+  decodeCursor,
   excludeReasonProblems,
   isSummaryType,
   normalizeSummaryType,
   toSearchQuery,
   toSourceIds,
 } from "./notices.rules";
-import type { CategoryConfig, SourceConfig } from "./notices.types";
+import type { CategoryConfig, CursorPayload, SourceConfig } from "./notices.types";
+
+const OID = "66a1b2c3d4e5f6a7b8c9d0e1";
+const ISO = "2026-04-01T00:00:00.000Z";
+const mint = (payload: CursorPayload): string => Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
 
 describe("isSummaryType", () => {
   it.each([
@@ -156,4 +163,64 @@ describe("clusterKeyOf", () => {
     // Act & Assert
     expect(clusterKeyOf(notice)).toBe(anchor.toHexString());
   });
+});
+
+describe("decodeCursor — cross-release compatibility", () => {
+  it("accepts a legacy {d, c, i} cursor and preserves c", () => {
+    // Act
+    // Minted by the previous release; in flight in app memory during deploy.
+    const legacy = mint({ d: "2026-04-01", c: ISO, i: OID });
+
+    // Assert
+    expect(decodeCursor(legacy)).toEqual({ d: "2026-04-01", c: ISO, i: OID });
+  });
+
+  it("accepts a {d, i} cursor with no c at all", () => {
+    // Act
+    // The shape this code emits once `c` is retired (a later release).
+    const slim = Buffer.from(
+      JSON.stringify({ d: "2026-04-01", i: OID }),
+      "utf8",
+    ).toString("base64url");
+
+    // Assert
+    expect(decodeCursor(slim)).toEqual({ d: "2026-04-01", i: OID });
+  });
+
+  it("still rejects a malformed c — absent is fine, garbage is not", () => {
+    // Act
+    const bad = Buffer.from(
+      JSON.stringify({ d: "2026-04-01", c: "not-a-date", i: OID }),
+      "utf8",
+    ).toString("base64url");
+
+    // Assert
+    expect(() => decodeCursor(bad)).toThrow(NoticesCursorError);
+  });
+});
+
+describe("decodeCursor — every stored date shape", () => {
+  // EVIDENCE: prod notices store `date` as YYYY-MM-DD (10,177 docs) and, for boards crawled before 2026-08-06,
+  // as YYYY-MM-DD HH:mm (868 docs, sscience-undergrad, liberalarts-undergrad, …); sampled 2026-10-15.
+  it.each(["2026-08-05", "2026-07-21 11:15", "2026-03-09 00:00"])("round-trips a cursor minted on %s", (stored) => {
+    // Arrange
+    const minted = mint({ d: stored, c: ISO, i: OID });
+
+    // Act
+    const decoded = decodeCursor(minted);
+
+    // Assert
+    expect(decoded).toEqual({ d: stored, c: ISO, i: OID });
+  });
+
+  it.each(["", "2026-07-21T11:15", "2026-07-21 11:15:00", "2026-07-21 1:15", "2026-7-21", "2026-07-21 "])(
+    "rejects %j, a shape the crawler never stores",
+    (day) => {
+      // Arrange
+      const cursor = Buffer.from(JSON.stringify({ d: day, i: OID }), "utf8").toString("base64url");
+
+      // Act & Assert
+      expect(() => decodeCursor(cursor)).toThrow(NoticesCursorError);
+    },
+  );
 });
