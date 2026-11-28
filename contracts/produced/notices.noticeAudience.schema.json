@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "level": {
+      "type": "object",
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "undergrad",
+              "grad"
+            ]
+          }
+        }
+      },
+      "required": [
+        "include"
+      ]
+    },
+    "status": {
+      "type": "object",
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "enrolled",
+              "leave",
+              "expected_graduate",
+              "completed",
+              "research_registered",
+              "alumni"
+            ]
+          }
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "enrolled",
+              "leave",
+              "expected_graduate",
+              "completed",
+              "research_registered",
+              "alumni"
+            ]
+          }
+        }
+      },
+      "required": [
+        "include",
+        "exclude"
+      ]
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "level",
+    "status",
+    "version"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "_about": "Synthetic: the refs the detail serves for the hand-written stored refs in __tests__/nest/notices/fixtures/notice-blocks.stored.json (notices-blocks.routes.test.ts), with documentation-style addresses; no crawler run has stored refs yet",
+  "data": {
+    "links": [
+      {
+        "url": "www.example-department.skku.edu/apply",
+        "domain": "example-department.skku.edu"
+      }
+    ],
+    "phones": [
+      {
+        "value": "02-740-1722"
+      },
+      {
+        "value": "02-740-1729"
+      }
+    ],
+    "emails": [
+      {
+        "value": "grad@example.skku.edu"
+      }
+    ],
+    "version": "refs-2"
+  }
+}

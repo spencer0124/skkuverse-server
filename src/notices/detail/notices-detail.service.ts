@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { NoticesBlocksService } from "../blocks/notices-blocks.service";
 import { Clock } from "../../infra/clock";
 import { NoticesScheduleService } from "../schedule/notices-schedule.service";
 import { toDetailItem } from "./notices-detail.mapper";
@@ -11,13 +12,14 @@ export class NoticesDetailService {
   constructor(
     private readonly repository: NoticesDetailRepository,
     private readonly schedules: NoticesScheduleService,
+    private readonly blocks: NoticesBlocksService,
     private readonly clock: Clock,
   ) {}
 
   async findNotice(sourceId: string, articleNo: number): Promise<NoticeDetail | null> {
     const doc = await this.repository.findNotice(sourceId, articleNo);
     if (!doc) return null;
-    return toDetailItem(doc, await this.schedules.describeSchedule(doc));
+    return toDetailItem(doc, await this.schedules.describeSchedule(doc), this.blocks.describeBlocks(doc));
   }
 
   async exportCalendar(sourceId: string, articleNo: number): Promise<string | null> {

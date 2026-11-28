@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { SUMMARY_TYPES } from "../notices.constants";
-import { noticeScheduleItem } from "../notices.wire";
+import { noticeAudience, noticeBrief, noticeRefs, noticeScheduleItem } from "../notices.wire";
 
 /** QUIRK(skkuverse-ai): the AI's periods, passed through as stored; any field may be absent or null. */
 const summaryPeriod = z.object({
@@ -61,6 +61,10 @@ export const noticeDetail = z.object({
   summary: noticeSummaryFull.nullable(),
   // WHY: null when the notice has no schedule, an empty one or one the schema refuses: the app then shows no timeline.
   schedule: z.array(noticeScheduleItem).nullable(),
+  // WHY: each block is null when the notice stores none, an empty one or one the schema refuses, so the app tests one thing.
+  brief: noticeBrief.nullable(),
+  audience: noticeAudience.nullable(),
+  refs: noticeRefs.nullable(),
 });
 
 export type NoticeSummaryFull = z.input<typeof noticeSummaryFull>;

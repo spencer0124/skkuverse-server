@@ -164,13 +164,39 @@ Outbound policy (`OUTBOUND_POLICY`, purpose `notice-attachment`, [ADR 0023](../d
       "details": { "target": "...", "action": "...", "host": "...", "impact": null },
       "model": "gpt-4.1-mini-2025-04-14",
       "generatedAt": "2026-04-09T11:52:02.769Z"
+    },
+    "schedule": null,
+    "brief": {
+      "language": "ko",
+      "bullets": [{ "text": "이 장학금은 성적이 우수한 학생의 등록금을 지원해요." }],
+      "version": "brief-2"
+    },
+    "audience": {
+      "level": { "include": ["grad"] },
+      "status": { "include": ["enrolled"], "exclude": ["completed", "leave"] },
+      "version": "audience-1"
+    },
+    "refs": {
+      "links": [{ "url": "www.example.skku.edu/apply", "domain": "example.skku.edu" }],
+      "phones": [{ "value": "02-740-1722" }],
+      "emails": [{ "value": "office@example.skku.edu" }],
+      "version": "refs-2"
     }
   }
 }
 ```
 
 - **One body field, `contentMarkdown`.** `content`, `contentText` and `cleanHtml` are not served. When `contentMarkdown` is `null` (never an empty string), the client opens `sourceUrl` instead.
-- **The full summary** is `oneLiner` and `type`, as in the list, plus `text`, `periods`, `locations`, `details`, `model` and `generatedAt`; it has no `startAt` or `endAt`. It is `null` for a notice with no stored summary (`summaryAt` unset); nothing else the crawler writes after the first save is read or served.
+- **The full summary** is `oneLiner` and `type`, as in the list, plus `text`, `periods`, `locations`, `details`, `model` and `generatedAt`; it has no `startAt` or `endAt`. It is `null` for a notice with no stored summary (`summaryAt` unset). Of what the crawler writes after the first save, the detail reads the `schedule`, `brief`, `audience` and `refs` and nothing else.
+- **`brief`, `audience` and `refs` (the blocks).** Each is read from the stored notice as the crawler writes it (umbrella ADR 0012, D7), parsed at the read, and served as content only: what a stage keeps as evidence (a bullet's quotes, the title's question, the audience quotes, the run record) and any field a later stage adds never reach the response. A block is `null` when the notice stores none, an empty one or one that fails its schema, so a client tests one thing; a failing one logs `notices.block.unparsed`. No block filters the notice out of a list or a detail.
+
+  | Block | Served | Null when |
+  | --- | --- | --- |
+  | `brief` | `{ language, bullets: [{ text }], version }`: one to three bullets in display order, `language` (`ko` or `en`) the language the notice is written in, not the request's | No bullet. A `version` that is not a `brief-2` one, four or more bullets or an unknown `language` fails the schema, so the brief of the earlier pipeline that old notices still carry is `null` |
+  | `audience` | `{ level: { include }, status: { include, exclude }, version }`: `level` values `undergrad` and `grad`; `status` values `enrolled`, `leave`, `expected_graduate`, `completed`, `research_registered` and `alumni`; each value once, in stored order | The three lists are all empty. A value outside the two vocabularies fails the schema |
+  | `refs` | `{ links: [{ url, domain }], phones: [{ value }], emails: [{ value }], version }`, in stored order, a `url` as found (it can lack a scheme) | No link, phone or email. A link with no `domain` or a contact with no `value` fails the schema |
+
+  `version` is informational. The blocks are served on the detail only, never on a list item.
 - **`schedule` (the timeline).** The items of the `schedule` the crawler stores on the notice, in its v2 shape (`contracts/consumed/notice-schedule.schema.json`), or `null` when the notice has none, its list is empty or it fails the stored schema, as a schedule stored in the v1 shape does. Items come in timeline order, on the end of the item as a whole. A plain item sorts on its `end`, else its `start`; an item with more than one occurrence, a series with an `until` or an item with an `rdate`, on the latest end among its occurrences, the last of `rrule + rdate - exdate - gaps`, served or not, so a long series or a lecture series sorts at its last day, not its first; a series with no `until` has no last occurrence and sorts on the end of its first, or of a later `rdate`. A point sorts on its `latest` day, else its `date`, then its `time`, `24:00` after `23:59`, and a point with no time at the end of its day. Each item is served as stored less its `evidence`, optional keys left out when absent, with its `place` named and its occurrences added:
 
   | Field | Meaning |

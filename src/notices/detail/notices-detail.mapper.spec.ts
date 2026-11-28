@@ -1,10 +1,11 @@
 /**
  * The detail response: the Markdown body as contentMarkdown (null when the crawler has none), attachments with a
  * referer only when stored, an edit history only once edited, the full summary only once summarized, and every
- * stored time as the ISO string JSON writes, and the schedule it is given beside them, null when there is none. The
- * detail carries no screen and no brief, and its summary comes from the stored fields alone.
+ * stored time as the ISO string JSON writes, and the schedule and the brief, audience and refs it is given beside them,
+ * null when there is none. Its summary comes from the stored fields alone.
  */
 import { ObjectId } from "mongodb";
+import type { NoticeBlocks } from "../blocks/notices-blocks.types";
 import type { NoticeDoc } from "../notices.document";
 import { toSummaryFull, toDetailItem } from "./notices-detail.mapper";
 
@@ -19,10 +20,12 @@ const BASE: NoticeDoc = {
   sourceUrl: "https://www.skku.edu/x",
 };
 
+const NO_BLOCKS: NoticeBlocks = { brief: null, audience: null, refs: null };
+
 describe("toDetailItem", () => {
   it("serves defaults for every optional field the crawler may leave out", () => {
     // Act & Assert
-    expect(toDetailItem(BASE, null)).toEqual({
+    expect(toDetailItem(BASE, null, NO_BLOCKS)).toEqual({
       id: ID.toHexString(),
       sourceId: "skku-notice02",
       articleNo: 140482,
@@ -40,6 +43,9 @@ describe("toDetailItem", () => {
       editInfo: null,
       summary: null,
       schedule: null,
+      brief: null,
+      audience: null,
+      refs: null,
     });
   });
 
@@ -48,12 +54,12 @@ describe("toDetailItem", () => {
     const stored = { ...BASE, summaryAt: new Date("2026-10-14T06:00:00Z"), summaryOneLiner: "한 줄", summaryType: "event" };
 
     // Act
-    const item = toDetailItem(stored, null);
+    const item = toDetailItem(stored, null, NO_BLOCKS);
 
     // Assert
     expect(item.summary).toEqual(toSummaryFull(stored));
     expect(item.summary?.oneLiner).toBe("한 줄");
-    expect(toDetailItem(BASE, null).summary).toBeNull();
+    expect(toDetailItem(BASE, null, NO_BLOCKS).summary).toBeNull();
   });
 
   it("keeps a referer only when stored, and the edit history once edited", () => {
@@ -65,7 +71,7 @@ describe("toDetailItem", () => {
       editCount: 1,
       editHistory: [{ detectedAt: new Date("2026-10-13T02:00:08.400Z"), contentChanged: true }],
       lastModified: "2026-10-14",
-    }, null);
+    }, null, NO_BLOCKS);
 
     // Assert
     expect(item).toMatchObject({
@@ -84,11 +90,29 @@ describe("toDetailItem, the schedule", () => {
     const schedule = [{ id: "D1", title: "설명회", status: "scheduled" as const, start: { date: "2026-11-10" }, occurrences: [{ start: { date: "2026-11-10" } }], omittedCount: 0 }];
 
     // Act
-    const withSchedule = toDetailItem(BASE, schedule);
+    const withSchedule = toDetailItem(BASE, schedule, NO_BLOCKS);
 
     // Assert
     expect(withSchedule.schedule).toEqual(schedule);
-    expect({ ...withSchedule, schedule: null }).toEqual(toDetailItem(BASE, null));
+    expect({ ...withSchedule, schedule: null }).toEqual(toDetailItem(BASE, null, NO_BLOCKS));
+  });
+});
+
+describe("toDetailItem, the blocks", () => {
+  it("serves the brief, audience and refs it is given, and changes no other field", () => {
+    // Arrange
+    const blocks: NoticeBlocks = {
+      brief: { language: "ko", bullets: [{ text: "신청해요." }], version: "brief-2" },
+      audience: { level: { include: ["grad"] }, status: { include: [], exclude: ["leave"] }, version: "audience-1" },
+      refs: { links: [], phones: [{ value: "02-740-1722" }], emails: [], version: "refs-2" },
+    };
+
+    // Act
+    const withBlocks = toDetailItem(BASE, null, blocks);
+
+    // Assert
+    expect([withBlocks.brief, withBlocks.audience, withBlocks.refs]).toEqual([blocks.brief, blocks.audience, blocks.refs]);
+    expect({ ...withBlocks, ...NO_BLOCKS }).toEqual(toDetailItem(BASE, null, NO_BLOCKS));
   });
 });
 
