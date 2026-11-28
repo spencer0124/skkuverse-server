@@ -50,7 +50,7 @@ export const noticeDetail = z.object({
   author: z.string().nullable(),
   department: z.string().nullable(),
   date: z.string(),
-  views: z.number().meta(LEGACY_FIELD_META),
+  views: z.number(),
   /** WHY: null when the crawler could not fetch the body; the app then opens `sourceUrl`. */
   contentMarkdown: z.string().nullable(),
   attachments: z.array(attachment),

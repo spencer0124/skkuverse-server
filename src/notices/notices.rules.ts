@@ -1,7 +1,8 @@
 import { AppError } from "../http/app.error";
 import { MAX_QUERY_CODEPOINTS, MAX_SOURCE_IDS, SUMMARY_TYPES } from "./notices.constants";
 import type { NoticeDoc } from "./notices.document";
-import type { CategoryConfig, CategoryPicker, ExcludeReasonMap, SourceConfig, SummaryType } from "./notices.types";
+import { NoticesCursorError } from "./notices.error";
+import type { CategoryConfig, CategoryPicker, CursorPayload, ExcludeReasonMap, SourceConfig, SummaryType } from "./notices.types";
 
 export function isSummaryType(value: unknown): value is SummaryType {
   return (SUMMARY_TYPES as readonly unknown[]).includes(value);
@@ -14,6 +15,34 @@ export function normalizeSummaryType(value: unknown): SummaryType {
 /** SEE: docs/decisions/0005-notice-dispatch-content-group.md — the copies of one article share the crawler's `dupOf`. */
 export function clusterKeyOf(notice: Pick<NoticeDoc, "_id" | "dupOf">): string {
   return (notice.dupOf ?? notice._id).toHexString();
+}
+
+// QUIRK(skkuverse-crawler): boards crawled before 2026-08-06 store `date` with a minute; a cursor carries it as stored.
+const STORED_DATE_RE = /^\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?$/;
+const OID_RE = /^[0-9a-fA-F]{24}$/;
+
+function parseCursorJson(str: unknown): unknown {
+  if (typeof str !== "string" || str.length === 0) throw new NoticesCursorError("cursor must be a non-empty string");
+  try {
+    return JSON.parse(Buffer.from(str, "base64url").toString("utf8"));
+  } catch {
+    throw new NoticesCursorError("cursor is not valid JSON");
+  }
+}
+
+const isMatch = (value: unknown, pattern: RegExp): value is string => typeof value === "string" && pattern.test(value);
+
+const isIsoTime = (value: unknown): value is string => typeof value === "string" && !Number.isNaN(Date.parse(value));
+
+// WHY: `c` is unread but validated when present: a malformed one still means a corrupt cursor (ADR 0007).
+export function decodeCursor(str: unknown): CursorPayload {
+  const parsed = parseCursorJson(str);
+  if (!parsed || typeof parsed !== "object") throw new NoticesCursorError("cursor is not an object");
+  const { d: day, c: crawledAt, i: id } = parsed as Partial<CursorPayload>;
+  if (!isMatch(day, STORED_DATE_RE)) throw new NoticesCursorError("cursor.d must be YYYY-MM-DD or YYYY-MM-DD HH:mm");
+  if (crawledAt !== undefined && !isIsoTime(crawledAt)) throw new NoticesCursorError("cursor.c must be a parseable ISO datetime");
+  if (!isMatch(id, OID_RE)) throw new NoticesCursorError("cursor.i must be a 24-hex ObjectId");
+  return crawledAt === undefined ? { d: day, i: id } : { d: day, c: crawledAt, i: id };
 }
 
 // WHY: a code-point count, so 100 emoji pass like 100 letters, and a control character drops the search.

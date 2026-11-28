@@ -17,9 +17,17 @@ export class NoticesListService {
   ) {}
 
   async listNotices(scope: NoticeScope, query: NoticeListQuery): Promise<NoticeList> {
-    const page = hasSeveralSources(scope) ? await this.listShownPage(scope, query) : toNoticePage(await this.repository.listNotices(scope, query), query.limit);
+    const page = await this.listNoticePage(scope, query);
     const now = this.clock.now();
     return { notices: page.items.map((notice) => toListItem(notice, now)), nextCursor: page.nextCursor, hasMore: page.hasMore };
+  }
+
+  listNoticePage(scope: NoticeScope, query: NoticeListQuery): Promise<NoticePage> {
+    return hasSeveralSources(scope) ? this.listShownPage(scope, query) : this.listOneSourcePage(scope, query);
+  }
+
+  private async listOneSourcePage(scope: NoticeScope, query: NoticeListQuery): Promise<NoticePage> {
+    return toNoticePage(await this.repository.listNotices(scope, query), query.limit);
   }
 
   private async listShownPage(scope: NoticeScope, query: NoticeListQuery): Promise<NoticePage> {

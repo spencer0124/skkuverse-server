@@ -15,12 +15,11 @@ import type { Clock } from "../../infra/clock";
 import { FakeNoticesListRepository } from "../../../__tests__/helpers/fakes/notices/notices-list.repository.fake";
 import { asReal } from "../../../__tests__/helpers/fakes/public-of";
 import type { NoticeDoc } from "../notices.document";
-import { clusterKeyOf } from "../notices.rules";
+import type { CursorPayload } from "../notices.types";
+import { clusterKeyOf, decodeCursor } from "../notices.rules";
 import type { NoticesListRepository } from "./notices-list.repository";
-import { decodeCursor } from "./notices-list.rules";
 import { CLUSTER_SCAN_FACTOR, MAX_SCANS_PER_PAGE } from "./notices-list.constants";
 import { NoticesListService } from "./notices-list.service";
-import type { CursorPayload } from "./notices-list.types";
 import type { NoticeList } from "./notices-list.wire";
 
 const NOW = new Date("2026-10-14T03:00:00Z");
@@ -271,5 +270,25 @@ describe("NoticesListService.listNotices on several boards", () => {
     // Assert
     expect(byPath.notices.map((notice) => notice.articleNo)).toEqual(boardCopies);
     expect(namedTwice.notices.map((notice) => notice.articleNo)).toEqual(boardCopies);
+  });
+});
+
+describe("NoticesListService.listNoticePage", () => {
+  it("serves the rows of a page as read, with the cursor of the last one served and hasMore", async () => {
+    // Arrange
+    const repository = new FakeNoticesListRepository();
+    repository.docs = [doc(1, "2026-10-12"), doc(2, "2026-10-13"), doc(3, "2026-10-14")];
+    const service = serviceAt(repository);
+
+    // Act
+    const first = await service.listNoticePage("skku-notice02", { limit: 2, cursor: null });
+    const second = await service.listNoticePage("skku-notice02", { limit: 2, cursor: decodeCursor(first.nextCursor) });
+
+    // Assert
+    expect(first.items.map((row) => row.articleNo)).toEqual([3, 2]);
+    expect(first.hasMore).toBe(true);
+    expect(decodeCursor(first.nextCursor).i).toBe(doc(2, "")._id.toHexString());
+    expect(second).toMatchObject({ hasMore: false, nextCursor: null });
+    expect(second.items.map((row) => row.articleNo)).toEqual([1]);
   });
 });

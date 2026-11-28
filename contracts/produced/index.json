@@ -382,6 +382,21 @@
       "GET notices/tabs"
     ]
   },
+  "notices-v2-detail.noticeDetailV2": {
+    "source": "src/notices/v2/detail/notices-v2-detail.wire.ts",
+    "export": "noticeDetailV2",
+    "routes": [
+      "GET v2/notices/:sourceId/:articleNo"
+    ]
+  },
+  "notices-v2-list.noticeListV2": {
+    "source": "src/notices/v2/list/notices-v2-list.wire.ts",
+    "export": "noticeListV2",
+    "routes": [
+      "GET v2/notices",
+      "GET v2/notices/source/:sourceId"
+    ]
+  },
   "notices.noticeAudience": {
     "source": "src/notices/notices.wire.ts",
     "export": "noticeAudience",

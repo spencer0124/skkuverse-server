@@ -1,0 +1,24 @@
+{
+  "_about": "Derived 2026-11-28 from the released detail fixture notices-detail.noticeDetail/production.json: only the fields of the v2 detail, `isEdited` read from the edit count, attachments as name and url. GET /notices/skku-notice02/140482 captured from production 2026-10-14 (stage 11 shape snapshot); a public notice, its body and summary text cut to 120 characters, its attachments and edit history to one entry, the office email address in its summary replaced with a synthetic one",
+  "data": {
+    "sourceId": "skku-notice02",
+    "articleNo": 140482,
+    "title": "[인공지능혁신융합대학사업] 2026학년도 인공지능혁신융합대학사업 겨울 계절학기 학점교류 수강 안내 (상시 업데이트)",
+    "department": "성균관대_통합(학사)",
+    "date": "2026-10-14",
+    "views": 4685,
+    "sourceUrl": "https://www.skku.edu/skku/campus/skk_comm/notice02.do?mode=view&articleNo=140482&article.offset=0&articleLimit=10",
+    "isEdited": true,
+    "contentMarkdown": "인공지능혁신융합대학사업의 협력교와 학점교류를 희망하는 학생은 아래 안내에 따라 신청하시기 바랍니다.\n\n※ 학점교류 교과목의 학점 및 ‘전공’학점 인정여부는 소속학과에서 결정하는 사안입니다.  \n※ 학점교류 희망 학생",
+    "attachments": [
+      {
+        "name": "전남대학교 인공지능혁신융합대학사업단 2026학년도 동계 계절학기 학점교류 신청 안내.Zip",
+        "url": "https://www.skku.edu/skku/campus/skk_comm/notice02.do?mode=download&articleNo=140482&attachNo=118217"
+      }
+    ],
+    "schedule": null,
+    "brief": null,
+    "audience": null,
+    "refs": null
+  }
+}

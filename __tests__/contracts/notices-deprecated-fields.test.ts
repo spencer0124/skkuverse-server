@@ -1,10 +1,10 @@
 /**
  * What the notices wires keep only for released app versions is published as deprecated (umbrella ADR 0012, D8), so a
- * client generated from contracts/produced/ learns what to move off: the detail's and the list item's `summary` and
- * `views`, and the whole `GET /notices/overview` answer. Each flag survives the draft-07 export the artifacts use and
- * the committed artifact carries it, the field stays required so the released app keeps receiving it, and no field
- * the next version reads is flagged. The list's `type` query parameter has no wire schema, so it is not in the
- * artifacts; docs/reference/notices-api.md deprecates it.
+ * client generated from contracts/produced/ learns what to move off: the detail's and the list item's `summary`, and the
+ * whole `GET /notices/overview` answer. Each flag survives the draft-07 export the artifacts use and the committed
+ * artifact carries it, the field stays required so the released app keeps receiving it, and no field the next
+ * version reads is flagged: `views` is kept, so it is not. The list's `type` query parameter has no wire schema, so
+ * it is not in the artifacts; docs/reference/notices-api.md deprecates it.
  */
 import fs from "fs";
 import path from "path";
@@ -29,16 +29,24 @@ const SOURCES: Array<[string, () => JsonSchema, (schema: JsonSchema) => JsonSche
 ];
 
 describe.each(SOURCES)("%s", (_case, read, objectOf) => {
-  it("deprecates summary and views, pointing at the forced update, and keeps them required", () => {
+  it("deprecates summary, pointing at the forced update, and keeps it required", () => {
     // Act
     const object = objectOf(read());
 
     // Assert
-    for (const field of ["summary", "views"]) {
-      expect(object.properties?.[field]).toMatchObject({ deprecated: true });
-      expect(object.properties?.[field]?.description).toContain("removed at the forced update");
-      expect(object.required).toContain(field);
-    }
+    expect(object.properties?.summary).toMatchObject({ deprecated: true });
+    expect(object.properties?.summary?.description).toContain("removed at the forced update");
+    expect(object.required).toContain("summary");
+  });
+
+  it("keeps views, required and not deprecated", () => {
+    // Act
+    const object = objectOf(read());
+
+    // Assert
+    expect(object.properties?.views?.deprecated).toBeUndefined();
+    expect(object.properties?.views?.description).toBeUndefined();
+    expect(object.required).toContain("views");
   });
 
   it("deprecates no other field", () => {
@@ -47,7 +55,7 @@ describe.each(SOURCES)("%s", (_case, read, objectOf) => {
 
     // Assert
     const flagged = Object.entries(object.properties ?? {}).filter(([, property]) => property.deprecated === true).map(([name]) => name);
-    expect(flagged.sort()).toEqual(["summary", "views"]);
+    expect(flagged).toEqual(["summary"]);
   });
 });
 

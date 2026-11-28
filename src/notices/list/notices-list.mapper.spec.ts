@@ -6,8 +6,8 @@
  */
 import { ObjectId } from "mongodb";
 import type { NoticeDoc, SummaryDate } from "../notices.document";
+import { decodeCursor } from "../notices.rules";
 import { toSummaryBrief, encodeCursor, toListItem, toNextPage, toNoticePage } from "./notices-list.mapper";
-import { decodeCursor } from "./notices-list.rules";
 
 const NOW = new Date("2026-10-09T12:00:00+09:00");
 const OID = "66a1b2c3d4e5f6a7b8c9d0e1";

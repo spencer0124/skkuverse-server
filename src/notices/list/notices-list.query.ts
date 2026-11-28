@@ -1,7 +1,8 @@
 import { ObjectId, type Document } from "mongodb";
 import { escapeRegex } from "../../shared/regex.util";
 import type { ClusterMember, NoticeListRow, ScannedRow } from "./notices-list.document";
-import type { ClusterLookup, CursorPayload, NoticeListQuery, NoticeScope } from "./notices-list.types";
+import type { CursorPayload } from "../notices.types";
+import type { ClusterLookup, NoticeListQuery, NoticeScope } from "./notices-list.types";
 
 /**
  * EVIDENCE: hinted because prod also holds an undeclared sourceId_1_date_-1 index the planner picks for `$in`,

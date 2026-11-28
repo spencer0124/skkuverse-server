@@ -9,5 +9,6 @@ import { NoticesListService } from "./notices-list.service";
   imports: [NoticesModule],
   controllers: [NoticesListController],
   providers: [NoticesListService, NoticesListRepository, Clock],
+  exports: [NoticesListService],
 })
 export class NoticesListModule {}

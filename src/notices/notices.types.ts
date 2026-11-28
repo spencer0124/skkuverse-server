@@ -2,6 +2,13 @@ import type { SUMMARY_TYPES } from "./notices.constants";
 
 export type SummaryType = (typeof SUMMARY_TYPES)[number];
 
+export interface CursorPayload {
+  d: string;
+  // WHY: still emitted and accepted, never read: a cursor minted here stays decodable by the release before (ADR 0007).
+  c?: string;
+  i: string;
+}
+
 export interface SourceConfig {
   id: string;
   name: string;

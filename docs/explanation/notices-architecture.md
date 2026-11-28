@@ -9,11 +9,11 @@ audience: internal
 
 # Notices Architecture
 
-> What `src/notices/` serves: the notice tabs, lists and details the crawler's documents feed, the overview stub the released app still calls, the attachment proxy, and the push dispatch the crawler's ping triggers. Read it before you change a notice route, a push field or the tab files.
+> What `src/notices/` serves: the notice tabs, lists and details the crawler's documents feed, the same lists and details cut to the next app version's fields under `/v2/notices`, the overview stub the released app still calls, the attachment proxy, and the push dispatch the crawler's ping triggers. Read it before you change a notice route, a push field or the tab files.
 
 ## Context
 
-The crawler owns the `notices` collection: it writes every document, and skkuverse-ai writes the summary fields through it. This server reads it, adds one read index, and writes only the five push fields of the dispatch. The tab files (`categories.json`, `sources.json`, `exclude-reasons.json`) are the crawler's codegen output, hash-locked and copied by the umbrella. The root holds the module file, the document type, the tab files' loader and what several flows share; `tabs/`, `list/`, `detail/`, `overview/` (a stub), `attachment/` and `dispatch/` are one flow each. `schedule/` parses the crawler's `schedule`, the timeline of the umbrella's notice brief decision, expands each item's occurrences and names its places through building, for `detail/`, which serves it as the timeline and exports those items as iCalendar. `blocks/` parses the crawler's `brief`, `audience` and `refs`, for `detail/`, which serves them beside the timeline. The server serves the stored summary fields, the `schedule` and the three blocks, and reads nothing else the crawler writes after a notice's first save.
+The crawler owns the `notices` collection: it writes every document, and skkuverse-ai writes the summary fields through it. This server reads it, adds one read index, and writes only the five push fields of the dispatch. The tab files (`categories.json`, `sources.json`, `exclude-reasons.json`) are the crawler's codegen output, hash-locked and copied by the umbrella. The root holds the module file, the document type, the tab files' loader and what several flows share; `tabs/`, `list/`, `detail/`, `overview/` (a stub), `attachment/` and `dispatch/` are one flow each. `schedule/` parses the crawler's `schedule`, the timeline of the umbrella's notice brief decision, expands each item's occurrences and names its places through building, for `detail/`, which serves it as the timeline and exports those items as iCalendar. `blocks/` parses the crawler's `brief`, `audience` and `refs`, for `detail/`, which serves them beside the timeline. `v2/` serves the next app version: `v2/list/` and `v2/detail/` read through the services of `list/` and `detail/`, cut each notice to the fields the app reads and serve it under `/v2/notices`, and `NoticesV2Module` binds that prefix to the same authentication and limiter as `/notices`. A `v2` file imports no wire, controller or mapper of the released routes, so dropping those routes touches no `v2` file. The server serves the stored summary fields, the `schedule` and the three blocks, and reads nothing else the crawler writes after a notice's first save.
 
 | System | Quirk tag | Gives | Enters at |
 | --- | --- | --- | --- |
@@ -37,6 +37,8 @@ The crawler owns the `notices` collection: it writes every document, and skkuver
 | summary brief (`NoticeSummaryBrief`) | The list cell's one-liner and badge dates | `toSummaryBrief` | — |
 | cursor (`CursorPayload`) | The last served row's date and id, the next page's start | `encodeCursor`, `decodeCursor` | — |
 | page (`NoticePage`) | The served rows of a read of one more than the limit | `toNoticePage` | `FindResult` |
+| next-version list item | A notice as the `v2` list cell shows it: source, article, title, department, date and views, and no summary, flag or stored id | `toListItemV2` | — |
+| next-version detail | One notice as the `v2` detail screen reads it: the list item's fields, the source URL, whether it was edited, the Markdown body, attachments as name and URL, the schedule and the three blocks | `toDetailV2` | — |
 | detail row (`NoticeDetailRow`) | The fields of a notice the detail read loads | `DETAIL_PROJECTION` | — |
 | detail (`NoticeDetail`) | One notice with its Markdown body, attachments, full summary and schedule | `toDetailItem` | — |
 | full summary (`NoticeSummaryFull`) | The detail's summary, the ai's arrays passed through | `toSummaryFull` | — |
@@ -67,6 +69,8 @@ flowchart LR
   coll -->|NoticesListRepository| list["GET /notices/source/:sourceId and GET /notices"]
   coll -->|NoticesDetailRepository| detail["GET /notices/:sourceId/:articleNo"]
   coll -->|NoticesDetailRepository| ics["GET /notices/:sourceId/:articleNo/schedule.ics"]
+  coll -->|NoticesListService| listV2["GET /v2/notices/source/:sourceId and GET /v2/notices"]
+  coll -->|NoticesDetailService| detailV2["GET /v2/notices/:sourceId/:articleNo"]
   ics --> calendar["phone calendar"]
   stub["a fixed null overview"] --> overview["GET /notices/overview"]
   files["tab files"] -->|noticesConfig| tabs["GET /notices/tabs"]
@@ -77,6 +81,8 @@ flowchart LR
   tabs --> tabScreen["app: NoticesTabScreen"]
   list --> row["app: NoticeRow"]
   detail --> detailScreen["app: NoticeDetailScreen"]
+  listV2 --> rowV2["next app version: NoticeRow"]
+  detailV2 --> detailScreenV2["next app version: NoticeDetailScreen"]
   overview --> card["app: overview card"]
 ```
 
@@ -93,6 +99,9 @@ What the app reads, from `skkuverse-app/packages/shared/src/notices/parser.ts` a
 | detail `schedule` | The timeline: each item's title, dates, occurrences and status, its parts as an agenda, and its place with a map button |
 | detail `brief`, `audience`, `refs` | The next app version's bullets, audience table and contact rows |
 | detail `author`, `views` | The header line |
+| `v2` list `sourceId`, `articleNo`, `title`, `department`, `date`, `views` | The row, its link to the detail and its board name; `views` is the board's own count |
+| `v2` detail `contentMarkdown`, `attachments`, `sourceUrl`, `isEdited` | The body, the attachment list through the proxy, the link to the original page and the edited mark |
+| `v2` detail `schedule`, `brief`, `audience`, `refs` | The timeline, the bullets, the audience table and the contact rows, as the released detail serves them |
 | `/notices/overview` `overview` | The answer card above a search; the card hides on the null the stub always sends |
 
 ## Invariants
@@ -100,11 +109,13 @@ What the app reads, from `skkuverse-app/packages/shared/src/notices/parser.ts` a
 - Every notice read takes an inclusion projection (`LIST_PROJECTION`, `DETAIL_PROJECTION`, `CANDIDATE_PROJECTION`), so a field the crawler adds is never served by accident, and no list read loads a body.
 - The list reads sort on date then `_id`, never `crawledAt`, which the crawler rewrites ([ADR 0007](../decisions/0007-notice-ordering-key.md)), are hinted to `FORCE_INDEX` and bounded by `HOT_READ_MAX_TIME_MS`; `NoticesListRepository` creates that index at boot.
 - A list of two or more sources serves each article once, as its shown copy at that copy's place in the list (umbrella ADR `0001`). The order, the cursor and `hasMore` follow the served rows, so a page never repeats an article an earlier page served. A list of one source serves every copy.
-- The list routes check their input in one schema, in the order the routes have always answered: the source, then the type, then the cursor. A search text that is empty, too long or holds a control character is dropped, never an error.
+- The released list routes check their input in one schema, in the order they answer: the source, then the type, then the cursor. A search text that is empty, too long or holds a control character is dropped, never an error.
 - `NoticesDispatchRepository` is the only writer of `pushedAt`, `pushAttempts`, `dispatchClaimedAt`, `pushError` and `pushSkippedReason`. A claim is atomic and a lease, so two replicas never push one notice twice ([ADR 0003](../decisions/0003-fcm-dispatch-cloud-function-claim-lease.md)), and the age gate is the notice's own KST date ([ADR 0008](../decisions/0008-dispatch-age-gate-on-publication-date.md)). A notice is claimable as soon as it is stored: no later stage of the crawler gates it, `aiSummaryAt` included. Each claim takes the newest claimable notice, by `date` then `_id`, so a backlog larger than one sweep sends the newest first. A group whose boards have no push topic (a `skku-main`-only article) is recorded as a skip: `pushedAt` set, so no claim takes it again, `pushSkippedReason: "no-topic"`, and no attempt counted.
 - Cross-posted copies of one article, the notices of one cluster key, share one push to the union of their topics ([ADR 0005](../decisions/0005-notice-dispatch-content-group.md)), capped at `TOPIC_CAP`.
 - A notice's stored `schedule` reaches a flow only through `NoticesScheduleService`, which parses it with `storedSchedule`, the zod mirror of the crawler's schema (`contracts/consumed/notice-schedule.schema.json`). `__tests__/contracts/notice-schedule.test.ts` judges each fixture by both and pins where they differ on purpose: the mirror strips an unknown key, ignores the crawler's `key` and `groupId`, takes any item id unique in the notice, and refuses an id another item or part repeats, a day no calendar has, a part with parts of its own and a series whose start or end is a range of days (`latest`), which the schedule stage never writes and a series cannot repeat. A notice with none, an empty list or a value the schema refuses, one in the earlier stored shape included, has no schedule (`null` on the detail, `NOT_FOUND` on the export); a refused one logs `notices.schedule.unparsed` with the notice id, at most once a minute per notice. A place id building names gets its name and building sheet; when building's read fails, every place keeps its words and the detail still answers. Every date and time is Asia/Seoul wall time, computed on day numbers and clock strings, never a `Date` in the host's zone. A series' cost does not grow with its `until`: past the head that holds its first occurrences in time order, it expands only the days an `exdate`, an `rdate` or a gap's edge marks and the last rule day of each stretch between them, and counts the other rule days from day numbers, so `omittedCount` and the timeline minute stay exact however far its `until` lies. The calendar export leaves out an item dated by a range of days (`latest`), keys each event's `UID` on the cluster key and the item id, and writes the stored rules with no cap; the item-to-iCalendar table is in `docs/reference/notices-api.md`.
 - A notice's stored `brief`, `audience` and `refs` reach a flow only through `NoticesBlocksService`, which parses each with the zod mirror of its stage's output (`storedBrief`, `storedAudience`, `storedRefs`) and serves content only: the evidence a stage keeps (a bullet's quotes, the title's question, the audience quotes, the run record) and any field a later study adds are stripped at the parse. A block that is absent, null, empty or refused is `null` on the detail, and a refused one logs `notices.block.unparsed` with the block and the notice id, at most once a minute per notice and block. The `brief` parses only with a `brief-2` version and at most three bullets, so the brief of the earlier pipeline that old documents still carry is refused. The audience serves each value once, and the server filters no notice by it.
+- The `v2` wires carry only what the next app version reads. A field the released wires keep for released app versions (the summary, the stored ids, the edit history, the hashes, the type filter) and every stored evidence field is absent from them, and each `v2` wire is its own schema in `contracts/produced/`. `docs/reference/notices-api.md` lists the files that go when the released routes do.
+- The cursor, the limit and the search text of the two list flows are parsed by one definition each at the root (`decodeCursor`, `listLimit`, `listCursor`, `listSearchText`), so a cursor minted by one flow is read by the other.
 - The tab files are parsed at import by `noticesConfig`, and a bad file stops the boot with `notices.tabconfig.invalid`.
 - An attachment request reaches only what `OUTBOUND_POLICY` allows for `notice-attachment`, on every hop ([ADR 0023](../decisions/0023-perimeter-ports.md)), and a type not known safe inline is served inside the sandbox CSP.
 - The overview route reads no notice, writes nothing and calls no other service: every valid query gets a null overview with reason `unavailable`, and only a bad query fails, with `INVALID_PARAMS` or `INVALID_SOURCE_ID`.

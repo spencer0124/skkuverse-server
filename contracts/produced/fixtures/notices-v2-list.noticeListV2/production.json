@@ -1,0 +1,25 @@
+{
+  "_about": "Derived 2026-11-28 from the released list fixture notices-list.noticeList/production.json: only the fields of the v2 list item. GET /notices/source/skku-notice06?limit=50&type=action_required and GET /notices?sourceIds=… captured from production 2026-10-14 (stage 11 shape snapshot); public notices, trimmed to an action_required badge with a time, an informational range and, where the capture had one, an unsummarized notice",
+  "data": {
+    "notices": [
+      {
+        "sourceId": "skku-notice06",
+        "articleNo": 140562,
+        "title": "2027년도 두산연강재단 장학생 선발 안내",
+        "department": "성균관대_통합(장학)",
+        "date": "2026-10-14",
+        "views": 2723
+      },
+      {
+        "sourceId": "skku-notice06",
+        "articleNo": 140575,
+        "title": "(대학원)2026년도 동진장학연구재단 동진장학금 선발 안내",
+        "department": "성균관대_통합(장학)",
+        "date": "2026-10-14",
+        "views": 1630
+      }
+    ],
+    "nextCursor": "eyJkIjoiMjAyNi0wOS0zMCIsImMiOiIyMDI2LTEwLTEyVDA1OjEwOjE2LjIwOFoiLCJpIjoiNmFiY2MxOGFiMGMyN2QzOTkwYmI4M2NiIn0",
+    "hasMore": true
+  }
+}

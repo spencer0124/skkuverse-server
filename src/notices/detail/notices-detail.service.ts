@@ -5,6 +5,7 @@ import { NoticesScheduleService } from "../schedule/notices-schedule.service";
 import { toDetailItem } from "./notices-detail.mapper";
 import { isExportable, toCalendar } from "./notices-detail.rules";
 import { NoticesDetailRepository } from "./notices-detail.repository";
+import type { NoticeParts } from "./notices-detail.types";
 import type { NoticeDetail } from "./notices-detail.wire";
 
 @Injectable()
@@ -17,9 +18,14 @@ export class NoticesDetailService {
   ) {}
 
   async findNotice(sourceId: string, articleNo: number): Promise<NoticeDetail | null> {
+    const parts = await this.findNoticeParts(sourceId, articleNo);
+    return parts && toDetailItem(parts.doc, parts.schedule, parts.blocks);
+  }
+
+  async findNoticeParts(sourceId: string, articleNo: number): Promise<NoticeParts | null> {
     const doc = await this.repository.findNotice(sourceId, articleNo);
     if (!doc) return null;
-    return toDetailItem(doc, await this.schedules.describeSchedule(doc), this.blocks.describeBlocks(doc));
+    return { doc, schedule: await this.schedules.describeSchedule(doc), blocks: this.blocks.describeBlocks(doc) };
   }
 
   async exportCalendar(sourceId: string, articleNo: number): Promise<string | null> {

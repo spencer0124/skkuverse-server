@@ -125,6 +125,7 @@ describe(".github/owner-gate-paths", () => {
       "Dockerfile",
       "docker-compose.yml",
       "scripts/render_env.py",
+      "config/env.prd.keys",
       ".claude/settings.json",
       ".claude/settings.local.json",
       ".github/owner-gate-paths",

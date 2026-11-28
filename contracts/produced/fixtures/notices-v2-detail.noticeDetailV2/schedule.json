@@ -1,0 +1,318 @@
+{
+  "_about": "Derived 2026-11-28 from the released detail fixture notices-detail.noticeDetail/schedule.json: only the fields of the v2 detail, `isEdited` read from the edit count, attachments as name and url. Synthetic: production.json's notice with the schedule the server serves for the hand-written v2 stored schedule in __tests__/nest/notices/fixtures/notice-schedule.stored.json (notices-schedule.routes.test.ts), since no crawler run has stored a v2 schedule yet",
+  "data": {
+    "sourceId": "skku-notice02",
+    "articleNo": 140482,
+    "title": "[인공지능혁신융합대학사업] 2026학년도 인공지능혁신융합대학사업 겨울 계절학기 학점교류 수강 안내 (상시 업데이트)",
+    "department": "성균관대_통합(학사)",
+    "date": "2026-10-14",
+    "views": 4685,
+    "sourceUrl": "https://www.skku.edu/skku/campus/skk_comm/notice02.do?mode=view&articleNo=140482&article.offset=0&articleLimit=10",
+    "isEdited": true,
+    "contentMarkdown": "인공지능혁신융합대학사업의 협력교와 학점교류를 희망하는 학생은 아래 안내에 따라 신청하시기 바랍니다.\n\n※ 학점교류 교과목의 학점 및 ‘전공’학점 인정여부는 소속학과에서 결정하는 사안입니다.  \n※ 학점교류 희망 학생",
+    "attachments": [
+      {
+        "name": "전남대학교 인공지능혁신융합대학사업단 2026학년도 동계 계절학기 학점교류 신청 안내.Zip",
+        "url": "https://www.skku.edu/skku/campus/skk_comm/notice02.do?mode=download&articleNo=140482&attachNo=118217"
+      }
+    ],
+    "schedule": [
+      {
+        "id": "1a2b3c4d",
+        "title": "참가 신청 마감",
+        "status": "scheduled",
+        "end": {
+          "date": "2026-11-06",
+          "time": "24:00"
+        },
+        "occurrences": [
+          {
+            "end": {
+              "date": "2026-11-06",
+              "time": "24:00"
+            }
+          }
+        ],
+        "omittedCount": 0
+      },
+      {
+        "id": "6f708192",
+        "title": "수강신청 시스템 운영",
+        "status": "scheduled",
+        "start": {
+          "date": "2026-11-09",
+          "time": "09:00"
+        },
+        "end": {
+          "date": "2026-11-13",
+          "time": "18:00"
+        },
+        "gaps": [
+          {
+            "start": {
+              "date": "2026-11-11",
+              "time": "12:00"
+            },
+            "end": {
+              "date": "2026-11-11",
+              "time": "13:00"
+            }
+          }
+        ],
+        "occurrences": [
+          {
+            "start": {
+              "date": "2026-11-09",
+              "time": "09:00"
+            },
+            "end": {
+              "date": "2026-11-11",
+              "time": "12:00"
+            }
+          },
+          {
+            "start": {
+              "date": "2026-11-11",
+              "time": "13:00"
+            },
+            "end": {
+              "date": "2026-11-13",
+              "time": "18:00"
+            }
+          }
+        ],
+        "omittedCount": 0
+      },
+      {
+        "id": "2b3c4d5e",
+        "title": "진로 설명회",
+        "status": "tentative",
+        "start": {
+          "date": "2026-11-10",
+          "time": "14:00"
+        },
+        "end": {
+          "date": "2026-11-10",
+          "time": "16:00"
+        },
+        "rdate": [
+          {
+            "start": {
+              "date": "2026-11-17",
+              "time": "14:00"
+            },
+            "end": {
+              "date": "2026-11-17",
+              "time": "16:00"
+            }
+          }
+        ],
+        "place": {
+          "text": "경영관 33B101호",
+          "name": "경영관 33B101",
+          "mapTarget": {
+            "skkuId": 12,
+            "spaceCd": "33B101"
+          }
+        },
+        "occurrences": [
+          {
+            "start": {
+              "date": "2026-11-10",
+              "time": "14:00"
+            },
+            "end": {
+              "date": "2026-11-10",
+              "time": "16:00"
+            }
+          },
+          {
+            "start": {
+              "date": "2026-11-17",
+              "time": "14:00"
+            },
+            "end": {
+              "date": "2026-11-17",
+              "time": "16:00"
+            }
+          }
+        ],
+        "omittedCount": 0,
+        "parts": [
+          {
+            "id": "3c4d5e6f",
+            "title": "1부 학과 소개",
+            "status": "tentative",
+            "start": {
+              "date": "2026-11-10",
+              "time": "14:00"
+            },
+            "end": {
+              "date": "2026-11-10",
+              "time": "15:00"
+            },
+            "occurrences": [
+              {
+                "start": {
+                  "date": "2026-11-10",
+                  "time": "14:00"
+                },
+                "end": {
+                  "date": "2026-11-10",
+                  "time": "15:00"
+                }
+              }
+            ],
+            "omittedCount": 0
+          },
+          {
+            "id": "4d5e6f70",
+            "title": "2부 질의응답",
+            "status": "tentative",
+            "start": {
+              "date": "2026-11-10",
+              "time": "15:00"
+            },
+            "end": {
+              "date": "2026-11-10",
+              "time": "16:00"
+            },
+            "place": {
+              "text": "경영관",
+              "name": "경영관 33",
+              "mapTarget": {
+                "skkuId": 12,
+                "spaceCd": null
+              }
+            },
+            "occurrences": [
+              {
+                "start": {
+                  "date": "2026-11-10",
+                  "time": "15:00"
+                },
+                "end": {
+                  "date": "2026-11-10",
+                  "time": "16:00"
+                }
+              }
+            ],
+            "omittedCount": 0
+          }
+        ]
+      },
+      {
+        "id": "708192a3",
+        "title": "결과 발표",
+        "status": "scheduled",
+        "start": {
+          "date": "2026-12-01",
+          "latest": "2026-12-10"
+        },
+        "occurrences": [
+          {
+            "start": {
+              "date": "2026-12-01",
+              "latest": "2026-12-10"
+            }
+          }
+        ],
+        "omittedCount": 0
+      },
+      {
+        "id": "5e6f7081",
+        "title": "스터디",
+        "status": "scheduled",
+        "start": {
+          "date": "2026-11-04",
+          "time": "19:00"
+        },
+        "end": {
+          "date": "2026-11-04",
+          "time": "21:00"
+        },
+        "rrule": {
+          "freq": "weekly",
+          "byDay": [
+            "WE"
+          ],
+          "until": "2026-12-16"
+        },
+        "exdate": [
+          "2026-11-25"
+        ],
+        "place": {
+          "text": "온라인 (Zoom)",
+          "name": null,
+          "mapTarget": null
+        },
+        "occurrences": [
+          {
+            "start": {
+              "date": "2026-11-04",
+              "time": "19:00"
+            },
+            "end": {
+              "date": "2026-11-04",
+              "time": "21:00"
+            }
+          },
+          {
+            "start": {
+              "date": "2026-11-11",
+              "time": "19:00"
+            },
+            "end": {
+              "date": "2026-11-11",
+              "time": "21:00"
+            }
+          },
+          {
+            "start": {
+              "date": "2026-11-18",
+              "time": "19:00"
+            },
+            "end": {
+              "date": "2026-11-18",
+              "time": "21:00"
+            }
+          },
+          {
+            "start": {
+              "date": "2026-12-02",
+              "time": "19:00"
+            },
+            "end": {
+              "date": "2026-12-02",
+              "time": "21:00"
+            }
+          },
+          {
+            "start": {
+              "date": "2026-12-09",
+              "time": "19:00"
+            },
+            "end": {
+              "date": "2026-12-09",
+              "time": "21:00"
+            }
+          },
+          {
+            "start": {
+              "date": "2026-12-16",
+              "time": "19:00"
+            },
+            "end": {
+              "date": "2026-12-16",
+              "time": "21:00"
+            }
+          }
+        ],
+        "omittedCount": 0
+      }
+    ],
+    "brief": null,
+    "audience": null,
+    "refs": null
+  }
+}

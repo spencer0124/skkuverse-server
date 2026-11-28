@@ -20,7 +20,7 @@ const noticeListItem = z.object({
   author: z.string().nullable(),
   department: z.string().nullable(),
   date: z.string(),
-  views: z.number().meta(LEGACY_FIELD_META),
+  views: z.number(),
   sourceUrl: z.string(),
   hasContent: z.boolean(),
   hasAttachments: z.boolean(),
