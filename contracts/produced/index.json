@@ -387,11 +387,6 @@
     "export": "noticeScheduleItem",
     "routes": []
   },
-  "notices.noticeScreen": {
-    "source": "src/notices/notices.wire.ts",
-    "export": "noticeScreen",
-    "routes": []
-  },
   "place.place": {
     "source": "src/shared/place.wire.ts",
     "export": "place",

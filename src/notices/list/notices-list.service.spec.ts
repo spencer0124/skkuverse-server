@@ -63,7 +63,7 @@ describe("NoticesListService.listNotices", () => {
     // Arrange
     const summaryFields = { summaryAt: new Date("2026-10-13T00:00:00Z"), summaryType: "action_required", summaryOneLiner: "한 줄", summaryPeriods: [{ label: "신청", endDate: "2026-10-26", endTime: "18:00" }] };
     const repository = new FakeNoticesListRepository();
-    repository.docs = [doc(2, "2026-10-14", { ...summaryFields, facts: { v: 1 } }), doc(1, "2026-10-13")];
+    repository.docs = [doc(2, "2026-10-14", { ...summaryFields, facts: { v: 1 } } as Partial<NoticeDoc>), doc(1, "2026-10-13")];
     const service = serviceAt(repository, { now: () => new Date("2026-10-25T03:00:00Z") });
 
     // Act

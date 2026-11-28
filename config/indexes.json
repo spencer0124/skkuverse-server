@@ -220,16 +220,13 @@
   "MONGO_NOTICES_DB_NAME": {
     "notices": [
       {
-        "name": "dispatch_pending_facts_idx",
+        "name": "dispatch_pending_idx_v3",
         "key": {
           "date": -1,
           "_id": -1
         },
         "partialFilterExpression": {
-          "pushedAt": null,
-          "factsAt": {
-            "$type": "date"
-          }
+          "pushedAt": null
         }
       },
       {

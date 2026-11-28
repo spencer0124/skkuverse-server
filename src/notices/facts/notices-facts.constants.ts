@@ -1,1 +1,0 @@
-export const NOTICES_FACTS_LOG_INTERVAL_MS = 60_000;

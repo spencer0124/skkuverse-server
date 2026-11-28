@@ -532,9 +532,7 @@ describe("GET /notices/:sourceId/:articleNo over real documents", () => {
         model: "claude-sonnet-5-5",
         generatedAt: "2026-10-09T03:59:37.024Z",
       },
-      screen: null,
       schedule: null,
-      brief: null,
     });
   });
 

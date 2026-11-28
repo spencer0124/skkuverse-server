@@ -64,36 +64,16 @@
     "reason": "ADR 0010 D9, no domain seam: `BASE_LAYERS` is the one ordered layer catalogue /map/config serves, typed `as const` so `BaseLayerId` names its ids; the campus rules, the layer-set loader and service and the config flow all read it, so it stays at the map root, which holds one `.constants` file, beside the event cache constants several flows share. The Jongno route layers, then the HSSC route layer and then the `tabs` each base layer states took it past the role cap."
   },
   "src/notices/detail/notices-detail.wire.ts": {
-    "max": 73,
-    "reason": "ADR 0010 D9, no domain seam: `noticeDetail` is the one body the detail route serves, its screen part and its schedule items already split into `src/notices/notices.wire.ts`, and the other fields are the stored notice passed through (the summary's periods, details and edit history as the crawler and the ai stored them, and the brief's question and bullets), so no part of it is a flow of its own; the brief's schema cannot move to `src/notices/brief/`, because the detail sub-module imports a sibling's runtime export only through a `.module` or `.service` (`sub-modules`)."
-  },
-  "src/notices/facts/notices-facts.schema.ts": {
-    "max": 220,
-    "reason": "ADR 0010 D9, no domain seam: `noticeFacts` mirrors the one versioned record the crawler writes and the server parses as a unit, each of its sections checked against the same vendored file by `__tests__/contracts/notice-facts.test.ts`, so a split would leave half a record in each sub-module, and a sibling never imports another sub-module's schema (sub-modules.test.ts); `factsSnapshot`, an earlier version of that record the crawler stores beside it, is read through the same `NoticesFactsService`."
+    "max": 67,
+    "reason": "ADR 0010 D9, no domain seam: `noticeDetail` is the one body the detail route serves, its schedule items already split into `src/notices/notices.wire.ts`, and the other fields are the stored notice passed through (the summary's periods, details and edit history as the crawler and the ai stored them), so no part of it is a flow of its own and a split would leave half of one body in each file."
   },
   "src/notices/list/notices-list.rules.ts": {
     "max": 199,
     "reason": "ADR 0010 D9, no domain seam: the list badge is one priority chain a list item is cut from, the v1 period pick and the v2 role badge feeding one brief, and the cursor decode beside it, with `selectShownRows`, which keeps a scanned row of several boards only as its cluster's shown copy over the list's own scan and filter; none is a flow of its own, so a sub-module would hold rules and nothing else, and the badge alone exceeds the rules cap."
   },
-  "src/notices/notices.wire.ts": {
-    "max": 65,
-    "reason": "ADR 0010 D9, no domain seam: `noticeScreen` and `noticeScheduleItem` are the two parts of the detail body a flow renders, the screen by `src/notices/screen/` and the timeline by `src/notices/schedule/`; both sit at the notices root because `noticeDetail` composes them and the detail sub-module reaches a sibling's runtime export only through a `.module` or `.service` (`sub-modules`), while one `.wire` per folder (`folders`) leaves this file their only shared home."
-  },
-  "src/notices/row/notices-row.rules.ts": {
-    "max": 462,
-    "reason": "ADR 0010 D9, no domain seam: `toFactsRows` turns a page of parsed facts into the list rows of umbrella ADR 0001, and its token table (`TOKEN_PRECEDENCE`), line 2, the abstention and the qualifier's place all read the one `RowStatus` that `toRowStatus` picks from the same row items and their KST days, so no step stands alone; a sibling sub-module meets the row only through a service (sub-modules.test.ts), which would put a Nest provider between pure steps of one computation, and a parent never imports a child, so the status cannot become a parent without a door no production code calls. The Korean words live in notices-row.constants.ts. `toRowReading` reads one notice for the detail screen over the same private scope, status and date text, so it closes over them and no other flow imports them."
-  },
-  "src/notices/row/notices-row.types.ts": {
-    "max": 68,
-    "reason": "ADR 0010 D9, no domain seam: `RowReading` and `ItemReading` are built only from `FactsRow`, `RowStatus` and `RowItem` declared beside them in this file, a folder holds one types file, and a parent never imports a child, so the reading cannot move into a sub-module. `RowReading` also carries the unfitted qualifier the legacy one-liner reads."
-  },
   "src/notices/schedule/notices-schedule.rules.ts": {
     "max": 123,
     "reason": "ADR 0010 D9, no domain seam: `toOccurrences` and `toTimelineMinute` read one expansion of a stored item, `rrule + rdate - exdate - gaps` in wall minutes, whose head is expanded day by day and whose tail past the first occurrences is counted from day numbers, so a far `until` costs no more than a near one; the gap cuts, the rule days and both readers share the instance shape and its edges, and a sibling sub-module reaches a rules file only through a service, which would put a Nest provider between pure steps of one computation."
-  },
-  "src/notices/screen/notices-screen.rules.ts": {
-    "max": 204,
-    "reason": "ADR 0010 D9, no domain seam: the status line, the collapse, the action bar, the block order, the header change, and the line decisions (`toDistinctLines`, `toPlaceAction`, `toAttachmentUrl`, `toLineSource`) all decide over the one `RowReading` that `NoticesRowService.readNotice` returns, and a sibling meets it only through a service, which would put a Nest provider between pure decisions over one reading; the block line shapes are `notices-screen.mapper.ts`'s and the Korean words `notices-screen.constants.ts`'s."
   },
   "src/subway/estimate/subway-estimate.rules.ts": {
     "max": 160,

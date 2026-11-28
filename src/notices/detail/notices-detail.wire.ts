@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { SUMMARY_TYPES } from "../notices.constants";
-import { noticeScheduleItem, noticeScreen } from "../notices.wire";
+import { noticeScheduleItem } from "../notices.wire";
 
 /** QUIRK(skkuverse-ai): the AI's periods, passed through as stored; any field may be absent or null. */
 const summaryPeriod = z.object({
@@ -39,8 +39,6 @@ const noticeSummaryFull = z.object({
   generatedAt: z.iso.datetime(),
 });
 
-const noticeBrief = z.object({ question: z.string().nullable(), bullets: z.array(z.object({ text: z.string() })) });
-
 const attachment = z.object({ name: z.string(), url: z.string(), referer: z.string().optional() });
 
 export const noticeDetail = z.object({
@@ -61,14 +59,9 @@ export const noticeDetail = z.object({
   crawledAt: z.iso.datetime(),
   editInfo: z.object({ count: z.number().optional(), history: z.array(noticeEdit) }).nullable(),
   summary: noticeSummaryFull.nullable(),
-  // WHY: null when the notice has no facts or facts the schema refuses, as the list's `row` is.
-  screen: noticeScreen.nullable(),
   // WHY: null when the notice has no schedule, an empty one or one the schema refuses: the app then shows no timeline.
   schedule: z.array(noticeScheduleItem).nullable(),
-  // WHY: null when the notice has no brief, one with no bullets or one the schema refuses: the app then shows no question and no bullets.
-  brief: noticeBrief.nullable(),
 });
 
 export type NoticeSummaryFull = z.input<typeof noticeSummaryFull>;
 export type NoticeDetail = z.input<typeof noticeDetail>;
-export type NoticeBrief = z.input<typeof noticeBrief>;

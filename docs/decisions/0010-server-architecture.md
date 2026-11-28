@@ -161,7 +161,7 @@ The `.wire` role:
 - The export runs inside Jest (`__tests__/contracts/`), so drift fails `npm test` with no new CI step: a `dist/`-based script sees drift only after a build, Node's type stripping cannot resolve the extensionless imports in `src/`, and ts-node or tsx would be a new dependency.
 - Fixtures are cut from production captures, trimmed to the cases that differ in shape, with no user data; push payload fixtures are synthetic and say what they mirror. The schema is open for consumers and closed for the server's own fixtures, so it documents every field the server sends.
 
-**Open:** the crawler does not yet publish `NoticeDocument` as JSON Schema with fixtures, so `src/notices/notices.document.ts` stays hand-written. `contracts/consumed/` holds only the schema of the `facts` record, which `src/notices/facts/notices-facts.schema.ts` mirrors in zod under a contract test that fails on a required-key or enum difference. When the document schema lands, strip pydantic's auto `title` before generating: `json-schema-to-typescript` turns `title: "Date"` into `export type Date = string`. Copying the produced artifacts to their readers is umbrella work.
+**Open:** the crawler does not yet publish `NoticeDocument` as JSON Schema with fixtures, so `src/notices/notices.document.ts` stays hand-written. `contracts/consumed/` holds only the schema of the `schedule` field, which `src/notices/schedule/notices-schedule.schema.ts` mirrors in zod under a contract test that fails on a required-key or enum difference. When the document schema lands, strip pydantic's auto `title` before generating: `json-schema-to-typescript` turns `title: "Date"` into `export type Date = string`. Copying the produced artifacts to their readers is umbrella work.
 
 Rejected:
 

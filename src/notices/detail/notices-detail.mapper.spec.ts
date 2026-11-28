@@ -1,11 +1,11 @@
 /**
  * The detail response: the Markdown body as contentMarkdown (null when the crawler has none), attachments with a
  * referer only when stored, an edit history only once edited, the full summary only once summarized, and every
- * stored time as the ISO string JSON writes, and the screen, schedule and brief it is given beside them, null when there is none.
+ * stored time as the ISO string JSON writes, and the schedule it is given beside them, null when there is none. The
+ * detail carries no screen and no brief, and its summary comes from the stored fields alone.
  */
 import { ObjectId } from "mongodb";
 import type { NoticeDoc } from "../notices.document";
-import type { NoticeScreen } from "../notices.wire";
 import { toSummaryFull, toDetailItem } from "./notices-detail.mapper";
 
 const ID = new ObjectId("66a1b2c3d4e5f6a7b8c9d0e1");
@@ -39,42 +39,21 @@ describe("toDetailItem", () => {
       crawledAt: "2026-10-14T05:30:10.676Z",
       editInfo: null,
       summary: null,
-      screen: null,
       schedule: null,
-      brief: null,
     });
   });
 
-  it("serves a derived summary with no text, periods, places or model when the notice has none of its own", () => {
-    // Arrange
-    const derived = { oneLiner: "내일 마감", type: "action_required" as const, startAt: null, endAt: null };
-
-    // Act
-    const item = toDetailItem(BASE, null, { derived });
-
-    // Assert
-    expect(item.summary).toEqual({
-      text: null,
-      oneLiner: "내일 마감",
-      type: "action_required",
-      periods: [],
-      locations: [],
-      details: null,
-      model: null,
-      generatedAt: "2026-10-14T05:30:10.676Z",
-    });
-  });
-
-  it("serves the stored summary and ignores a derived one when the notice is summarized", () => {
+  it("serves the stored summary, and none for a notice that is not summarized", () => {
     // Arrange
     const stored = { ...BASE, summaryAt: new Date("2026-10-14T06:00:00Z"), summaryOneLiner: "한 줄", summaryType: "event" };
 
     // Act
-    const item = toDetailItem(stored, null, { derived: { oneLiner: "다른 줄", type: "informational", startAt: null, endAt: null } });
+    const item = toDetailItem(stored, null);
 
     // Assert
     expect(item.summary).toEqual(toSummaryFull(stored));
     expect(item.summary?.oneLiner).toBe("한 줄");
+    expect(toDetailItem(BASE, null).summary).toBeNull();
   });
 
   it("keeps a referer only when stored, and the edit history once edited", () => {
@@ -99,58 +78,17 @@ describe("toDetailItem", () => {
   });
 });
 
-describe("toDetailItem, the screen", () => {
-  const SCREEN: NoticeScreen = {
-    header: { firstSeen: "오늘 처음 올라옴", change: null },
-    status: { word: "접수 중", tone: "open", detail: "10/26(월) 마감" },
-    blocks: [],
-    action: null,
-    collapsed: null,
-    staffOnly: false,
-    posterOnly: false,
-    original: { posterCount: 0, attachments: [], links: [] },
-  };
-
-  it("serves the screen it is given next to the summary, and changes no other field", () => {
-    // Arrange
-    const summarized = { ...BASE, summaryAt: new Date("2026-10-14T06:00:00Z"), summaryOneLiner: "한 줄" };
-
-    // Act
-    const without = toDetailItem(summarized, null);
-    const withScreen = toDetailItem(summarized, SCREEN);
-
-    // Assert
-    expect(withScreen.screen).toEqual(SCREEN);
-    expect({ ...withScreen, screen: null }).toEqual(without);
-    expect(withScreen.summary).toMatchObject({ oneLiner: "한 줄" });
-  });
-});
-
 describe("toDetailItem, the schedule", () => {
   it("serves the schedule items it is given, and changes no other field", () => {
     // Arrange
     const schedule = [{ id: "D1", title: "설명회", status: "scheduled" as const, start: { date: "2026-11-10" }, occurrences: [{ start: { date: "2026-11-10" } }], omittedCount: 0 }];
 
     // Act
-    const withSchedule = toDetailItem(BASE, null, { schedule });
+    const withSchedule = toDetailItem(BASE, schedule);
 
     // Assert
     expect(withSchedule.schedule).toEqual(schedule);
     expect({ ...withSchedule, schedule: null }).toEqual(toDetailItem(BASE, null));
-  });
-});
-
-describe("toDetailItem, the brief", () => {
-  it("serves the brief it is given, and changes no other field", () => {
-    // Arrange
-    const brief = { question: "누가 받을 수 있을까?", bullets: [{ text: "재학생이 신청할 수 있어요." }] };
-
-    // Act
-    const withBrief = toDetailItem(BASE, null, { brief });
-
-    // Assert
-    expect(withBrief.brief).toEqual(brief);
-    expect({ ...withBrief, brief: null }).toEqual(toDetailItem(BASE, null));
   });
 });
 

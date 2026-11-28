@@ -61,14 +61,6 @@ export interface NoticeAttachment {
   referer?: string;
 }
 
-// CONTRACT(skkuverse-crawler): one earlier version of `facts`, kept for the change check (skkuverse/docs/decisions/0001-notice-data-ownership.md).
-export interface FactsSnapshot {
-  extractedAt: string;
-  inputHash: string;
-  times: Array<{ id: string; kind: string; start: string; end: string; places: string[] }>;
-  status: string[];
-}
-
 // CONTRACT(skkuverse-crawler): the crawler writes notices (skkuverse-crawler/docs/reference/schema/notices.md) and
 // skkuverse-ai its summary fields. Hot reads are typed, not parsed (ADR 0010 D2, exemptions/repository-reads.json);
 // notices-documents.routes.test.ts serves sampled prod documents through the list and detail reads instead.
@@ -112,29 +104,11 @@ export interface NoticeDoc {
   pushAttempts?: number;
   dispatchClaimedAt?: Date | null;
   pushError?: string | null;
-  // CONTRACT(skkuverse-crawler): the record of skkuverse-crawler/docs/notice-facts/notice-facts.schema.json, as stored: read it
-  // only through NoticesFactsService, which parses it. Absent until the crawler's facts stage has run.
-  facts?: unknown;
   // CONTRACT(skkuverse-crawler): the `schedule` of skkuverse/docs/decisions/0012-notice-brief-and-add-ons.md ("D4"), as stored:
   // read it only through NoticesScheduleService, which parses it. Absent until the crawler's schedule stage has run.
   schedule?: unknown;
-  // CONTRACT(skkuverse-crawler): the `brief` of skkuverse/docs/decisions/0012-notice-brief-and-add-ons.md ("D4"), as stored: the
-  // writer is skkuverse-ai (app/brief/writer.py). Read it only through NoticesBriefService, which parses it. Absent until the crawler stores one.
-  brief?: unknown;
-  // CONTRACT(skkuverse-crawler): the push gate the dispatch claim reads (skkuverse/docs/decisions/0001-notice-data-ownership.md):
-  // only the live job writes both, once, so a backfill never makes a notice claimable.
-  factsAt?: Date | null;
-  factsGate?: "ok" | "failed" | "timeout" | null;
-  // CONTRACT(skkuverse-crawler): written once per copy when it is first seen (skkuverse/docs/decisions/0001-notice-data-ownership.md); an older copy may lack it.
-  firstSeenAt?: Date | null;
-  // CONTRACT(skkuverse-crawler): names a group at one moment only (skkuverse/docs/decisions/0001-notice-data-ownership.md):
-  // a body edit changes it, so nothing long-lived keys on it.
-  groupId?: string | null;
   // CONTRACT(skkuverse-crawler): the `_id` of the earliest copy sharing this notice's trimmed title and contentHash, so
   // copies are exactly the notices with equal `dupOf` (skkuverse/docs/decisions/0001-notice-data-ownership.md).
-  // A gated copy always has it; a notice the crawler has not linked yet lacks it.
+  // A notice the crawler has not linked yet lacks it.
   dupOf?: ObjectId | null;
-  // CONTRACT(skkuverse-crawler): up to five earlier versions of `facts`, oldest first (skkuverse/docs/decisions/0001-notice-data-ownership.md);
-  // read them only through NoticesFactsService, which leaves out a snapshot that is not a `FactsSnapshot`.
-  factsHistory?: unknown;
 }

@@ -96,7 +96,6 @@ Production configuration and data are kept outside this repository.
 | Document | Status |
 | --- | --- |
 | [0001-adopt-diataxis-docs-structure.md](decisions/0001-adopt-diataxis-docs-structure.md) | accepted |
-| [0002-notices-read-only-ownership.md](decisions/0002-notices-read-only-ownership.md) | superseded |
 | [0003-fcm-dispatch-cloud-function-claim-lease.md](decisions/0003-fcm-dispatch-cloud-function-claim-lease.md) | accepted (backfilled) |
 | [0004-strict-config-pre-deploy-dry-load.md](decisions/0004-strict-config-pre-deploy-dry-load.md) | accepted (backfilled) |
 | [0005-notice-dispatch-content-group.md](decisions/0005-notice-dispatch-content-group.md) | accepted |
@@ -110,7 +109,6 @@ Production configuration and data are kept outside this repository.
 | [0013-runtime-data-in-mongodb.md](decisions/0013-runtime-data-in-mongodb.md) | accepted |
 | [0014-jongro-realtime-from-topis.md](decisions/0014-jongro-realtime-from-topis.md) | accepted |
 | [0015-campus-shuttles.md](decisions/0015-campus-shuttles.md) | accepted |
-| [0016-notice-search-overview.md](decisions/0016-notice-search-overview.md) | superseded |
 | [0017-subway-arrivals.md](decisions/0017-subway-arrivals.md) | accepted |
 | [0018-hssc-arrival-estimates.md](decisions/0018-hssc-arrival-estimates.md) | accepted |
 | [0019-bus-live-api.md](decisions/0019-bus-live-api.md) | accepted |
@@ -118,7 +116,6 @@ Production configuration and data are kept outside this repository.
 | [0021-academic-calendar.md](decisions/0021-academic-calendar.md) | accepted |
 | [0022-journey-and-call-spec.md](decisions/0022-journey-and-call-spec.md) | accepted |
 | [0023-perimeter-ports.md](decisions/0023-perimeter-ports.md) | accepted |
-| [0024-dispatch-gate-on-facts.md](decisions/0024-dispatch-gate-on-facts.md) | superseded |
 
 ### plans (work queues)
 
