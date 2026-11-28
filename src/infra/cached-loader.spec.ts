@@ -330,8 +330,8 @@ describe("createCachedLoader with serveStale on-reload-failure", () => {
 
 /**
  * CACHE=off, the development default: a _dev database change must show on the
- * next request, so every get() loads. A loader marked keepWhenCacheOff (the AI
- * overview, the mini-app manifests) keeps caching.
+ * next request, so every get() loads. A loader marked keepWhenCacheOff (the
+ * mini-app manifests) keeps caching.
  */
 describe("createCachedLoader with CACHE=off", () => {
   beforeEach(() => {

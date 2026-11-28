@@ -3,7 +3,7 @@ title: Server Architecture — One Module Shape, Enforced by Tests
 type: adr
 status: accepted
 owner: spencer0124
-last-updated: 2026-10-26
+last-updated: 2026-11-28
 audience: internal
 ---
 
@@ -144,7 +144,7 @@ Every shape that left the repository was defined by hand two or more times and n
 | crawler → Mongo `notices` → server | the crawler's pydantic `NoticeDocument` | the crawler exports JSON Schema and fixtures, the umbrella copies them to `contracts/consumed/`, the server generates its types and its reader passes the fixtures | writer strict, reader open |
 | server → app, web, mini apps | the server's `.wire` zod | `contracts/produced/` and fixtures; clients generate types and test tolerant parsers against the fixtures | server strict, clients tolerant |
 | server → FCM Cloud Function → device | the server's `.wire` zod (`src/infra/fcm.wire.ts`) | as for HTTP responses; a push `webview` or `external` link takes any absolute https URL, not the home layout's own-origin `webview` rule, which would refuse the third-party pages a push may open (restricting it is an open owner decision) | server strict, relay and device tolerant |
-| server or crawler ↔ ai | the ai's FastAPI OpenAPI | the umbrella copies it; the server's overview client passes its fixtures | both strict |
+| crawler ↔ ai | the ai's FastAPI OpenAPI | the umbrella copies it | both strict |
 | brands; the fixed envelope | the server only | not exported; a route's wire describes its `data` and extra `meta` | — |
 
 - **The writer owns the schema**, in its own validator (server zod, crawler pydantic, ai FastAPI). Across a repository or language it publishes JSON Schema and golden fixtures; readers generate from it or test against the fixtures, never restate it, and stay tolerant.

@@ -39,8 +39,6 @@
 #     daily quota production shares.
 #   - GBIS=off: no GBIS call for 7800's seats, whose daily quota production
 #     spends most of.
-#   - NOTICE_OVERVIEW=off on the api replicas: no skkuverse-ai call for a
-#     notice search overview, each one a paid LLM call.
 #   - DISPATCH_SWEEP_ENABLED=false on the poller: the base file sets it true;
 #     with push suppressed the sweep would only mark _dev notices pushed.
 #   - SENTRY_DSN=disabled: production requires a DSN, and a local run must not
@@ -69,7 +67,6 @@ x-api-dev-env: &api-dev-env
   - SUBWAY=off
   - REGIONAL_BUS=off
   - GBIS=off
-  - NOTICE_OVERVIEW=off
 
 services:
   poller:

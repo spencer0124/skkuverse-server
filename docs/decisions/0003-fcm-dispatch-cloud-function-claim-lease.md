@@ -3,7 +3,7 @@ title: FCM Dispatch — a Cloud Function Sends, a Claim Lease Dedupes
 type: adr
 status: accepted
 owner: spencer0124
-last-updated: 2026-10-28
+last-updated: 2026-11-28
 audience: internal
 ---
 
@@ -19,7 +19,7 @@ audience: internal
 ## Decision
 
 - **The server decides, a Cloud Function sends.** The server calls the Cloud Function (`FCM_FUNCTION_URL`) with the topics of a notice; the function reads Firestore `devices` and sends through FCM v1. Rejected: sending with the FCM Admin SDK from the server, which would copy the token and subscription truth from Firestore into MongoDB and keep two truths in sync.
-- **Two triggers.** The crawler calls `POST /internal/notices/dispatch-pending` at the end of each cycle (primary; the crawler's live facts job pings); a cron sweep in the poller, gated by `DISPATCH_SWEEP_ENABLED`, covers a missed ping.
+- **Two triggers.** The crawler calls `POST /internal/notices/dispatch-pending` after a crawl cycle that stored a new notice (primary); a cron sweep in the poller, gated by `DISPATCH_SWEEP_ENABLED`, covers a missed ping.
 - **A claim lease.** A sweep claims a candidate atomically by stamping it, and a stamp younger than the lease makes the others skip it. The lease (`claimLeaseMs`, `src/infra/config.ts`) is long enough that a slow Cloud Function round trip does not trip a re-claim, and short enough that a crashed dispatcher's claims free up within minutes.
 - **Retries are capped** (`maxAttempts`), and a notice older than the age gate is never pushed ([ADR 0008](0008-dispatch-age-gate-on-publication-date.md)); `sweepBatchCap` bounds one sweep's blast radius. Current values: the dispatch block of `src/infra/config.ts`.
 

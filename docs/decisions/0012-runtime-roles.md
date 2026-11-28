@@ -3,7 +3,7 @@ title: Runtime Roles — Pollers Write, Api Replicas Read
 type: adr
 status: accepted
 owner: spencer0124
-last-updated: 2026-10-22
+last-updated: 2026-11-28
 audience: internal
 ---
 
@@ -25,9 +25,9 @@ A process that runs pollers (`poller`, `combined`) calls the upstream data APIs 
 
 A read that serves a client takes its data from MongoDB only, never from a value a poller holds in the same process, so `combined` and `api` answer alike for the same stored data. State a poller carries from tick to tick (an HSSC bus's first sighting, a Jongro vehicle's last observation, a pending registry change) stays in its memory and reaches clients only through what it writes. `__tests__/nest/infra/api-role-boot.test.ts` pins that an api boot fetches nothing.
 
-### D2. Five request-scoped upstream calls stay in api
+### D2. Four request-scoped upstream calls stay in api
 
-An api replica calls an upstream only on behalf of the request it serves, and only for: the notice attachment proxy, the notice search overview (skkuverse-ai), the FCM Cloud Function for notice dispatch and for mini-app push, and Firebase ID token verification. Any other upstream call belongs in a poller.
+An api replica calls an upstream only on behalf of the request it serves, and only for: the notice attachment proxy, the FCM Cloud Function for notice dispatch and for mini-app push, and Firebase ID token verification. Any other upstream call belongs in a poller.
 
 ### D3. No writes at boot from api
 
@@ -39,7 +39,7 @@ Rejected: every role seeding the Jongro registry and route lines at boot, so tha
 
 ### D4. Required configuration follows the role
 
-Each required value names the roles that need it (`src/infra/required-env.ts`): `poller` for the upstream keys only pollers use, `api` for what only serving uses (the AI API, the NAVER map style, the internal dispatch token, the notices start date), `all` for both (MongoDB, the FCM function). A process exits at boot naming each missing value its role needs and ignores the rest. A value read in a role that does not require it throws at its first read, so a wrongly scoped value fails loudly instead of becoming `undefined` in a URL; never spread a `config` section that holds one: the spread reads every getter and throws in the role that lacks it. One rendered `.env` still feeds every container; the scope is what boot requires, not what is present.
+Each required value names the roles that need it (`src/infra/required-env.ts`): `poller` for the upstream keys only pollers use, `api` for what only serving uses (the NAVER map style, the internal dispatch token, the notices start date), `all` for both (MongoDB, the FCM function). A process exits at boot naming each missing value its role needs and ignores the rest. A value read in a role that does not require it throws at its first read, so a wrongly scoped value fails loudly instead of becoming `undefined` in a URL; never spread a `config` section that holds one: the spread reads every getter and throws in the role that lacks it. One rendered `.env` still feeds every container; the scope is what boot requires, not what is present.
 
 ### D5. Runtime switches gate writers only
 
