@@ -1,0 +1,20 @@
+{
+  "_about": "Synthetic: the audience the detail serves for the hand-written stored audience in __tests__/nest/notices/fixtures/notice-blocks.stored.json (notices-blocks.routes.test.ts), each value once and no quote; no crawler run has stored one yet",
+  "data": {
+    "level": {
+      "include": [
+        "grad"
+      ]
+    },
+    "status": {
+      "include": [
+        "enrolled"
+      ],
+      "exclude": [
+        "completed",
+        "leave"
+      ]
+    },
+    "version": "audience-1"
+  }
+}

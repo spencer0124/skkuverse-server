@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LEGACY_FIELD_META } from "../notices.constants";
 
 const overviewSentence = z.object({ text: z.string(), cites: z.array(z.number()) });
 
@@ -20,13 +21,13 @@ const overview = z.object({
   generatedAt: z.iso.datetime(),
 });
 
-export const overviewData = z.object({ overview: overview.nullable() });
+export const overviewData = z.object({ overview: overview.nullable() }).meta(LEGACY_FIELD_META);
 
 /** WHY: why `data.overview` is null; absent when an answer is served. */
 export const overviewMeta = z.object({
   cached: z.boolean(),
   reason: z.enum(["no_results", "no_answer", "unavailable"]).optional(),
-});
+}).meta(LEGACY_FIELD_META);
 
 export type Overview = z.input<typeof overview>;
 export type OverviewSentence = z.input<typeof overviewSentence>;

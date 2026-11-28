@@ -1,3 +1,4 @@
+import type { NoticeBlocks } from "../blocks/notices-blocks.types";
 import type { NoticeEdit } from "../notices.document";
 import type { NoticeScheduleItem } from "../notices.wire";
 import { textOrNull } from "../notices.mapper";
@@ -34,7 +35,7 @@ function toEditInfo(doc: NoticeDetailRow): NoticeDetail["editInfo"] {
   return (doc.editCount || 0) > 0 ? { count: doc.editCount, history: (doc.editHistory || []).map(toJsonEdit) } : null;
 }
 
-export function toDetailItem(doc: NoticeDetailRow, schedule: NoticeScheduleItem[] | null): NoticeDetail {
+export function toDetailItem(doc: NoticeDetailRow, schedule: NoticeScheduleItem[] | null, blocks: NoticeBlocks): NoticeDetail {
   return {
     id: doc._id.toHexString(),
     sourceId: doc.sourceId,
@@ -53,5 +54,6 @@ export function toDetailItem(doc: NoticeDetailRow, schedule: NoticeScheduleItem[
     editInfo: toEditInfo(doc),
     summary: toSummaryFull(doc),
     schedule,
+    ...blocks,
   };
 }

@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { SUMMARY_TYPES } from "../notices.constants";
-import { noticeScheduleItem } from "../notices.wire";
+import { LEGACY_FIELD_META, SUMMARY_TYPES } from "../notices.constants";
+import { noticeAudience, noticeBrief, noticeRefs, noticeScheduleItem } from "../notices.wire";
 
 /** QUIRK(skkuverse-ai): the AI's periods, passed through as stored; any field may be absent or null. */
 const summaryPeriod = z.object({
@@ -50,7 +50,7 @@ export const noticeDetail = z.object({
   author: z.string().nullable(),
   department: z.string().nullable(),
   date: z.string(),
-  views: z.number(),
+  views: z.number().meta(LEGACY_FIELD_META),
   /** WHY: null when the crawler could not fetch the body; the app then opens `sourceUrl`. */
   contentMarkdown: z.string().nullable(),
   attachments: z.array(attachment),
@@ -58,9 +58,13 @@ export const noticeDetail = z.object({
   lastModified: z.string().nullable(),
   crawledAt: z.iso.datetime(),
   editInfo: z.object({ count: z.number().optional(), history: z.array(noticeEdit) }).nullable(),
-  summary: noticeSummaryFull.nullable(),
+  summary: noticeSummaryFull.nullable().meta(LEGACY_FIELD_META),
   // WHY: null when the notice has no schedule, an empty one or one the schema refuses: the app then shows no timeline.
   schedule: z.array(noticeScheduleItem).nullable(),
+  // WHY: each block is null when the notice stores none, an empty one or one the schema refuses, so the app tests one thing.
+  brief: noticeBrief.nullable(),
+  audience: noticeAudience.nullable(),
+  refs: noticeRefs.nullable(),
 });
 
 export type NoticeSummaryFull = z.input<typeof noticeSummaryFull>;

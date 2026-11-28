@@ -10,3 +10,11 @@ export const MAX_QUERY_CODEPOINTS = 100;
 export const SCHEDULE_STATUSES = ["scheduled", "tentative", "rescheduled", "cancelled", "suspended"] as const;
 export const SCHEDULE_FREQUENCIES = ["weekly", "daily"] as const;
 export const SCHEDULE_WEEKDAYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] as const;
+
+// SEE: docs/explanation/notices-architecture.md ("Glossary"): the vocabularies of the brief and audience blocks, which the stored blocks and their wire share.
+export const BRIEF_LANGUAGES = ["ko", "en"] as const;
+export const AUDIENCE_LEVELS = ["undergrad", "grad"] as const;
+export const AUDIENCE_STATUSES = ["enrolled", "leave", "expected_graduate", "completed", "research_registered", "alumni"] as const;
+
+// WHY: umbrella ADR 0012 D8: the summary, the views, the list's type filter and the overview route stay for released app versions until the forced update; the wires publish them as deprecated.
+export const LEGACY_FIELD_META = { deprecated: true, description: "Deprecated: kept for released app versions; removed at the forced update." } as const;

@@ -1,0 +1,48 @@
+{
+  "_about": "Hand-written 2026-11-28 in the shapes skkuverse-ai's stages return and umbrella ADR 0012 D7 has the crawler store on a notice: `brief` (app/bullets/model.py `Written.to_json`, plus `version` and `run`), `audience` (app/audience/model.py, plus `version` and `run`) and `refs` (the regex-only stage: links with their domain, bare phones and emails, plus `version`), each with its evidence as stored where the stage keeps one: the bullets' quotes, the title's question, the scored candidates and the audience quotes. `retiredBrief` is the earlier pipeline's brief as the removed server mirror read it. Synthetic because the crawler stores none yet; replace it with a captured one when it does.",
+  "brief": {
+    "language": "ko",
+    "title_question": "무엇을 해야 할까?",
+    "b3_candidates": [
+      { "kind": "cost", "answer": null, "score": 1 },
+      { "kind": "surprise", "answer": "선발되면 학기마다 TA로 활동해야 한다", "score": 4 }
+    ],
+    "bullets": [
+      { "q": 1, "text": "이 장학금은 성적이 우수한 대학원 진학자의 등록금을 정해진 기간 동안 지원해요.", "quotes": ["입학금 및 등록금 전액 지원"] },
+      { "q": 2, "kind": "surprise", "text": "추천서에 지도교수와 학과장 서명을 받아 대학원 학과 사무실에 제출해요.", "quotes": ["지도교수 및 학과장 서명", "학과 사무실 제출"] },
+      { "q": 3, "text": "선발되면 학기마다 TA로 활동해야 하고, 활동하지 않으면 장학금이 지급되지 않아요.", "quotes": ["TA 활동 의무"] }
+    ],
+    "version": "brief-2",
+    "run": { "usd": 0.0, "ms": 15501, "model": "claude-sonnet-5-5", "prompt": "2026-11-28.bullets-v8a" }
+  },
+  "audience": {
+    "level": { "include": [{ "value": "grad", "quote": "일반대학원 석사과정 재학생" }] },
+    "status": {
+      "include": [
+        { "value": "enrolled", "quote": "재학 중인 자" },
+        { "value": "enrolled", "quote": "2학기 이상 이수한 재학생" }
+      ],
+      "exclude": [
+        { "value": "completed", "quote": "수료생 및 휴학생 불가" },
+        { "value": "leave", "quote": "수료생 및 휴학생 불가" }
+      ]
+    },
+    "version": "audience-1",
+    "run": { "usd": 0.0, "ms": 6156, "model": "claude-sonnet-5-5", "prompt": "2026-11-28.audience-v4a" }
+  },
+  "refs": {
+    "links": [{ "url": "www.example-department.skku.edu/apply", "domain": "example-department.skku.edu" }],
+    "phones": [{ "value": "02-740-1722" }, { "value": "02-740-1729" }],
+    "emails": [{ "value": "grad@example.skku.edu" }],
+    "version": "refs-2"
+  },
+  "retiredBrief": {
+    "questionKey": "scholarship",
+    "language": "ko",
+    "bullets": [
+      { "text": "직전학기 12학점 이상을 이수한 재학생이 신청할 수 있어요.", "cites": ["f3", "f4"] },
+      { "text": "평점평균이 2.0 이상이어야 해요.", "cites": ["f5"] }
+    ],
+    "version": "9f2c41b07a3de6185c04"
+  }
+}

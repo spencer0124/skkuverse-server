@@ -107,6 +107,11 @@ export interface NoticeDoc {
   // CONTRACT(skkuverse-crawler): the `schedule` of skkuverse/docs/decisions/0012-notice-brief-and-add-ons.md ("D4"), as stored:
   // read it only through NoticesScheduleService, which parses it. Absent until the crawler's schedule stage has run.
   schedule?: unknown;
+  // CONTRACT(skkuverse-crawler): the `brief`, `audience` and `refs` of skkuverse/docs/decisions/0012-notice-brief-and-add-ons.md ("D7"), as stored with their evidence:
+  // read them only through NoticesBlocksService, which parses them. A `brief` of the retired pipeline may still sit on an old notice, and no `brief-2` one parses it.
+  brief?: unknown;
+  audience?: unknown;
+  refs?: unknown;
   // CONTRACT(skkuverse-crawler): the `_id` of the earliest copy sharing this notice's trimmed title and contentHash, so
   // copies are exactly the notices with equal `dupOf` (skkuverse/docs/decisions/0001-notice-data-ownership.md).
   // A notice the crawler has not linked yet lacks it.

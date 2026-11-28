@@ -382,6 +382,21 @@
       "GET notices/tabs"
     ]
   },
+  "notices.noticeAudience": {
+    "source": "src/notices/notices.wire.ts",
+    "export": "noticeAudience",
+    "routes": []
+  },
+  "notices.noticeBrief": {
+    "source": "src/notices/notices.wire.ts",
+    "export": "noticeBrief",
+    "routes": []
+  },
+  "notices.noticeRefs": {
+    "source": "src/notices/notices.wire.ts",
+    "export": "noticeRefs",
+    "routes": []
+  },
   "notices.noticeScheduleItem": {
     "source": "src/notices/notices.wire.ts",
     "export": "noticeScheduleItem",

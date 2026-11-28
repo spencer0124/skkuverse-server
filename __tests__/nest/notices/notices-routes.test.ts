@@ -1072,11 +1072,11 @@ describe("notices bodies", () => {
   });
 });
 
-describe("GET /notices/:sourceId/:articleNo — the summary, with no screen and no brief", () => {
+describe("GET /notices/:sourceId/:articleNo — the summary, with no screen", () => {
   const detailDoc = (extra: Record<string, unknown> = {}): NoticeDoc =>
     rawDoc({ _id: new ObjectId("66a1b2c3d4e5f6a7b8c9d301"), articleNo: 301, cleanMarkdown: "**본문**", ...extra });
 
-  it("serves the summary a notice stores, null for one with none even when the crawler stored facts and a brief, and neither of those", async () => {
+  it("serves the summary a notice stores, null for one with none even when the crawler stored facts and a retired brief, and no screen", async () => {
     // Arrange
     const stored = { summaryAt: new Date("2026-04-10T04:00:00Z"), summaryOneLiner: "한 줄", summaryType: "event" };
     detailRepository.docs = [detailDoc({ facts: { v: 1 }, brief: { questionKey: "recruit" } }), detailDoc({ articleNo: 302, ...stored })];
@@ -1091,8 +1091,8 @@ describe("GET /notices/:sourceId/:articleNo — the summary, with no screen and 
     expect(kept.body.data.summary).toMatchObject({ oneLiner: "한 줄", type: "event" });
     for (const res of [none, kept]) {
       expect(Object.keys(res.body.data)).not.toEqual(expect.arrayContaining(["screen"]));
-      expect(Object.keys(res.body.data)).not.toEqual(expect.arrayContaining(["brief"]));
     }
+    expect(none.body.data.brief).toBeNull();
     expectWire(noticeDetail, none.body.data);
     expectWire(noticeDetail, kept.body.data);
   });

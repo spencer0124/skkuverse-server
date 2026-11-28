@@ -533,6 +533,9 @@ describe("GET /notices/:sourceId/:articleNo over real documents", () => {
         generatedAt: "2026-10-09T03:59:37.024Z",
       },
       schedule: null,
+      brief: null,
+      audience: null,
+      refs: null,
     });
   });
 

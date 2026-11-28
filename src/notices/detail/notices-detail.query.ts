@@ -28,5 +28,8 @@ export const DETAIL_PROJECTION = {
   summaryModel: 1,
   summaryAt: 1,
   schedule: 1,
+  brief: 1,
+  audience: 1,
+  refs: 1,
   dupOf: 1,
 } as const satisfies Record<keyof NoticeDetailRow, 1>;

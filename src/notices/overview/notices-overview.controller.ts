@@ -1,8 +1,10 @@
-import { Controller, Get, Query } from "@nestjs/common";
+import { Controller, Get, Query, Res } from "@nestjs/common";
+import type { Response } from "express";
 import { CacheControl } from "../../http/cache-control.decorator";
 import { withMeta } from "../../http/response.interceptor";
 import type { WithMeta } from "../../http/response.types";
 import { ZodValidationPipe } from "../../http/zod-validation.pipe";
+import { OVERVIEW_ROUTE_DEPRECATION } from "./notices-overview.constants";
 import { overviewRequest, type OverviewQuery } from "./notices-overview.schema";
 import type { OverviewData, OverviewMeta } from "./notices-overview.wire";
 
@@ -13,7 +15,11 @@ import type { OverviewData, OverviewMeta } from "./notices-overview.wire";
 export class NoticesOverviewController {
   @Get("overview")
   @CacheControl("no-store")
-  getOverview(@Query(new ZodValidationPipe(overviewRequest, "INVALID_PARAMS")) _query: OverviewQuery): WithMeta<OverviewData, OverviewMeta> {
+  getOverview(
+    @Query(new ZodValidationPipe(overviewRequest, "INVALID_PARAMS")) _query: OverviewQuery,
+    @Res({ passthrough: true }) res: Response,
+  ): WithMeta<OverviewData, OverviewMeta> {
+    res.setHeader("Deprecation", OVERVIEW_ROUTE_DEPRECATION);
     return withMeta({ overview: null }, { cached: false, reason: "unavailable" });
   }
 }

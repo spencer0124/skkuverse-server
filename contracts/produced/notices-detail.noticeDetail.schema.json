@@ -36,7 +36,9 @@
       "type": "string"
     },
     "views": {
-      "type": "number"
+      "type": "number",
+      "deprecated": true,
+      "description": "Deprecated: kept for released app versions; removed at the forced update."
     },
     "contentMarkdown": {
       "type": [
@@ -303,7 +305,9 @@
         {
           "type": "null"
         }
-      ]
+      ],
+      "deprecated": true,
+      "description": "Deprecated: kept for released app versions; removed at the forced update."
     },
     "schedule": {
       "anyOf": [
@@ -969,6 +973,191 @@
           "type": "null"
         }
       ]
+    },
+    "brief": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "language": {
+              "type": "string",
+              "enum": [
+                "ko",
+                "en"
+              ]
+            },
+            "bullets": {
+              "minItems": 1,
+              "maxItems": 3,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ]
+              }
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "language",
+            "bullets",
+            "version"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "audience": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "object",
+              "properties": {
+                "include": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "undergrad",
+                      "grad"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "include"
+              ]
+            },
+            "status": {
+              "type": "object",
+              "properties": {
+                "include": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "enrolled",
+                      "leave",
+                      "expected_graduate",
+                      "completed",
+                      "research_registered",
+                      "alumni"
+                    ]
+                  }
+                },
+                "exclude": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "enrolled",
+                      "leave",
+                      "expected_graduate",
+                      "completed",
+                      "research_registered",
+                      "alumni"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "include",
+                "exclude"
+              ]
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "level",
+            "status",
+            "version"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "refs": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "links": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "domain": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "domain"
+                ]
+              }
+            },
+            "phones": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "value"
+                ]
+              }
+            },
+            "emails": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "value"
+                ]
+              }
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "links",
+            "phones",
+            "emails",
+            "version"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "required": [
@@ -988,6 +1177,9 @@
     "crawledAt",
     "editInfo",
     "summary",
-    "schedule"
+    "schedule",
+    "brief",
+    "audience",
+    "refs"
   ]
 }

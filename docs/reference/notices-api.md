@@ -24,7 +24,7 @@ audience: internal
 | GET | `/notices/proxy/attachment` | optional | The attachment proxy |
 | GET | `/notices/:sourceId/:articleNo` | optional | One notice's detail |
 | GET | `/notices/:sourceId/:articleNo/schedule.ics` | optional | One notice's schedule as an iCalendar file |
-| GET | `/notices/overview` | optional | A stub: a null overview for every valid search (`?q=&sourceIds=`) |
+| GET | `/notices/overview` | optional | Deprecated: a stub, a null overview for every valid search (`?q=&sourceIds=`) |
 | POST | `/internal/notices/dispatch-pending` | internal | The crawler's ping that starts an FCM dispatch sweep |
 
 The controllers are the source of truth for the routes: one per flow under `src/notices/` (`tabs/`, `list/`, `detail/`, `overview/`, `attachment/`, `dispatch/`), each `notices-<flow>.controller.ts`; the dispatch one is `@Controller("internal/notices")`.
@@ -34,6 +34,7 @@ The controllers are the source of truth for the routes: one per flow under `src/
 - **Authentication:** optional on `/notices`. A request without a bearer token passes; one with a token is verified, and only a rejected token answers 401 `AUTH_INVALID`. `src/http/request-authentication.middleware.ts` asks `REQUEST_AUTHENTICATOR` (ADR 0023) and sets `req.principal`, bound on `/notices` before the rate limit (the design notes say why). `/internal/notices` is authorized by `INTERNAL_AUTHORIZER` instead, under the `notices.dispatch` scope (its section below).
 - **Rate limit:** `/notices` is limited by the `notices` rate-limit class, which `RATE_LIMIT_POLICY` decides ([ADR 0023](../decisions/0023-perimeter-ports.md)). A refused request answers 429 `RATE_LIMIT` with `Retry-After`, and may carry `RateLimit-*` headers. The limits and how requests are counted belong to the production implementation, outside this repository's contract.
 - **Language:** `Accept-Language` picks the language of `label` and the other localized copy (`ko` or `en`; `zh` falls back to `en`).
+- **Deprecated:** a field or route marked deprecated is kept for released app versions and removed at the forced update (umbrella ADR 0012, D8): `summary` and `views` on the list item and on the detail, the list's `type` parameter and `GET /notices/overview`. The values do not change. `contracts/produced/` carries `"deprecated": true` and the sentence above on each field of a wire (the detail's and the list item's `summary` and `views`, and the overview's `data` and `meta`). The `type` parameter has no wire schema, so this document is where it is marked, and the overview route also answers a `Deprecation` header.
 
 ## GET /notices/tabs
 
@@ -78,7 +79,7 @@ The tab layout the app's notices screen renders, built from `categories.json` an
 
 ## GET /notices/source/:sourceId
 
-Query: `cursor` (base64url), `limit` (clamped to 1–50; unreadable means 20), `type` (optional: `action_required | event | informational`), `q` (optional search text, matched against the title and the summary one-liner; one that is empty, over 100 code points or holds a control character is dropped, never an error).
+Query: `cursor` (base64url), `limit` (clamped to 1–50; unreadable means 20), `type` (optional: `action_required | event | informational`; Deprecated: kept for released app versions; removed at the forced update.), `q` (optional search text, matched against the title and the summary one-liner; one that is empty, over 100 code points or holds a control character is dropped, never an error).
 
 ```jsonc
 {
@@ -113,18 +114,19 @@ Query: `cursor` (base64url), `limit` (clamped to 1–50; unreadable means 20), `
 }
 ```
 
-- **The list summary is brief:** `oneLiner`, `type`, `startAt`, `endAt`. The full summary is served only on the detail. The app's `formatDeadlineBadge` draws the badge by `type`.
+- **The list summary is brief:** `oneLiner`, `type`, `startAt`, `endAt`. The full summary is served only on the detail. The app's `formatDeadlineBadge` draws the badge by `type`. Deprecated: kept for released app versions; removed at the forced update.
+- **`views` is the board's view count.** Deprecated: kept for released app versions; removed at the forced update.
 - **`startAt` and `endAt` are derived at request time:**
   - A v1 notice (no `summaryVersion`): `selectEffectivePeriod`. For `action_required`, the earliest deadline still ahead in `summaryPeriods` (a timed same-day slot is no deadline), or the latest one when all have passed; for any other type, `periods[0]`.
   - A v2 notice (`summaryVersion >= 2` with `summaryDates`): `selectRoleBadge`. It takes the first that applies: an application window (`summaryApplication.windows`), the next `due`, the next `happens` event, all windows and dues passed (closed), a multi-day `runs` range. It ignores the stored `summaryType` and sets `type` to fit what it picked (a window not yet open reads as an `informational` range). Source: skkuverse-ai `openspec/changes/refine-notice-summary-v2` design D11.
 - **`summary` is the stored one.** An item serves the summary fields the crawler stores, and `summary` is `null` for a notice with none (`summaryAt` unset). Nothing the crawler writes after the first save is read.
-- **`type` filters on the stored `summaryType`.** A notice with no stored summary is in no typed list. The read itself applies the filter, so a typed page holds `limit` notices while more match, and `hasMore` and `nextCursor` follow the last notice served.
+- **`type` filters on the stored `summaryType`.** Deprecated: kept for released app versions; removed at the forced update. A notice with no stored summary is in no typed list. The read itself applies the filter, so a typed page holds `limit` notices while more match, and `hasMore` and `nextCursor` follow the last notice served.
 - **A cursor ignores the filter.** It pages on `(date, _id)`, so a cursor read under another `type` is accepted and may skip rows; the app resets the list when the filter changes.
 - **The cursor payload is `{d, c, i}`.** `c` (the old `crawledAt`) is still sent and accepted but never read, so a rollback can decode it. Clients treat the cursor as an opaque string. Background: [decisions/0007-notice-ordering-key.md](../decisions/0007-notice-ordering-key.md).
 
 ## GET /notices (several sources)
 
-`?sourceIds=a,b,c` with the same `limit`, `type`, `cursor` and `q` as above. The ids go in one `sourceIds`, comma-separated; a repeated `sourceIds` key is `400 INVALID_PARAMS`, as on `GET /notices/overview`. The named sources are merged into one list, newest first. `src/notices/list/notices-list.schema.ts` and `src/notices/list/notices-list.wire.ts` are the source of truth for the parameters and the response shape.
+`?sourceIds=a,b,c` with the same `limit`, `type` (deprecated as above), `cursor` and `q` as above. The ids go in one `sourceIds`, comma-separated; a repeated `sourceIds` key is `400 INVALID_PARAMS`, as on `GET /notices/overview`. The named sources are merged into one list, newest first. `src/notices/list/notices-list.schema.ts` and `src/notices/list/notices-list.wire.ts` are the source of truth for the parameters and the response shape.
 
 - **Each article once.** When `sourceIds` names two or more distinct sources, an article posted on several of them is one row (umbrella ADR 0001). Copies are the notices with the same `dupOf`, which the crawler writes; a notice without `dupOf` is an article of its own. Copies on one source collapse too.
 - **The copy served.** The row is the first copy in list order: the latest `date`, then the highest `id`. It keeps its own `id`, `sourceId` and `articleNo`, and sits at that copy's place in the list. A copy is hidden only when another copy in the read sorts before it, and the crawler never moves either key, so a refresh of `crawledAt` or `views` between two page reads changes no row.
@@ -164,13 +166,39 @@ Outbound policy (`OUTBOUND_POLICY`, purpose `notice-attachment`, [ADR 0023](../d
       "details": { "target": "...", "action": "...", "host": "...", "impact": null },
       "model": "gpt-4.1-mini-2025-04-14",
       "generatedAt": "2026-04-09T11:52:02.769Z"
+    },
+    "schedule": null,
+    "brief": {
+      "language": "ko",
+      "bullets": [{ "text": "이 장학금은 성적이 우수한 학생의 등록금을 지원해요." }],
+      "version": "brief-2"
+    },
+    "audience": {
+      "level": { "include": ["grad"] },
+      "status": { "include": ["enrolled"], "exclude": ["completed", "leave"] },
+      "version": "audience-1"
+    },
+    "refs": {
+      "links": [{ "url": "www.example.skku.edu/apply", "domain": "example.skku.edu" }],
+      "phones": [{ "value": "02-740-1722" }],
+      "emails": [{ "value": "office@example.skku.edu" }],
+      "version": "refs-2"
     }
   }
 }
 ```
 
 - **One body field, `contentMarkdown`.** `content`, `contentText` and `cleanHtml` are not served. When `contentMarkdown` is `null` (never an empty string), the client opens `sourceUrl` instead.
-- **The full summary** is `oneLiner` and `type`, as in the list, plus `text`, `periods`, `locations`, `details`, `model` and `generatedAt`; it has no `startAt` or `endAt`. It is `null` for a notice with no stored summary (`summaryAt` unset); nothing else the crawler writes after the first save is read or served.
+- **The full summary** is `oneLiner` and `type`, as in the list, plus `text`, `periods`, `locations`, `details`, `model` and `generatedAt`; it has no `startAt` or `endAt`. It is `null` for a notice with no stored summary (`summaryAt` unset). Deprecated: kept for released app versions; removed at the forced update. The same goes for `views`. Of what the crawler writes after the first save, the detail reads the `schedule`, `brief`, `audience` and `refs` and nothing else.
+- **`brief`, `audience` and `refs` (the blocks).** Each is read from the stored notice as the crawler writes it (umbrella ADR 0012, D7), parsed at the read, and served as content only: what a stage keeps as evidence (a bullet's quotes, the title's question, the audience quotes, the run record) and any field a later stage adds never reach the response. A block is `null` when the notice stores none, an empty one or one that fails its schema, so a client tests one thing; a failing one logs `notices.block.unparsed`. No block filters the notice out of a list or a detail.
+
+  | Block | Served | Null when |
+  | --- | --- | --- |
+  | `brief` | `{ language, bullets: [{ text }], version }`: one to three bullets in display order, `language` (`ko` or `en`) the language the notice is written in, not the request's | No bullet. A `version` that is not a `brief-2` one, four or more bullets or an unknown `language` fails the schema, so the brief of the earlier pipeline that old notices still carry is `null` |
+  | `audience` | `{ level: { include }, status: { include, exclude }, version }`: `level` values `undergrad` and `grad`; `status` values `enrolled`, `leave`, `expected_graduate`, `completed`, `research_registered` and `alumni`; each value once, in stored order | The three lists are all empty. A value outside the two vocabularies fails the schema |
+  | `refs` | `{ links: [{ url, domain }], phones: [{ value }], emails: [{ value }], version }`, in stored order, a `url` as found (it can lack a scheme) | No link, phone or email. A link with no `domain` or a contact with no `value` fails the schema |
+
+  `version` is informational. The blocks are served on the detail only, never on a list item.
 - **`schedule` (the timeline).** The items of the `schedule` the crawler stores on the notice, in its v2 shape (`contracts/consumed/notice-schedule.schema.json`), or `null` when the notice has none, its list is empty or it fails the stored schema, as a schedule stored in the v1 shape does. Items come in timeline order, on the end of the item as a whole. A plain item sorts on its `end`, else its `start`; an item with more than one occurrence, a series with an `until` or an item with an `rdate`, on the latest end among its occurrences, the last of `rrule + rdate - exdate - gaps`, served or not, so a long series or a lecture series sorts at its last day, not its first; a series with no `until` has no last occurrence and sorts on the end of its first, or of a later `rdate`. A point sorts on its `latest` day, else its `date`, then its `time`, `24:00` after `23:59`, and a point with no time at the end of its day. Each item is served as stored less its `evidence`, optional keys left out when absent, with its `place` named and its occurrences added:
 
   | Field | Meaning |
@@ -213,7 +241,7 @@ Each event also carries `DTSTAMP` (the request's time), `SUMMARY` (the title) an
 
 ## GET /notices/overview
 
-A stub kept for the released app, which asks for an AI answer card above a search and hides the card when it gets none. Every valid request answers `200` with a null overview, whatever the query, and the server reads no notice and calls no other service. The route goes when the forced update ships (umbrella ADR 0012, D8).
+Deprecated: kept for released app versions; removed at the forced update. A stub kept for the released app, which asks for an AI answer card above a search and hides the card when it gets none. Every valid request answers `200` with a null overview, whatever the query, and the server reads no notice and calls no other service. The route goes when the forced update ships (umbrella ADR 0012, D8), and until then it answers `Deprecation: @1795791600` (RFC 9745, 2026-11-28 00:00 KST) with no `Link` and no `Sunset`; an error answer carries none.
 
 **Parameters**
 

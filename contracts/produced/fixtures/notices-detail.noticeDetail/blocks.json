@@ -1,0 +1,119 @@
+{
+  "_about": "Synthetic: production.json's notice with the brief, audience and refs the server serves for the hand-written stored blocks in __tests__/nest/notices/fixtures/notice-blocks.stored.json (notices-blocks.routes.test.ts), evidence left out, since no crawler run has stored them yet",
+  "data": {
+    "id": "6acc38239cb01d9a98e2a2b9",
+    "sourceId": "skku-notice02",
+    "articleNo": 140482,
+    "title": "[인공지능혁신융합대학사업] 2026학년도 인공지능혁신융합대학사업 겨울 계절학기 학점교류 수강 안내 (상시 업데이트)",
+    "category": null,
+    "author": "인공지능혁신공유대학사업단",
+    "department": "성균관대_통합(학사)",
+    "date": "2026-10-14",
+    "views": 4685,
+    "contentMarkdown": "인공지능혁신융합대학사업의 협력교와 학점교류를 희망하는 학생은 아래 안내에 따라 신청하시기 바랍니다.\n\n※ 학점교류 교과목의 학점 및 ‘전공’학점 인정여부는 소속학과에서 결정하는 사안입니다.  \n※ 학점교류 희망 학생",
+    "attachments": [
+      {
+        "name": "전남대학교 인공지능혁신융합대학사업단 2026학년도 동계 계절학기 학점교류 신청 안내.Zip",
+        "url": "https://www.skku.edu/skku/campus/skk_comm/notice02.do?mode=download&articleNo=140482&attachNo=118217"
+      }
+    ],
+    "sourceUrl": "https://www.skku.edu/skku/campus/skk_comm/notice02.do?mode=view&articleNo=140482&article.offset=0&articleLimit=10",
+    "lastModified": null,
+    "crawledAt": "2026-10-14T08:30:08.216Z",
+    "editInfo": {
+      "count": 2,
+      "history": [
+        {
+          "detectedAt": "2026-10-13T02:00:08.400Z",
+          "oldHash": "c1cc5a6bd667511e0962c58666a210c7c5eb20ee0ff1a2b0a42d2365217c4f47",
+          "newHash": "c1cc5a6bd667511e0962c58666a210c7c5eb20ee0ff1a2b0a42d2365217c4f47",
+          "oldTitle": "[인공지능혁신융합대학사업] 2026학년도 인공지능혁신융합대학사업 겨울 계절학기 학점교류 수강 안내 (상시 업데이트)",
+          "newTitle": "[인공지능혁신융합대학사업] 2026학년도 인공지능혁신융합대학사업 겨울 계절학기 학점교류 수강 안내 (상시 업데이트)",
+          "titleChanged": false,
+          "contentChanged": false,
+          "source": "tier1"
+        }
+      ]
+    },
+    "summary": {
+      "text": "인공지능혁신융합대학사업 협력교와의 2026학년도 겨울 계절수업 학점교류를 신청할 수 있어요. 전남대의 인공지능기초(3학점) 등 4개 과목이 대상이며, 추천 마감은 2026년 10월 25일(일)까지예요. 첨부된 대학별",
+      "oneLiner": "전남대 4개 과목 교류, 이메일 office@example.com로 신청, 본교 계절수업과 합산 6학점 이내",
+      "type": "action_required",
+      "periods": [
+        {
+          "label": "추천 마감일",
+          "kind": "application",
+          "startDate": null,
+          "startTime": null,
+          "endDate": "2026-10-25",
+          "endTime": null,
+          "openEnded": false
+        }
+      ],
+      "locations": [],
+      "details": {
+        "target": "학사과정 2개 학기 이상 이수 학생 (2027년 2월 졸업예정자 제외)",
+        "action": "첨부 서류와 함께 office@example.com로 이메일 신청",
+        "host": "인공지능혁신융합대학사업단",
+        "impact": "타 대학 과목은 전공 또는 일반선택으로만 인정되며, 승인 후 포기 시 F학점이 부과될 수 있음"
+      },
+      "model": "claude-haiku-5-5",
+      "generatedAt": "2026-10-12T02:20:15.269Z"
+    },
+    "schedule": null,
+    "brief": {
+      "language": "ko",
+      "bullets": [
+        {
+          "text": "이 장학금은 성적이 우수한 대학원 진학자의 등록금을 정해진 기간 동안 지원해요."
+        },
+        {
+          "text": "추천서에 지도교수와 학과장 서명을 받아 대학원 학과 사무실에 제출해요."
+        },
+        {
+          "text": "선발되면 학기마다 TA로 활동해야 하고, 활동하지 않으면 장학금이 지급되지 않아요."
+        }
+      ],
+      "version": "brief-2"
+    },
+    "audience": {
+      "level": {
+        "include": [
+          "grad"
+        ]
+      },
+      "status": {
+        "include": [
+          "enrolled"
+        ],
+        "exclude": [
+          "completed",
+          "leave"
+        ]
+      },
+      "version": "audience-1"
+    },
+    "refs": {
+      "links": [
+        {
+          "url": "www.example-department.skku.edu/apply",
+          "domain": "example-department.skku.edu"
+        }
+      ],
+      "phones": [
+        {
+          "value": "02-740-1722"
+        },
+        {
+          "value": "02-740-1729"
+        }
+      ],
+      "emails": [
+        {
+          "value": "grad@example.skku.edu"
+        }
+      ],
+      "version": "refs-2"
+    }
+  }
+}

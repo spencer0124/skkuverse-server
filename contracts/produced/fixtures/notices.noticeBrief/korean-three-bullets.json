@@ -1,0 +1,18 @@
+{
+  "_about": "Synthetic: the brief the detail serves for the hand-written stored brief in __tests__/nest/notices/fixtures/notice-blocks.stored.json (notices-blocks.routes.test.ts), its evidence left out; no crawler run has stored a brief-2 yet",
+  "data": {
+    "language": "ko",
+    "bullets": [
+      {
+        "text": "이 장학금은 성적이 우수한 대학원 진학자의 등록금을 정해진 기간 동안 지원해요."
+      },
+      {
+        "text": "추천서에 지도교수와 학과장 서명을 받아 대학원 학과 사무실에 제출해요."
+      },
+      {
+        "text": "선발되면 학기마다 TA로 활동해야 하고, 활동하지 않으면 장학금이 지급되지 않아요."
+      }
+    ],
+    "version": "brief-2"
+  }
+}

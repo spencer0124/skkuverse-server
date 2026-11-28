@@ -190,3 +190,18 @@ describe("overview rate limit", () => {
     expect(res.status).toBe(200);
   });
 });
+
+// WHY: the route stays for the released app until the forced update (umbrella ADR 0012, D8); the released app reads no header.
+describe("GET /notices/overview deprecation", () => {
+  it("answers Deprecation (RFC 9745) with no successor, its body unchanged", async () => {
+    // Act
+    const res = await get("/notices/overview?sourceIds=skku-main&q=deprecated");
+
+    // Assert
+    expect(res.status).toBe(200);
+    expect(res.headers.deprecation).toBe("@1795791600");
+    expect(res.headers.link).toBeUndefined();
+    expect(res.headers.sunset).toBeUndefined();
+    expect(res.body).toEqual({ meta: { lang: "ko", cached: false, reason: "unavailable" }, data: { overview: null } });
+  });
+});
