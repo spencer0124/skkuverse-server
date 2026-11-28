@@ -214,4 +214,22 @@ describe("GET /notices/:sourceId/:articleNo, the brief, audience and refs", () =
     expect(res.body.data.audience).toEqual({ level: { include: [] }, status: { include: [], exclude: ["leave"] }, version: "audience-1" });
     expect(res.body.data.refs).toEqual({ links: [{ url: "https://skku.edu", domain: "skku.edu" }], phones: [], emails: [], version: "refs-2" });
   });
+
+  it("sets no Cache-Control and answers a weak ETag that changes with a block", async () => {
+    // Arrange
+    detailRepository.docs = [notice({ brief: STORED.brief })];
+
+    // Act
+    const first = await request(app.getHttpServer()).get("/notices/skku-main/136023");
+    const repeated = await request(app.getHttpServer()).get("/notices/skku-main/136023");
+    detailRepository.docs = [notice({ brief: STORED.brief, refs: STORED.refs })];
+    const withRefs = await request(app.getHttpServer()).get("/notices/skku-main/136023");
+
+    // Assert
+    expect(first.status).toBe(200);
+    expect(first.headers["cache-control"]).toBeUndefined();
+    expect(first.headers.etag).toMatch(/^W\//);
+    expect(repeated.headers.etag).toBe(first.headers.etag);
+    expect(withRefs.headers.etag).not.toBe(first.headers.etag);
+  });
 });
