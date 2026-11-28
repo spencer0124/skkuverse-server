@@ -3,25 +3,25 @@ title: Notices Architecture
 type: explanation
 status: draft
 owner: spencer0124
-last-updated: 2026-10-29
+last-updated: 2026-11-28
 audience: internal
 ---
 
 # Notices Architecture
 
-> What `src/notices/` serves: the notice tabs, lists and details the crawler's documents feed, the search overview the ai writes, the attachment proxy, and the push dispatch the crawler's ping triggers. Read it before you change a notice route, a push field or the tab files.
+> What `src/notices/` serves: the notice tabs, lists and details the crawler's documents feed, the overview stub the released app still calls, the attachment proxy, and the push dispatch the crawler's ping triggers. Read it before you change a notice route, a push field or the tab files.
 
 ## Context
 
-The crawler owns the `notices` collection: it writes every document, and skkuverse-ai writes the summary fields through it. This server reads it, adds one read index, and writes only the five push fields of the dispatch. The tab files (`categories.json`, `sources.json`, `exclude-reasons.json`) are the crawler's codegen output, hash-locked and copied by the umbrella. The root holds the module file, the document type, the tab files' loader and what several flows share; `tabs/`, `list/`, `detail/`, `overview/`, `attachment/` and `dispatch/` are one flow each. `schedule/` parses the crawler's `schedule`, the timeline of the umbrella's notice brief decision, expands each item's occurrences and names its places through building, for `detail/`, which serves it as the timeline and exports those items as iCalendar. The server serves the stored summary fields and the `schedule`, and reads nothing else the crawler writes after a notice's first save.
+The crawler owns the `notices` collection: it writes every document, and skkuverse-ai writes the summary fields through it. This server reads it, adds one read index, and writes only the five push fields of the dispatch. The tab files (`categories.json`, `sources.json`, `exclude-reasons.json`) are the crawler's codegen output, hash-locked and copied by the umbrella. The root holds the module file, the document type, the tab files' loader and what several flows share; `tabs/`, `list/`, `detail/`, `overview/` (a stub), `attachment/` and `dispatch/` are one flow each. `schedule/` parses the crawler's `schedule`, the timeline of the umbrella's notice brief decision, expands each item's occurrences and names its places through building, for `detail/`, which serves it as the timeline and exports those items as iCalendar. The server serves the stored summary fields and the `schedule`, and reads nothing else the crawler writes after a notice's first save.
 
 | System | Quirk tag | Gives | Enters at |
 | --- | --- | --- | --- |
 | skkuverse-crawler | `skkuverse-crawler` | The notice documents with their `schedule`, the unique article index, the tab files and the cycle-end ping | `NoticeDoc`, `NoticesScheduleService`, `noticesConfig`, `NoticesDispatchController` |
-| skkuverse-ai | `skkuverse-ai` | The summary fields (through the crawler) and the overview answer | `selectRoleBadge`, `NoticesOverviewClient` |
-| MongoDB Atlas | `atlas` | The list and detail reads, the `$rankFusion` retrieval and the atomic dispatch claim | `NoticesListRepository`, `NoticesOverviewRepository`, `NoticesDispatchRepository` |
+| skkuverse-ai | `skkuverse-ai` | The summary fields, through the crawler | `selectRoleBadge` |
+| MongoDB Atlas | `atlas` | The list and detail reads and the atomic dispatch claim | `NoticesListRepository`, `NoticesDetailRepository`, `NoticesDispatchRepository` |
 | SKKU department sites | `skku`, `gnuboard` | Attachment files, some behind a board session or a hotlink check | `NoticesAttachmentClient` |
-| axios | `axios` | The outbound calls of the proxy and the overview | `NoticesAttachmentClient` |
+| axios | `axios` | The outbound calls of the proxy | `NoticesAttachmentClient` |
 | The push Cloud Function | `push-function` | The fan-out to the notice's topics and its delivery counts, and a refusal of an empty title or body | `NoticesDispatchClient`, through `postToFcmFunction` |
 
 ## Glossary
@@ -45,8 +45,7 @@ The crawler owns the `notices` collection: it writes every document, and skkuver
 | timeline minute | The wall minute an item sorts on: its end, else its start (for an item with more than one occurrence, the latest end among them; a series with no `until` has no last occurrence and sorts on the end of its first occurrence or of a later `rdate`), a point's `latest` day, else its date, and the end of a day with no time | `toTimelineMinute` | — |
 | notice schedule item (`NoticeScheduleItem`) | A schedule item as the detail serves it: as stored less its evidence, its place named by building, with its occurrences, in timeline order | `toScheduleItems` | — |
 | calendar export | A notice's exportable schedule items as one iCalendar text, one event per item, its rules written as stored | `toCalendar` | — |
-| dedup key (`dedupKeyOf`) | A candidate's content in the overview's cache key: its trimmed title and content hash, so an edited notice is a new key | the notice | — |
-| cluster key (`clusterKeyOf`) | What the copies of one article share: the crawler's `dupOf`, or the notice's own `_id` while the crawler has not linked it; the list, the push and the overview each count an article once on it | `dupOf` | — |
+| cluster key (`clusterKeyOf`) | What the copies of one article share: the crawler's `dupOf`, or the notice's own `_id` while the crawler has not linked it; the list and the push each count an article once on it | `dupOf` | — |
 | cluster member (`ClusterMember`) | A copy at or before the cursor of a list of several sources, read for its cluster key: an earlier page served its article | `CLUSTER_MEMBER_PROJECTION` | — |
 | scanned row (`ScannedRow`) | A row of a list of several sources read only for its place in the list and its cluster key; the rows served are read again in full | `SCAN_PROJECTION` | — |
 | shown copy | The copy of an article a list of several sources serves: the first in list order, which no crawl moves | `selectShownRows` | — |
@@ -55,8 +54,6 @@ The crawler owns the `notices` collection: it writes every document, and skkuver
 | sweep summary (`SweepSummary`) | What one dispatch sweep claimed, sent and skipped | `NoticesDispatchService.sweepPending` | — |
 | push payload (`NoticePushPayload`) | The data the Cloud Function relays to devices | `NoticesDispatchClient.sendPush` | — |
 | push text (`PushText`) | A push's title and body: 📢 and the tab's name (the department board's own name for the department tab, the source's name when no one tab lists it) over the notice's original title, never model text and never empty, which the Cloud Function rejects | `toPushText` | — |
-| candidate (`OverviewCandidate`) | A retrieved notice the ai may cite | `NoticesOverviewRepository` | — |
-| overview (`Overview`) | The ai's answer with its citations renumbered for the app | `mapOverview` | — |
 
 ## Structure
 
@@ -67,7 +64,7 @@ flowchart LR
   coll -->|NoticesDetailRepository| detail["GET /notices/:sourceId/:articleNo"]
   coll -->|NoticesDetailRepository| ics["GET /notices/:sourceId/:articleNo/schedule.ics"]
   ics --> calendar["phone calendar"]
-  coll -->|NoticesOverviewRepository| overview["GET /notices/overview"]
+  stub["a fixed null overview"] --> overview["GET /notices/overview"]
   files["tab files"] -->|noticesConfig| tabs["GET /notices/tabs"]
   sites["SKKU sites"] -->|NoticesAttachmentClient| proxy["GET /notices/proxy/attachment"]
   crawler -->|ping| ping["POST /internal/notices/dispatch-pending"]
@@ -91,7 +88,7 @@ What the app reads, from `skkuverse-app/packages/shared/src/notices/parser.ts` a
 | detail `summary` | The summary card |
 | detail `schedule` | The timeline: each item's title, dates, occurrences and status, its parts as an agenda, and its place with a map button |
 | detail `author`, `views` | The header line |
-| `/notices/overview` `overview` | The answer card above a search, with numbered source chips |
+| `/notices/overview` `overview` | The answer card above a search; the card hides on the null the stub always sends |
 
 ## Invariants
 
@@ -104,12 +101,11 @@ What the app reads, from `skkuverse-app/packages/shared/src/notices/parser.ts` a
 - A notice's stored `schedule` reaches a flow only through `NoticesScheduleService`, which parses it with `storedSchedule`, the zod mirror of the crawler's schema (`contracts/consumed/notice-schedule.schema.json`). `__tests__/contracts/notice-schedule.test.ts` judges each fixture by both and pins where they differ on purpose: the mirror strips an unknown key, ignores the crawler's `key` and `groupId`, takes any item id unique in the notice, and refuses an id another item or part repeats, a day no calendar has, a part with parts of its own and a series whose start or end is a range of days (`latest`), which the schedule stage never writes and a series cannot repeat. A notice with none, an empty list or a value the schema refuses, one in the earlier stored shape included, has no schedule (`null` on the detail, `NOT_FOUND` on the export); a refused one logs `notices.schedule.unparsed` with the notice id, at most once a minute per notice. A place id building names gets its name and building sheet; when building's read fails, every place keeps its words and the detail still answers. Every date and time is Asia/Seoul wall time, computed on day numbers and clock strings, never a `Date` in the host's zone. A series' cost does not grow with its `until`: past the head that holds its first occurrences in time order, it expands only the days an `exdate`, an `rdate` or a gap's edge marks and the last rule day of each stretch between them, and counts the other rule days from day numbers, so `omittedCount` and the timeline minute stay exact however far its `until` lies. The calendar export leaves out an item dated by a range of days (`latest`), keys each event's `UID` on the cluster key and the item id, and writes the stored rules with no cap; the item-to-iCalendar table is in `docs/reference/notices-api.md`.
 - The tab files are parsed at import by `noticesConfig`, and a bad file stops the boot with `notices.tabconfig.invalid`.
 - An attachment request reaches only what `OUTBOUND_POLICY` allows for `notice-attachment`, on every hop ([ADR 0023](../decisions/0023-perimeter-ports.md)), and a type not known safe inline is served inside the sandbox CSP.
-- The overview never fails its request: a runtime failure is a null overview with a reason.
-- With `NOTICE_OVERVIEW` off, the production default, the overview answers a null overview with reason `unavailable` before it retrieves or calls the ai.
+- The overview route reads no notice, writes nothing and calls no other service: every valid query gets a null overview with reason `unavailable`, and only a bad query fails, with `INVALID_PARAMS` or `INVALID_SOURCE_ID`.
 
 ## Open questions
 
-- Notice reads are typed, not parsed per read ([ADR 0010](../decisions/0010-server-architecture.md), data access): `NoticeDoc` carries the crawler's `CONTRACT` tag, and the list, detail and overview reads are reasoned entries in `__tests__/architecture/exemptions/repository-reads.json`. The crawler's exported document type replaces the hand-written one.
+- Notice reads are typed, not parsed per read ([ADR 0010](../decisions/0010-server-architecture.md), data access): `NoticeDoc` carries the crawler's `CONTRACT` tag, and the list and detail reads are reasoned entries in `__tests__/architecture/exemptions/repository-reads.json`. The crawler's exported document type replaces the hand-written one.
 - `notices.topics.ts` has no role suffix because it reads the loaded categories itself; it joins a `.rules` file once it takes them as an argument.
 - A list read whose hinted index is missing answers a server error.
 

@@ -16,12 +16,6 @@ export function clusterKeyOf(notice: Pick<NoticeDoc, "_id" | "dupOf">): string {
   return (notice.dupOf ?? notice._id).toHexString();
 }
 
-export function groupByClusterKey<T extends Pick<NoticeDoc, "_id" | "dupOf">>(notices: readonly T[]): T[][] {
-  const groups = new Map<string, T[]>();
-  for (const notice of notices) groups.set(clusterKeyOf(notice), [...(groups.get(clusterKeyOf(notice)) ?? []), notice]);
-  return [...groups.values()];
-}
-
 // WHY: a code-point count, so 100 emoji pass like 100 letters, and a control character drops the search.
 export function toSearchQuery(raw: unknown): string | null {
   if (typeof raw !== "string") return null;

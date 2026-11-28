@@ -16,7 +16,7 @@ The mobile app reads this server over HTTPS. The server:
 
 - **Polls public transit APIs** in the background and keeps snapshots in MongoDB: shuttle and city bus positions and arrivals, subway arrivals.
 - **Serves timetables and estimates**: intercampus and commute shuttles, shuttle arrival estimates, a journey planner across shuttle, bus and subway.
-- **Serves department notices** that a separate crawler writes to MongoDB, with search, an AI overview card and push alerts through a Firebase Cloud Function.
+- **Serves department notices** that a separate crawler writes to MongoDB, with search and push alerts through a Firebase Cloud Function.
 - **Serves the map and the home screen**: map config, campus overlays, bus route lines, festival layers, buildings and rooms, cafeterias and their menus, and a server-driven home layout.
 - **Hosts mini apps**: their registry and the push messages each one sends.
 
@@ -44,7 +44,6 @@ NOTICES_SERVICE_START_DATE=2026-01-01
 API_HSSC_NEW_PROD=http://127.0.0.1:9/
 API_HSSC_NEW_DEV=http://127.0.0.1:9/
 FCM_FUNCTION_URL=http://127.0.0.1:9/
-AI_API_URL=http://127.0.0.1:9/
 SEOUL_BUS_SERVICE_KEY=placeholder
 SEOUL_SUBWAY_API_KEY=placeholder
 DATA_GO_KR_SERVICE_KEY=placeholder

@@ -1,6 +1,7 @@
 import moment from "moment-timezone";
 import { KST_TIME_ZONE } from "../../shared/time-zone.constants";
 import type { NoticeDoc } from "../notices.document";
+import { clusterKeyOf } from "../notices.rules";
 import type { CategoryConfig } from "../notices.types";
 import { DEPARTMENT_CATEGORY_ID, PUSH_TITLE_MARK } from "./notices-dispatch.constants";
 import type { ClaimWindow, DispatchPolicy, PushedFields, PushTabs, PushText, ReleasedFields, SkippedFields } from "./notices-dispatch.types";
@@ -66,4 +67,10 @@ function toPushName(sourceId: string, { categories, sourceById }: PushTabs): str
 export function toPushText(notice: Pick<NoticeDoc, "sourceId" | "title">, tabs: PushTabs): PushText {
   if (notice.title.trim() === "") throw new Error("push body: the notice has no title");
   return { title: `${PUSH_TITLE_MARK} ${toPushName(notice.sourceId, tabs)}`, body: notice.title };
+}
+
+export function groupByClusterKey<T extends Pick<NoticeDoc, "_id" | "dupOf">>(notices: readonly T[]): T[][] {
+  const groups = new Map<string, T[]>();
+  for (const notice of notices) groups.set(clusterKeyOf(notice), [...(groups.get(clusterKeyOf(notice)) ?? []), notice]);
+  return [...groups.values()];
 }

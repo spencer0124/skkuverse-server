@@ -24,7 +24,7 @@ npm run lint        # ESLint, then markdownlint
 npm test            # Jest, the notices suites included
 ```
 
-- The specs sit next to each flow under `src/notices/` (`tabs/`, `list/`, `detail/`, `overview/`, `attachment/`, `dispatch/`, `facts/`, `row/`, `screen/`, `legacy/`), the route tests in `__tests__/nest/notices/`. They pin the cursor round-trip for every stored date shape, `NoticesListCursorError` and the sampled production documents (`notices-documents.routes.test.ts`).
+- The specs sit next to each flow under `src/notices/` (`tabs/`, `list/`, `detail/`, `overview/`, `attachment/`, `dispatch/`, `schedule/`), the route tests in `__tests__/nest/notices/`. They pin the cursor round-trip for every stored date shape, `NoticesListCursorError` and the sampled production documents (`notices-documents.routes.test.ts`).
 - `jest.config.js` holds the coverage thresholds.
 
 ## Runtime smoke test (against the development database)

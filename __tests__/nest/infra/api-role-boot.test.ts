@@ -155,7 +155,7 @@ describe("running every poller once as ROLE=poller without the api-scoped values
     );
 
     // Assert
-    expect(API_NAMES).toEqual(expect.arrayContaining(["AI_API_URL", "INTERNAL_DISPATCH_TOKEN"]));
+    expect(API_NAMES).toEqual(expect.arrayContaining(["INTERNAL_DISPATCH_TOKEN"]));
     expect(pollers.map((poller) => poller.name)).toEqual(
       expect.arrayContaining(["hssc", "jongro-07", "jongro-path-07", "notices-dispatch-sweep", "shuttle-eta-live"]),
     );

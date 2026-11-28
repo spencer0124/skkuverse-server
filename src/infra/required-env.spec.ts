@@ -4,8 +4,7 @@
  * through apiUrl() (DEV preferred, PROD as fallback) rather than read straight
  * off process.env: reading API_HSSC_NEW_PROD directly would crash the Nest
  * validator in Development mode when a dev sets only API_HSSC_NEW_DEV, a
- * config src/infra/config.ts accepts. AI_API_URL has no default, so it is
- * reported when unset.
+ * config src/infra/config.ts accepts.
  *
  * Each scenario sets env, then loads the module fresh with
  * jest.isolateModules().
@@ -112,28 +111,6 @@ describe("describeMissingRequired api.hsscNew matches src/infra/config.ts apiUrl
   });
 });
 
-describe("describeMissingRequired AI_API_URL", () => {
-  // GET /notices/overview cannot work without it, and there is no default.
-  it("reports AI_API_URL as missing when it is unset", () => {
-    // Arrange
-    const saved = process.env.AI_API_URL;
-    delete process.env.AI_API_URL;
-
-    // Act & Assert
-    try {
-      jest.isolateModules(() => {
-        const mod = require("./required-env");
-        expect(mod.describeMissingRequired()).toContain(
-          "  notices.overview.aiApiUrl (env: AI_API_URL)",
-        );
-      });
-    } finally {
-      if (saved === undefined) delete process.env.AI_API_URL;
-      else process.env.AI_API_URL = saved;
-    }
-  });
-});
-
 describe("envRole", () => {
   it.each([
     [undefined, "combined"],
@@ -229,7 +206,6 @@ describe("requiredValues scopes each value to the roles that read it", () => {
       FCM_API_KEY: "all",
       INTERNAL_DISPATCH_TOKEN: "api",
       SUBWAY_ACCURACY_TOKEN: "api",
-      AI_API_URL: "api",
       NAVER_API_KEY_ID: "poller",
       NAVER_API_KEY: "poller",
       TMAP_APP_KEY: "poller",
@@ -257,13 +233,10 @@ describe("listMissingRequired checks only the values the role needs", () => {
     expect(missingIn(role, "TMAP_APP_KEY")).toEqual(missing);
   });
 
-  it.each([
-    ["api", ["AI_API_URL"]],
-    ["combined", ["AI_API_URL"]],
-    ["poller", []],
-  ])("without AI_API_URL, ROLE=%s misses %j", (role, missing) => {
+  // WHY: the overview route answers a fixed stub, so no role reads the ai's address; the secret store drops it one release later.
+  it.each(["api", "combined", "poller"])("without AI_API_URL, ROLE=%s misses nothing", (role) => {
     // Act & Assert
-    expect(missingIn(role, "AI_API_URL")).toEqual(missing);
+    expect(missingIn(role, "AI_API_URL")).toEqual([]);
   });
 
   // WHY: the shared push token is retired with the internal push routes (ADR 0020, D6); the secret store drops it one release later.
@@ -283,7 +256,6 @@ describe("listMissingRequired checks only the values the role needs", () => {
 
   it("checks every value under an unknown ROLE, which validation refuses on its own", () => {
     // Act & Assert
-    expect(missingIn("poler", "AI_API_URL")).toEqual(["AI_API_URL"]);
     expect(missingIn("poler", "TMAP_APP_KEY")).toEqual(["TMAP_APP_KEY"]);
   });
 });

@@ -30,7 +30,6 @@ const defaults: Record<string, string> = {
   FCM_API_KEY: "test-fcm-api-key",
   INTERNAL_DISPATCH_TOKEN: "test-internal-dispatch-token",
   SUBWAY_ACCURACY_TOKEN: "test-subway-accuracy-token",
-  AI_API_URL: "http://test-ai",
   NAVER_API_KEY_ID: "test-naver-key-id",
   NAVER_API_KEY: "test-naver-key",
   TMAP_APP_KEY: "test-tmap-app-key",
@@ -41,10 +40,6 @@ const defaults: Record<string, string> = {
   PERIMETER_SETTINGS: "e30",
   PERIMETER_SETTINGS_QUOTAS: "e30",
 };
-
-// Production runs NOTICE_OVERVIEW=off by default (src/infra/runtime-switches.ts); the
-// overview tests exercise the feature, and the ones about the switch turn it off.
-defaults.NOTICE_OVERVIEW = "on";
 
 for (const [key, value] of Object.entries(defaults)) {
   if (!process.env[key]) {

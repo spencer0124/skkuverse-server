@@ -16,39 +16,28 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
 import { Clock } from "../../../src/infra/clock";
 import { NoticesModule } from "../../../src/notices/notices.module";
-import { NoticesOverviewClient } from "../../../src/notices/overview/notices-overview.client";
 import { NoticesOverviewModule } from "../../../src/notices/overview/notices-overview.module";
-import { NoticesOverviewRepository } from "../../../src/notices/overview/notices-overview.repository";
 import { NoticesTabsModule } from "../../../src/notices/tabs/notices-tabs.module";
 import { RateLimitPolicy, RequestAuthenticator } from "../../../src/perimeter/perimeter.ports";
 import { SchedulingModule } from "../../../src/scheduling/scheduling.module";
-import { FakeNoticesOverviewClient } from "../../helpers/fakes/notices/notices-overview.client.fake";
-import { FakeNoticesOverviewRepository } from "../../helpers/fakes/notices/notices-overview.repository.fake";
 import { answerByBearer, FakeRequestAuthenticator } from "../../helpers/fakes/perimeter/request-authenticator.fake";
 import { FakeRateLimitPolicy } from "../../helpers/fakes/perimeter/rate-limit-policy.fake";
 import { buildTestApp } from "../../helpers/nest/build-test-app";
-import { aiResponse, candidate } from "../../helpers/overview-fixtures";
 
 let app: NestExpressApplication;
 let httpServer: import("http").Server;
 let rateLimitPolicy: FakeRateLimitPolicy;
 const authenticator = new FakeRequestAuthenticator();
 authenticator.answer = answerByBearer(["bad"]);
-const overviewRepository = new FakeNoticesOverviewRepository();
-const overviewClient = new FakeNoticesOverviewClient();
 
 beforeEach(async () => {
   rateLimitPolicy = new FakeRateLimitPolicy();
-  overviewRepository.candidates = [candidate()];
-  overviewClient.outcome = { kind: "ok", response: aiResponse() };
   // ROLE=api keeps the dispatch sweep poller from starting.
   app = await buildTestApp({
     imports: [SchedulingModule, NoticesModule, NoticesTabsModule, NoticesOverviewModule],
     overrides: [
       { provide: RateLimitPolicy, useValue: rateLimitPolicy },
       { provide: RequestAuthenticator, useValue: authenticator },
-      { provide: NoticesOverviewRepository, useValue: overviewRepository },
-      { provide: NoticesOverviewClient, useValue: overviewClient },
       { provide: Clock, useValue: { now: () => new Date("2026-10-26T03:00:00.000Z") } },
     ],
     role: "api",

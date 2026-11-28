@@ -57,7 +57,9 @@ const DEV = allowlist("config/env.dev.keys");
 // WHY: the deploy restarts the previous image against the newly rendered .env when a deploy fails health, so a
 // name that image requires stays listed for one release after the code stops reading it; the next release deletes
 // the entry, the name in both lists and the secret-store key.
-const KEPT_FOR_ROLLBACK: Readonly<Record<string, string>> = {};
+const KEPT_FOR_ROLLBACK: Readonly<Record<string, string>> = {
+  AI_API_URL: "the overview route answers a fixed stub, so no code reads the ai's address; the release before it still required it",
+};
 // Production adds SENTRY_DSN, and its overlay mode PERIMETER_SETTINGS, so its list is the longest.
 const REQUIRED = requiredValues({ NODE_ENV: "production", PERIMETER_MODE: "overlay" }).map((v) => v.env);
 

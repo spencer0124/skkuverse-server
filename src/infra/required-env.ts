@@ -126,7 +126,6 @@ export function requiredValues(env: NodeJS.ProcessEnv): RequiredValue[] {
     raw("push.apiKey", "FCM_API_KEY", "all"),
     raw("notices.dispatch.internalToken", "INTERNAL_DISPATCH_TOKEN", "api"),
     raw("subway.accuracyToken", "SUBWAY_ACCURACY_TOKEN", "api"),
-    raw("notices.overview.aiApiUrl", "AI_API_URL", "api"),
     raw("shuttleEta.naver.keyId", "NAVER_API_KEY_ID", "poller"),
     raw("shuttleEta.naver.key", "NAVER_API_KEY", "poller"),
     raw("shuttleEta.tmapAppKey", "TMAP_APP_KEY", "poller"),

@@ -1,12 +1,13 @@
 /**
  * Dispatch decisions over the push fields: the claim window (a KST day floor, the lease cutoff, the attempt
- * cap), the field values of a push, a skip and a release, the group's representative and the text a push shows.
+ * cap), the field values of a push, a skip and a release, the groups of copies one push serves, the group's
+ * representative and the text a push shows.
  * Its Mongo form is notices-dispatch.query.ts, pinned by the repository spec.
  */
 import { ObjectId } from "mongodb";
 import { noticesConfig } from "../notices.config";
 import type { CategoryConfig, SourceConfig } from "../notices.types";
-import { selectRepresentative, toClaimWindow, toPushedFields, toPushText, toReleasedFields, toSkippedFields } from "./notices-dispatch.rules";
+import { groupByClusterKey, selectRepresentative, toClaimWindow, toPushedFields, toPushText, toReleasedFields, toSkippedFields } from "./notices-dispatch.rules";
 import type { PushTabs } from "./notices-dispatch.types";
 
 const POLICY = { maxAgeDays: 14, claimLeaseMs: 10 * 60_000, maxAttempts: 5 };
@@ -137,5 +138,25 @@ describe("toPushText", () => {
       expect(text.title).toMatch(/^📢 \S/);
       expect(text.body).toBe("공지");
     }
+  });
+});
+
+describe("groupByClusterKey", () => {
+  const id = (n: number) => new ObjectId(n.toString(16).padStart(24, "0"));
+
+  it("groups the notices whose key is equal, each group in the order given, the groups in order of their first notice", () => {
+    // Arrange
+    const notices = [{ _id: id(3), dupOf: id(1) }, { _id: id(4), dupOf: id(4) }, { _id: id(1), dupOf: id(1) }, { _id: id(5) }];
+
+    // Act
+    const groups = groupByClusterKey(notices);
+
+    // Assert
+    expect(groups.map((group) => group.map((notice) => notice._id))).toEqual([[id(3), id(1)], [id(4)], [id(5)]]);
+  });
+
+  it("forms no group from no notices", () => {
+    // Act & Assert
+    expect(groupByClusterKey([])).toEqual([]);
   });
 });

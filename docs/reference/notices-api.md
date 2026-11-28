@@ -3,7 +3,7 @@ title: Notices API Contract
 type: reference
 status: accepted
 owner: spencer0124
-last-updated: 2026-11-06
+last-updated: 2026-11-28
 audience: internal
 ---
 
@@ -24,7 +24,7 @@ audience: internal
 | GET | `/notices/proxy/attachment` | optional | The attachment proxy |
 | GET | `/notices/:sourceId/:articleNo` | optional | One notice's detail |
 | GET | `/notices/:sourceId/:articleNo/schedule.ics` | optional | One notice's schedule as an iCalendar file |
-| GET | `/notices/overview` | optional | AI answer card for a search (`?q=&sourceIds=`) |
+| GET | `/notices/overview` | optional | A stub: a null overview for every valid search (`?q=&sourceIds=`) |
 | POST | `/internal/notices/dispatch-pending` | internal | The crawler's ping that starts an FCM dispatch sweep |
 
 The controllers are the source of truth for the routes: one per flow under `src/notices/` (`tabs/`, `list/`, `detail/`, `overview/`, `attachment/`, `dispatch/`), each `notices-<flow>.controller.ts`; the dispatch one is `@Controller("internal/notices")`.
@@ -213,9 +213,7 @@ Each event also carries `DTSTAMP` (the request's time), `SUMMARY` (the title) an
 
 ## GET /notices/overview
 
-An AI answer for a notice search, in the style of an AI Overview, with numbered sources the app can open. It is a **separate request from the list**: the list never waits for it, and its absence never affects the list. Why it retrieves, caches and times out as it does: umbrella ADR 0001.
-
-**Off in production.** The runtime switch `NOTICE_OVERVIEW` (`src/infra/runtime-switches.ts`) defaults to `off` in production. With it off, every valid request answers `200` with `data.overview: null` and `meta.reason: "unavailable"`, and the server runs no retrieval and no skkuverse-ai call. Development defaults it to `on`.
+A stub kept for the released app, which asks for an AI answer card above a search and hides the card when it gets none. Every valid request answers `200` with a null overview, whatever the query, and the server reads no notice and calls no other service. The route goes when the forced update ships (umbrella ADR 0012, D8).
 
 **Parameters**
 
@@ -224,52 +222,20 @@ An AI answer for a notice search, in the style of an AI Overview, with numbered 
 | `q` | yes | Same rule as the list search: trimmed, 1–100 Unicode codepoints, no control characters |
 | `sourceIds` | yes | 1–20 comma-separated known source ids — the search screen's current scope |
 
-**How it is produced.** The server ranks in-scope notices with a hybrid `$rankFusion` over the Atlas indexes `notices_search` and `notices_vector`. The scope is the requested sources, not deleted, and on or after the service start date, exactly like the list. Cross-posted copies are collapsed on the crawler's `dupOf`, as in the list, so each article takes one candidate slot. The top candidates go to skkuverse-ai `POST /api/notices/overview`, and its positional citations are mapped back to notices. That contract is owned by skkuverse-ai (`docs/notice-overview-api.md` in that repo) and is not repeated here.
-
-**Response (overview present)**
+**Response**: always `200` for a valid query, with `Cache-Control: no-store`:
 
 ```json
 {
-  "meta": { "lang": "ko", "cached": false },
-  "data": {
-    "overview": {
-      "lead": { "text": "…", "cites": [1] },
-      "points": [{ "text": "…", "cites": [1, 2] }],
-      "sources": [
-        { "n": 1, "sourceId": "skku-main", "articleNo": 140112, "title": "…", "date": "2026-09-24", "contentMissing": false }
-      ],
-      "lang": "ko",
-      "generatedAt": "2026-10-06T08:00:02.512Z"
-    }
-  }
+  "meta": { "lang": "ko", "cached": false, "reason": "unavailable" },
+  "data": { "overview": null }
 }
 ```
 
-- `lead` is one sentence or `null`. Render it only when present; never promote the first point into its place.
-- `points` holds at most 5 entries.
-- `cites` numbers refer to `sources[].n`. Sources are numbered 1..M in the order the answer first cites them, so `[1]` is always the first source the reader meets.
-- `sources[]` carries the detail route key (`sourceId`, `articleNo`), in the same representation as list items. `contentMissing: true` marks an image-only notice; show "원문 확인 필요".
-- `lang` is `ko` or `en`. The ai answers in English for any non-`ko` client language, including `zh`.
-- `meta.cached` is `true` when the overview was reused from this replica's cache. Reuse requires the same query, sources, language, KST date and unchanged candidate notices.
+`data.overview` is typed as the object the earlier route served, with `lead`, `points`, `sources`, `lang` and `generatedAt`, or `null` (`src/notices/overview/notices-overview.wire.ts`). The server only ever sends `null`. `meta.reason` is one of `no_results`, `no_answer` and `unavailable` in that wire, and only `unavailable` is sent.
 
-**Response (no overview)**: always `200`, with `data.overview: null` and `meta.reason`:
+**Errors**: `400 INVALID_PARAMS` (bad `q` or `sourceIds`), `400 INVALID_SOURCE_ID`, `429 RATE_LIMIT`. Besides the `notices` class, the route passes the `notices-overview` class (`src/http/notices-overview-rate-limit.middleware.ts` binds it), refused the same way.
 
-| `reason` | Meaning |
-| --- | --- |
-| `no_results` | No in-scope notice matches the query; the ai was not called |
-| `no_answer` | The matching notices do not answer the query |
-| `unavailable` | `NOTICE_OVERVIEW` is off, retrieval failed, the ai failed or timed out, or the ai's daily budget is exhausted |
-
-Every response carries `Cache-Control: no-store`.
-
-**Errors**: `400 INVALID_PARAMS` (bad `q` or `sourceIds`), `400 INVALID_SOURCE_ID`, `429 RATE_LIMIT`. Besides the `notices` class, the overview passes the `notices-overview` class (`src/http/notices-overview-rate-limit.middleware.ts` binds it), refused the same way.
-
-**Client obligations**
-
-- Send the overview request alongside the list request, and render the list without waiting for it.
-- Use a timeout of about **25 s** with **no automatic retry**. The server answers within 24 s; a retry repeats the whole answer. The app's default (6 s, one retry) must not be used for this call.
-- Hide the card when `data.overview` is `null`, including on `429`.
-- A source chip opens `/notices/[sourceId]/[articleNo]`. Build any schedule UI from the cited notices' own `summaryPeriods`, not from the answer text.
+**Client obligations**: hide the card when `data.overview` is `null`, including on `429`.
 
 ## POST /internal/notices/dispatch-pending
 
@@ -308,7 +274,7 @@ The code is the source of truth for file names; `docs/explanation/notices-archit
 | `GET /notices/source/:sourceId`, `GET /notices`: reads, index, projection, cursor, list item, badge | `list/` |
 | `GET /notices/:sourceId/:articleNo` and its `schedule.ics` | `detail/` |
 | The detail's `schedule`: the stored schedule parsed, its occurrences expanded and its places named | `schedule/`, and the published shape in `notices.wire.ts` |
-| `GET /notices/overview`: retrieval, the ai call, citation mapping, cache | `overview/` |
+| `GET /notices/overview`: the stub answer and its query check | `overview/` |
 | `GET /notices/proxy/attachment` | `attachment/`, with the outbound policy behind `OUTBOUND_POLICY` (`src/perimeter/perimeter.ports.ts`) |
 | `POST /internal/notices/dispatch-pending` and the safety-net poller | `dispatch/` |
 | Push topics | `notices.topics.ts` |

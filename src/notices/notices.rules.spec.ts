@@ -9,7 +9,6 @@ import {
   categoryReferenceProblems,
   clusterKeyOf,
   excludeReasonProblems,
-  groupByClusterKey,
   isSummaryType,
   normalizeSummaryType,
   toSearchQuery,
@@ -156,25 +155,5 @@ describe("clusterKeyOf", () => {
   ])("keys a notice on %s", (_case, notice, anchor) => {
     // Act & Assert
     expect(clusterKeyOf(notice)).toBe(anchor.toHexString());
-  });
-});
-
-describe("groupByClusterKey", () => {
-  const id = (n: number) => new ObjectId(n.toString(16).padStart(24, "0"));
-
-  it("groups the notices whose key is equal, each group in the order given, the groups in order of their first notice", () => {
-    // Arrange
-    const notices = [{ _id: id(3), dupOf: id(1) }, { _id: id(4), dupOf: id(4) }, { _id: id(1), dupOf: id(1) }, { _id: id(5) }];
-
-    // Act
-    const groups = groupByClusterKey(notices);
-
-    // Assert
-    expect(groups.map((group) => group.map((notice) => notice._id))).toEqual([[id(3), id(1)], [id(4)], [id(5)]]);
-  });
-
-  it("forms no group from no notices", () => {
-    // Act & Assert
-    expect(groupByClusterKey([])).toEqual([]);
   });
 });
